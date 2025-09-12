@@ -559,3 +559,9 @@ tools/xstore/venv
 docs/**
 /hack/make-rules/venv/
 /hack/make-rules/.idea/
+node_modules/
+polardbx-ui/node_modules/
+polardbx-ui/dist/
+polardbx-ui/.angular/
+polradbx-ui/node_modules/
+polardbx-operator
