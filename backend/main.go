@@ -24,6 +24,7 @@ import (
 	api_systemtask "polardbx-ui-backend/pkg/api/systemtask"
 	api_xstore "polardbx-ui-backend/pkg/api/xstore"
 
+	api_logs "polardbx-ui-backend/pkg/api/logs"
 	api_logservice "polardbx-ui-backend/pkg/api/logservice"
 	api_logstrategy "polardbx-ui-backend/pkg/api/logstrategy"
 
@@ -205,6 +206,9 @@ func main() {
 		v1.PUT("/log-strategies/:name", api_logstrategy.Update)
 		v1.DELETE("/log-strategies/:name", api_logstrategy.Delete)
 		v1.POST("/log-strategies/:name/apply", api_logstrategy.Apply)
+
+		// Logs query (secured by whitelist and secrets)
+		v1.POST("/logs/query", api_logs.Query)
 
 		// Monitoring module (modularized)
 		v1.POST("/monitoring/bootstrap", api_monitoring.Bootstrap)
