@@ -1,0 +1,25 @@
+# Operator 核心逻辑
+
+`polardbx-operator` 的核心业务逻辑，即所有自定义资源 (CR) 的**协调循环 (Reconciliation Loop)**，都位于 `pkg/operator/v1/` 目录下。
+
+每个 CRD 都对应一个子目录，其中包含了它的控制器实现。
+
+## 关键目录
+
+*   **`pkg/operator/v1/polardbxcluster/`**:
+    *   包含了 `PolarDBXCluster` 资源的的控制器。
+    *   **`reconcile.go`** 文件是核心，它实现了当一个 `PolarDBXCluster` 被创建、更新或删除时，Operator 需要执行的所有操作，例如创建/更新 `StatefulSet`, `Deployment`, `ConfigMap` 和 `Service` 等。
+
+*   **`pkg/operator/v1/polardbxbackup/`**:
+    *   包含了 `PolarDBXBackup` 资源的控制器。
+    *   实现了触发备份、与 HPFS 服务交互、更新备份任务状态等逻辑。
+
+*   **`pkg/operator/v1/polardbxparameter/`**:
+    *   包含了 `PolarDBXParameter` 资源的控制器。
+    *   实现了读取参数变更、更新 `ConfigMap` 并触发 Pod 重启以应用新参数的逻辑。
+
+当需要理解 Operator 如何将一个 CR 的 `spec` 转化为实际运行的底层资源时，这些目录是首先需要查看的地方。
+description:
+globs:
+alwaysApply: false
+---

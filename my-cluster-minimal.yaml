@@ -1,0 +1,40 @@
+apiVersion: polardbx.aliyun.com/v1
+kind: PolarDBXCluster
+metadata:
+  name: quick-start-minimal
+  annotations:
+    polardbx/topology-mode-guide: quick-start
+spec:
+  topology:
+    nodes:
+      cn:
+        replicas: 1
+        template:
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              cpu: "1"
+              memory: "2Gi"
+      dn:
+        replicas: 1
+        template:
+          engine: galaxy
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi" 
+            limits:
+              cpu: "1"
+              memory: "2Gi"
+      gms:
+        template:
+          engine: galaxy
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              cpu: "1"
+              memory: "2Gi" 

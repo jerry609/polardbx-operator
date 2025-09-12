@@ -1,0 +1,526 @@
+.xstore-follower-management {
+  min-height: 600px;
+  max-height: 80vh;
+  overflow-y: auto;
+  background: linear-gradient(135deg, #f5f7fa 0%, #f0f2f5 100%);
+  border-radius: 12px;
+  padding: 8px;
+}
+
+.management-tabs {
+  .mat-mdc-tab-body-wrapper {
+    padding: 0;
+  }
+}
+
+.tab-content {
+  padding: 24px;
+  
+  &.form-content {
+    max-height: calc(80vh - 120px);
+    overflow-y: auto;
+  }
+}
+
+// List Tab Styles
+.list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  
+  h3 {
+    margin: 0;
+    color: rgba(0, 0, 0, 0.87);
+    font-weight: 500;
+  }
+  
+  .header-actions {
+    display: flex;
+    gap: 8px;
+    
+    button {
+      border-radius: 8px;
+      font-weight: 500;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      transition: all 0.3s ease;
+      
+      &:hover {
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        transform: translateY(-1px);
+      }
+      
+      &.mat-primary {
+        background: linear-gradient(135deg, #1976d2, #42a5f5);
+      }
+      
+      &.mat-accent {
+        background: linear-gradient(135deg, #f57c00, #ffb74d);
+      }
+    }
+  }
+}
+
+.followers-table-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  transition: box-shadow 0.3s ease;
+  
+  &:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  }
+  
+  .mat-mdc-card-content {
+    padding: 0;
+  }
+}
+
+.followers-table {
+  width: 100%;
+  
+  mat-header-cell {
+    font-weight: 500;
+    color: rgba(0, 0, 0, 0.87);
+  }
+  
+  mat-cell {
+    border-bottom: 1px solid #e0e0e0;
+  }
+}
+
+.name-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  
+  strong {
+    color: rgba(0, 0, 0, 0.87);
+  }
+  
+  .namespace {
+    font-size: 12px;
+    color: rgba(0, 0, 0, 0.6);
+  }
+}
+
+.xstore-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  
+  .xstore-name {
+    color: rgba(0, 0, 0, 0.87);
+    font-weight: 500;
+  }
+  
+  .from-xstore {
+    font-size: 12px;
+    color: rgba(0, 0, 0, 0.6);
+  }
+}
+
+.progress-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 100px;
+  
+  mat-progress-bar {
+    height: 8px;
+    border-radius: 4px;
+  }
+  
+  .progress-text {
+    font-size: 12px;
+    color: rgba(0, 0, 0, 0.6);
+    text-align: center;
+  }
+}
+
+.no-progress {
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.last-activity {
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.status-indicators {
+  display: flex;
+  gap: 4px;
+  
+  .status-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    
+    &.healthy {
+      color: #4caf50;
+    }
+    
+    &.recovering {
+      color: #ff9800;
+      animation: spin 2s linear infinite;
+    }
+    
+    &.failed {
+      color: #f44336;
+    }
+  }
+}
+
+.action-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.no-data {
+  text-align: center;
+  padding: 48px 24px;
+}
+
+// XStore selection styles
+.xstore-status {
+  font-size: 11px;
+  color: rgba(0, 0, 0, 0.6);
+  font-weight: 500;
+  background: rgba(25, 118, 210, 0.08);
+  padding: 2px 6px;
+  border-radius: 12px;
+  margin-left: 8px;
+  display: inline-block;
+}
+
+.refresh-xstores-btn {
+  min-width: auto !important;
+  width: 40px !important;
+  height: 40px !important;
+  padding: 0 !important;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  
+  .mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+  
+  &:hover {
+    background-color: rgba(25, 118, 210, 0.08);
+    transform: rotate(180deg);
+  }
+}
+
+// Enhanced status chip styles
+mat-chip, mat-chip-option {
+  font-size: 12px !important;
+  min-height: 28px !important;
+  font-weight: 500 !important;
+  border-radius: 14px !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+  transition: all 0.2s ease !important;
+  
+  &:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+  }
+  
+  &.mat-primary {
+    background: linear-gradient(135deg, #e3f2fd, #bbdefb) !important;
+    color: #1976d2 !important;
+    border: 1px solid rgba(25, 118, 210, 0.2) !important;
+  }
+  
+  &.mat-accent {
+    background: linear-gradient(135deg, #fff3e0, #ffe0b2) !important;
+    color: #f57c00 !important;
+    border: 1px solid rgba(245, 124, 0, 0.2) !important;
+  }
+  
+  &.mat-warn {
+    background: linear-gradient(135deg, #ffebee, #ffcdd2) !important;
+    color: #d32f2f !important;
+    border: 1px solid rgba(211, 47, 47, 0.2) !important;
+  }
+}
+
+.source-xstore-section {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 8px;
+  
+  .form-field-with-button {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    
+    mat-form-field {
+      flex: 1;
+      margin-bottom: 0; // 移除默认底边距
+    }
+    
+    .refresh-xstores-btn {
+      margin-top: 8px; // 对齐到form field的输入框高度
+      flex-shrink: 0;
+    }
+  }
+  
+  .refresh-hint {
+    font-size: 12px;
+    color: rgba(0, 0, 0, 0.6);
+    line-height: 1.3;
+    margin: -8px 0 0 0; // 减少与上方元素的间距
+    padding: 8px 12px;
+    background: rgba(25, 118, 210, 0.04);
+    border-radius: 6px;
+    border-left: 3px solid rgba(25, 118, 210, 0.3);
+  }
+}
+
+.empty-state {
+  text-align: center;
+  padding: 32px;
+  color: rgba(0, 0, 0, 0.6);
+  
+  mat-icon {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+  }
+  
+  p {
+    margin: 0 0 24px 0;
+    font-size: 16px;
+  }
+}
+
+// Form Tab Styles
+.form-content {
+  h3 {
+    margin: 0 0 24px 0;
+    color: rgba(0, 0, 0, 0.87);
+    font-weight: 500;
+  }
+}
+
+.form-row {
+  margin-bottom: 20px;
+  
+  &:last-child {
+    margin-bottom: 0;
+  }
+  
+  mat-form-field {
+    width: 100%;
+    
+    &:not(:last-child) {
+      margin-bottom: 16px;
+    }
+  }
+  
+  // 专门为source-xstore-section调整间距
+  .source-xstore-section {
+    margin-bottom: 0;
+  }
+}
+
+.config-section {
+  margin-bottom: 24px;
+  
+  .mat-mdc-card-title {
+    font-size: 16px;
+    font-weight: 500;
+    color: rgba(0, 0, 0, 0.87);
+  }
+  
+  .mat-mdc-card-content {
+    padding-top: 16px;
+  }
+}
+
+.form-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+  
+  mat-form-field {
+    flex: 1;
+    
+    &.full-width {
+      width: 100%;
+    }
+  }
+}
+
+.force-recreate-option,
+.enable-resources-option,
+.node-selector-option {
+  margin: 16px 0;
+  
+  .mat-mdc-checkbox-label {
+    font-weight: 500;
+  }
+}
+
+.resource-config {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #e0e0e0;
+  
+  h4 {
+    margin: 0 0 16px 0;
+    color: rgba(0, 0, 0, 0.87);
+    font-weight: 500;
+    font-size: 14px;
+  }
+}
+
+.node-selector-config {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.form-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding: 24px 0 0 0;
+  border-top: 1px solid #e0e0e0;
+  margin-top: 24px;
+}
+
+// Dialog Actions
+.dialog-actions {
+  padding: 16px 24px;
+  border-top: 1px solid #e0e0e0;
+  margin: 0;
+}
+
+// Spinner Animation
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+  margin-right: 8px;
+}
+
+// Chip styling
+mat-chip-listbox {
+  mat-chip-option {
+    &[aria-selected="true"] {
+      &[color="primary"] {
+        background-color: #1976d2;
+        color: white;
+      }
+      
+      &[color="accent"] {
+        background-color: #ff9800;
+        color: white;
+      }
+      
+      &[color="warn"] {
+        background-color: #f44336;
+        color: white;
+      }
+    }
+  }
+}
+
+// Material Design Overrides
+.mat-mdc-tab-group {
+  .mat-mdc-tab-header {
+    border-bottom: 1px solid #e0e0e0;
+  }
+}
+
+.mat-mdc-table {
+  .mat-mdc-header-row {
+    background-color: #fafafa;
+  }
+  
+  .mat-mdc-row:hover {
+    background-color: #f5f5f5;
+  }
+}
+
+// Responsive Design
+@media (max-width: 768px) {
+  .form-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .list-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    
+    .header-actions {
+      width: 100%;
+      justify-content: flex-start;
+    }
+  }
+  
+  .followers-table {
+    .mat-mdc-cell,
+    .mat-mdc-header-cell {
+      padding: 8px 4px;
+      font-size: 12px;
+    }
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+    
+    button {
+      min-width: unset;
+      width: 32px;
+      height: 32px;
+    }
+  }
+  
+  .tab-content {
+    padding: 16px;
+  }
+}
+
+// Accessibility
+.mat-mdc-icon-button:focus {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.mat-mdc-checkbox:focus .mdc-checkbox__focus-ring {
+  border-color: #1976d2;
+}
+
+// Loading states
+.mat-mdc-progress-bar {
+  .mdc-linear-progress__buffer {
+    background-color: #e0e0e0;
+  }
+  
+  .mdc-linear-progress__bar-inner {
+    border-color: #1976d2;
+  }
+}
+
+// Form validation
+mat-error {
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.mat-mdc-form-field-error {
+  color: #f44336;
+}

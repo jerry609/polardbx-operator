@@ -1,0 +1,635 @@
+<div class="cluster-detail-container">
+  <!-- 页面头部 -->
+  <div class="page-header">
+    <div class="header-content">
+      <a routerLink="/clusters" class="back-link">
+        <mat-icon>arrow_back</mat-icon>
+      </a>
+      <div class="cluster-info">
+        <h1 class="cluster-title">{{ clusterName }}</h1>
+        <p class="cluster-namespace">命名空间: {{ clusterNamespace }}</p>
+      </div>
+      <div class="header-actions">
+        <button mat-stroked-button color="primary" (click)="refreshData()">
+          <mat-icon>refresh</mat-icon>
+          刷新
+        </button>
+        <button mat-raised-button color="warn" (click)="deleteCluster()" class="ml-2">
+          <mat-icon>delete_forever</mat-icon>
+          删除集群
+        </button>
+      </div>
+    </div>
+    <!-- 摘要信息条 + 快速操作 -->
+    <div class="summary-bar">
+      <div class="summary-item">
+        <mat-icon>verified</mat-icon>
+        <div class="label">状态</div>
+        <div class="value"><mat-chip [color]="clusterStatus === 'Running' ? 'primary' : 'warn'">{{ clusterStatus }}</mat-chip></div>
+      </div>
+      <div class="summary-item">
+        <mat-icon>category</mat-icon>
+        <div class="label">版本</div>
+        <div class="value">{{ clusterVersion }}</div>
+      </div>
+      <div class="summary-item">
+        <mat-icon>schedule</mat-icon>
+        <div class="label">运行时长</div>
+        <div class="value">{{ getUptime() }}</div>
+      </div>
+      <div class="summary-item">
+        <mat-icon>devices</mat-icon>
+        <div class="label">Pod 总数</div>
+        <div class="value">{{ allPods.length || 0 }}</div>
+      </div>
+      <div class="summary-item">
+        <mat-icon>sync</mat-icon>
+        <div class="label">CDC</div>
+        <div class="value">{{ roleSummary['cdc'].ready }}/{{ roleSummary['cdc'].total }}</div>
+      </div>
+      <div class="summary-item clickable-alert" (click)="openAlertsDialog()" [class.has-alerts]="getAlertCount() > 0">
+        <mat-icon>warning</mat-icon>
+        <div class="label">告警</div>
+        <div class="value">
+          <mat-chip [color]="getAlertCount() > 0 ? 'warn' : 'primary'">{{ getAlertCount() }}</mat-chip>
+          <mat-icon *ngIf="getAlertCount() > 0" class="alert-indicator">keyboard_arrow_right</mat-icon>
+        </div>
+      </div>
+      <div class="summary-item">
+        <mat-icon>health_and_safety</mat-icon>
+        <div class="label">可用性</div>
+        <div class="value">
+          <mat-chip [color]="getAvailabilityColor()">{{ getAvailabilityPercent() }}%</mat-chip>
+        </div>
+      </div>
+      <div class="summary-actions">
+        <button mat-stroked-button (click)="goToBackupsTab()"><mat-icon>backup</mat-icon> 备份与恢复</button>
+        <button mat-stroked-button (click)="selectedTabIndex = 1"><mat-icon>device_hub</mat-icon> 节点</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 选项卡导航 -->
+  <mat-tab-group class="cluster-tabs" animationDuration="0ms" [(selectedIndex)]="selectedTabIndex" (selectedTabChange)="onTabChange($event.index)">
+    <!-- 概览选项卡 -->
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon class="tab-icon">dashboard</mat-icon>
+        概览
+      </ng-template>
+      <div class="tab-content overview-grid">
+        <!-- 左列：信息卡片 -->
+        <div class="left-column">
+          <mat-card class="status-card">
+            <mat-card-header>
+              <mat-card-title>连接信息</mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="connection-info">svc.{{ clusterName }}:3306</div>
+              <p class="status-description">用户: root</p>
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card class="architecture-card">
+            <mat-card-header>
+              <mat-card-title>集群架构</mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <svg #topologySvg width="100%" height="220"></svg>
+              <div class="hint">自动布局拓扑（CN→DN→GMS），显示就绪/总数</div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+
+        <!-- 右列：看板图表 -->
+        <div class="right-column">
+          <mat-card class="chart-card">
+            <mat-card-header>
+              <mat-card-title>CPU 使用率 (%)</mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="chart-container">
+                <canvas #cpuChart></canvas>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card class="chart-card">
+            <mat-card-header>
+              <mat-card-title>内存使用率 (GiB)</mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="chart-container">
+                <canvas #memChart></canvas>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </div>
+    </mat-tab>
+
+    <!-- 节点选项卡 -->
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon class="tab-icon">device_hub</mat-icon>
+        节点
+      </ng-template>
+      <div class="tab-content">
+        <mat-card class="nodes-card">
+          <mat-card-header>
+            <mat-card-title>节点列表</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="table-container">
+              <table mat-table [dataSource]="nodeDataSource" class="nodes-table">
+                <!-- 节点名称列 -->
+                <ng-container matColumnDef="name">
+                  <th mat-header-cell *matHeaderCellDef>节点名称</th>
+                  <td mat-cell *matCellDef="let node">
+                    <div class="node-name">
+                      {{ node.name }}
+                      <span class="subtext" *ngIf="selectedPod === node.name && selectedContainer">({{ selectedContainer }})</span>
+                    </div>
+                  </td>
+                </ng-container>
+
+                <!-- 节点类型列 -->
+                <ng-container matColumnDef="type">
+                  <th mat-header-cell *matHeaderCellDef>类型</th>
+                  <td mat-cell *matCellDef="let node">
+                    <mat-chip [color]="getNodeTypeColor(node.type)">{{ node.type }}</mat-chip>
+                  </td>
+                </ng-container>
+
+                <!-- 状态列 -->
+                <ng-container matColumnDef="status">
+                  <th mat-header-cell *matHeaderCellDef>状态</th>
+                  <td mat-cell *matCellDef="let node">
+                    <mat-chip [color]="getStatusColor(node.status)">{{ node.status }}</mat-chip>
+                  </td>
+                </ng-container>
+
+                <!-- Ready状态列 -->
+                <ng-container matColumnDef="ready">
+                  <th mat-header-cell *matHeaderCellDef>Ready</th>
+                  <td mat-cell *matCellDef="let node">
+                    <div class="ready-status">
+                      <mat-chip 
+                        [color]="getReadyColor(node.readyContainers, node.totalContainers)"
+                        [matTooltip]="getReadyTooltip(node.readyContainers, node.totalContainers, node.containerStatuses)">
+                        {{ node.readyContainers }}/{{ node.totalContainers }}
+                      </mat-chip>
+                      <mat-icon 
+                        *ngIf="node.hasUnhealthyContainers" 
+                        class="warning-icon" 
+                        color="warn"
+                        [matTooltip]="getUnhealthyContainersInfo(node.containerStatuses)">
+                        warning
+                      </mat-icon>
+                    </div>
+                  </td>
+                </ng-container>
+
+                <!-- 重启次数列 -->
+                <ng-container matColumnDef="restarts">
+                  <th mat-header-cell *matHeaderCellDef>重启</th>
+                  <td mat-cell *matCellDef="let node">
+                    <span [class.high-restarts]="node.totalRestarts > 3" 
+                          [matTooltip]="getRestartsTooltip(node.containerStatuses)">
+                      {{ node.totalRestarts }}
+                    </span>
+                  </td>
+                </ng-container>
+
+                <!-- 资源列 -->
+                <ng-container matColumnDef="resources">
+                  <th mat-header-cell *matHeaderCellDef>资源</th>
+                  <td mat-cell *matCellDef="let node">{{ node.resources }}</td>
+                </ng-container>
+
+                <!-- IP地址列 -->
+                <ng-container matColumnDef="ip">
+                  <th mat-header-cell *matHeaderCellDef>IP地址</th>
+                  <td mat-cell *matCellDef="let node">{{ node.ip }}</td>
+                </ng-container>
+
+                <!-- 操作列 -->
+                <ng-container matColumnDef="actions">
+                  <th mat-header-cell *matHeaderCellDef>操作</th>
+                  <td mat-cell *matCellDef="let node">
+                    <button mat-icon-button matTooltip="复制 kubectl exec 命令" (click)="copyExecCommand(node)">
+                      <mat-icon>terminal</mat-icon>
+                    </button>
+                    <button mat-icon-button matTooltip="查看详情" (click)="openPodDetail(node)">
+                      <mat-icon>info</mat-icon>
+                    </button>
+                    <mat-form-field appearance="fill" style="width: 160px; margin:0 8px;">
+                      <mat-label>容器</mat-label>
+                      <mat-select [value]="rowContainer[node.name] || getPreferredContainers(getContainersOf(node))[0]" (selectionChange)="openWebShellWith(node, $event.value)" disableOptionCentering>
+                        <mat-option *ngFor="let c of getPreferredContainers(getContainersOf(node))" [value]="c">{{ c }}</mat-option>
+                      </mat-select>
+                    </mat-form-field>
+                    <button mat-icon-button color="primary" matTooltip="执行命令" (click)="openExecDialog(node)">
+                      <mat-icon>play_arrow</mat-icon>
+                    </button>
+                    <button mat-icon-button color="accent" matTooltip="打开终端（预览）" (click)="openWebShell(node)">
+                      <mat-icon>computer</mat-icon>
+                    </button>
+                  </td>
+                </ng-container>
+
+                <!-- 表格头部和数据行 -->
+                <tr mat-header-row *matHeaderRowDef="nodeColumns"></tr>
+                <tr mat-row *matRowDef="let row; columns: nodeColumns;"></tr>
+              </table>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+    </mat-tab>
+
+    <!-- 集群变配选项卡 -->
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon class="tab-icon">tune</mat-icon>
+        集群变配
+      </ng-template>
+      <div class="tab-content">
+        <div class="single-card-layout">
+          
+          <!-- 当前配置概览 -->
+          <mat-card class="current-config-card">
+            <mat-card-header>
+              <mat-card-title>
+                <mat-icon>info</mat-icon>
+                当前集群配置
+              </mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="config-overview">
+                <div class="node-overview">
+                  <div class="node-item">
+                    <mat-icon color="primary">computer</mat-icon>
+                    <div class="node-details">
+                      <h4>计算节点 (CN)</h4>
+                      <p>{{ cnReplicas }} 副本 • 1核 • 2GB</p>
+                    </div>
+                  </div>
+                  <div class="node-item">
+                    <mat-icon color="accent">storage</mat-icon>
+                    <div class="node-details">
+                      <h4>数据节点 (DN)</h4>
+                      <p>{{ dnReplicas }} 副本 • 1核 • 2GB</p>
+                    </div>
+                  </div>
+                  <div class="node-item">
+                    <mat-icon color="warn">hub</mat-icon>
+                    <div class="node-details">
+                      <h4>管理服务 (GMS)</h4>
+                      <p>1 副本 • 0.5核 • 1GB</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <!-- 变配操作 -->
+          <mat-card class="config-card">
+            <mat-card-header>
+              <mat-card-title>
+                <mat-icon>tune</mat-icon>
+                调整集群配置
+              </mat-card-title>
+              <mat-card-subtitle>修改节点数量或资源规格，系统将自动进行滚动更新</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <form [formGroup]="configForm" class="modern-config-form">
+                
+                <!-- CN节点配置 -->
+                <div class="node-config-section">
+                  <div class="section-header">
+                    <mat-icon color="primary">computer</mat-icon>
+                    <h4>计算节点 (CN)</h4>
+                    <mat-chip color="primary">可扩缩</mat-chip>
+                  </div>
+                  <div class="config-grid">
+                    <div class="config-item">
+                      <label>副本数量</label>
+                      <mat-form-field appearance="outline" class="compact-field">
+                        <input matInput type="number" formControlName="cnReplicas" min="0" max="10">
+                        <mat-hint>当前: {{ cnReplicas }} 副本</mat-hint>
+                      </mat-form-field>
+                      <div class="change-indicator" *ngIf="configForm.get('cnReplicas')?.value !== cnReplicas">
+                        <mat-icon color="primary">arrow_forward</mat-icon>
+                        <span>{{ cnReplicas }} → {{ configForm.get('cnReplicas')?.value }}</span>
+                      </div>
+                    </div>
+                    <div class="config-item">
+                      <label>CPU 规格</label>
+                      <mat-form-field appearance="outline" class="compact-field">
+                        <mat-select formControlName="cnCpu">
+                          <mat-option value="0.5">0.5 核 (开发)</mat-option>
+                          <mat-option value="1">1 核 (测试)</mat-option>
+                          <mat-option value="2">2 核 (生产)</mat-option>
+                          <mat-option value="4">4 核 (高性能)</mat-option>
+                          <mat-option value="8">8 核 (企业级)</mat-option>
+                        </mat-select>
+                      </mat-form-field>
+                    </div>
+                    <div class="config-item">
+                      <label>内存规格</label>
+                      <mat-form-field appearance="outline" class="compact-field">
+                        <mat-select formControlName="cnMemory">
+                          <mat-option value="1">1 GB (开发)</mat-option>
+                          <mat-option value="2">2 GB (测试)</mat-option>
+                          <mat-option value="4">4 GB (生产)</mat-option>
+                          <mat-option value="8">8 GB (高性能)</mat-option>
+                          <mat-option value="16">16 GB (企业级)</mat-option>
+                        </mat-select>
+                      </mat-form-field>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- DN节点配置 -->
+                <div class="node-config-section">
+                  <div class="section-header">
+                    <mat-icon color="accent">storage</mat-icon>
+                    <h4>数据节点 (DN)</h4>
+                    <mat-chip color="accent">存储关键</mat-chip>
+                  </div>
+                  <div class="config-grid">
+                    <div class="config-item">
+                      <label>副本数量</label>
+                      <mat-form-field appearance="outline" class="compact-field">
+                        <input matInput type="number" formControlName="dnReplicas" min="1" max="10">
+                        <mat-hint>当前: {{ dnReplicas }} 副本</mat-hint>
+                      </mat-form-field>
+                      <div class="change-indicator" *ngIf="configForm.get('dnReplicas')?.value !== dnReplicas">
+                        <mat-icon color="accent">arrow_forward</mat-icon>
+                        <span>{{ dnReplicas }} → {{ configForm.get('dnReplicas')?.value }}</span>
+                      </div>
+                    </div>
+                    <div class="config-item">
+                      <label>CPU 规格</label>
+                      <mat-form-field appearance="outline" class="compact-field">
+                        <mat-select formControlName="dnCpu">
+                          <mat-option value="0.5">0.5 核 (开发)</mat-option>
+                          <mat-option value="1">1 核 (测试)</mat-option>
+                          <mat-option value="2">2 核 (生产)</mat-option>
+                          <mat-option value="4">4 核 (高性能)</mat-option>
+                          <mat-option value="8">8 核 (企业级)</mat-option>
+                        </mat-select>
+                      </mat-form-field>
+                    </div>
+                    <div class="config-item">
+                      <label>内存规格</label>
+                      <mat-form-field appearance="outline" class="compact-field">
+                        <mat-select formControlName="dnMemory">
+                          <mat-option value="1">1 GB (开发)</mat-option>
+                          <mat-option value="2">2 GB (测试)</mat-option>
+                          <mat-option value="4">4 GB (生产)</mat-option>
+                          <mat-option value="8">8 GB (高性能)</mat-option>
+                          <mat-option value="16">16 GB (企业级)</mat-option>
+                        </mat-select>
+                      </mat-form-field>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 变更预览 -->
+                <div class="change-preview" *ngIf="hasConfigChanges()">
+                  <mat-card class="preview-card">
+                    <mat-card-header>
+                      <mat-card-title>
+                        <mat-icon color="primary">preview</mat-icon>
+                        变更预览
+                      </mat-card-title>
+                    </mat-card-header>
+                    <mat-card-content>
+                      <div class="change-list">
+                        <div class="change-item" *ngIf="configForm.get('cnReplicas')?.value !== cnReplicas">
+                          <mat-icon color="primary">computer</mat-icon>
+                          <span>CN 节点数量: {{ cnReplicas }} → {{ configForm.get('cnReplicas')?.value }}</span>
+                          <mat-chip color="primary" *ngIf="configForm.get('cnReplicas')?.value > cnReplicas">扩容</mat-chip>
+                          <mat-chip color="warn" *ngIf="configForm.get('cnReplicas')?.value < cnReplicas">缩容</mat-chip>
+                        </div>
+                        <div class="change-item" *ngIf="configForm.get('dnReplicas')?.value !== dnReplicas">
+                          <mat-icon color="accent">storage</mat-icon>
+                          <span>DN 节点数量: {{ dnReplicas }} → {{ configForm.get('dnReplicas')?.value }}</span>
+                          <mat-chip color="primary" *ngIf="configForm.get('dnReplicas')?.value > dnReplicas">扩容</mat-chip>
+                          <mat-chip color="warn" *ngIf="configForm.get('dnReplicas')?.value < dnReplicas">缩容</mat-chip>
+                        </div>
+                      </div>
+                      <div class="impact-notice">
+                        <mat-icon color="warn">warning</mat-icon>
+                        <span>变配过程中可能会短暂影响服务性能，建议在业务低峰期进行</span>
+                      </div>
+                    </mat-card-content>
+                  </mat-card>
+                </div>
+
+                <!-- 操作按钮 -->
+                <div class="action-bar">
+                  <button mat-raised-button color="primary" 
+                          [disabled]="configForm.invalid || !hasConfigChanges()"
+                          (click)="applyConfig()">
+                    <mat-icon>published_with_changes</mat-icon>
+                    {{ configForm.get('cnReplicas')?.value > cnReplicas || configForm.get('dnReplicas')?.value > dnReplicas ? '确认扩容' : '确认变配' }}
+                  </button>
+                  <button mat-stroked-button (click)="resetConfig()">
+                    <mat-icon>refresh</mat-icon>
+                    重置更改
+                  </button>
+                  <button mat-button color="accent" (click)="previewCost()">
+                    <mat-icon>calculate</mat-icon>
+                    预估成本
+                  </button>
+                </div>
+              </form>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </div>
+    </mat-tab>
+
+    <!-- 集群升级选项卡 -->
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon class="tab-icon">upgrade</mat-icon>
+        集群升级
+      </ng-template>
+      <div class="tab-content">
+        <div class="single-card-layout">
+          <!-- 集群升级 -->
+          <mat-card class="upgrade-card">
+            <mat-card-header>
+              <mat-card-title>集群升级</mat-card-title>
+              <mat-card-subtitle>将集群升级到新版本</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <form [formGroup]="upgradeForm" class="upgrade-form">
+                <div class="current-version">
+                  <h4>当前版本</h4>
+                  <div class="version-display">
+                    <mat-icon>info</mat-icon>
+                    <span>{{ clusterVersion }}</span>
+                  </div>
+                </div>
+
+                <div class="upgrade-section">
+                  <h4>升级配置</h4>
+                  <mat-form-field appearance="outline" class="full-width">
+                    <mat-label>目标版本</mat-label>
+                    <mat-select formControlName="targetVersion">
+                      <mat-option value="5.4.18">5.4.18 (稳定版)</mat-option>
+                      <mat-option value="5.4.19">5.4.19 (最新版)</mat-option>
+                      <mat-option value="8.0.18">8.0.18 (LTS)</mat-option>
+                      <mat-option value="8.0.19">8.0.19 (推荐)</mat-option>
+                    </mat-select>
+                    <mat-hint>选择要升级到的目标版本</mat-hint>
+                  </mat-form-field>
+
+                  <div class="upgrade-strategy">
+                    <h5>升级策略</h5>
+                    <div class="strategy-info">
+                      <mat-icon>settings</mat-icon>
+                      <div class="strategy-text">
+                        <strong>滚动升级</strong>
+                        <p>逐个节点升级，最小化服务中断</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="upgrade-warning">
+                    <mat-icon color="warn">warning</mat-icon>
+                    <div class="warning-text">
+                      <strong>升级注意事项：</strong>
+                      <ul>
+                        <li>升级过程中可能会有短暂的服务中断</li>
+                        <li>请确保有足够的备份</li>
+                        <li>建议在维护时间窗口进行升级</li>
+                        <li>升级完成后请验证集群功能</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-actions">
+                  <button mat-raised-button color="primary" 
+                          [disabled]="upgradeForm.invalid"
+                          (click)="startUpgrade()">
+                    <mat-icon>upgrade</mat-icon>
+                    开始升级
+                  </button>
+                  <button mat-button (click)="resetUpgrade()">
+                    <mat-icon>refresh</mat-icon>
+                    重置
+                  </button>
+                </div>
+              </form>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </div>
+    </mat-tab>
+
+    <!-- 备份与恢复选项卡 -->
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon class="tab-icon">backup</mat-icon>
+        备份与恢复
+      </ng-template>
+      <div class="tab-content">
+        <mat-card class="backup-card">
+          <mat-card-header>
+            <mat-card-title>可用备份</mat-card-title>
+            <div class="header-actions">
+              <button mat-raised-button color="primary" (click)="createBackup()">
+                <mat-icon>add</mat-icon>
+                创建新备份
+              </button>
+            </div>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="table-container">
+              <table mat-table [dataSource]="backupDataSource" class="backup-table">
+                <!-- 备份ID列 -->
+                <ng-container matColumnDef="id">
+                  <th mat-header-cell *matHeaderCellDef>备份ID</th>
+                  <td mat-cell *matCellDef="let backup">{{ backup.id }}</td>
+                </ng-container>
+
+                <!-- 完成时间列 -->
+                <ng-container matColumnDef="completedTime">
+                  <th mat-header-cell *matHeaderCellDef>完成时间</th>
+                  <td mat-cell *matCellDef="let backup">{{ backup.completedTime | date:'medium' }}</td>
+                </ng-container>
+
+                <!-- 备份类型列 -->
+                <ng-container matColumnDef="type">
+                  <th mat-header-cell *matHeaderCellDef>类型</th>
+                  <td mat-cell *matCellDef="let backup">
+                    <mat-chip color="primary">{{ backup.type }}</mat-chip>
+                  </td>
+                </ng-container>
+
+                <!-- 状态列 -->
+                <ng-container matColumnDef="status">
+                  <th mat-header-cell *matHeaderCellDef>状态</th>
+                  <td mat-cell *matCellDef="let backup">
+                    <mat-chip [color]="getStatusColor(backup.status)">{{ backup.status }}</mat-chip>
+                  </td>
+                </ng-container>
+
+                <!-- 操作列 -->
+                <ng-container matColumnDef="actions">
+                  <th mat-header-cell *matHeaderCellDef>操作</th>
+                  <td mat-cell *matCellDef="let backup">
+                    <button mat-icon-button color="primary" matTooltip="恢复备份" (click)="restoreBackup(backup)">
+                      <mat-icon>restore</mat-icon>
+                    </button>
+                    <button mat-icon-button color="warn" matTooltip="删除备份" (click)="deleteBackup(backup)">
+                      <mat-icon>delete</mat-icon>
+                    </button>
+                    <button mat-icon-button color="warn" matTooltip="强制删除（移除finalizers）" (click)="forceDeleteBackup(backup)">
+                      <mat-icon>delete_forever</mat-icon>
+                    </button>
+                  </td>
+                </ng-container>
+
+                <!-- 表格头部和数据行 -->
+                <tr mat-header-row *matHeaderRowDef="backupColumns"></tr>
+                <tr mat-row *matRowDef="let row; columns: backupColumns;"></tr>
+              </table>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+    </mat-tab>
+
+    <!-- 诊断与日志选项卡 -->
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon class="tab-icon">plagiarism</mat-icon>
+        诊断与日志
+      </ng-template>
+      <div class="tab-content">
+        <mat-card class="logs-card">
+          <mat-card-header>
+            <mat-card-title>日志采集</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="log-controls">
+              <!-- ... 日志控件 ... -->
+            </div>
+            <div class="log-viewer">
+              <pre>{{ logContent }}</pre>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+    </mat-tab>
+  </mat-tab-group>
+</div>

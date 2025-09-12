@@ -1,0 +1,63 @@
+
+# Webhook 核心逻辑解析
+
+本文档深入解析 `polardbx-operator` 中 [Kubernetes Admission Webhooks](https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/) 的实现和工作原理，重点关注其在保障系统稳定性和实现“快速失败”策略中的关键作用。
+
+所有 Webhook 的核心逻辑代码均位于 `pkg/webhook/` 目录下。
+
+## 核心设计理念：快速失败 (Fast-Fail)
+
+Operator 中的 Webhook，尤其是 **验证 Webhook (Validating Webhook)**，其核心设计理念是在资源对象（如 `PolarDBXBackup`）被持久化到 etcd **之前**，对其 `spec` 的合法性和关联外部系统的可用性进行严格检查。
+
+这种机制避免了“接受一个注定会失败的请求”，从而防止了集群中出现大量处于 `Failed` 或 `Pending` 状态的垃圾资源。用户可以立即获得明确的错误反馈，而不是等待几分钟甚至更久后才发现问题。
+
+## 关键实现：`PolarDBXBackup` 存储验证
+
+`PolarDBXBackup` 的验证 Webhook 是理解这一理念的最佳范例。其代码实现位于：
+
+- [`pkg/webhook/polardbxbackup/validator.go`](mdc:pkg/webhook/polardbxbackup/validator.go)
+
+### 工作流程
+
+当用户创建一个新的 `PolarDBXBackup` 资源时，会触发以下流程：
+
+1.  `kube-apiserver` 接收到创建请求。
+2.  根据 `ValidatingWebhookConfiguration` 的配置，`kube-apiserver` 将 `AdmissionReview` 请求转发给在 Operator Pod 内运行的 Webhook 服务。
+3.  `validator.go` 中的 `ValidateCreate` 方法被调用。
+4.  **核心步骤：** Webhook **不会**直接信任 `spec.storageProvider` 中的配置。相反，它会：
+    a.  从 Operator 的全局配置中找到 HPFS (High Performance File Service) 服务的地址。
+    b.  与 HPFS 服务建立连接。
+    c.  通过 HPFS 服务，向 `spec.storageProvider.sink` 指定的后端存储（如 MinIO、S3）**尝试上传一个测试文件**。
+5.  **决策点：**
+    -   **如果测试文件上传成功**，证明存储路径、认证信息和网络连接全部可用。Webhook 返回 `allowed: true`，`PolarDBXBackup` 资源被成功创建，进入 `FullBackuping` 状态。
+    -   **如果测试文件上传失败**，证明存储配置存在问题。Webhook 返回 `allowed: false`，并附带明确的错误信息：`invalid storage, please check configuration of both backup and hpfs`。创建操作被立即拒绝。
+
+### 调试指南
+
+当你遇到上述 `invalid storage` 错误时，应从以下几个方面进行排查：
+
+1.  **检查 Webhook 配置：**
+    ```bash
+    kubectl describe validatingwebhookconfigurations polardbxcluster-validate.polardbx.aliyun.com
+    ```
+    确认其 `clientConfig.service` 指向了正确的 Operator 服务。
+
+2.  **检查 HPFS 服务：**
+    ```bash
+    kubectl get pods -n polardbx-operator-system -l component=polardbx-hpfs
+    kubectl logs -n polardbx-operator-system -l component=polardbx-hpfs
+    ```
+    确认 HPFS Pod 正在运行且日志无明显错误。
+
+3.  **检查网络连通性：** 确保 Operator Pod 可以通过网络访问到 HPFS Pod 提供的服务地址。检查是否有网络策略 (NetworkPolicy) 阻止了访问。
+
+4.  **检查后端存储：** 确认实际的存储服务（如 MinIO）运行正常，并且 Operator 使用的认证信息（通常配置在 Secret 中）是正确的。
+
+5.  **临时绕过 (仅限调试)：** 在开发或紧急排障时，可以临时删除 Webhook 配置以绕过验证。
+    ```bash
+    # 注意：这将跳过所有验证，请谨慎使用
+    kubectl delete validatingwebhookconfigurations polardbxcluster-validate.polardbx.aliyun.com
+    ```
+
+    kubectl delete validatingwebhookconfigurations polardbxcluster-validate.polardbx.aliyun.com
+    ```

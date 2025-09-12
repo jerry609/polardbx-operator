@@ -1,0 +1,347 @@
+import { Component, OnInit, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { NzCardModule } from 'ng-zorro-antd/card';
+import { NzFormModule } from 'ng-zorro-antd/form';
+import { NzInputModule } from 'ng-zorro-antd/input';
+import { NzButtonModule } from 'ng-zorro-antd/button';
+import { NzIconModule } from 'ng-zorro-antd/icon';
+import { NzTagModule } from 'ng-zorro-antd/tag';
+import { NzSpinModule } from 'ng-zorro-antd/spin';
+import { ApiService } from '../../services/api.service';
+import { NzMessageService } from 'ng-zorro-antd/message';
+import { Router } from '@angular/router';
+import { NzDividerModule } from 'ng-zorro-antd/divider';
+import { NzGridModule } from 'ng-zorro-antd/grid';
+import { NzEmptyModule } from 'ng-zorro-antd/empty';
+import { NzResultModule } from 'ng-zorro-antd/result';
+import { NzStatisticModule } from 'ng-zorro-antd/statistic';
+
+@Component({
+  selector: 'app-prechange-check',
+  standalone: true,
+  imports: [CommonModule, FormsModule, NzCardModule, NzFormModule, NzInputModule, NzButtonModule, NzIconModule, NzTagModule, NzSpinModule, NzDividerModule, NzGridModule, NzEmptyModule, NzResultModule, NzStatisticModule],
+  template: `
+    <div class="prechange-check">
+      <div class="page-header">
+        <div class="header-content">
+          <div class="header-info">
+            <h1 class="page-title">
+              <i nz-icon nzType="safety" class="page-icon"></i>
+              变更前置检查
+            </h1>
+            <p class="page-description">检查最近全备、RPO 滞后、远端仓连通性等关键项，确保变更操作安全</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="page-content">
+        <nz-card class="control-panel" nzTitle="检查配置">
+          <form nz-form nzLayout="vertical">
+            <div nz-row nzGutter="16" class="input-row">
+              <div nz-col [nzSpan]="8">
+                <nz-form-item>
+                  <nz-form-label>命名空间</nz-form-label>
+                  <nz-form-control>
+                    <input nz-input [(ngModel)]="namespace" name="namespace" placeholder="default" />
+                  </nz-form-control>
+                </nz-form-item>
+              </div>
+              <div nz-col [nzSpan]="8">
+                <nz-form-item>
+                  <nz-form-label>集群名称</nz-form-label>
+                  <nz-form-control>
+                    <input nz-input [(ngModel)]="cluster" name="cluster" placeholder="pxc-1" />
+                  </nz-form-control>
+                </nz-form-item>
+              </div>
+              <div nz-col [nzSpan]="8">
+                <nz-form-item>
+                  <nz-form-label>&nbsp;</nz-form-label>
+                  <nz-form-control>
+                    <div class="action-buttons">
+                      <button nz-button nzType="primary" nzSize="default" (click)="runChecks()" [nzLoading]="loading">
+                        <i nz-icon nzType="play-circle"></i>
+                        执行检查
+                      </button>
+                      <button nz-button nzType="default" nzSize="default" [disabled]="!cluster || !namespace" (click)="createPrecheckTask()">
+                        <i nz-icon nzType="profile"></i>
+                        创建任务
+                      </button>
+                    </div>
+                  </nz-form-control>
+                </nz-form-item>
+              </div>
+            </div>
+          </form>
+        </nz-card>
+
+        <div *ngIf="loading" class="loading-container">
+          <nz-spin nzSize="large" nzTip="正在执行检查..."></nz-spin>
+        </div>
+
+        <div *ngIf="!loading && checklist.length" class="results-section">
+          <nz-card class="summary-card" nzTitle="检查结果概览">
+            <div nz-row nzGutter="24" class="statistics">
+              <div nz-col [nzSpan]="8">
+                <nz-statistic nzTitle="通过项" [nzValue]="okCount" [nzValueStyle]="{ color: '#52c41a' }">
+                  <ng-template #nzPrefix><i nz-icon nzType="check-circle" style="color: #52c41a"></i></ng-template>
+                </nz-statistic>
+              </div>
+              <div nz-col [nzSpan]="8">
+                <nz-statistic nzTitle="警告项" [nzValue]="warnCount" [nzValueStyle]="{ color: '#faad14' }">
+                  <ng-template #nzPrefix><i nz-icon nzType="warning" style="color: #faad14"></i></ng-template>
+                </nz-statistic>
+              </div>
+              <div nz-col [nzSpan]="8">
+                <nz-statistic nzTitle="总计" [nzValue]="checklist.length" [nzValueStyle]="{ color: '#1890ff' }">
+                  <ng-template #nzPrefix><i nz-icon nzType="audit" style="color: #1890ff"></i></ng-template>
+                </nz-statistic>
+              </div>
+            </div>
+          </nz-card>
+
+          <nz-card class="details-card" nzTitle="详细检查项">
+            <div class="check-items">
+              <div class="check-item" *ngFor="let c of checklist; trackBy: trackByIndex">
+                <div class="check-status">
+                  <nz-tag [nzColor]="statusColor(c.status)" class="status-tag">
+                    <i nz-icon [nzType]="getStatusIcon(c.status)"></i>
+                    {{ getStatusText(c.status) }}
+                  </nz-tag>
+                </div>
+                <div class="check-content">
+                  <div class="check-name">{{ c.name }}</div>
+                  <div class="check-message">{{ c.message }}</div>
+                </div>
+              </div>
+            </div>
+          </nz-card>
+        </div>
+
+        <div *ngIf="!loading && !checklist.length && hasExecuted" class="empty-container">
+          <nz-empty nzNotFoundImage="simple" nzNotFoundContent="暂无检查结果">
+            <ng-template #nzNotFoundFooter>
+              <button nz-button nzType="primary" (click)="runChecks()">重新检查</button>
+            </ng-template>
+          </nz-empty>
+        </div>
+      </div>
+    </div>
+  `,
+  styles: [`
+    .prechange-check {
+      padding: 16px;
+      background: #ffffff;
+    }
+    
+    .page-header {
+      margin-bottom: 16px;
+    }
+    
+    .header-content {
+      max-width: 1120px;
+      margin: 0 auto;
+    }
+    
+    .page-title {
+      color: rgba(0, 0, 0, 0.87);
+      font-size: 18px;
+      font-weight: 500;
+      margin: 0 0 4px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .page-icon {
+      font-size: 20px;
+      color: #1890ff;
+    }
+    
+    .page-description {
+      color: rgba(0, 0, 0, 0.6);
+      font-size: 14px;
+      margin: 0;
+      line-height: 1.5;
+    }
+    
+    .page-content {
+      max-width: 1120px;
+      margin: 0 auto;
+    }
+    
+    .control-panel {
+      margin-bottom: 16px;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+      border: 1px solid #e0e0e0;
+    }
+    
+    .input-row {
+      align-items: flex-end;
+    }
+    
+    .action-buttons {
+      display: flex;
+      gap: 8px;
+      width: 100%;
+    }
+    
+    .loading-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 40px 0;
+    }
+    
+    .results-section {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    
+    .summary-card, .details-card {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+      border: 1px solid #e0e0e0;
+    }
+    
+    .statistics {
+      padding: 16px 0;
+    }
+    
+    .check-items {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    
+    .check-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 12px;
+      background: #ffffff;
+      border-radius: 8px;
+      border: 1px solid #e0e0e0;
+      transition: all 0.3s ease;
+    }
+    
+    .check-item:hover {
+      border-color: #1890ff;
+      box-shadow: 0 2px 8px rgba(24, 144, 255, 0.1);
+    }
+    
+    .check-status {
+      flex-shrink: 0;
+    }
+    
+    .status-tag {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-weight: 500;
+    }
+    
+    .check-content {
+      flex: 1;
+      min-width: 0;
+    }
+    
+    .check-name {
+      font-weight: 500;
+      font-size: 14px;
+      color: rgba(0, 0, 0, 0.87);
+      margin-bottom: 4px;
+    }
+    
+    .check-message {
+      color: rgba(0, 0, 0, 0.6);
+      font-size: 14px;
+      line-height: 1.4;
+    }
+    
+    .empty-container {
+      padding: 40px 0;
+      text-align: center;
+    }
+    
+    /* 响应式设计 */
+    @media (max-width: 768px) {
+      .prechange-check {
+        padding: 16px;
+      }
+      
+      .input-row {
+        flex-direction: column;
+      }
+      
+      .action-buttons {
+        justify-content: center;
+        margin-top: 16px;
+      }
+      
+      .statistics {
+        text-align: center;
+      }
+    }
+  `]
+})
+export class PrechangeCheckComponent implements OnInit {
+  namespace = 'default';
+  cluster = '';
+  loading = false;
+  hasExecuted = false;
+  checklist: Array<{ name: string; status: string; message: string }> = [];
+
+  private api = inject(ApiService);
+  private msg = inject(NzMessageService);
+  private router = inject(Router);
+
+  ngOnInit(): void {}
+
+  statusColor(s: string): string { return (s === 'ok') ? 'primary' : (s === 'warn' ? 'warn' : ''); }
+  get okCount(): number { return this.checklist.filter(i => i.status === 'ok').length; }
+  get warnCount(): number { return this.checklist.filter(i => i.status !== 'ok').length; }
+  
+  getStatusIcon(status: string): string {
+    switch (status) {
+      case 'ok': return 'check-circle';
+      case 'warn': return 'warning';
+      default: return 'close-circle';
+    }
+  }
+  
+  getStatusText(status: string): string {
+    switch (status) {
+      case 'ok': return '通过';
+      case 'warn': return '警告';
+      default: return '失败';
+    }
+  }
+  
+  trackByIndex(index: number): number {
+    return index;
+  }
+
+  runChecks(): void {
+    if (!this.cluster) return;
+    this.loading = true;
+    this.hasExecuted = true;
+    this.api.getPrechangeChecklist(this.namespace, this.cluster).subscribe({
+      next: (res: any) => { this.checklist = res?.checklist || []; this.loading = false; },
+      error: () => { this.checklist = []; this.loading = false; }
+    });
+  }
+
+  createPrecheckTask(): void {
+    if (!this.cluster) return;
+    this.api.createPrecheckSystemTask(this.namespace, this.cluster).subscribe({
+      next: () => { this.msg.success('Precheck SystemTask 创建已提交'); this.router.navigateByUrl('/operations/system-tasks'); },
+      error: () => this.msg.error('创建失败')
+    });
+  }
+}

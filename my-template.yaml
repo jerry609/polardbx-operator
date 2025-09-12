@@ -1,0 +1,11 @@
+apiVersion: polardbx.aliyun.com/v1
+kind: PolarDBXParameterTemplate
+metadata:
+  name: my-param-template
+spec:
+  nodeType:
+    cn:
+      name: cn
+      paramList:
+        - name: CONN_POOL_MAX_POOL_SIZE
+          defaultValue: "100" 

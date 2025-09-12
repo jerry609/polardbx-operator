@@ -1,0 +1,28 @@
+{
+  "name": "polardbx-operator",
+  "version": "1.0.0",
+  "description": "PolarDB-X Operator ---",
+  "main": "kubectl-proxy.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/polardb/polardbx-operator.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/polardb/polardbx-operator/issues"
+  },
+  "homepage": "https://github.com/polardb/polardbx-operator#readme",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "ws": "^8.18.3"
+  }
+}

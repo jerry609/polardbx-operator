@@ -1,0 +1,127 @@
+// 导入共享样式
+@import '../../styles/shared';
+
+:host {
+  display: block;
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+.cluster-list-container {
+  padding: 24px;
+}
+
+.page-header {
+  @include modern-card;
+  margin-bottom: 24px;
+  padding: 24px;
+  
+  .header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .page-title {
+    @include page-title;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+}
+
+.search-card {
+  @include modern-card;
+  margin-bottom: 24px;
+  
+  .search-container {
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+
+    .search-field {
+      flex-grow: 1;
+      @include modern-search-field;
+    }
+    
+    .search-button {
+      @include modern-button;
+    }
+  }
+}
+
+.loading-container, .no-results {
+  @include modern-card;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 48px;
+  text-align: center;
+  color: var(--text-secondary-color);
+  
+  mat-icon {
+    font-size: 64px;
+    width: 64px;
+    height: 64px;
+    margin-bottom: 16px;
+    color: var(--primary-color);
+    opacity: 0.7;
+  }
+
+  p {
+    font-size: 18px;
+    margin: 0;
+  }
+}
+
+.table-container {
+  @include modern-card;
+  overflow: hidden;
+
+  .clusters-table {
+    width: 100%;
+    @include modern-table;
+
+    .cluster-link {
+      color: var(--primary-color);
+      font-weight: 500;
+      text-decoration: none;
+      transition: color 0.3s;
+
+      &:hover {
+        color: var(--accent-color);
+        text-decoration: underline;
+      }
+    }
+  }
+}
+
+// 集群创建对话框样式
+::ng-deep .cluster-creation-dialog {
+  .mat-mdc-dialog-container {
+    padding: 0;
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  
+  .mat-mdc-dialog-content {
+    padding: 0;
+    margin: 0;
+    max-height: none;
+  }
+}
+
+// 动画增强
+.page-header, .search-card, .table-container {
+  animation: slideInLeft 0.6s ease-out;
+}
+
+// 响应式对话框
+@media (max-width: 768px) {
+  ::ng-deep .cluster-creation-dialog {
+    width: 95vw !important;
+    max-width: 95vw !important;
+    height: 90vh !important;
+  }
+}

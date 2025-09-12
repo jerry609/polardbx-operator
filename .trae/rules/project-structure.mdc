@@ -1,0 +1,26 @@
+---
+alwaysApply: true
+description: 项目总体架构
+---
+
+# 项目总体架构
+
+本代码库 (monorepo) 包含两个核心模块：
+
+1.  **`polardbx-operator` (主模块):**
+    *   这是一个标准的 Kubernetes Operator，其核心逻辑位于 `pkg/operator` 和 `pkg/webhook`。
+    *   它的主程序入口是 `cmd/polardbx-operator/main.go`。
+    *   它通过操作 `StatefulSet`, `Deployment`, `ConfigMap` 等底层资源来管理 PolarDB-X 集群。
+    *   它应该被部署在 Kubernetes 集群内部运行。
+
+2.  **`backend` (UI 后端服务):**
+    *   这是一个独立的、面向用户的 Web API 服务，用于提供可视化管理能力。
+    *   它的源代码完全包含在 `backend/` 目录中，并拥有自己独立的 `go.mod`。
+    *   它通过 `replace` 指令来引用主模块中定义的 API 类型（位于 `api/v1`）。
+    *   它的主程序入口是 `backend/main.go`。
+    *   它本身是无状态的，可以部署在任何地方。
+
+    *   它的源代码完全包含在 `backend/` 目录中，并拥有自己独立的 `go.mod`。
+    *   它通过 `replace` 指令来引用主模块中定义的 API 类型（位于 `api/v1`）。
+    *   它的主程序入口是 `backend/main.go`。
+    *   它本身是无状态的，可以部署在任何地方。

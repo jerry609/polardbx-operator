@@ -1,0 +1,135 @@
+<div class="cluster-list-container">
+  <!-- 页面头部区域 -->
+  <div class="page-header">
+    <div class="header-content">
+      <h1 class="page-title">
+        <mat-icon class="page-icon">cloud_circle</mat-icon>
+        集群管理
+      </h1>
+      <div class="header-actions">
+        <mat-form-field appearance="outline" class="ml-2" style="width: 160px;">
+          <mat-label>自动刷新</mat-label>
+          <mat-select [value]="currentRefreshMs" (selectionChange)="onChangeRefreshMs($event.value)">
+            <mat-option *ngFor="let opt of refreshOptions" [value]="opt.value">{{ opt.label }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+        <button mat-raised-button color="accent" (click)="openCreateClusterDialog()">
+          <mat-icon>add_circle_outline</mat-icon>
+          创建集群
+        </button>
+        <button mat-raised-button color="primary" (click)="loadClusters()" class="ml-2">
+          <mat-icon>refresh</mat-icon>
+          刷新
+        </button>
+        <button mat-raised-button color="warn" (click)="disconnect()" class="ml-2">
+          <mat-icon>logout</mat-icon>
+          断开连接
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="content">
+    <!-- 搜索与过滤区域 -->
+    <mat-card class="search-card">
+      <mat-card-content>
+        <div class="search-container">
+          <mat-form-field appearance="outline" class="search-field">
+            <mat-label>搜索集群</mat-label>
+            <input matInput 
+                   [(ngModel)]="searchTerm" 
+                   (ngModelChange)="onSearchChange()"
+                   placeholder="按名称、命名空间或状态搜索..."
+                   autocomplete="off">
+            <mat-icon matPrefix>search</mat-icon>
+            <button mat-icon-button matSuffix 
+                    *ngIf="searchTerm" 
+                    (click)="clearSearch()"
+                    matTooltip="清除搜索">
+              <mat-icon>close</mat-icon>
+            </button>
+          </mat-form-field>
+          
+          <div class="search-info" *ngIf="searchTerm">
+            <span class="search-results">
+              找到 {{filteredClusters.length}} / {{clusters.length}} 个集群
+            </span>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <div class="loading-container" *ngIf="isLoading$ | async">
+      <mat-progress-spinner mode="indeterminate" diameter="50"></mat-progress-spinner>
+      <p class="loading-text">正在加载集群列表，请稍候...</p>
+    </div>
+
+    <div *ngIf="(isLoading$ | async) === false">
+      <div class="table-container mat-elevation-z8">
+        <table mat-table [dataSource]="filteredClusters" class="clusters-table">
+          <!-- 集群名称列 -->
+          <ng-container matColumnDef="name">
+            <th mat-header-cell *matHeaderCellDef>集群名称</th>
+            <td mat-cell *matCellDef="let cluster">
+              <a (click)="viewClusterDetail(cluster)" class="cluster-link">{{ cluster.metadata.name }}</a>
+            </td>
+          </ng-container>
+
+          <!-- 命名空间列 -->
+          <ng-container matColumnDef="namespace">
+            <th mat-header-cell *matHeaderCellDef>命名空间</th>
+            <td mat-cell *matCellDef="let cluster">{{ cluster.metadata.namespace }}</td>
+          </ng-container>
+
+          <!-- 状态列 -->
+          <ng-container matColumnDef="phase">
+            <th mat-header-cell *matHeaderCellDef>状态</th>
+            <td mat-cell *matCellDef="let cluster">
+              <mat-chip [color]="getPhaseColor(cluster.status?.phase)" selected>
+                {{ cluster.status?.phase || '未知' }}
+              </mat-chip>
+            </td>
+          </ng-container>
+
+          <!-- 创建时间列 -->
+          <ng-container matColumnDef="creationTimestamp">
+            <th mat-header-cell *matHeaderCellDef>创建时间</th>
+            <td mat-cell *matCellDef="let cluster">
+              {{ cluster.metadata.creationTimestamp | date:'yyyy-MM-dd HH:mm:ss' }}
+            </td>
+          </ng-container>
+
+          <!-- 操作列 -->
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef class="text-center">操作</th>
+            <td mat-cell *matCellDef="let cluster" class="text-center">
+              <button mat-icon-button color="primary" (click)="viewClusterDetail(cluster)" 
+                      matTooltip="查看详情">
+                <mat-icon>visibility</mat-icon>
+              </button>
+              <button mat-icon-button color="warn" (click)="deleteCluster(cluster)" 
+                      matTooltip="删除集群">
+                <mat-icon>delete_outline</mat-icon>
+              </button>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+        </table>
+      </div>
+
+      <div *ngIf="filteredClusters.length === 0 && clusters.length > 0" class="no-results">
+        <mat-icon class="no-results-icon">search_off</mat-icon>
+        <p class="no-results-title">未找到匹配的集群</p>
+        <p class="no-results-hint">请尝试其他搜索关键字或 <button mat-button color="primary" (click)="clearSearch()">清除搜索</button></p>
+      </div>
+
+      <div *ngIf="clusters.length === 0 && (isLoading$ | async) === false" class="no-results">
+        <mat-icon class="no-results-icon">info_outline</mat-icon>
+        <p class="no-results-title">暂无集群数据</p>
+        <p class="no-results-hint">请检查您的 K8s 集群中是否已部署 PolarDB-X Operator 并创建了集群。</p>
+      </div>
+    </div>
+  </div>
+</div>

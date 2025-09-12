@@ -1,0 +1,263 @@
+<div class="management-container">
+  <mat-card class="header-card">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon>device_hub</mat-icon>
+        备库重搭管理
+      </mat-card-title>
+      <mat-card-subtitle>XStore Follower 任务管理与监控</mat-card-subtitle>
+    </mat-card-header>
+  </mat-card>
+
+  <div class="tab-container">
+    <mat-tab-group [(selectedIndex)]="selectedTab" class="management-tabs">
+    
+    <!-- Tab 1: Followers List -->
+    <mat-tab label="Follower 列表">
+      <div class="data-table-wrapper">
+        <div class="table-header">
+          <div class="title">XStore Follower 列表</div>
+          <div class="controls">
+            <button mat-raised-button color="primary" (click)="createNew()">
+              <mat-icon>add</mat-icon>
+              创建 Follower
+            </button>
+            <button mat-button (click)="refreshFollowers()">
+              <mat-icon>refresh</mat-icon>
+              刷新
+            </button>
+          </div>
+        </div>
+        <mat-table [dataSource]="dataSource" class="followers-table">
+            
+            <!-- Name Column -->
+            <ng-container matColumnDef="name">
+              <mat-header-cell *matHeaderCellDef>名称</mat-header-cell>
+              <mat-cell *matCellDef="let follower">
+                <div class="name-cell">
+                  <strong>{{follower.metadata.name}}</strong>
+                  <span class="namespace">{{follower.metadata.namespace}}</span>
+                </div>
+              </mat-cell>
+            </ng-container>
+
+            <!-- XStore Name Column -->
+            <ng-container matColumnDef="xStoreName">
+              <mat-header-cell *matHeaderCellDef>目标 XStore</mat-header-cell>
+              <mat-cell *matCellDef="let follower">
+                <div class="xstore-info">
+                  <span class="xstore-name">{{follower.spec.xStoreName}}</span>
+                  <span *ngIf="follower.spec.fromXStore" class="from-xstore">
+                    从: {{follower.spec.fromXStore}}
+                  </span>
+                </div>
+              </mat-cell>
+            </ng-container>
+
+            <!-- Phase Column -->
+            <ng-container matColumnDef="phase">
+              <mat-header-cell *matHeaderCellDef>状态</mat-header-cell>
+              <mat-cell *matCellDef="let follower">
+                <mat-chip-listbox>
+                  <mat-chip-option 
+                    [selected]="true"
+                    [ngClass]="'status-chip ' + getStatusChipClass(follower.status?.phase)"
+                    [matTooltip]="getPhaseTooltip(follower)">
+                    {{follower.displayStatus}}
+                  </mat-chip-option>
+                </mat-chip-listbox>
+              </mat-cell>
+            </ng-container>
+
+            <!-- Progress Column -->
+            <ng-container matColumnDef="progress">
+              <mat-header-cell *matHeaderCellDef>进度</mat-header-cell>
+              <mat-cell *matCellDef="let follower">
+                <div class="progress-cell" *ngIf="follower.isRecovering">
+                  <mat-progress-bar 
+                    mode="determinate" 
+                    [value]="getProgressPercentage(follower)">
+                  </mat-progress-bar>
+                  <span class="progress-text">{{getProgressPercentage(follower)}}%</span>
+                </div>
+                <span *ngIf="!follower.isRecovering" class="no-progress">-</span>
+              </mat-cell>
+            </ng-container>
+
+            <!-- Last Activity Column -->
+            <ng-container matColumnDef="lastActivity">
+              <mat-header-cell *matHeaderCellDef>最后活动</mat-header-cell>
+              <mat-cell *matCellDef="let follower">
+                <span class="last-activity">
+                  {{follower.lastActivity | date:'medium'}}
+                </span>
+              </mat-cell>
+            </ng-container>
+
+            <!-- Status Indicators Column -->
+            <ng-container matColumnDef="status">
+              <mat-header-cell *matHeaderCellDef>指标</mat-header-cell>
+              <mat-cell *matCellDef="let follower">
+                <div class="status-indicators">
+                  <mat-icon 
+                    *ngIf="follower.isHealthy" 
+                    class="status-icon healthy"
+                    matTooltip="健康">
+                    check_circle
+                  </mat-icon>
+                  <mat-icon 
+                    *ngIf="follower.isRecovering" 
+                    class="status-icon recovering"
+                    matTooltip="恢复中">
+                    sync
+                  </mat-icon>
+                  <mat-icon 
+                    *ngIf="follower.hasFailures" 
+                    class="status-icon failed"
+                    matTooltip="有失败记录">
+                    error
+                  </mat-icon>
+                </div>
+              </mat-cell>
+            </ng-container>
+
+            <!-- Actions Column -->
+            <ng-container matColumnDef="actions">
+              <mat-header-cell *matHeaderCellDef>操作</mat-header-cell>
+              <mat-cell *matCellDef="let follower">
+                <div class="action-buttons">
+                  <button mat-icon-button 
+                          (click)="viewFollower(follower)"
+                          matTooltip="查看详情">
+                    <mat-icon>visibility</mat-icon>
+                  </button>
+                  <button mat-icon-button 
+                          (click)="editFollower(follower)"
+                          matTooltip="编辑">
+                    <mat-icon>edit</mat-icon>
+                  </button>
+                  <button mat-icon-button 
+                          color="warn"
+                          (click)="deleteFollower(follower)"
+                          matTooltip="删除">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                </div>
+              </mat-cell>
+            </ng-container>
+
+            <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
+            <mat-row *matRowDef="let row; columns: displayedColumns;"></mat-row>
+          </mat-table>
+
+          <div *ngIf="followers.length === 0" class="no-data" style="text-align: center; padding: 40px;">
+            <mat-icon style="font-size: 48px; width: 48px; height: 48px; color: #9ca3af; margin-bottom: 16px;">inbox</mat-icon>
+            <p style="color: #6b7280; margin: 0 0 16px 0;">暂无 XStore Follower</p>
+            <button mat-raised-button color="primary" (click)="createNew()">
+              创建第一个 Follower
+            </button>
+          </div>
+      </div>
+    </mat-tab>
+
+    <!-- Tab 2: Create/Edit Form -->
+    <mat-tab [label]="data.mode === 'edit' ? '编辑 Follower' : '创建 Follower'">
+      <div class="management-card">
+        <div class="card-header">
+          <div class="header-content">
+            <div class="title-section">
+              <mat-icon>{{data.mode === 'edit' ? 'edit' : 'add'}}</mat-icon>
+              <h2 class="title">{{getTitle()}}</h2>
+            </div>
+          </div>
+        </div>
+        <div class="card-content">
+          <!-- Basic Configuration -->
+          <div style="margin-bottom: 24px;">
+            <h3 style="margin: 0 0 16px 0; color: #374151; font-size: 1.1rem;">基本配置</h3>
+            <form [formGroup]="followerForm">
+              <div class="form-grid two-column">
+                <mat-form-field appearance="outline">
+                  <mat-label>名称</mat-label>
+                  <input matInput formControlName="name" 
+                            placeholder="xstore-follower-name"
+                            [disabled]="data.mode === 'edit'">
+                  <mat-hint>只能包含小写字母、数字和连字符</mat-hint>
+                  <mat-error>{{getFieldError(followerForm, 'name')}}</mat-error>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>命名空间</mat-label>
+                  <input matInput formControlName="namespace"
+                            [disabled]="data.mode === 'edit'">
+                  <mat-error>{{getFieldError(followerForm, 'namespace')}}</mat-error>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>目标 XStore</mat-label>
+                  <mat-select formControlName="xStoreName">
+                    <mat-option *ngFor="let xstore of availableXStores" [value]="xstore.metadata.name">
+                      {{xstore.metadata.name}}
+                    </mat-option>
+                  </mat-select>
+                  <mat-error>{{getFieldError(followerForm, 'xStoreName')}}</mat-error>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>目标 Pod</mat-label>
+                  <mat-select formControlName="targetPodName">
+                    <mat-option value="">自动选择（优先非 leader 且 Running）</mat-option>
+                    <mat-option *ngFor="let pod of filteredTargetPods" [value]="pod.metadata.name">
+                      {{pod.metadata.name}} <span class="xstore-status">({{pod.status?.phase}}, {{pod.metadata?.labels?.['xstore/role'] || 'unknown'}})</span>
+                    </mat-option>
+                    <mat-option *ngIf="filteredTargetPods.length === 0" disabled>
+                      暂无可用的目标 Pod（请确认该 XStore 有非 leader 的 Running Pod）
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>源 XStore (可选)</mat-label>
+                  <mat-select formControlName="fromXStore">
+                    <mat-option value="">自动选择（不指定具体源）</mat-option>
+                    <mat-option *ngFor="let xstore of validSourceXStores" [value]="xstore.metadata.name">
+                      {{xstore.metadata.name}} 
+                      <span class="xstore-status">({{xstore.status?.phase}}, {{getXStoreReadyStatus(xstore)}})</span>
+                    </mat-option>
+                  </mat-select>
+                  <mat-hint>指定数据源XStore，留空则让Operator自动选择</mat-hint>
+                </mat-form-field>
+              </div>
+
+              <div class="action-bar">
+                <button mat-raised-button 
+                        color="primary" 
+                        type="submit"
+                        [disabled]="followerForm.invalid || isLoading"
+                        (click)="save()">
+                  <mat-icon>{{data.mode === 'edit' ? 'save' : 'add'}}</mat-icon>
+                  {{data.mode === 'edit' ? '保存修改' : '创建 Follower'}}
+                </button>
+                <button mat-button type="button" (click)="cancel()">
+                  <mat-icon>cancel</mat-icon>
+                  取消
+                </button>
+                <div class="spacer"></div>
+                <button mat-button 
+                        type="button" 
+                        color="accent"
+                        (click)="resetForm()"
+                        [disabled]="isLoading">
+                  <mat-icon>refresh</mat-icon>
+                  重置表单
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </mat-tab>
+    
+    </mat-tab-group>
+  </div>
+</div>

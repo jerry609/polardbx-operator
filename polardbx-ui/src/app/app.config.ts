@@ -1,0 +1,150 @@
+import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
+import { provideRouter } from '@angular/router';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
+import { provideNzIcons } from 'ng-zorro-antd/icon';
+import { provideNzI18n, zh_CN } from 'ng-zorro-antd/i18n';
+import { LOCALE_ID } from '@angular/core';
+import { registerLocaleData } from '@angular/common';
+import zh from '@angular/common/locales/zh';
+
+registerLocaleData(zh);
+import {
+  MenuFoldOutline,
+  MenuUnfoldOutline,
+  AppstoreOutline,
+  CloudUploadOutline,
+  UndoOutline,
+  DatabaseOutline,
+  SettingOutline,
+  SaveOutline,
+  CalendarOutline,
+  FileTextOutline,
+  HddOutline,
+  DeploymentUnitOutline,
+  DashboardOutline,
+  SlidersOutline,
+  ProfileOutline,
+  FileSearchOutline,
+  HistoryOutline,
+  ToolOutline,
+  ReloadOutline,
+  SafetyOutline,
+  GlobalOutline,
+  ClockCircleOutline,
+  CheckCircleOutline,
+  CloseCircleOutline,
+  PlusOutline,
+  MoreOutline,
+  EyeOutline,
+  EditOutline,
+  DeleteOutline,
+  InfoCircleOutline,
+  PlayCircleOutline,
+  CopyOutline,
+  DownloadOutline,
+  LinkOutline,
+  SearchOutline,
+  NotificationOutline,
+  BellOutline,
+  LoginOutline,
+  WarningOutline,
+  AuditOutline,
+  LeftOutline,
+  RightOutline,
+  CloudOutline,
+  ShareAltOutline,
+  FilterOutline,
+  BookOutline,
+  ClusterOutline,
+  DatabaseOutline as DbOutline,
+  FieldTimeOutline,
+  QuestionCircleOutline,
+  ExportOutline,
+  SettingTwoTone,
+  BugOutline,
+  BuildOutline,
+  MinusCircleOutline,
+  PlusCircleOutline,
+  ThunderboltOutline
+} from '@ant-design/icons-angular/icons';
+
+import { routes } from './app.routes';
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideZoneChangeDetection({ eventCoalescing: true }), 
+    provideRouter(routes),
+    provideHttpClient(withInterceptors([
+      (req, next) => {
+        const token = localStorage.getItem('jwtToken');
+        if (token && req.url.includes('/api/v1/') && !req.headers.has('Authorization')) {
+          req = req.clone({ setHeaders: { Authorization: `Bearer ${token}` } });
+        }
+        return next(req);
+      }
+    ])),
+    provideAnimationsAsync(),
+    provideNzI18n(zh_CN),
+    { provide: LOCALE_ID, useValue: 'zh-cn' },
+    provideNzIcons([
+      MenuFoldOutline,
+      MenuUnfoldOutline,
+      AppstoreOutline,
+      CloudUploadOutline,
+      UndoOutline,
+      DatabaseOutline,
+      SettingOutline,
+      SaveOutline,
+      CalendarOutline,
+      FileTextOutline,
+      HddOutline,
+      DeploymentUnitOutline,
+      DashboardOutline,
+      SlidersOutline,
+      ProfileOutline,
+      FileSearchOutline,
+      HistoryOutline,
+      ToolOutline,
+      ReloadOutline,
+      SafetyOutline,
+      GlobalOutline,
+      ClockCircleOutline,
+      CheckCircleOutline,
+      CloseCircleOutline,
+      PlusOutline,
+      MoreOutline,
+      EyeOutline,
+      EditOutline,
+      DeleteOutline,
+      InfoCircleOutline,
+      PlayCircleOutline,
+      CopyOutline,
+      DownloadOutline,
+      LinkOutline,
+      SearchOutline,
+      NotificationOutline,
+      BellOutline,
+      LoginOutline,
+      WarningOutline,
+      AuditOutline,
+      LeftOutline,
+      RightOutline,
+      CloudOutline,
+      ShareAltOutline,
+      FilterOutline,
+      BookOutline,
+      ClusterOutline,
+      DbOutline,
+      FieldTimeOutline,
+      QuestionCircleOutline,
+      ExportOutline,
+      SettingTwoTone,
+      BugOutline,
+      BuildOutline,
+      MinusCircleOutline,
+      PlusCircleOutline,
+      ThunderboltOutline
+    ])
+  ]
+};

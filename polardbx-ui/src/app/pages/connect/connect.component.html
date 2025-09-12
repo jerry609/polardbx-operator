@@ -1,0 +1,115 @@
+<div class="connect-container">
+  <mat-card class="connect-card">
+    <mat-card-header class="text-center">
+      <div class="brand-logo">
+        <mat-icon class="brand-icon">cloud_queue</mat-icon>
+      </div>
+      <mat-card-title>连接至 Kubernetes 集群</mat-card-title>
+      <mat-card-subtitle>请提供您的 kubeconfig 配置文件以开始</mat-card-subtitle>
+    </mat-card-header>
+    
+    <mat-card-content>
+      <!-- 输入方式选择 -->
+      <mat-button-toggle-group 
+        [(value)]="inputMethod" 
+        (change)="onInputMethodChange()"
+        class="input-method-selector"
+        aria-label="选择输入方式">
+        <mat-button-toggle value="text">
+          <mat-icon>edit_note</mat-icon>
+          文本输入
+        </mat-button-toggle>
+        <mat-button-toggle value="file">
+          <mat-icon>upload_file</mat-icon>
+          文件上传
+        </mat-button-toggle>
+      </mat-button-toggle-group>
+
+      <!-- 文本输入方式 -->
+      <div *ngIf="inputMethod === 'text'" class="input-section">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Kubeconfig 内容</mat-label>
+          <textarea 
+            matInput 
+            [(ngModel)]="kubeconfig" 
+            placeholder="在此处粘贴您的 kubeconfig 文件内容..."
+            rows="15"
+            class="kubeconfig-textarea">
+          </textarea>
+          <mat-hint>请确保 kubeconfig 包含有效的集群连接信息。</mat-hint>
+        </mat-form-field>
+      </div>
+
+      <!-- 文件上传方式 -->
+      <div *ngIf="inputMethod === 'file'" class="input-section">
+        <div
+          class="file-upload-area"
+          role="button"
+          tabindex="0"
+          (click)="fileInput.click()"
+          (keydown.enter)="fileInput.click()"
+          (dragover)="onDragOver($event)"
+          (dragleave)="onDragLeave($event)"
+          (drop)="onDrop($event)"
+          [class.drag-over]="isDragOver">
+          <mat-icon class="upload-icon">cloud_upload</mat-icon>
+          <p class="upload-text">
+            <span *ngIf="!selectedFile">点击或拖拽 kubeconfig 文件到此处</span>
+            <span *ngIf="selectedFile" class="selected-file-text">已选择: {{ selectedFile.name }}</span>
+          </p>
+          <p class="upload-hint">支持 .yaml, .yml, .config 或无扩展名文件</p>
+          
+          <input 
+            #fileInput
+            type="file" 
+            hidden 
+            (change)="onFileSelected($event)"
+            accept=".yaml,.yml,.config">
+        </div>
+        
+        <!-- 文件信息显示 -->
+        <div *ngIf="selectedFile" class="file-info">
+          <mat-icon>description</mat-icon>
+          <div class="file-details">
+            <p class="file-name">{{ selectedFile.name }}</p>
+            <p class="file-size">{{ getFileSize(selectedFile.size) }}</p>
+          </div>
+          <button mat-icon-button (click)="clearFile()" matTooltip="清除已选文件">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+
+        <!-- 文件内容预��� -->
+        <div *ngIf="kubeconfig && inputMethod === 'file'" class="file-preview">
+          <mat-expansion-panel>
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                <mat-icon>visibility</mat-icon>
+                <span class="ml-2">文件内容预览</span>
+              </mat-panel-title>
+            </mat-expansion-panel-header>
+            <pre class="config-preview">{{ kubeconfig }}</pre>
+          </mat-expansion-panel>
+        </div>
+      </div>
+    </mat-card-content>
+    
+    <mat-card-actions align="end">
+      <button 
+        mat-raised-button 
+        color="primary" 
+        (click)="onConnect()"
+        [disabled]="isConnecting || !kubeconfig.trim()"
+        class="connect-button">
+        <mat-progress-spinner 
+          *ngIf="isConnecting" 
+          mode="indeterminate" 
+          diameter="20"
+          class="button-spinner">
+        </mat-progress-spinner>
+        <span *ngIf="!isConnecting">连接</span>
+        <span *ngIf="isConnecting">连接中...</span>
+      </button>
+    </mat-card-actions>
+  </mat-card>
+</div>

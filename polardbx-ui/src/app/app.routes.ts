@@ -1,0 +1,184 @@
+import { Routes } from '@angular/router';
+import { LayoutComponent } from './pages/layout/layout.component';
+import { ClusterListComponent } from './pages/cluster-list/cluster-list.component';
+import { AuthGuard } from './guards/auth.guard';
+import { ParameterTemplateManagementComponent } from './components/parameter-template-management/parameter-template-management.component';
+import { SystemTaskManagementComponent } from './components/system-task-management/system-task-management.component';
+
+export const routes: Routes = [
+  { 
+    path: 'connect', 
+    loadComponent: () => import('./pages/connect/connect.component').then(m => m.ConnectComponent)
+  },
+  {
+    path: '',
+    component: LayoutComponent,
+    canActivate: [AuthGuard],
+    children: [
+      { path: '', redirectTo: 'clusters', pathMatch: 'full' },
+      { path: 'clusters', component: ClusterListComponent },
+      { 
+        path: 'clusters/:namespace/:name', 
+        loadComponent: () => import('./pages/cluster-detail/cluster-detail.component').then(m => m.ClusterDetailComponent)
+      },
+      
+      // Backup Management Module
+      {
+        path: 'backup',
+        children: [
+          { path: '', redirectTo: 'manual-backups', pathMatch: 'full' },
+          { 
+            path: 'overview',
+            loadComponent: () => import('./components/backup-overview/backup-overview.component').then(m => m.BackupOverviewComponent)
+          },
+          { 
+            path: 'manual-backups', 
+            loadComponent: () => import('./components/backup-management/backup-management.component').then(m => m.BackupManagementComponent)
+          },
+          { 
+            path: 'backup-schedules', 
+            loadComponent: () => import('./components/backup-schedule-management/backup-schedule-management.component').then(m => m.BackupScheduleManagementComponent)
+          },
+          { 
+            path: 'backup-binlogs', 
+            loadComponent: () => import('./components/backup-binlog-management/backup-binlog-management.component').then(m => m.BackupBinlogManagementComponent)
+          },
+          { 
+            path: 'xstore-backups', 
+            loadComponent: () => import('./components/xstore-backup-management/xstore-backup-management.component').then(m => m.XStoreBackupManagementComponent)
+          }
+        ]
+      },
+
+      // Top-level aliases for backup subpages
+      { path: 'backup-schedules', redirectTo: 'backup/backup-schedules', pathMatch: 'full' },
+      { path: 'backup-binlogs', redirectTo: 'backup/backup-binlogs', pathMatch: 'full' },
+      { path: 'xstore-backups', redirectTo: 'backup/xstore-backups', pathMatch: 'full' },
+
+      // Recovery Management Module
+      {
+        path: 'recovery',
+        children: [
+          { path: '', redirectTo: 'restore-wizard', pathMatch: 'full' },
+          { 
+            path: 'restore-wizard', 
+            loadComponent: () => import('./components/recovery-wizard/recovery-wizard.component').then(m => m.RecoveryWizardComponent)
+          },
+          { 
+            path: 'restore-jobs', 
+            loadComponent: () => import('./components/restore-job-management/restore-job-management.component').then(m => m.RestoreJobManagementComponent)
+          },
+          { 
+            path: 'pitr', 
+            redirectTo: '/recovery/restore-wizard?mode=pitr',
+            pathMatch: 'full'
+          }
+        ]
+      },
+
+      // Aliases for recovery module under /restore
+      {
+        path: 'restore',
+        children: [
+          { path: '', redirectTo: 'restore-wizard', pathMatch: 'full' },
+          { 
+            path: 'restore-wizard', 
+            loadComponent: () => import('./components/recovery-wizard/recovery-wizard.component').then(m => m.RecoveryWizardComponent)
+          },
+          { 
+            path: 'restore-jobs', 
+            loadComponent: () => import('./components/restore-job-management/restore-job-management.component').then(m => m.RestoreJobManagementComponent)
+          },
+          { 
+            path: 'pitr', 
+            redirectTo: '/recovery/restore-wizard?mode=pitr',
+            pathMatch: 'full'
+          }
+        ]
+      },
+
+      // Storage Management Module
+      {
+        path: 'storage',
+        children: [
+          { path: '', redirectTo: 'xstores', pathMatch: 'full' },
+          { 
+            path: 'xstores', 
+            loadComponent: () => import('./components/xstore-management/xstore-management.component').then(m => m.XStoreManagementComponent)
+          },
+          { 
+            path: 'xstore-followers', 
+            loadComponent: () => import('./components/xstore-follower-management/xstore-follower-management.component').then(m => m.XStoreFollowerManagementComponent)
+          },
+          {
+            path: 'xstore-rebuild',
+            children: [
+              { path: '', redirectTo: 'health-check', pathMatch: 'full' },
+              { path: 'health-check', loadComponent: () => import('./components/xstore-rebuild/xstore-rebuild-health-check.component').then(m => m.XStoreRebuildHealthCheckComponent) },
+              { path: 'rebuild-follower', loadComponent: () => import('./components/xstore-rebuild/xstore-rebuild-follower.component').then(m => m.XStoreRebuildFollowerComponent) },
+              { path: 'rebuild-logger', loadComponent: () => import('./components/xstore-rebuild/xstore-rebuild-logger.component').then(m => m.XStoreRebuildLoggerComponent) },
+              { path: 'rebuild-learner', loadComponent: () => import('./components/xstore-rebuild/xstore-rebuild-learner.component').then(m => m.XStoreRebuildLearnerComponent) },
+              { path: 'auto', loadComponent: () => import('./components/xstore-rebuild/xstore-rebuild-auto.component').then(m => m.XStoreRebuildAutoComponent) }
+            ]
+          }
+        ]
+      },
+
+      // Operations Management Module
+      {
+        path: 'operations',
+        children: [
+          { path: '', redirectTo: 'monitors', pathMatch: 'full' },
+          {
+            path: 'logs',
+            loadComponent: () => import('./components/logs-hub/logs-hub.component').then(m => m.LogsHubComponent),
+            children: [
+              { path: '', redirectTo: 'collectors', pathMatch: 'full' },
+              { path: 'collectors', loadComponent: () => import('./components/log-collector-management/log-collector-management.component').then(m => m.LogCollectorManagementComponent) },
+              { path: 'ilm', loadComponent: () => import('./components/log-collector-ilm/log-collector-ilm.component').then(m => m.LogCollectorIlmComponent) },
+              { path: 'cluster', loadComponent: () => import('./pages/cluster-log-management/cluster-log-management.component').then(m => m.ClusterLogManagementComponent) }
+            ]
+          },
+          { 
+            path: 'monitoring',
+            loadComponent: () => import('./components/monitoring-hub/monitoring-hub.component').then(m => m.MonitoringHubComponent),
+            children: [
+              { path: '', redirectTo: 'overview', pathMatch: 'full' },
+              { path: 'overview', loadComponent: () => import('./components/monitoring-overview/monitoring-overview.component').then(m => m.MonitoringOverviewComponent) },
+              { path: 'config', loadComponent: () => import('./components/monitor-management/monitor-management.component').then(m => m.MonitorManagementComponent) },
+              { path: 'install', loadComponent: () => import('./components/monitoring-install-wizard/monitoring-install-wizard.component').then(m => m.MonitoringInstallWizardComponent) },
+              { path: 'health', loadComponent: () => import('./components/monitoring-health/monitoring-health.component').then(m => m.MonitoringHealthComponent) },
+              { path: 'preflight', loadComponent: () => import('./components/monitoring-preflight/monitoring-preflight.component').then(m => m.MonitoringPreflightComponent) },
+              { path: 'grafana', loadComponent: () => import('./components/grafana-embed/grafana-embed.component').then(m => m.GrafanaEmbedComponent) },
+              { path: 'alerts', loadComponent: () => import('./components/alerts-aggregation/alerts-aggregation.component').then(m => m.AlertsAggregationComponent) },
+              { path: 'alerts-mgr', loadComponent: () => import('./components/alerts-management/alerts-management.component').then(m => m.AlertsManagementComponent) }
+            ]
+          },
+          { path: 'nodes', loadComponent: () => import('./pages/nodes/nodes.component').then(m => m.NodesComponent) },
+          { path: 'nodes/:namespace/:name', loadComponent: () => import('./pages/node-detail/node-detail.component').then(m => m.NodeDetailComponent) },
+          { path: 'monitors', loadComponent: () => import('./components/monitor-management/monitor-management.component').then(m => m.MonitorManagementComponent) },
+          { path: 'parameter-templates', component: ParameterTemplateManagementComponent },
+          { path: 'system-tasks', component: SystemTaskManagementComponent },
+          { path: 'cluster-knobs', loadComponent: () => import('./components/cluster-knobs-management/cluster-knobs-management.component').then(m => m.ClusterKnobsManagementComponent) },
+          { path: 'settings', loadComponent: () => import('./components/settings-management/settings-management.component').then(m => m.SettingsManagementComponent) },
+          { path: 'helm-values-helper', loadComponent: () => import('./components/helm-values-helper/helm-values-helper.component').then(m => m.HelmValuesHelperComponent) },
+          { path: 'runbook-slo', loadComponent: () => import('./components/runbook-slo/runbook-slo.component').then(m => m.RunbookSloComponent) },
+          { path: 'upgrade-rollback-wizard', loadComponent: () => import('./components/upgrade-rollback-wizard/upgrade-rollback-wizard.component').then(m => m.UpgradeRollbackWizardComponent) },
+          // 旧日志路径重定向到聚合
+          { path: 'log-collectors', redirectTo: 'logs/collectors', pathMatch: 'full' },
+          { path: 'log-ilm', redirectTo: 'logs/ilm', pathMatch: 'full' },
+          { path: 'cluster-logs', redirectTo: 'logs/cluster', pathMatch: 'full' },
+          { path: 'diagnostics', loadComponent: () => import('./components/diagnostics-management/diagnostics-management.component').then(m => m.DiagnosticsManagementComponent) },
+          { path: 'prechange-check', loadComponent: () => import('./components/prechange-check/prechange-check.component').then(m => m.PrechangeCheckComponent) },
+          // 旧路径重定向
+          { path: 'grafana', redirectTo: 'monitoring/grafana', pathMatch: 'full' },
+          { path: 'alerts', redirectTo: 'monitoring/alerts', pathMatch: 'full' },
+          { path: 'monitoring-wizard', redirectTo: 'monitoring/install', pathMatch: 'full' },
+          { path: 'monitoring-health', redirectTo: 'monitoring/health', pathMatch: 'full' },
+          { path: 'alerts-management', redirectTo: 'monitoring/alerts-mgr', pathMatch: 'full' }
+        ]
+      }
+    ]
+  },
+  { path: '**', redirectTo: 'connect' }
+];

@@ -1,0 +1,17 @@
+# CRD API 定义
+
+`api/v1/` 目录是项目中所有自定义资源 (CRD) 的 **Go 语言类型定义的唯一来源 (Source of Truth)**。
+
+## 核心职责
+
+*   此目录下的 `_types.go` 文件 (例如 `polardbxcluster_types.go`) 定义了每个 CRD 的 `Spec` (用户期望的状态) 和 `Status` (系统的实际状态) 的数据结构。
+*   这些 Go `structs` 是整个生态（包括 Operator 自身和 `backend` 服务）用来理解和操作 CRD 对象的统一“语言”或“契约”。
+
+## 使用规范
+
+*   **严禁复制:** 任何需要操作 CRD 对象的模块（如 `backend`），都**必须**通过 `go.mod` 引用 `github.com/alibaba/polardbx-operator` 模块来 `import` 此包中的类型，**严禁**在自己的包内复制粘贴或重新定义这些结构体。
+*   **修改入口:** 当需要为某个 CRD 添加新的配置项时，必须从修改此目录下的 `_types.go` 文件开始，然后运行 `make generate` 来更新自动生成的代码（如 `zz_generated.deepcopy.go`）。
+description:
+globs:
+alwaysApply: false
+---

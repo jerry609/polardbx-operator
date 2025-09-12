@@ -1,0 +1,645 @@
+:host {
+  display: block;
+  height: 100%;
+  background-color: #f4f6f8;
+}
+
+.cluster-detail-container { padding: 16px; }
+
+.page-header {
+  background-color: var(--pd-surface);
+  padding: 16px 20px;
+  border-radius: var(--pd-radius);
+  box-shadow: var(--pd-shadow);
+  border: 1px solid var(--pd-border);
+  margin-bottom: 16px;
+
+  .header-content {
+    display: flex;
+    align-items: center;
+  }
+
+  .back-link {
+    margin-right: 16px;
+    color: var(--text-color);
+    text-decoration: none;
+  }
+
+  .cluster-info {
+    flex-grow: 1;
+  }
+
+  .cluster-title { font-size: 24px; font-weight: 600; margin: 0; }
+
+  .cluster-namespace {
+    font-size: 16px;
+    color: #777;
+    margin: 4px 0 0;
+  }
+}
+
+.cluster-tabs {
+  .tab-icon {
+    margin-right: 8px;
+  }
+}
+
+.tab-content {
+  padding: 24px 0;
+}
+
+/* 概览两栏布局 */
+.overview-grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 16px; }
+.left-column, .right-column { display: flex; flex-direction: column; gap: 16px; }
+@media (max-width: 1024px) {
+  .overview-grid { grid-template-columns: 1fr; }
+}
+
+/* 摘要信息条 */
+.summary-bar {
+  display: grid;
+  grid-template-columns: repeat(5, auto) 1fr;
+  align-items: center;
+  gap: 16px;
+  margin-top: 12px;
+}
+.summary-item { display: grid; grid-template-columns: 24px auto; grid-template-rows: auto auto; column-gap: 8px; }
+.summary-item .label { color: var(--pd-text-secondary); font-size: 12px; grid-column: 2/3; }
+.summary-item .value { font-weight: 600; grid-column: 2/3; }
+.summary-actions { justify-self: end; display: flex; gap: 8px; }
+
+.status-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-bottom: 16px; }
+
+.status-card {
+  .status-value {
+    font-size: 24px;
+    font-weight: 500;
+    &.running {
+      color: #4caf50;
+    }
+  }
+  .connection-info {
+    font-family: 'monospace';
+  }
+}
+
+.architecture-card, .nodes-card, .backup-card, .logs-card { margin-bottom: 16px; }
+
+.monitoring-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+.table-container { border-radius: var(--pd-radius); overflow: hidden; border: 1px solid var(--pd-border); }
+
+.nodes-table { width: 100%; }
+
+.node-name {
+	.subtext {
+		margin-left: 6px;
+		font-size: 12px;
+		color: #666;
+	}
+}
+
+.metrics-bar { display: grid; grid-auto-flow: column; gap: 12px; align-items: center; margin-bottom: 8px; }
+.metrics-bar .metric { display: flex; gap: 8px; align-items: center; }
+.metrics-bar .label { color: var(--pd-text-secondary); font-size: 12px; }
+.metrics-bar .value { font-weight: 600; }
+
+.architecture-diagram { display: flex; flex-direction: column; gap: 8px; }
+.architecture-diagram .row { display: flex; gap: 8px; align-items: center; }
+.architecture-diagram .hint { color: var(--pd-text-secondary); font-size: 12px; }
+
+.config-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.single-card-layout {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.config-form, .upgrade-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-section {
+  margin-bottom: 24px;
+  
+  h4 {
+    margin: 0 0 16px 0;
+    color: var(--pd-text-primary);
+    font-weight: 600;
+  }
+  
+  h5 {
+    margin: 0 0 12px 0;
+    color: var(--pd-text-secondary);
+    font-weight: 500;
+  }
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+.form-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--pd-border);
+}
+
+.debug-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 8px 12px;
+  background-color: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #856404;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.current-version, .upgrade-section {
+  margin-bottom: 24px;
+}
+
+.version-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background-color: var(--pd-surface);
+  border: 1px solid var(--pd-border);
+  border-radius: 8px;
+  
+  mat-icon {
+    color: var(--pd-primary);
+  }
+  
+  span {
+    font-weight: 600;
+    font-family: monospace;
+  }
+}
+
+.strategy-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  background-color: var(--pd-surface);
+  border: 1px solid var(--pd-border);
+  border-radius: 8px;
+  
+  mat-icon {
+    color: var(--pd-primary);
+    margin-top: 2px;
+  }
+  
+  .strategy-text {
+    flex: 1;
+    
+    strong {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--pd-text-primary);
+    }
+    
+    p {
+      margin: 0;
+      color: var(--pd-text-secondary);
+      font-size: 14px;
+    }
+  }
+}
+
+.upgrade-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  background-color: #fff8e1;
+  border: 1px solid #ffb74d;
+  border-radius: 8px;
+  
+  mat-icon {
+    margin-top: 2px;
+  }
+  
+  .warning-text {
+    flex: 1;
+    
+    strong {
+      display: block;
+      margin-bottom: 8px;
+      color: #f57c00;
+    }
+    
+    ul {
+      margin: 0;
+      padding-left: 16px;
+      color: #ef6c00;
+      
+      li {
+        margin-bottom: 4px;
+        font-size: 14px;
+      }
+    }
+  }
+}
+
+.log-controls {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.log-viewer {
+  background-color: #212121;
+  color: #f5f5f5;
+  font-family: 'monospace';
+  padding: 16px;
+  border-radius: var(--border-radius);
+  height: 400px;
+  overflow-y: auto;
+}
+
+/* 修复节点表格中容器下拉框被覆盖的问题 */
+::ng-deep .nodes-table .mat-mdc-form-field {
+  position: relative;
+  z-index: 10;
+}
+
+::ng-deep .nodes-table .mat-mdc-select-panel {
+  z-index: 100000 !important;
+  position: fixed !important;
+  pointer-events: auto !important;
+  background: white !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3) !important;
+  border: 1px solid #ddd !important;
+}
+
+::ng-deep .nodes-table .cdk-overlay-pane {
+  z-index: 100000 !important;
+  position: fixed !important;
+  pointer-events: auto !important;
+}
+
+::ng-deep .nodes-table .mat-mdc-option {
+  z-index: 100000 !important;
+  pointer-events: auto !important;
+}
+
+// 现代化变配界面样式
+.current-config-card {
+  margin-bottom: 24px;
+  
+  .config-overview {
+    .node-overview {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+      
+      .node-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        background: #fafafa;
+        
+        mat-icon {
+          font-size: 24px;
+          width: 24px;
+          height: 24px;
+        }
+        
+        .node-details {
+          h4 {
+            margin: 0 0 4px 0;
+            font-size: 14px;
+            font-weight: 500;
+          }
+          
+          p {
+            margin: 0;
+            font-size: 12px;
+            color: #666;
+          }
+        }
+      }
+    }
+  }
+}
+
+.modern-config-form {
+  .node-config-section {
+    margin-bottom: 32px;
+    padding: 20px;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    background: #fafafa;
+    
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+      
+      mat-icon {
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+      }
+      
+      h4 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 500;
+        flex: 1;
+      }
+      
+      mat-chip {
+        font-size: 11px;
+        height: 20px;
+        line-height: 20px;
+      }
+    }
+    
+    .config-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      
+      .config-item {
+        position: relative;
+        
+        label {
+          display: block;
+          font-size: 14px;
+          font-weight: 500;
+          margin-bottom: 8px;
+          color: #333;
+        }
+        
+        .compact-field {
+          width: 100%;
+          
+          .mat-mdc-form-field-wrapper {
+            padding-bottom: 0;
+          }
+        }
+        
+        .change-indicator {
+          position: absolute;
+          top: 0;
+          right: -120px;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          padding: 4px 8px;
+          background: #e3f2fd;
+          border-radius: 12px;
+          font-size: 12px;
+          color: #1976d2;
+          
+          mat-icon {
+            font-size: 16px;
+            width: 16px;
+            height: 16px;
+          }
+        }
+      }
+    }
+  }
+}
+
+.change-preview {
+  margin: 24px 0;
+  
+  .preview-card {
+    background: #f5f5f5;
+    border-left: 4px solid #1976d2;
+    
+    .change-list {
+      margin-bottom: 16px;
+      
+      .change-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 8px 0;
+        
+        mat-icon {
+          font-size: 18px;
+          width: 18px;
+          height: 18px;
+        }
+        
+        span {
+          flex: 1;
+          font-size: 14px;
+        }
+        
+        mat-chip {
+          font-size: 11px;
+          height: 20px;
+          line-height: 20px;
+        }
+      }
+    }
+    
+    .impact-notice {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px;
+      background: #fff3e0;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #e65100;
+      
+      mat-icon {
+        font-size: 16px;
+        width: 16px;
+        height: 16px;
+      }
+    }
+  }
+}
+
+.action-bar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #e0e0e0;
+  
+  button {
+    min-width: 120px;
+    
+    mat-icon {
+      margin-right: 4px;
+    }
+  }
+}
+
+// 告警相关样式
+.clickable-alert {
+  cursor: pointer;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+    transform: translateY(-1px);
+  }
+  
+  &.has-alerts {
+    .value {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .alert-indicator {
+      font-size: 18px;
+      color: #ff9800;
+      animation: pulse 2s infinite;
+    }
+  }
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+// 新增节点列表增强样式
+.ready-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  .warning-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    animation: pulse 2s infinite;
+  }
+}
+
+.high-restarts {
+  color: #f44336;
+  font-weight: bold;
+  
+  &:hover {
+    background-color: #ffebee;
+    padding: 2px 4px;
+    border-radius: 4px;
+  }
+}
+
+// 节点表格增强
+.nodes-table {
+  .mat-column-ready {
+    width: 120px;
+    text-align: center;
+  }
+  
+  .mat-column-restarts {
+    width: 80px;
+    text-align: center;
+  }
+  
+  // 让表格更紧凑
+  .mat-cell, .mat-header-cell {
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+  
+  // Ready状态样式
+  mat-chip {
+    font-size: 12px;
+    height: 24px;
+    line-height: 24px;
+    min-height: 24px;
+    
+    &.mat-primary {
+      background-color: #4caf50;
+      color: white;
+    }
+    
+    &.mat-accent {
+      background-color: #2196f3;
+      color: white;
+    }
+    
+    &.mat-warn {
+      background-color: #f44336;
+      color: white;
+    }
+  }
+}
+
+// 响应式设计
+@media (max-width: 768px) {
+  .modern-config-form {
+    .node-config-section {
+      .config-grid {
+        grid-template-columns: 1fr;
+        
+        .config-item {
+          .change-indicator {
+            position: static;
+            margin-top: 8px;
+            align-self: start;
+          }
+        }
+      }
+    }
+  }
+  
+  .action-bar {
+    flex-direction: column;
+    align-items: stretch;
+    
+    button {
+      width: 100%;
+    }
+  }
+  
+  // 移动端节点表格优化
+  .nodes-table {
+    .mat-column-ready, 
+    .mat-column-restarts {
+      width: auto;
+      min-width: 80px;
+    }
+  }
+}

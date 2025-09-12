@@ -1,0 +1,9 @@
+apiVersion: polardbx.aliyun.com/v1
+kind: PolarDBXBackupStorage
+metadata:
+  name: local-storage
+spec:
+  storageProvider:
+    hostPath:
+      path: /data/backup
+  backupRootPath: polardbx-backup

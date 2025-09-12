@@ -1,0 +1,6 @@
+apiVersion: polardbx.aliyun.com/v1
+kind: PolarDBXCluster
+metadata:
+  name: quick-start
+  annotations:
+    polardbx/topology-mode-guide: quick-start
