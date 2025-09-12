@@ -164,6 +164,17 @@ func Update(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to persist strategy", "details": e.Error()})
 		return
 	}
+	// If no ES output remains for this cluster after update, perform cleanup
+	hasActive := false
+	for _, it := range list {
+		if it.ClusterNS == s.ClusterNS && it.ClusterName == s.ClusterName && strings.ToLower(it.Output.Type) == "elasticsearch" {
+			hasActive = true
+			break
+		}
+	}
+	if !hasActive {
+		performCleanupForCluster(c, s.ClusterNS, s.ClusterName)
+	}
 	c.JSON(http.StatusOK, s)
 }
 
@@ -176,9 +187,13 @@ func Delete(c *gin.Context) {
 	}
 	list := loadList(cm)
 	idx := -1
+	var removed Strategy
+	var hasRemoved bool
 	for i, it := range list {
 		if it.Name == name {
 			idx = i
+			removed = it
+			hasRemoved = true
 			break
 		}
 	}
@@ -191,7 +206,62 @@ func Delete(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to persist strategy", "details": e.Error()})
 		return
 	}
+	if hasRemoved {
+		// If no ES output remains for this cluster after deletion, perform cleanup
+		hasActive := false
+		for _, it := range list {
+			if it.ClusterNS == removed.ClusterNS && it.ClusterName == removed.ClusterName && strings.ToLower(it.Output.Type) == "elasticsearch" {
+				hasActive = true
+				break
+			}
+		}
+		if !hasActive {
+			performCleanupForCluster(c, removed.ClusterNS, removed.ClusterName)
+		}
+	}
 	c.Status(http.StatusOK)
+}
+
+// performCleanupForCluster resets pipeline to stdout, restarts logstash and disables cluster annotation
+func performCleanupForCluster(c *gin.Context, ns string, clusterName string) {
+	cli, ok := util.K8sClientFromContext(c)
+	if !ok {
+		return
+	}
+	clientset, ok := util.ClientsetFromContext(c)
+	if !ok {
+		return
+	}
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 15*time.Second)
+	defer cancel()
+
+	// Reset pipeline to stdout
+	cmNamePipeline := "logstash-pipeline"
+	pipelineKey := "050-outputs.conf"
+	if pl, err := clientset.CoreV1().ConfigMaps(cmNamespace).Get(ctx, cmNamePipeline, metav1.GetOptions{}); err == nil && pl != nil {
+		if pl.Data == nil {
+			pl.Data = map[string]string{}
+		}
+		pl.Data[pipelineKey] = "output { stdout { } }\n"
+		_, _ = clientset.CoreV1().ConfigMaps(cmNamespace).Update(ctx, pl, metav1.UpdateOptions{})
+	}
+
+	// Restart logstash if exists
+	if dep, err := clientset.AppsV1().Deployments(cmNamespace).Get(ctx, "logstash", metav1.GetOptions{}); err == nil && dep != nil {
+		if dep.Spec.Template.Annotations == nil {
+			dep.Spec.Template.Annotations = map[string]string{}
+		}
+		dep.Spec.Template.Annotations["kubectl.kubernetes.io/restartedAt"] = time.Now().Format(time.RFC3339)
+		_, _ = clientset.AppsV1().Deployments(cmNamespace).Update(ctx, dep, metav1.UpdateOptions{})
+	}
+
+	// Disable annotation on cluster (best-effort)
+	patch := map[string]any{"metadata": map[string]any{"annotations": map[string]any{"polardbx.aliyun.com/enable-log-collection": "false"}}}
+	b, _ := json.Marshal(patch)
+	if strings.TrimSpace(ns) == "" {
+		ns = "default"
+	}
+	_, _ = k8s.PatchPolarDBXCluster(cli, ns, clusterName, b)
 }
 
 // Precheck validates cluster existence and output configuration syntax
