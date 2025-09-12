@@ -24,6 +24,9 @@ import (
 	api_systemtask "polardbx-ui-backend/pkg/api/systemtask"
 	api_xstore "polardbx-ui-backend/pkg/api/xstore"
 
+	api_logservice "polardbx-ui-backend/pkg/api/logservice"
+	api_logstrategy "polardbx-ui-backend/pkg/api/logstrategy"
+
 	"github.com/gin-gonic/gin"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -190,6 +193,18 @@ func main() {
 		v1.GET("/log-collectors/:namespace/:name/status", api_logcollector.GetLogCollectorStatus)
 		v1.GET("/log-collectors/:namespace/logstash/logs", api_logcollector.StreamLogstashLogs)
 		v1.POST("/log-collectors/:namespace/test", api_logcollector.TestLogCollector)
+
+		// Log Service module
+		v1.GET("/log-service/status", api_logservice.Status)
+
+		// Log Strategy module (MVP: list/get/create/update/delete/precheck/apply)
+		v1.GET("/log-strategies", api_logstrategy.List)
+		v1.POST("/log-strategies", api_logstrategy.Create)
+		v1.POST("/log-strategies/precheck", api_logstrategy.Precheck)
+		v1.GET("/log-strategies/:name", api_logstrategy.Get)
+		v1.PUT("/log-strategies/:name", api_logstrategy.Update)
+		v1.DELETE("/log-strategies/:name", api_logstrategy.Delete)
+		v1.POST("/log-strategies/:name/apply", api_logstrategy.Apply)
 
 		// Monitoring module (modularized)
 		v1.POST("/monitoring/bootstrap", api_monitoring.Bootstrap)
