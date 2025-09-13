@@ -238,6 +238,21 @@ export const LoadingKeys = {
   LOG_COLLECTOR_UPDATE: 'log-collector-update',
   LOG_COLLECTOR_DELETE: 'log-collector-delete',
 
+  // Logs
+  LOGS_PRESETS: 'logs-presets',
+  LOGS_QUERY: 'logs-query',
+  
+  // Log Service Dashboard
+  LOG_SERVICE_STATUS: 'log-service-status',
+  LOG_STRATEGIES_LIST: 'log-strategies-list',
+  LOG_STRATEGY_SAVE: 'log-strategy-save',
+  LOG_STRATEGY_DELETE: 'log-strategy-delete',
+  ES_CONNECTION_TEST: 'es-connection-test',
+
+  // Precheck loading keys
+  PRECHECK_RUN: 'precheck-run',
+  PRECHECK_TOKEN_VALIDATE: 'precheck-token-validate',
+
   // 🚨 CRITICAL MISSING FUNCTIONALITY: Recovery loading keys
   // Based on document analysis, these are the most critical missing loading states
   CLUSTER_RESTORE: 'cluster-restore',

@@ -2,19 +2,25 @@ import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { MatToolbarModule } from '@angular/material/toolbar';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatTableModule } from '@angular/material/table';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatCardModule } from '@angular/material/card';
-import { MatDialog } from '@angular/material/dialog';
-import { MatSelectModule } from '@angular/material/select';
+import { NzPageHeaderModule } from 'ng-zorro-antd/page-header';
+import { NzButtonModule } from 'ng-zorro-antd/button';
+import { NzIconModule } from 'ng-zorro-antd/icon';
+import { NzTableModule } from 'ng-zorro-antd/table';
+import { NzTagModule } from 'ng-zorro-antd/tag';
+import { NzSpinModule } from 'ng-zorro-antd/spin';
+import { NzToolTipModule } from 'ng-zorro-antd/tooltip';
+import { NzMessageService } from 'ng-zorro-antd/message';
+import { NzInputModule } from 'ng-zorro-antd/input';
+import { NzCardModule } from 'ng-zorro-antd/card';
+import { NzModalModule, NzModalService } from 'ng-zorro-antd/modal';
+import { NzSelectModule } from 'ng-zorro-antd/select';
+import { NzEmptyModule } from 'ng-zorro-antd/empty';
+import { NzSpaceModule } from 'ng-zorro-antd/space';
+import { NzDividerModule } from 'ng-zorro-antd/divider';
+import { NzGridModule } from 'ng-zorro-antd/grid';
+import { NzStatisticModule } from 'ng-zorro-antd/statistic';
+import { NzDropDownModule } from 'ng-zorro-antd/dropdown';
+import { NzMenuModule } from 'ng-zorro-antd/menu';
 import { ClusterCreationWizardComponent } from '../../components/cluster-creation-wizard/cluster-creation-wizard.component';
 import { Subscription, interval, Observable, fromEvent } from 'rxjs';
 import { ApiService } from '../../services/api.service';
@@ -30,18 +36,24 @@ import { LoadingService, LoadingKeys } from '../../services/loading.service';
     CommonModule,
     DatePipe,
     FormsModule,
-    MatToolbarModule,
-    MatButtonModule,
-    MatIconModule,
-    MatTableModule,
-    MatChipsModule,
-    MatProgressSpinnerModule,
-    MatTooltipModule,
-    MatSnackBarModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatCardModule,
-    MatSelectModule
+    NzPageHeaderModule,
+    NzButtonModule,
+    NzIconModule,
+    NzTableModule,
+    NzTagModule,
+    NzSpinModule,
+    NzToolTipModule,
+    NzInputModule,
+    NzCardModule,
+    NzSelectModule,
+    NzEmptyModule,
+    NzSpaceModule,
+    NzDividerModule,
+    NzGridModule,
+    NzStatisticModule,
+    NzDropDownModule,
+    NzMenuModule,
+    NzModalModule
   ],
   templateUrl: './cluster-list.component.html',
   styleUrl: './cluster-list.component.scss'
@@ -49,8 +61,8 @@ import { LoadingService, LoadingKeys } from '../../services/loading.service';
 export class ClusterListComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private apiService = inject(ApiService);
-  private snackBar = inject(MatSnackBar);
-  private dialog = inject(MatDialog);
+  private messageService = inject(NzMessageService);
+  private modalService = inject(NzModalService);
   private notificationService = inject(NotificationService);
   private loadingService = inject(LoadingService);
 
@@ -124,7 +136,7 @@ export class ClusterListComponent implements OnInit, OnDestroy {
     localStorage.setItem('clusterList.refreshMs', String(this.refreshMs));
     this.startPolling();
     const label = this.refreshOptions.find(o => o.value === this.refreshMs)?.label || '关闭';
-    this.snackBar.open(`自动刷新：${label}`, '关闭', { duration: 2000 });
+    this.messageService.success(`自动刷新：${label}`);
   }
 
   get currentRefreshMs(): number {
@@ -180,20 +192,19 @@ export class ClusterListComponent implements OnInit, OnDestroy {
   }
 
   openCreateClusterDialog(): void {
-    const dialogRef = this.dialog.open(ClusterCreationWizardComponent, {
-      width: '90vw',
-      maxWidth: '1200px',
-      height: '80vh',
-      disableClose: false,
-      panelClass: 'cluster-creation-dialog'
+    const modal = this.modalService.create({
+      nzTitle: '创建集群',
+      nzContent: ClusterCreationWizardComponent,
+      nzWidth: '90vw',
+      nzStyle: { top: '20px' },
+      nzBodyStyle: { padding: '0' },
+      nzMaskClosable: false,
+      nzFooter: null
     });
 
-    dialogRef.afterClosed().subscribe(result => {
+    modal.afterClose.subscribe(result => {
       if (result && result.success) {
-        this.snackBar.open('集群创建成功！', '关闭', { 
-          duration: 5000,
-          panelClass: ['success-snackbar']
-        });
+        this.messageService.success('集群创建成功！');
         // 刷新集群列表
         setTimeout(() => {
           this.loadClusters();
@@ -251,6 +262,38 @@ export class ClusterListComponent implements OnInit, OnDestroy {
       default:
         return '';
     }
+  }
+
+  getPhaseTagColor(phase?: string): string {
+    switch (phase?.toLowerCase()) {
+      case 'running':
+        return 'green';
+      case 'creating':
+        return 'orange';
+      case 'failed':
+        return 'red';
+      default:
+        return 'default';
+    }
+  }
+
+  getPhaseIcon(phase?: string): string {
+    switch (phase?.toLowerCase()) {
+      case 'running':
+        return 'check-circle';
+      case 'creating':
+        return 'loading';
+      case 'failed':
+        return 'exclamation-circle';
+      default:
+        return 'question-circle';
+    }
+  }
+
+  getClusterCountByPhase(phase: string): number {
+    return this.clusters.filter(cluster => 
+      cluster.status?.phase?.toLowerCase() === phase.toLowerCase()
+    ).length;
   }
 
   disconnect() {

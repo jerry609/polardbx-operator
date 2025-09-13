@@ -113,7 +113,6 @@ func main() {
 		// Overview & Aggregations
 		v1.GET("/backups/overview", api_backup.GetBackupOverview)
 		v1.GET("/backups/binlog/metrics", api_backup.GetBinlogMetrics)
-		v1.GET("/backup-schedules/next-run", api_backup.GetNextRuns)
 
 		// Settings for dashboard thresholds
 		v1.GET("/settings/backup-dashboard", api_settings.Get)
@@ -121,7 +120,7 @@ func main() {
 
 		// Pre-change safety checklist
 		v1.GET("/clusters/:namespace/:name/prechange-check", api_prechange.GetPrechangeChecklist)
-		v1.POST("/clusters/:namespace/:name/precheck-systemtask", api_prechange.CreatePrecheckSystemTask)
+		v1.POST("/clusters/:namespace/:name/precheck", api_prechange.Precheck)
 		v1.GET("/alerts", api_alerts.List)
 
 		// Log endpoint
@@ -157,7 +156,7 @@ func main() {
 		v1.PUT("/backup-schedules/:namespace/:name", api_backup.UpdateSchedule)
 		v1.DELETE("/backup-schedules/:namespace/:name", api_backup.DeleteSchedule)
 		// Force delete backup endpoint removed from root; use specific modules if needed
-		v1.GET("/backup-schedules/next-run", api_backup.GetNextRuns)
+		// v1.GET("/backup-schedules/next-run", api_backup.GetNextRuns)
 
 		// Diagnostics routes (modularized)
 		v1.POST("/diagnostics/:namespace/:cluster/start", api_diagnostics.Start)
@@ -209,6 +208,8 @@ func main() {
 
 		// Logs query (secured by whitelist and secrets)
 		v1.POST("/logs/query", api_logs.Query)
+		v1.GET("/logs/presets", api_logs.Presets)
+		v1.GET("/logs/presets/:pattern", api_logs.PresetByPattern)
 
 		// Monitoring module (modularized)
 		v1.POST("/monitoring/bootstrap", api_monitoring.Bootstrap)

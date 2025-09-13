@@ -11,28 +11,134 @@ import { filter } from 'rxjs/operators';
   imports: [CommonModule, RouterModule, NzTabsModule, NzIconModule],
   template: `
     <div class="logs-hub">
-      <nz-tabset nzType="card" class="tabs" [nzTabBarGutter]="8"
-                 [nzSelectedIndex]="selectedIndex"
-                 (nzSelectedIndexChange)="onTabChange($event)">
-        <nz-tab nzTitle="采集器"></nz-tab>
-        <nz-tab nzTitle="ILM"></nz-tab>
-        <nz-tab nzTitle="Logstash/日志"></nz-tab>
-      </nz-tabset>
+      <!-- 页面头部 -->
+      <div class="page-header">
+        <div class="header-content">
+          <h1 class="page-title">
+            <i nz-icon nzType="file-search" class="page-icon"></i>
+            日志与采集
+          </h1>
+        </div>
+      </div>
 
-      <div class="outlet">
-        <router-outlet></router-outlet>
+      <!-- 导航标签 -->
+      <div class="content">
+        <nz-tabset nzType="card" class="main-tabs" [nzTabBarGutter]="8"
+                   [nzSelectedIndex]="selectedIndex"
+                   (nzSelectedIndexChange)="onTabChange($event)">
+          <nz-tab nzTitle="服务仪表盘">
+            <ng-template #nzTabHeading>
+              <i nz-icon nzType="dashboard"></i>
+              <span>服务仪表盘</span>
+            </ng-template>
+          </nz-tab>
+          <nz-tab nzTitle="采集器管理">
+            <ng-template #nzTabHeading>
+              <i nz-icon nzType="cluster"></i>
+              <span>采集器管理</span>
+            </ng-template>
+          </nz-tab>
+          <nz-tab nzTitle="ILM 策略">
+            <ng-template #nzTabHeading>
+              <i nz-icon nzType="clock-circle"></i>
+              <span>ILM 策略</span>
+            </ng-template>
+          </nz-tab>
+          <nz-tab nzTitle="日志查询">
+            <ng-template #nzTabHeading>
+              <i nz-icon nzType="search"></i>
+              <span>日志查询</span>
+            </ng-template>
+          </nz-tab>
+        </nz-tabset>
+
+        <!-- 内容区域 -->
+        <div class="tab-content">
+          <router-outlet></router-outlet>
+        </div>
       </div>
     </div>
   `,
   styles: [`
-    .logs-hub { padding: 8px 16px; background: #ffffff; }
-    .tabs { background: #fff; margin-bottom: 8px; }
-    .outlet { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px; }
+    .logs-hub {
+      padding: 16px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    /* 页面头部 */
+    .page-header {
+      margin-bottom: 24px;
+    }
+
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .page-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 24px;
+      font-weight: 600;
+      margin: 0;
+      color: #333;
+    }
+
+    .page-icon {
+      font-size: 28px;
+      color: #1890ff;
+    }
+
+    /* 内容区域 */
+    .content {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    .main-tabs {
+      ::ng-deep .ant-tabs-nav {
+        margin-bottom: 0;
+        padding: 0 16px;
+      }
+
+      ::ng-deep .ant-tabs-tab {
+        padding: 12px 16px;
+        
+        .anticon {
+          margin-right: 8px;
+        }
+      }
+    }
+
+    .tab-content {
+      padding: 16px;
+    }
+
+    /* 响应式设计 */
+    @media (max-width: 768px) {
+      .logs-hub {
+        padding: 12px;
+      }
+
+      .page-title {
+        font-size: 20px;
+      }
+
+      .tab-content {
+        padding: 12px;
+      }
+    }
   `]
 })
 export class LogsHubComponent implements OnInit {
   selectedIndex = 0;
-  private paths = ['collectors', 'ilm', 'cluster'];
+  totalCollectors = 0;
+  activePolicies = 0;
+  private paths = ['dashboard', 'collectors', 'ilm', 'search'];
 
   constructor(private router: Router, private route: ActivatedRoute) {}
 
@@ -42,13 +148,13 @@ export class LogsHubComponent implements OnInit {
   }
 
   onTabChange(idx: number): void {
-    const p = this.paths[idx] || 'collectors';
+    const p = this.paths[idx] || 'dashboard';
     this.router.navigate([p], { relativeTo: this.route });
   }
 
   private updateSelectedFromUrl(): void {
     const child = this.route.firstChild;
-    const seg = child?.snapshot?.url?.[0]?.path || 'collectors';
+    const seg = child?.snapshot?.url?.[0]?.path || 'dashboard';
     const idx = this.paths.indexOf(seg);
     this.selectedIndex = idx >= 0 ? idx : 0;
   }

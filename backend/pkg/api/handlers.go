@@ -6,6 +6,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -73,9 +75,65 @@ func KubeconfigAuthMiddleware() gin.HandlerFunc {
 
 // Connect handler validates the provided kubeconfig from the request header.
 func Connect(c *gin.Context) {
-	// The actual connection test is handled by the KubeconfigAuthMiddleware.
-	// If we reach here, it means the client is valid.
-	c.JSON(http.StatusOK, gin.H{"message": "kubeconfig is valid and connection successful"})
+	// 真实连通性与 RBAC 探测
+	v, ok := c.Get("clientset")
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "kubeconfig not provided or invalid"})
+		return
+	}
+	cs, ok := v.(kubernetes.Interface)
+	if !ok || cs == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid clientset in context"})
+		return
+	}
+
+	// 1) 与 apiserver 通信
+	sv, err := cs.Discovery().ServerVersion()
+	if err != nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "apiserver unreachable", "details": err.Error()})
+		return
+	}
+	// 2) RBAC 轻量校验：列出命名空间（限制 1）
+	if _, err := cs.CoreV1().Namespaces().List(c.Request.Context(), metav1.ListOptions{Limit: 1}); err != nil {
+		if statusErr, ok := err.(k8serrors.APIStatus); ok {
+			code := int(statusErr.Status().Code)
+			if code == 0 {
+				code = http.StatusInternalServerError
+			}
+			c.JSON(code, gin.H{"error": "failed to list namespaces", "details": err.Error()})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list namespaces", "details": err.Error()})
+		}
+		return
+	}
+
+	defNs := ""
+	if v, ok := c.Get("k8sDefaultNamespace"); ok {
+		if s, ok2 := v.(string); ok2 {
+			defNs = s
+		}
+	}
+	user := ""
+	if v, ok := c.Get("k8sUser"); ok {
+		if s, ok2 := v.(string); ok2 {
+			user = s
+		}
+	}
+	ctxName := ""
+	if v, ok := c.Get("k8sContext"); ok {
+		if s, ok2 := v.(string); ok2 {
+			ctxName = s
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":          "connection ok",
+		"apiserverVersion": sv.GitVersion,
+		"platform":         sv.Platform,
+		"user":             user,
+		"context":          ctxName,
+		"defaultNamespace": defNs,
+	})
 }
 
 // handleK8sError checks the error from the kubernetes client and returns the appropriate HTTP status code.

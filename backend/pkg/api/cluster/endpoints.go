@@ -259,13 +259,12 @@ func Delete(c *gin.Context) {
 	}
 	ns := c.Param("namespace")
 	name := c.Param("name")
-	if prechange.IsEnforced(c, cli) {
-		chk, err := prechange.ComputeChecklist(c, cli, ns, name, 24, time.Now())
-		if err == nil {
-			if !(chk.HasRecentBackup && chk.StorageConnectivity == "configured" && chk.RpoOk) {
-				c.JSON(http.StatusPreconditionFailed, gin.H{"error": "prechange checks failed", "checks": gin.H{"hasRecentBackup": chk.HasRecentBackup, "storage": chk.StorageConnectivity, "rpoLagSeconds": chk.RpoLagSeconds}})
-				return
-			}
+	if isPrecheckEnforced(c, cli) {
+		// Require precheck token to mitigate TOCTOU
+		token := c.GetHeader("X-Precheck-Token")
+		if !prechange.ValidatePrecheckToken(token, "scale", ns, name, 10*time.Minute) {
+			c.JSON(http.StatusPreconditionFailed, gin.H{"error": "invalid or missing precheck token"})
+			return
 		}
 	}
 	if err := k8s.DeletePolarDBXCluster(cli, ns, name); err != nil {
@@ -369,13 +368,19 @@ func Scale(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid scaling request", "details": err.Error()})
 		return
 	}
-	if prechange.IsEnforced(c, cli) {
-		chk, err := prechange.ComputeChecklist(c, cli, ns, name, 24, time.Now())
-		if err == nil {
-			if !(chk.HasRecentBackup && chk.StorageConnectivity == "configured" && chk.RpoOk) {
-				c.JSON(http.StatusPreconditionFailed, gin.H{"error": "prechange checks failed", "checks": gin.H{"hasRecentBackup": chk.HasRecentBackup, "storage": chk.StorageConnectivity, "rpoLagSeconds": chk.RpoLagSeconds}})
-				return
-			}
+	if isPrecheckEnforced(c, cli) {
+		// Require precheck token to mitigate TOCTOU
+		token := c.GetHeader("X-Precheck-Token")
+		sig := c.GetHeader("X-Precheck-Token-Signature")
+		if !prechange.ValidatePrecheckToken(token, "scale", ns, name, 10*time.Minute) {
+			c.JSON(http.StatusPreconditionFailed, gin.H{"error": "invalid or missing precheck token"})
+			return
+		}
+		// Signature check if configured
+		secret := prechange.GetPrecheckSecretForValidation(c)
+		if secret != "" && !prechange.VerifyPrecheckTokenForValidation(secret, token, sig) {
+			c.JSON(http.StatusPreconditionFailed, gin.H{"error": "invalid precheck token signature"})
+			return
 		}
 	}
 	patch := map[string]any{"spec": map[string]any{"topology": map[string]any{"nodes": map[string]any{}}}}
@@ -421,13 +426,18 @@ func Upgrade(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid upgrade request", "details": err.Error()})
 		return
 	}
-	if prechange.IsEnforced(c, cli) {
-		chk, err := prechange.ComputeChecklist(c, cli, ns, name, 24, time.Now())
-		if err == nil {
-			if !(chk.HasRecentBackup && chk.StorageConnectivity == "configured" && chk.RpoOk) {
-				c.JSON(http.StatusPreconditionFailed, gin.H{"error": "prechange checks failed", "checks": gin.H{"hasRecentBackup": chk.HasRecentBackup, "storage": chk.StorageConnectivity, "rpoLagSeconds": chk.RpoLagSeconds}})
-				return
-			}
+	if isPrecheckEnforced(c, cli) {
+		// Require precheck token and optional signature
+		token := c.GetHeader("X-Precheck-Token")
+		sig := c.GetHeader("X-Precheck-Token-Signature")
+		if !prechange.ValidatePrecheckToken(token, "upgrade", ns, name, 10*time.Minute) {
+			c.JSON(http.StatusPreconditionFailed, gin.H{"error": "invalid or missing precheck token"})
+			return
+		}
+		secret := prechange.GetPrecheckSecretForValidation(c)
+		if secret != "" && !prechange.VerifyPrecheckTokenForValidation(secret, token, sig) {
+			c.JSON(http.StatusPreconditionFailed, gin.H{"error": "invalid precheck token signature"})
+			return
 		}
 	}
 	patch := map[string]any{"spec": map[string]any{"topology": map[string]any{"version": req.TargetVersion}}}
@@ -493,4 +503,14 @@ func GetAlertsSummary(c *gin.Context) {
 		summary["warning"], summary["total"], summary["source"] = warn, warn, "events"
 	}
 	c.JSON(http.StatusOK, summary)
+}
+
+// isPrecheckEnforced reads backend config to decide if precheck enforcement is enabled
+func isPrecheckEnforced(c *gin.Context, cli client.Client) bool {
+	cm := corev1.ConfigMap{}
+	_ = cli.Get(c.Request.Context(), client.ObjectKey{Namespace: "polardbx-operator-system", Name: "polardbx-ui-backend-config"}, &cm)
+	if cm.Data == nil {
+		return false
+	}
+	return cm.Data["prechange.enforce"] == "true"
 }

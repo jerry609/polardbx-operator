@@ -128,15 +128,16 @@ export const routes: Routes = [
       {
         path: 'operations',
         children: [
-          { path: '', redirectTo: 'monitors', pathMatch: 'full' },
+          { path: '', redirectTo: 'monitoring', pathMatch: 'full' },
           {
             path: 'logs',
             loadComponent: () => import('./components/logs-hub/logs-hub.component').then(m => m.LogsHubComponent),
             children: [
-              { path: '', redirectTo: 'collectors', pathMatch: 'full' },
+              { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+              { path: 'dashboard', loadComponent: () => import('./components/log-service-dashboard/log-service-dashboard.component').then(m => m.LogServiceDashboardComponent) },
               { path: 'collectors', loadComponent: () => import('./components/log-collector-management/log-collector-management.component').then(m => m.LogCollectorManagementComponent) },
               { path: 'ilm', loadComponent: () => import('./components/log-collector-ilm/log-collector-ilm.component').then(m => m.LogCollectorIlmComponent) },
-              { path: 'cluster', loadComponent: () => import('./pages/cluster-log-management/cluster-log-management.component').then(m => m.ClusterLogManagementComponent) }
+              { path: 'search', loadComponent: () => import('./components/logs-query/logs-query.component').then(m => m.LogsQueryComponent) }
             ]
           },
           { 
@@ -156,18 +157,17 @@ export const routes: Routes = [
           },
           { path: 'nodes', loadComponent: () => import('./pages/nodes/nodes.component').then(m => m.NodesComponent) },
           { path: 'nodes/:namespace/:name', loadComponent: () => import('./pages/node-detail/node-detail.component').then(m => m.NodeDetailComponent) },
-          { path: 'monitors', loadComponent: () => import('./components/monitor-management/monitor-management.component').then(m => m.MonitorManagementComponent) },
+          { path: 'monitors', redirectTo: 'monitoring/config', pathMatch: 'full' },
           { path: 'parameter-templates', component: ParameterTemplateManagementComponent },
           { path: 'system-tasks', component: SystemTaskManagementComponent },
           { path: 'cluster-knobs', loadComponent: () => import('./components/cluster-knobs-management/cluster-knobs-management.component').then(m => m.ClusterKnobsManagementComponent) },
           { path: 'settings', loadComponent: () => import('./components/settings-management/settings-management.component').then(m => m.SettingsManagementComponent) },
           { path: 'helm-values-helper', loadComponent: () => import('./components/helm-values-helper/helm-values-helper.component').then(m => m.HelmValuesHelperComponent) },
           { path: 'runbook-slo', loadComponent: () => import('./components/runbook-slo/runbook-slo.component').then(m => m.RunbookSloComponent) },
-          { path: 'upgrade-rollback-wizard', loadComponent: () => import('./components/upgrade-rollback-wizard/upgrade-rollback-wizard.component').then(m => m.UpgradeRollbackWizardComponent) },
           // 旧日志路径重定向到聚合
           { path: 'log-collectors', redirectTo: 'logs/collectors', pathMatch: 'full' },
           { path: 'log-ilm', redirectTo: 'logs/ilm', pathMatch: 'full' },
-          { path: 'cluster-logs', redirectTo: 'logs/cluster', pathMatch: 'full' },
+          { path: 'cluster-logs', redirectTo: 'logs/search', pathMatch: 'full' },
           { path: 'diagnostics', loadComponent: () => import('./components/diagnostics-management/diagnostics-management.component').then(m => m.DiagnosticsManagementComponent) },
           { path: 'prechange-check', loadComponent: () => import('./components/prechange-check/prechange-check.component').then(m => m.PrechangeCheckComponent) },
           // 旧路径重定向

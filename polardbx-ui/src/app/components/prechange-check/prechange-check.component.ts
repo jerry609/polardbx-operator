@@ -331,8 +331,12 @@ export class PrechangeCheckComponent implements OnInit {
     if (!this.cluster) return;
     this.loading = true;
     this.hasExecuted = true;
-    this.api.getPrechangeChecklist(this.namespace, this.cluster).subscribe({
-      next: (res: any) => { this.checklist = res?.checklist || []; this.loading = false; },
+    this.api.runPrecheck(this.namespace, this.cluster, 'config').subscribe({
+      next: (res: any) => {
+        const plan = Array.isArray(res?.plan) ? res.plan : [];
+        this.checklist = plan.map((p: any) => ({ name: p.id || 'check', status: p.state || 'warn', message: p.message || '' }));
+        this.loading = false;
+      },
       error: () => { this.checklist = []; this.loading = false; }
     });
   }

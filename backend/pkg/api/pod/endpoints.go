@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -32,12 +33,18 @@ func GetLogs(c *gin.Context) {
 	}
 	ns := c.Param("namespace")
 	pod := c.Param("pod_name")
-	result, err := k8s.GetPodLogs(cs, ns, pod, "", 200)
+	container := c.Query("container")
+	tailStr := c.DefaultQuery("tailLines", "1000")
+	tail := int64(1000)
+	if v, err := strconv.ParseInt(tailStr, 10, 64); err == nil && v > 0 {
+		tail = v
+	}
+	result, err := k8s.GetPodLogs(cs, ns, pod, container, tail)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get logs", "details": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"logs": result})
+	c.Data(http.StatusOK, "text/plain; charset=utf-8", []byte(result))
 }
 
 // Pods of a cluster

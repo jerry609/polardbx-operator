@@ -244,7 +244,7 @@ export class NodeDetailComponent implements OnInit {
       next: (pod) => {
         this.pod = pod;
         this.containers = (pod?.spec?.containers || []).map(c => c.name);
-        this.selectedContainer = this.containers[0] || '';
+        this.selectedContainer = this.pickBestContainerFromList(this.containers, this.selectedContainer);
         this.inspectJson = JSON.stringify(pod, null, 2);
         this.loadLogs();
       },
@@ -271,6 +271,30 @@ export class NodeDetailComponent implements OnInit {
     a.download = `${this.podName}-${this.selectedContainer||'container'}.log`;
     a.click();
     URL.revokeObjectURL(a.href);
+  }
+
+  private pickBestContainerFromList(list: string[], prefer?: string): string {
+    const items = (list || []).filter(Boolean);
+    if (items.length === 0) return '';
+    const lower = (s: string) => (s || '').toLowerCase();
+    const negatives = ['prober','probe','exporter','agent','sidecar','pause','proxy','reloader','metrics','prom','istio','linkerd','kube-rbac-proxy','configmap-reload','reloader'];
+    const positivesExact = ['engine','mysql','xstore','server','main','app','dn','cn','gms','cdc'];
+    const positivesContains = ['engine','mysql','xstore','server','main','app','dn-','cn-','gms','cdc'];
+
+    if (prefer && items.some(c => c === prefer) && !negatives.some(n => lower(prefer).includes(n))) {
+      return prefer;
+    }
+    for (const p of positivesExact) {
+      const hit = items.find(c => lower(c) === p);
+      if (hit) return hit;
+    }
+    for (const p of positivesContains) {
+      const hit = items.find(c => lower(c).includes(p));
+      if (hit) return hit;
+    }
+    const nonNeg = items.find(c => !negatives.some(n => lower(c).includes(n)));
+    if (nonNeg) return nonNeg;
+    return items[0];
   }
 
   openTerminal(): void {

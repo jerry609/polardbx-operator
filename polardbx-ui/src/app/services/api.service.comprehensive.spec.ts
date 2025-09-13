@@ -17,6 +17,56 @@
 // Temporarily disabled comprehensive API tests
 // TODO: Re-enable and fix TypeScript compilation errors
 
+import { TestBed } from '@angular/core/testing';
+import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
+import { ApiService } from './api.service';
+import { LogsPresetList, NormalizedResponse } from '../models/logs.model';
+
+describe('ApiService logs APIs', () => {
+  let service: ApiService;
+  let httpMock: HttpTestingController;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      imports: [HttpClientTestingModule],
+      providers: [ApiService]
+    });
+    service = TestBed.inject(ApiService);
+    httpMock = TestBed.inject(HttpTestingController);
+  });
+
+  afterEach(() => {
+    httpMock.verify();
+  });
+
+  it('getLogPresets should GET presets', () => {
+    const mock: LogsPresetList = { total: 1, items: [{ indexPattern: 'logs-*', facets: ['a','b'], histogram: { field: '@timestamp', intervals: ['1m'] } }] };
+
+    service.getLogPresets().subscribe(res => {
+      expect(res.total).toBe(1);
+      expect(res.items[0].indexPattern).toBe('logs-*');
+    });
+
+    const req = httpMock.expectOne('http://localhost:8080/api/v1/logs/presets');
+    expect(req.request.method).toBe('GET');
+    req.flush(mock);
+  });
+
+  it('queryLogs should POST request', () => {
+    const mock: NormalizedResponse = { total: 2, items: [{ msg: 'A' }, { msg: 'B' }], facets: { by_host: [{ key: 'h1', count: 1 }] }, histogram: [{ key: 't0', count: 1 }] };
+
+    service.queryLogs({ index: 'logs-*', size: 5, normalize: true }).subscribe(res => {
+      const r = res as NormalizedResponse;
+      expect(r.total).toBe(2);
+      expect(Array.isArray(r.items)).toBe(true);
+    });
+
+    const req = httpMock.expectOne('http://localhost:8080/api/v1/logs/query');
+    expect(req.request.method).toBe('POST');
+    req.flush(mock);
+  });
+});
+
 /*
   let service: ApiService;
   let httpMock: HttpTestingController;
@@ -897,4 +947,4 @@ observedGeneration: 1,
     });
   });
 });
-*/
+'*/

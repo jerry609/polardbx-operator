@@ -2,20 +2,61 @@ import { AfterViewInit, Component, ElementRef, OnDestroy, OnInit, ViewChild, inj
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, ActivatedRoute, RouterModule } from '@angular/router';
-import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
-import { MatIconModule } from '@angular/material/icon';
-import { MatSelectModule } from '@angular/material/select';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { MatTabsModule } from '@angular/material/tabs';
-import { MatTableModule, MatTableDataSource } from '@angular/material/table';
-import { MatInputModule } from '@angular/material/input';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatFormFieldModule } from '@angular/material/form-field';
+import { NzButtonModule } from 'ng-zorro-antd/button';
+import { NzCardModule } from 'ng-zorro-antd/card';
+import { NzIconModule, NZ_ICONS } from 'ng-zorro-antd/icon';
+import { IconDefinition } from '@ant-design/icons-angular';
+import {
+  DashboardOutline,
+  SafetyOutline,
+  SafetyCertificateOutline,
+  ClusterOutline,
+  SettingOutline,
+  ReloadOutline,
+  DatabaseOutline,
+  ControlOutline,
+  DesktopOutline,
+  SyncOutline,
+  RocketOutline,
+  CopyOutline,
+  InfoCircleOutline,
+  EyeOutline,
+  FileTextOutline,
+  CodeOutline,
+  DownloadOutline,
+  RedoOutline,
+  DeleteOutline,
+  ArrowRightOutline,
+  TagOutline,
+  ClockCircleOutline,
+  BellOutline,
+  CheckOutline
+} from '@ant-design/icons-angular/icons';
+import { NzSelectModule } from 'ng-zorro-antd/select';
+import { NzMessageService } from 'ng-zorro-antd/message';
+import { NzModalModule, NzModalService } from 'ng-zorro-antd/modal';
+import { NzTabsModule } from 'ng-zorro-antd/tabs';
+import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
+import { NzTableModule } from 'ng-zorro-antd/table';
+import { NzInputModule } from 'ng-zorro-antd/input';
+import { NzTagModule } from 'ng-zorro-antd/tag';
+import { NzToolTipModule } from 'ng-zorro-antd/tooltip';
+import { NzFormModule } from 'ng-zorro-antd/form';
+import { NzPageHeaderModule } from 'ng-zorro-antd/page-header';
+import { NzSpaceModule } from 'ng-zorro-antd/space';
+import { NzDividerModule } from 'ng-zorro-antd/divider';
+import { NzGridModule } from 'ng-zorro-antd/grid';
+import { NzStatisticModule } from 'ng-zorro-antd/statistic';
+import { NzSpinModule } from 'ng-zorro-antd/spin';
+import { NzCollapseModule } from 'ng-zorro-antd/collapse';
+import { NzStepsModule } from 'ng-zorro-antd/steps';
+import { NzProgressModule } from 'ng-zorro-antd/progress';
+import { NzAlertModule } from 'ng-zorro-antd/alert';
+import { NzBadgeModule } from 'ng-zorro-antd/badge';
+import { NzInputNumberModule } from 'ng-zorro-antd/input-number';
 import { Chart, registerables, ChartConfiguration, ChartType } from 'chart.js';
 import * as dagre from 'dagre';
+import { debounceTime } from 'rxjs/operators';
 
 import { ApiService } from '../../services/api.service';
 import { LoadingService, LoadingKeys } from '../../services/loading.service';
@@ -62,28 +103,71 @@ interface ContainerStatus {
     FormsModule,
     ReactiveFormsModule,
     RouterModule,
-    MatButtonModule,
-    MatCardModule,
-    MatIconModule,
-    MatSelectModule,
-    MatSnackBarModule,
-    MatTabsModule,
-    MatTableModule,
-    MatInputModule,
-    MatChipsModule,
-    MatTooltipModule,
-    MatFormFieldModule,
-    MatDialogModule
+    NzButtonModule,
+    NzCardModule,
+    NzIconModule,
+    NzSelectModule,
+    NzTabsModule,
+    NzTableModule,
+    NzInputModule,
+    NzTagModule,
+    NzToolTipModule,
+    NzFormModule,
+    NzPageHeaderModule,
+    NzSpaceModule,
+    NzDividerModule,
+    NzGridModule,
+    NzStatisticModule,
+    NzSpinModule,
+    NzCollapseModule,
+    NzStepsModule,
+    NzProgressModule,
+    NzAlertModule,
+    NzBadgeModule,
+    NzCheckboxModule,
+    NzInputNumberModule,
+    NzModalModule
+  ],
+  providers: [
+    {
+      provide: NZ_ICONS,
+      useValue: [
+        DashboardOutline,
+        SafetyOutline,
+        SafetyCertificateOutline,
+        ClusterOutline,
+        SettingOutline,
+        ReloadOutline,
+        DatabaseOutline,
+        ControlOutline,
+        DesktopOutline,
+        SyncOutline,
+        RocketOutline,
+        CopyOutline,
+        InfoCircleOutline,
+        EyeOutline,
+        FileTextOutline,
+        CodeOutline,
+        DownloadOutline,
+        RedoOutline,
+        DeleteOutline,
+        ArrowRightOutline,
+        TagOutline,
+        ClockCircleOutline,
+        BellOutline,
+        CheckOutline
+      ]
+    }
   ]
 })
 export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy {
   private route = inject(ActivatedRoute);
-  private router = inject(Router);
+  public router = inject(Router);
   private fb = inject(FormBuilder);
-  private snackBar = inject(MatSnackBar);
-  private dialog = inject(MatDialog);
+  private messageService = inject(NzMessageService);
+  private modalService = inject(NzModalService);
   private apiService = inject(ApiService);
-  private loadingService = inject(LoadingService);
+  public loadingService = inject(LoadingService);
 
   @ViewChild('cpuChart') cpuChartRef!: ElementRef<HTMLCanvasElement>;
   @ViewChild('memChart') memChartRef!: ElementRef<HTMLCanvasElement>;
@@ -105,15 +189,18 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
   selectedTabIndex = 0;
 
   // 节点数据
-  nodeDataSource = new MatTableDataSource<NodeInfo>([]);
+  nodeDataSource: NodeInfo[] = [];
   nodeColumns: string[] = ['name', 'type', 'status', 'ready', 'restarts', 'resources', 'ip'];
   // 增加操作列
   constructorColumns() {
     if (!this.nodeColumns.includes('actions')) this.nodeColumns.push('actions');
   }
 
+  // 节点表格页大小（支持“查看全部”）
+  nodesPageSize = 10;
+
   // 备份数据
-  backupDataSource = new MatTableDataSource<BackupInfo>([]);
+  backupDataSource: BackupInfo[] = [];
   backupColumns: string[] = ['id', 'completedTime', 'type', 'status', 'actions'];
 
   // 表单
@@ -156,6 +243,26 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
   @ViewChild('resizeHandle', { static: false }) resizeHandle!: ElementRef;
   @ViewChild('leftPanel', { static: false }) leftPanel!: ElementRef;
 
+  // 前置检查状态
+  precheck: {
+    loading: boolean;
+    pass: boolean;
+    plan: Array<{ id: string; state: 'ok' | 'warn' | 'error'; message: string }>;
+    checks: any;
+    generatedAt: string;
+    hasWarn: boolean;
+    hasError: boolean;
+  } = {
+    loading: false,
+    pass: true,
+    plan: [],
+    checks: {},
+    generatedAt: '',
+    hasWarn: false,
+    hasError: false
+  };
+  warnAck = false;
+
   constructor() {
     // 初始化表单
     this.configForm = this.fb.group({
@@ -164,7 +271,8 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
       cnMemory: ['2', [Validators.required]],
       dnReplicas: [this.dnReplicas, [Validators.required, Validators.min(1)]],
       dnCpu: ['1', [Validators.required]],
-      dnMemory: ['2', [Validators.required]]
+      dnMemory: ['2', [Validators.required]],
+      cdcReplicas: [this.cdcReplicas, [Validators.min(0)]]
     });
 
     this.upgradeForm = this.fb.group({
@@ -192,6 +300,10 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
       this.clusterNamespace = queryParams['namespace'] || 'default';
       this.loadClusterData();
     });
+
+    // 表单变更触发前置检查（节流）
+    this.configForm.valueChanges.pipe(debounceTime(400)).subscribe(() => this.runPrecheck());
+    this.upgradeForm.valueChanges.pipe(debounceTime(400)).subscribe(() => this.runPrecheck());
   }
 
   ngAfterViewInit(): void {
@@ -212,7 +324,7 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
         this.cluster = cluster;
       },
       error: (err) => {
-        this.snackBar.open(`Error loading cluster details: ${err.message}`, 'Close', { duration: 5000 });
+        this.messageService.error(`加载集群详情失败：${err.message}`);
       }
     });
     
@@ -240,22 +352,23 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
           }
           return nodeInfo;
         });
-        this.nodeDataSource.data = nodes;
+        this.nodeDataSource = nodes;
         this.allPods = pods;
-        // 计算拓扑实时摘要（按 Pod 名含 -cn-/-dn-/-gms-/-cdc- 分组）
+        // 计算拓扑实时摘要：基于角色检测（兼容不同命名），统计 Pod 数与就绪数
         this.roleSummary = { cn: { total: 0, ready: 0, pods: [] }, dn: { total: 0, ready: 0, pods: [] }, gms: { total: 0, ready: 0, pods: [] }, cdc: { total: 0, ready: 0, pods: [] } };
+        const isPodReady = (pp: Pod): boolean => {
+          const condReady = (pp.status?.conditions || []).some((c: any) => c.type === 'Ready' && c.status === 'True');
+          const containers = pp.status?.containerStatuses || [];
+          const allContainersReady = containers.length === 0 ? false : containers.every((cs: any) => cs.ready === true);
+          return condReady && allContainersReady;
+        };
         for (const p of pods) {
-          const name = p.metadata?.name || '';
-          let role: 'cn'|'dn'|'gms'|'cdc'|'' = '';
-          if (name.includes('-cn-')) role = 'cn';
-          else if (name.includes('-dn-')) role = 'dn';
-          else if (name.includes('-gms-')) role = 'gms';
-          else if (name.includes('-cdc-')) role = 'cdc';
-          if (role) {
-            this.roleSummary[role].pods.push(p);
-            this.roleSummary[role].total++;
-            const phase = (p.status?.phase || '').toLowerCase();
-            if (phase === 'running') this.roleSummary[role].ready++;
+          const role = this.detectPodRole(p).role.toLowerCase();
+          if (['cn','dn','gms','cdc'].includes(role)) {
+            const r = role as 'cn'|'dn'|'gms'|'cdc';
+            this.roleSummary[r].pods.push(p);
+            this.roleSummary[r].total += 1;
+            if (isPodReady(p)) this.roleSummary[r].ready += 1;
           }
         }
         // 重新渲染拓扑，确保 DN → CDC 连线与计数更新
@@ -264,9 +377,11 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
           this.selectedPod = this.allPods[0].metadata.name;
           this.onPodSelectionChange();
         }
+        // 加载后进行一次前置检查
+        this.runPrecheck();
       },
       error: (err) => {
-        this.snackBar.open(`Error loading pods: ${err.message}`, 'Close', { duration: 5000 });
+        this.messageService.error(`加载 Pod 列表失败：${err.message}`);
       }
     });
 
@@ -279,6 +394,93 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
       next: (s) => this.alerts = s,
       error: () => this.alerts = { critical: 0, warning: 0, info: 0, total: 0, source: 'none' }
     });
+  }
+
+  // 前置检查：统一在执行前和配置变更时展示
+  runPrecheck(): void {
+    if (!this.clusterName || !this.clusterNamespace) return;
+    this.precheck.loading = true;
+    this.warnAck = false;
+    this.loadingService.wrapObservable(LoadingKeys.PRECHECK_RUN, this.apiService.runPrecheck(this.clusterNamespace, this.clusterName, 'config')).subscribe({
+      next: (res: any) => {
+        this.precheck.plan = Array.isArray(res?.plan) ? res.plan : [];
+        this.precheck.checks = res?.checks || {};
+        this.precheck.generatedAt = res?.generatedAt || '';
+        this.precheck.hasWarn = this.precheck.plan.some(p => p.state === 'warn');
+        this.precheck.hasError = this.precheck.plan.some(p => p.state === 'error');
+        this.precheck.pass = !this.precheck.hasError;
+        this.precheck.loading = false;
+      },
+      error: () => {
+        this.precheck.loading = false;
+        this.precheck.hasError = true;
+        this.precheck.pass = false;
+      }
+    });
+  }
+
+  getPlanIcon(state: 'ok'|'warn'|'error'): string {
+    switch (state) {
+      case 'ok': return 'check_circle';
+      case 'warn': return 'warning';
+      default: return 'error';
+    }
+  }
+
+  getPlanColor(state: 'ok'|'warn'|'error'): 'primary'|'accent'|'warn' {
+    switch (state) {
+      case 'ok': return 'primary';
+      case 'warn': return 'accent';
+      default: return 'warn';
+    }
+  }
+
+  canApplyConfig(): boolean {
+    return this.configForm.valid && this.hasConfigChanges() && !this.precheck.hasError && (!this.precheck.hasWarn || this.warnAck);
+  }
+
+  canStartUpgrade(): boolean {
+    return this.upgradeForm.valid && !this.precheck.hasError && (!this.precheck.hasWarn || this.warnAck);
+  }
+
+  getPrecheckStatusChip(): { text: string; color: 'primary'|'accent'|'warn' } {
+    if (this.precheck.loading) return { text: '检查中', color: 'accent' };
+    if (this.precheck.hasError) return { text: '未通过', color: 'warn' };
+    if (this.precheck.hasWarn) return { text: '存在警告', color: 'accent' };
+    return { text: '检查通过', color: 'primary' };
+  }
+
+  copyPrecheckDetails(): void {
+    try {
+      const payload = {
+        generatedAt: this.precheck.generatedAt,
+        plan: this.precheck.plan,
+        checks: this.precheck.checks
+      };
+      const text = JSON.stringify(payload, null, 2);
+      navigator.clipboard.writeText(text).then(() => {
+        this.messageService.success('预检详情已复制到剪贴板');
+      }).catch(() => {
+        // 回退
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        this.messageService.success('预检详情已复制');
+      });
+    } catch {
+      this.messageService.error('复制失败');
+    }
+  }
+
+  // 快捷操作
+  goCreateBackupQuick(): void {
+    this.selectedTabIndex = 3; // 备份与恢复页签
+  }
+  goHpfsConfigQuick(): void {
+    this.router.navigate(['/operations', 'logs', 'dashboard']);
   }
 
   getUptime(): string {
@@ -325,27 +527,29 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
     const ns = this.clusterNamespace || 'default';
     const command = `kubectl exec -it ${pod} -n ${ns} ${container ? '-c ' + container + ' ' : ''}-- /bin/bash`;
     navigator.clipboard.writeText(command).then(() => {
-      this.snackBar.open('已复制 kubectl exec 命令', '关闭', { duration: 2000 });
+      this.messageService.success('已复制 kubectl exec 命令');
     }).catch(() => {
-      this.snackBar.open('复制失败，请手动复制', '关闭', { duration: 2000 });
+      this.messageService.error('复制失败，请手动复制');
     });
   }
 
   openExecDialog(node: NodeInfo): void {
     import('../../components/exec-command-dialog/exec-command-dialog.component').then(m => {
       const containers = this.allPods.find(p => p.metadata.name === node.name)?.spec?.containers?.map(c => c.name) || [];
-      const ref = this.dialog.open(m.ExecCommandDialogComponent, {
-        width: '700px',
-        data: {
+      const ref = this.modalService.create({
+        nzTitle: '执行命令',
+        nzContent: m.ExecCommandDialogComponent,
+        nzWidth: '700px',
+        nzData: {
           namespace: this.clusterNamespace || 'default',
           pod: node.name,
           containers,
           defaultContainer: containers[0] || ''
         }
       });
-      ref.afterClosed().subscribe((result) => {
+      ref.afterClose.subscribe((result: any) => {
         if (result && result.runOnce) {
-          this.snackBar.open('命令已执行', '关闭', { duration: 2000 });
+          this.messageService.success('命令已执行');
         }
       });
     });
@@ -356,10 +560,12 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
       const containers = this.getContainersOf(node);
       const prefer = this.getPreferredContainers(containers)[0] || '';
       const chosen = this.rowContainer[node.name] || prefer;
-      this.dialog.open(m.WebShellDialogComponent, {
-        width: '900px',
-        height: '600px',
-        data: {
+      this.modalService.create({
+        nzTitle: 'Web Shell',
+        nzContent: m.WebShellDialogComponent,
+        nzWidth: '900px',
+        nzStyle: { height: '600px' },
+        nzData: {
           namespace: this.clusterNamespace || 'default',
           pod: node.name,
           container: chosen,
@@ -381,7 +587,7 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
   getPreferredContainers(containers: string[]): string[] {
     const items = (containers || []).slice();
     const lower = (s: string) => (s||'').toLowerCase();
-    const negatives = ['prober','probe','exporter','sidecar','pause','proxy','metrics','reloader','kube-rbac-proxy','configmap-reload'];
+    const negatives = ['prober','probe','exporter','agent','sidecar','pause','proxy','reloader','metrics','prom','istio','linkerd','kube-rbac-proxy','configmap-reload','reloader'];
     const positives = ['engine','mysql','xstore','server','main','app','dn','cn','gms','cdc'];
     const preferred = items.filter(c => positives.some(p => lower(c) === p || lower(c).includes(p)));
     const others = items.filter(c => !preferred.includes(c) && !negatives.some(n => lower(c).includes(n)));
@@ -535,12 +741,12 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
             message: backup.status?.message,
             backupObject: backup
           }));
-          this.backupDataSource.data = backupInfos;
+          this.backupDataSource = backupInfos;
           console.log('备份数据已设置到表格:', backupInfos);
         },
         error: (error) => {
           console.error('获取备份列表失败:', error);
-          this.snackBar.open('获取备份列表失败', '关闭', { duration: 3000 });
+          this.messageService.error('获取备份列表失败');
         }
       });
   }
@@ -696,7 +902,7 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
     g.setGraph({ rankdir: 'LR', nodesep: 20, ranksep: 40 });
     g.setDefaultEdgeLabel(() => ({}));
 
-    // 定义节点 (只显示有实际Pod的节点)
+    // 定义节点 (只显示有实际Pod或有期望副本的节点)
     const roles: Array<{ id: 'cn'|'dn'|'gms'|'cdc'; label: string; count: number }> = [
       { id: 'cn', label: `CN (${this.roleSummary['cn'].ready}/${this.roleSummary['cn'].total})`, count: this.roleSummary['cn'].total },
       { id: 'dn', label: `DN (${this.roleSummary['dn'].ready}/${this.roleSummary['dn'].total})`, count: this.roleSummary['dn'].total },
@@ -737,6 +943,8 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
       rect.setAttribute('fill', fill);
       rect.setAttribute('stroke', stroke);
       rect.setAttribute('stroke-width', '1');
+      rect.style.cursor = 'pointer';
+      rect.addEventListener('click', () => { this.selectedTabIndex = 1; });
       svg.appendChild(rect);
 
       const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
@@ -745,6 +953,8 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
       text.setAttribute('text-anchor', 'middle');
       text.setAttribute('font-size', '12');
       text.textContent = n.label;
+      text.style.cursor = 'pointer';
+      text.addEventListener('click', () => { this.selectedTabIndex = 1; });
       svg.appendChild(text);
 
       // 内置 tooltip（原生 title）列出 Pod
@@ -788,16 +998,16 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
   deleteCluster(): void {
     if (confirm(`确定要删除集群 ${this.clusterName} 吗？此操作不可撤销。`)) {
       // 预检查
-      this.apiService.getPrechangeChecklist(this.clusterNamespace, this.clusterName).subscribe({
+      this.apiService.runPrecheck(this.clusterNamespace, this.clusterName, 'scale', this.configForm.value).subscribe({
         next: () => {
           // 通过后再删除
           this.apiService.deleteCluster(this.clusterNamespace, this.clusterName).subscribe({
             next: () => {
-              this.snackBar.open('集群删除成功', '关闭', { duration: 3000 });
+              this.messageService.success('集群删除成功');
               this.router.navigate(['/clusters']);
             },
             error: (err) => {
-              this.snackBar.open(`Error deleting cluster: ${err.message}`, 'Close', { duration: 5000 });
+              this.messageService.error(`删除集群失败：${err.message}`);
             }
           });
         },
@@ -807,7 +1017,7 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
             `- 最近全备：${checks.hasRecentBackup ? '是' : '否'}\n` +
             `- 存储连通：${checks.storage || '未知'}\n` +
             `- RPO滞后(秒)：${typeof checks.rpoLagSeconds==='number'?checks.rpoLagSeconds:'未知'}`;
-          this.snackBar.open(msg, '关闭', { duration: 6000 });
+          this.messageService.error(msg);
         }
       });
     }
@@ -815,7 +1025,7 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
 
   applyConfig(): void {
     if (!this.configForm.valid || !this.cluster) {
-      this.snackBar.open('请检查配置信息', '关闭', { duration: 3000 });
+      this.messageService.error('请检查配置信息');
       return;
     }
 
@@ -832,7 +1042,7 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
 
     // 如果没有变化，不需要发送请求
     if (Object.keys(scalingRequest).length === 0) {
-      this.snackBar.open('配置没有变化', '关闭', { duration: 3000 });
+      this.messageService.info('配置没有变化');
       return;
     }
 
@@ -846,17 +1056,16 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
     }
 
     if (confirm(`确定要应用以下配置变更吗？\n${changeList.join('\n')}`)) {
-      // 预检查
-      this.apiService.getPrechangeChecklist(this.clusterNamespace, this.clusterName)
+      // 预检查（scale）
+      this.apiService.runPrecheck(this.clusterNamespace, this.clusterName, 'scale', scalingRequest)
         .subscribe({
-          next: () => {
-            this.apiService.scaleCluster(this.clusterNamespace, this.clusterName, scalingRequest)
+          next: (res: any) => {
+            const token = res?.token || '';
+            const tokenSig = res?.tokenSig || '';
+            this.apiService.scaleCluster(this.clusterNamespace, this.clusterName, scalingRequest, token, tokenSig)
         .subscribe({
           next: (response) => {
-            this.snackBar.open('集群扩缩容任务已启动', '关闭', { 
-              duration: 5000,
-              panelClass: ['success-snackbar']
-            });
+            this.messageService.success('集群扩缩容任务已启动');
             // 更新本地数据
             if (scalingRequest.cnReplicas !== undefined) {
               this.cnReplicas = scalingRequest.cnReplicas;
@@ -871,10 +1080,7 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
           },
           error: (error) => {
             console.error('扩缩容失败:', error);
-            this.snackBar.open(`扩缩容失败: ${error.message || '未知错误'}`, '关闭', { 
-              duration: 5000,
-              panelClass: ['error-snackbar']
-            });
+            this.messageService.error(`扩缩容失败: ${error.message || '未知错误'}`);
           }
         });
           },
@@ -884,7 +1090,7 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
               `- 最近全备：${checks.hasRecentBackup ? '是' : '否'}\n` +
               `- 存储连通：${checks.storage || '未知'}\n` +
               `- RPO滞后(秒)：${typeof checks.rpoLagSeconds==='number'?checks.rpoLagSeconds:'未知'}`;
-            this.snackBar.open(msg, '关闭', { duration: 6000 });
+            this.messageService.error(msg);
           }
         });
     }
@@ -900,7 +1106,7 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
       dnCpu: '1',
       dnMemory: '2'
     });
-    this.snackBar.open('配置已重置', '关闭', { duration: 2000 });
+    this.messageService.success('配置已重置');
   }
 
   resetUpgrade(): void {
@@ -908,7 +1114,7 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
     this.upgradeForm.patchValue({
       targetVersion: this.clusterVersion
     });
-    this.snackBar.open('升级配置已重置', '关闭', { duration: 2000 });
+    this.messageService.success('升级配置已重置');
   }
 
   // 检查是否有配置变更
@@ -931,7 +1137,7 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
         ? `缩容后成本预计减少 ${Math.abs(parseFloat(costChange))}%`
         : '配置无变化，成本不变';
     
-    this.snackBar.open(message, '关闭', { duration: 5000 });
+    this.messageService.info(message);
   }
 
   // 节点管理功能
@@ -939,11 +1145,11 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
     if (confirm(`确定要重启节点 ${node.name} 吗？这会短暂中断该节点的服务。`)) {
       this.apiService.deletePod(this.clusterNamespace, node.name).subscribe({
         next: () => {
-          this.snackBar.open(`节点 ${node.name} 重启中...`, '关闭', { duration: 3000 });
+          this.messageService.info(`节点 ${node.name} 重启中...`);
           setTimeout(() => this.loadClusterData(), 2000);
         },
         error: (error) => {
-          this.snackBar.open(`重启节点失败: ${error.message}`, '关闭', { duration: 5000 });
+          this.messageService.error(`重启节点失败: ${error.message}`);
         }
       });
     }
@@ -955,17 +1161,17 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
       : `确定要删除重建节点 ${node.name} 吗？该节点将被重新创建。`;
       
     if (confirm(warningMessage)) {
-      this.snackBar.open(`正在删除重建节点 ${node.name}...`, '关闭', { duration: 3000 });
+      this.messageService.info(`正在删除重建节点 ${node.name}...`);
       
       this.apiService.deletePod(this.clusterNamespace, node.name).subscribe({
         next: () => {
-          this.snackBar.open(`节点 ${node.name} 已删除，正在重建...`, '关闭', { duration: 5000 });
+          this.messageService.info(`节点 ${node.name} 已删除，正在重建...`);
           // 延迟刷新以显示重建过程
           setTimeout(() => this.loadClusterData(), 3000);
           setTimeout(() => this.loadClusterData(), 10000);
         },
         error: (error) => {
-          this.snackBar.open(`删除节点失败: ${error.message}`, '关闭', { duration: 5000 });
+          this.messageService.error(`删除节点失败: ${error.message}`);
         }
       });
     }
@@ -973,30 +1179,31 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
 
   isolateNode(node: NodeInfo): void {
     if (node.type === 'GMS') {
-      this.snackBar.open('GMS节点不能被隔离', '关闭', { duration: 3000 });
+      this.messageService.warning('GMS节点不能被隔离');
       return;
     }
     
     if (confirm(`确定要隔离节点 ${node.name} 吗？隔离后该节点将不再处理新的请求。`)) {
       // 这里应该调用相应的API来设置节点为隔离状态
       // 具体实现取决于PolarDB-X的隔离机制
-      this.snackBar.open(`节点隔离功能正在开发中...`, '关闭', { duration: 3000 });
+      this.messageService.info(`节点隔离功能正在开发中...`);
     }
   }
 
   // 打开告警详情对话框
   openAlertsDialog(): void {
     if (this.getAlertCount() === 0) {
-      this.snackBar.open('当前无告警信息', '关闭', { duration: 2000 });
+      this.messageService.info('当前无告警信息');
       return;
     }
 
     import('../../components/alerts-detail-dialog/alerts-detail-dialog.component').then(m => {
-      const ref = this.dialog.open(m.AlertsDetailDialogComponent, {
-        width: '80vw',
-        maxWidth: '1200px',
-        height: '70vh',
-        data: {
+      const ref = this.modalService.create({
+        nzTitle: '告警详情',
+        nzContent: m.AlertsDetailDialogComponent,
+        nzWidth: '80vw',
+        nzStyle: { maxWidth: '1200px', height: '70vh' },
+        nzData: {
           cluster: this.cluster,
           alerts: this.alerts,
           namespace: this.clusterNamespace,
@@ -1004,7 +1211,7 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
         }
       });
 
-      ref.afterClosed().subscribe(result => {
+      ref.afterClose.subscribe((result: any) => {
         if (result?.refreshAlerts) {
           // 重新加载告警数据
           const am = localStorage.getItem('alertmanager') || '';
@@ -1016,13 +1223,13 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
       });
     }).catch(error => {
       console.error('Failed to load alerts dialog:', error);
-      this.snackBar.open('告警详情功能正在开发中...', '关闭', { duration: 3000 });
+      this.messageService.info('告警详情功能正在开发中...');
     });
   }
 
   startUpgrade(): void {
     if (!this.upgradeForm.valid || !this.cluster) {
-      this.snackBar.open('请检查升级配置', '关闭', { duration: 3000 });
+      this.messageService.error('请检查升级配置');
       return;
     }
 
@@ -1031,7 +1238,7 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
 
     // 版本比较
     if (targetVersion === currentVersion) {
-      this.snackBar.open('目标版本与当前版本相同', '关闭', { duration: 3000 });
+      this.messageService.info('目标版本与当前版本相同');
       return;
     }
 
@@ -1048,16 +1255,15 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
                           `⚠️ 升级过程中可能会有短暂的服务中断`;
 
     if (confirm(confirmMessage)) {
-      this.apiService.getPrechangeChecklist(this.clusterNamespace, this.clusterName)
+      this.apiService.runPrecheck(this.clusterNamespace, this.clusterName, 'upgrade', this.upgradeForm.value)
         .subscribe({
-          next: () => {
-            this.apiService.upgradeCluster(this.clusterNamespace, this.clusterName, upgradeRequest)
+          next: (res: any) => {
+            const token = res?.token || '';
+            const tokenSig = res?.tokenSig || '';
+            this.apiService.upgradeCluster(this.clusterNamespace, this.clusterName, upgradeRequest, token, tokenSig)
         .subscribe({
           next: (response) => {
-            this.snackBar.open('集群升级任务已启动，请关注升级进度', '关闭', { 
-              duration: 5000,
-              panelClass: ['success-snackbar']
-            });
+            this.messageService.success('集群升级任务已启动，请关注升级进度');
             
             // 更新本地显示版本
             this.clusterVersion = targetVersion;
@@ -1069,10 +1275,7 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
           },
           error: (error) => {
             console.error('升级失败:', error);
-            this.snackBar.open(`升级失败: ${error.message || '未知错误'}`, '关闭', { 
-              duration: 5000,
-              panelClass: ['error-snackbar']
-            });
+            this.messageService.error(`升级失败: ${error.message || '未知错误'}`);
           }
         });
           },
@@ -1082,7 +1285,7 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
               `- 最近全备：${checks.hasRecentBackup ? '是' : '否'}\n` +
               `- 存储连通：${checks.storage || '未知'}\n` +
               `- RPO滞后(秒)：${typeof checks.rpoLagSeconds==='number'?checks.rpoLagSeconds:'未知'}`;
-            this.snackBar.open(msg, '关闭', { duration: 6000 });
+            this.messageService.error(msg);
           }
         });
     }
@@ -1136,12 +1339,12 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
       .subscribe({
         next: (backup: PolarDBXBackup) => {
           console.log('备份创建成功:', backup);
-          this.snackBar.open(`备份 ${backup.metadata.name} 创建成功`, '关闭', { duration: 3000 });
+          this.messageService.success(`备份 ${backup.metadata.name} 创建成功`);
           this.loadBackupData(); // 重新加载备份数据
         },
         error: (error) => {
           console.error('创建备份失败:', error);
-          this.snackBar.open('创建备份失败', '关闭', { duration: 3000 });
+          this.messageService.error('创建备份失败');
         }
       });
   }
@@ -1149,7 +1352,7 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
   restoreBackup(backup: BackupInfo): void {
     if (confirm(`确定要从备份 ${backup.id} 恢复集群吗？此操作将覆盖当前数据。`)) {
       // 模拟恢复备份
-      this.snackBar.open('恢复任务已启动', '关闭', { duration: 3000 });
+      this.messageService.info('恢复任务已启动');
     }
   }
 
@@ -1159,12 +1362,12 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
         .subscribe({
           next: () => {
             console.log('备份删除成功:', backup.name);
-            this.snackBar.open(`备份 ${backup.name} 删除成功`, '关闭', { duration: 3000 });
+            this.messageService.success(`备份 ${backup.name} 删除成功`);
             this.loadBackupData(); // 重新加载备份数据
           },
           error: (error) => {
             console.error('删除备份失败:', error);
-            this.snackBar.open('删除备份失败', '关闭', { duration: 3000 });
+            this.messageService.error('删除备份失败');
           }
         });
     }
@@ -1175,12 +1378,12 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
       this.apiService.forceDeleteBackup(backup.namespace, backup.name)
         .subscribe({
           next: () => {
-            this.snackBar.open(`备份 ${backup.name} 强制删除成功`, '关闭', { duration: 3000 });
+            this.messageService.success(`备份 ${backup.name} 强制删除成功`);
             this.loadBackupData();
           },
           error: (error) => {
             console.error('强制删除备份失败:', error);
-            this.snackBar.open('强制删除备份失败', '关闭', { duration: 3000 });
+            this.messageService.error('强制删除备份失败');
           }
         });
     }
@@ -1190,11 +1393,9 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
     const selectedPod = this.allPods.find(p => p.metadata.name === this.selectedPod);
     if (selectedPod && selectedPod.spec.containers) {
       this.selectedPodContainers = selectedPod.spec.containers;
-      if (this.selectedPodContainers.length > 0) {
-        this.selectedContainer = this.selectedPodContainers[0].name;
-      } else {
-        this.selectedContainer = '';
-      }
+      const list = this.selectedPodContainers.map(c => c.name);
+      const ordered = this.getPreferredContainers(list);
+      this.selectedContainer = ordered[0] || (list[0] || '');
     } else {
       this.selectedPodContainers = [];
       this.selectedContainer = '';
@@ -1203,7 +1404,7 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
 
   fetchLogs(): void {
     if (!this.selectedPod || !this.selectedContainer) {
-      this.snackBar.open('请先选择一个 Pod 和 Container', '关闭', { duration: 3000 });
+      this.messageService.warning('请先选择一个 Pod 和 Container');
       return;
     }
     this.isLoadingLogs = true;
@@ -1216,43 +1417,12 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
       error: (err) => {
         this.logContent = `加载日志失败: ${err.error?.error || err.message}`;
         this.isLoadingLogs = false;
-        this.snackBar.open(`加载日志失败: ${err.message}`, '关闭', {
-          duration: 5000,
-        });
+        this.messageService.error(`加载日志失败: ${err.message}`);
       }
     });
   }
 
-  // 辅助方法
-  getNodeStatusColor(status: string): string {
-    switch (status.toLowerCase()) {
-      case 'running':
-        return 'primary';
-      case 'pending':
-        return 'accent';
-      case 'failed':
-        return 'warn';
-      default:
-        return '';
-    }
-  }
-
-  getBackupStatusColor(status: string): string {
-    switch (status?.toLowerCase()) {
-      case 'completed':
-      case '完成':
-        return 'primary';
-      case 'running':
-      case 'pending':
-      case '进行中':
-        return 'accent';
-      case 'failed':
-      case '失败':
-        return 'warn';
-      default:
-        return '';
-    }
-  }
+  // 辅助方法（已移动到文件末尾）
 
   ngOnDestroy(): void {
     // 清除所有加载状态以防内存泄漏
@@ -1285,21 +1455,7 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
     }
   }
 
-  // 获取节点类型颜色
-  getNodeTypeColor(type: string): string {
-    switch (type) {
-      case 'CN':
-        return 'primary';
-      case 'DN':
-        return 'accent';
-      case 'GMS':
-        return 'warn';
-      case 'CDC':
-        return 'basic';
-      default:
-        return 'basic';
-    }
-  }
+  // 获取节点类型颜色（已移动到新位置）
 
   // 获取状态颜色
   getStatusColor(status: string): string {
@@ -1361,6 +1517,86 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
     return '各容器重启次数:\n' + containers.map(c => 
       `${c.name}: ${c.restartCount}次`
     ).join('\n');
+  }
+
+  // ng-zorro 适配方法 - 重新定义以避免重复
+  getNodeTypeIcon(type: string): string {
+    switch (type.toLowerCase()) {
+      case 'cn': return 'desktop';
+      case 'dn': return 'database';
+      case 'gms': return 'control';
+      case 'cdc': return 'sync';
+      default: return 'question-circle';
+    }
+  }
+
+  getNodeTypeColor(type: string): string {
+    switch (type.toLowerCase()) {
+      case 'cn': return '#1890ff';
+      case 'dn': return '#52c41a';
+      case 'gms': return '#fa8c16';
+      case 'cdc': return '#722ed1';
+      default: return '#8c8c8c';
+    }
+  }
+
+  getNodeTypeTagColor(type: string): string {
+    switch (type.toLowerCase()) {
+      case 'cn': return 'blue';
+      case 'dn': return 'green';
+      case 'gms': return 'orange';
+      case 'cdc': return 'purple';
+      default: return 'default';
+    }
+  }
+
+  getNodeStatusColor(status: string): string {
+    switch (status.toLowerCase()) {
+      case 'running': return 'green';
+      case 'pending': return 'orange';
+      case 'failed': return 'red';
+      case 'unknown': return 'default';
+      default: return 'default';
+    }
+  }
+
+  getNodeStatusIcon(status: string): string {
+    switch (status.toLowerCase()) {
+      case 'running': return 'check-circle';
+      case 'pending': return 'clock-circle';
+      case 'failed': return 'close-circle';
+      case 'unknown': return 'question-circle';
+      default: return 'question-circle';
+    }
+  }
+
+  getBackupStatusColor(status: string): string {
+    switch (status.toLowerCase()) {
+      case 'completed': return 'green';
+      case 'running': return 'blue';
+      case 'failed': return 'red';
+      case 'pending': return 'orange';
+      default: return 'default';
+    }
+  }
+
+  // 检查描述
+  getCheckDescription(): string {
+    if (!this.precheck) return '';
+    
+    if (this.precheck.pass) {
+      return '所有检查项目都已通过，集群状态良好，可以安全执行操作。';
+    }
+    
+    const issues = [];
+    if (this.precheck.hasWarn) {
+      issues.push('警告');
+    }
+    if (this.precheck.hasError) {
+      issues.push('错误');
+    }
+    
+    return issues.length > 0 ? `发现 ${issues.join(' 和 ')}，请查看详细信息并处理后再执行操作。` : '';
   }
 
 }

@@ -96,53 +96,56 @@
         </ul>
       </li>
       
-      <li nz-submenu nzTitle="监控与告警" nzIcon="dashboard">
+      <!-- 移除单独的“监控与告警”一级模块，合并到运维管理下 -->
+      
+      <li nz-submenu nzTitle="运维管理" nzIcon="setting">
         <ul>
           <li nz-menu-item routerLink="/operations/monitoring" nzMatchRouter>
             <nz-icon nzType="dashboard"></nz-icon>
             <span>监控与告警（聚合）</span>
           </li>
-        </ul>
-      </li>
-      
-      <li nz-submenu nzTitle="运维管理" nzIcon="setting">
-        <ul>
           <li nz-menu-item routerLink="/operations/logs" nzMatchRouter>
             <nz-icon nzType="file-text"></nz-icon>
             <span>日志与采集（聚合）</span>
           </li>
-          <li nz-menu-item routerLink="/operations/parameter-templates" nzMatchRouter>
-            <nz-icon nzType="sliders"></nz-icon>
-            <span>参数模板</span>
+
+          <li nz-submenu nzTitle="参数与调优" nzIcon="sliders">
+            <ul>
+              <li nz-menu-item routerLink="/operations/parameter-templates" nzMatchRouter>
+                <nz-icon nzType="sliders"></nz-icon>
+                <span>参数模板</span>
+              </li>
+              <li nz-menu-item routerLink="/operations/cluster-knobs" nzMatchRouter>
+                <nz-icon nzType="tool"></nz-icon>
+                <span>集群调优</span>
+              </li>
+            </ul>
           </li>
-          <li nz-menu-item routerLink="/operations/system-tasks" nzMatchRouter>
-            <nz-icon nzType="profile"></nz-icon>
-            <span>系统任务</span>
+
+          <li nz-submenu nzTitle="运维助手" nzIcon="tool">
+            <ul>
+              <li nz-menu-item routerLink="/operations/diagnostics" nzMatchRouter>
+                <nz-icon nzType="file-search"></nz-icon>
+                <span>诊断与排障</span>
+              </li>
+              <li nz-menu-item routerLink="/operations/prechange-check" nzMatchRouter>
+                <nz-icon nzType="file-search"></nz-icon>
+                <span>前置检查</span>
+              </li>
+              <li nz-menu-item routerLink="/operations/helm-values-helper" nzMatchRouter>
+                <nz-icon nzType="tool"></nz-icon>
+                <span>Helm 配置助手</span>
+              </li>
+              <li nz-menu-item routerLink="/operations/runbook-slo" nzMatchRouter>
+                <nz-icon nzType="profile"></nz-icon>
+                <span>Runbook / SLO</span>
+              </li>
+            </ul>
           </li>
-          <li nz-menu-item routerLink="/operations/cluster-knobs" nzMatchRouter>
-            <nz-icon nzType="tool"></nz-icon>
-            <span>集群调优</span>
-          </li>
+
           <li nz-menu-item routerLink="/operations/settings" nzMatchRouter>
             <nz-icon nzType="setting"></nz-icon>
             <span>阈值与设置</span>
-          </li>
-          <li nz-menu-item routerLink="/operations/helm-values-helper" nzMatchRouter>
-            <nz-icon nzType="tool"></nz-icon>
-            <span>Helm 配置助手</span>
-          </li>
-          <li nz-menu-item routerLink="/operations/runbook-slo" nzMatchRouter>
-            <nz-icon nzType="profile"></nz-icon>
-            <span>Runbook / SLO</span>
-          </li>
-          
-          <li nz-menu-item routerLink="/operations/diagnostics" nzMatchRouter>
-            <nz-icon nzType="file-search"></nz-icon>
-            <span>诊断与排障</span>
-          </li>
-          <li nz-menu-item routerLink="/operations/prechange-check" nzMatchRouter>
-            <nz-icon nzType="file-search"></nz-icon>
-            <span>前置检查</span>
           </li>
         </ul>
       </li>

@@ -1,127 +1,232 @@
-// 导入共享样式
-@import '../../styles/shared';
-
 :host {
   display: block;
   animation: fadeIn 0.5s ease-in-out;
 }
 
 .cluster-list-container {
-  padding: 24px;
+  padding: 20px;
+  background: #f0f2f5;
+  min-height: 100vh;
 }
 
+// 页面头部样式
 .page-header {
-  @include modern-card;
-  margin-bottom: 24px;
-  padding: 24px;
-  
-  .header-content {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  margin-bottom: 20px;
+  border: 1px solid #e8e8e8;
+
+  .page-icon {
+    font-size: 24px;
+    color: #1890ff;
   }
 
-  .page-title {
-    @include page-title;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-}
-
-.search-card {
-  @include modern-card;
-  margin-bottom: 24px;
-  
-  .search-container {
-    padding: 16px 24px;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-
-    .search-field {
-      flex-grow: 1;
-      @include modern-search-field;
-    }
-    
-    .search-button {
-      @include modern-button;
-    }
+  .refresh-label {
+    font-size: 14px;
+    color: #666;
+    margin-right: 8px;
   }
 }
 
-.loading-container, .no-results {
-  @include modern-card;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  padding: 48px;
-  text-align: center;
-  color: var(--text-secondary-color);
-  
-  mat-icon {
-    font-size: 64px;
-    width: 64px;
-    height: 64px;
+// 搜索和统计卡片
+.search-statistics-card {
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border-radius: 8px;
+
+  .search-section {
     margin-bottom: 16px;
-    color: var(--primary-color);
-    opacity: 0.7;
+
+    .search-input {
+      max-width: 500px;
+    }
+
+    .search-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 12px;
+    }
   }
 
-  p {
-    font-size: 18px;
-    margin: 0;
-  }
-}
+  .statistics-section {
+    .ant-statistic {
+      text-align: center;
+      
+      .ant-statistic-title {
+        font-size: 14px;
+        color: #666;
+        margin-bottom: 8px;
+      }
 
-.table-container {
-  @include modern-card;
-  overflow: hidden;
-
-  .clusters-table {
-    width: 100%;
-    @include modern-table;
-
-    .cluster-link {
-      color: var(--primary-color);
-      font-weight: 500;
-      text-decoration: none;
-      transition: color 0.3s;
-
-      &:hover {
-        color: var(--accent-color);
-        text-decoration: underline;
+      .ant-statistic-content {
+        font-size: 24px;
+        font-weight: 600;
       }
     }
   }
 }
 
-// 集群创建对话框样式
-::ng-deep .cluster-creation-dialog {
-  .mat-mdc-dialog-container {
-    padding: 0;
-    border-radius: 16px;
-    overflow: hidden;
-  }
-  
-  .mat-mdc-dialog-content {
-    padding: 0;
-    margin: 0;
-    max-height: none;
+// 加载状态卡片
+.loading-card {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border-radius: 8px;
+
+  .loading-container {
+    text-align: center;
+    padding: 60px 20px;
   }
 }
 
-// 动画增强
-.page-header, .search-card, .table-container {
+// 表格卡片
+.table-card {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border-radius: 8px;
+
+  .clusters-table {
+    .cluster-link {
+      color: #1890ff;
+      font-weight: 500;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.3s;
+
+      &:hover {
+        color: #40a9ff;
+        text-decoration: underline;
+      }
+    }
+
+    .ant-table-tbody > tr > td {
+      vertical-align: middle;
+    }
+
+    .ant-table-thead > tr > th {
+      background: #fafafa;
+      font-weight: 600;
+      color: #262626;
+    }
+  }
+}
+
+// 无结果状态
+.no-results-hint {
+  margin: 0;
+  color: #8c8c8c;
+  font-size: 14px;
+}
+
+// 动画效果
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.page-header, .search-statistics-card, .table-card {
   animation: slideInLeft 0.6s ease-out;
 }
 
-// 响应式对话框
+.page-header {
+  animation-delay: 0.1s;
+}
+
+.search-statistics-card {
+  animation-delay: 0.2s;
+}
+
+.table-card {
+  animation-delay: 0.3s;
+}
+
+// 响应式设计
 @media (max-width: 768px) {
-  ::ng-deep .cluster-creation-dialog {
-    width: 95vw !important;
-    max-width: 95vw !important;
-    height: 90vh !important;
+  .cluster-list-container {
+    padding: 12px;
+  }
+
+  .page-header {
+    .ant-page-header-heading {
+      flex-direction: column;
+      align-items: flex-start !important;
+      gap: 16px;
+    }
+
+    .ant-page-header-heading-extra {
+      margin-top: 16px;
+      width: 100%;
+      
+      nz-space {
+        width: 100%;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+      }
+    }
+  }
+
+  .search-section {
+    .search-input {
+      max-width: 100%;
+    }
+  }
+
+  .statistics-section {
+    [nz-col] {
+      margin-bottom: 16px;
+    }
+  }
+
+  .clusters-table {
+    .ant-table {
+      font-size: 12px;
+    }
+    
+    .ant-table-thead > tr > th,
+    .ant-table-tbody > tr > td {
+      padding: 8px 4px;
+    }
+  }
+}
+
+@media (max-width: 576px) {
+  .clusters-table {
+    th:nth-child(3),
+    td:nth-child(3),
+    th:nth-child(4),
+    td:nth-child(4) {
+      display: none;
+    }
+  }
+}
+
+// 深色主题支持
+@media (prefers-color-scheme: dark) {
+  .cluster-list-container {
+    background: #141414;
+  }
+
+  .page-header,
+  .search-statistics-card,
+  .table-card,
+  .loading-card {
+    background: #1f1f1f;
+    border-color: #303030;
   }
 }

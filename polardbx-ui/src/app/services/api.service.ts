@@ -20,6 +20,7 @@ import { PolarDBXBackupBinlog, CreateBackupBinlogRequest, UpdateBackupBinlogRequ
 import { ErrorHandlerService } from './error-handler.service';
 import { LoadingService, LoadingKeys } from './loading.service';
 import { PerformanceService } from './performance.service';
+import { LogsPresetList, LogsQueryRequest, NormalizedResponse } from '../models/logs.model';
 
 @Injectable({
   providedIn: 'root'
@@ -358,10 +359,13 @@ export class ApiService {
   }
 
   // 集群扩缩容
-  scaleCluster(namespace: string, clusterName: string, scaling: any): Observable<any> {
+  scaleCluster(namespace: string, clusterName: string, scaling: any, precheckToken?: string, precheckSig?: string): Observable<any> {
+    let headers = this.getHeaders();
+    if (precheckToken) headers = headers.set('X-Precheck-Token', precheckToken);
+    if (precheckSig) headers = headers.set('X-Precheck-Token-Signature', precheckSig);
     return this.handleRequest(
       this.http.patch<any>(`${this.baseUrl}/clusters/${namespace}/${clusterName}/scale`, scaling, {
-        headers: this.getHeaders()
+        headers
       }),
       LoadingKeys.CLUSTER_UPDATE,
       `/clusters/${namespace}/${clusterName}/scale`,
@@ -370,10 +374,13 @@ export class ApiService {
   }
 
   // 集群升级
-  upgradeCluster(namespace: string, clusterName: string, upgrade: any): Observable<any> {
+  upgradeCluster(namespace: string, clusterName: string, upgrade: any, precheckToken?: string, precheckSig?: string): Observable<any> {
+    let headers = this.getHeaders();
+    if (precheckToken) headers = headers.set('X-Precheck-Token', precheckToken);
+    if (precheckSig) headers = headers.set('X-Precheck-Token-Signature', precheckSig);
     return this.handleRequest(
       this.http.patch<any>(`${this.baseUrl}/clusters/${namespace}/${clusterName}/upgrade`, upgrade, {
-        headers: this.getHeaders()
+        headers
       }),
       LoadingKeys.CLUSTER_UPDATE,
       `/clusters/${namespace}/${clusterName}/upgrade`,
@@ -1269,15 +1276,14 @@ export class ApiService {
     );
   }
 
-  // 变更前置校验
-  getPrechangeChecklist(namespace: string, name: string, nowISO?: string): Observable<any> {
-    const now = nowISO ? `?now=${encodeURIComponent(nowISO)}` : '';
-    const url = `${this.baseUrl}/clusters/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}/prechange-check${now}`;
+  // 变更前置校验（统一接口）
+  runPrecheck(namespace: string, name: string, operation: 'scale'|'upgrade'|'config', targetSpec?: any): Observable<any> {
+    const url = `${this.baseUrl}/clusters/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}/precheck`;
     return this.handleRequest(
-      this.http.get<any>(url, { headers: this.getHeaders() }),
-      LoadingKeys.CLUSTER_DETAIL,
-      `/clusters/${namespace}/${name}/prechange-check`,
-      'GET'
+      this.http.post<any>(url, { operation, targetSpec: targetSpec || {} }, { headers: this.getHeaders() }),
+      LoadingKeys.PRECHECK_RUN,
+      `/clusters/${namespace}/${name}/precheck`,
+      'POST'
     );
   }
 
@@ -1621,6 +1627,83 @@ export class ApiService {
       LoadingKeys.MONITOR_LIST,
       '/monitoring/preflight',
       'GET'
+    );
+  }
+
+  // -----------------------------
+  // Logs
+  // -----------------------------
+  getLogPresets(): Observable<LogsPresetList> {
+    return this.handleRequest(
+      this.http.get<LogsPresetList>(`${this.baseUrl}/logs/presets`, { headers: this.getHeaders() }),
+      LoadingKeys.LOGS_PRESETS,
+      '/logs/presets',
+      'GET'
+    );
+  }
+
+  queryLogs(req: LogsQueryRequest): Observable<any | NormalizedResponse> {
+    return this.handleRequest(
+      this.http.post(`${this.baseUrl}/logs/query`, req || {}, { headers: this.getHeaders() }),
+      LoadingKeys.LOGS_QUERY,
+      '/logs/query',
+      'POST'
+    );
+  }
+
+  // Log Service Dashboard Methods
+  // -----------------------------
+  getLogServiceStatus(): Observable<any> {
+    return this.handleRequest(
+      this.http.get(`${this.baseUrl}/log-service/status`, { headers: this.getHeaders() }),
+      LoadingKeys.LOG_SERVICE_STATUS,
+      '/log-service/status',
+      'GET'
+    );
+  }
+
+  getLogStrategies(): Observable<any[]> {
+    return this.handleRequest(
+      this.http.get<any[]>(`${this.baseUrl}/log-strategies`, { headers: this.getHeaders() }),
+      LoadingKeys.LOG_STRATEGIES_LIST,
+      '/log-strategies',
+      'GET'
+    );
+  }
+
+  createLogStrategy(strategy: any): Observable<any> {
+    return this.handleRequest(
+      this.http.post(`${this.baseUrl}/log-strategies`, strategy, { headers: this.getHeaders() }),
+      LoadingKeys.LOG_STRATEGY_SAVE,
+      '/log-strategies',
+      'POST'
+    );
+  }
+
+  updateLogStrategy(name: string, strategy: any): Observable<any> {
+    return this.handleRequest(
+      this.http.put(`${this.baseUrl}/log-strategies/${name}`, strategy, { headers: this.getHeaders() }),
+      LoadingKeys.LOG_STRATEGY_SAVE,
+      `/log-strategies/${name}`,
+      'PUT'
+    );
+  }
+
+  deleteLogStrategy(name: string): Observable<any> {
+    return this.handleRequest(
+      this.http.delete(`${this.baseUrl}/log-strategies/${name}`, { headers: this.getHeaders() }),
+      LoadingKeys.LOG_STRATEGY_DELETE,
+      `/log-strategies/${name}`,
+      'DELETE'
+    );
+  }
+
+  testElasticsearchConnection(config: any): Observable<any> {
+    return this.handleRequest(
+      this.http.post(`${this.baseUrl}/log-strategies/test-connection`, config, { headers: this.getHeaders() }),
+      LoadingKeys.ES_CONNECTION_TEST,
+      '/log-strategies/test-connection',
+      'POST'
     );
   }
 }
