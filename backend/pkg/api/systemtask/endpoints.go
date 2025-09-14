@@ -16,7 +16,7 @@ func List(c *gin.Context) {
 		return
 	}
 	ns := util.DefaultNamespace(c, "default")
-	items, err := k8s.ListSystemTasks(cli, ns)
+	items, err := k8s.ListSystemTasksWithContext(c.Request.Context(), cli, ns)
 	if err != nil {
 		util.HandleK8sError(c, "failed to list system tasks", err)
 		return
@@ -31,7 +31,7 @@ func Get(c *gin.Context) {
 	}
 	ns := c.Param("namespace")
 	name := c.Param("name")
-	item, err := k8s.GetSystemTask(cli, ns, name)
+	item, err := k8s.GetSystemTaskWithContext(c.Request.Context(), cli, ns, name)
 	if err != nil {
 		util.HandleK8sError(c, "failed to get system task", err)
 		return
@@ -50,7 +50,7 @@ func Create(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid system task", "details": err.Error()})
 		return
 	}
-	created, err := k8s.CreateSystemTask(cli, ns, &body)
+	created, err := k8s.CreateSystemTaskWithContext(c.Request.Context(), cli, ns, &body)
 	if err != nil {
 		util.HandleK8sError(c, "failed to create system task", err)
 		return
@@ -69,7 +69,7 @@ func Update(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid system task", "details": err.Error()})
 		return
 	}
-	updated, err := k8s.UpdateSystemTask(cli, ns, &body)
+	updated, err := k8s.UpdateSystemTaskWithContext(c.Request.Context(), cli, ns, &body)
 	if err != nil {
 		util.HandleK8sError(c, "failed to update system task", err)
 		return
@@ -84,7 +84,7 @@ func Delete(c *gin.Context) {
 	}
 	ns := c.Param("namespace")
 	name := c.Param("name")
-	if err := k8s.DeleteSystemTask(cli, ns, name); err != nil {
+	if err := k8s.DeleteSystemTaskWithContext(c.Request.Context(), cli, ns, name); err != nil {
 		util.HandleK8sError(c, "failed to delete system task", err)
 		return
 	}

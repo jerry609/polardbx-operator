@@ -16,7 +16,7 @@ func List(c *gin.Context) {
 		return
 	}
 	namespace := util.DefaultNamespace(c, "default")
-	monitors, err := k8s.ListPolarDBXMonitors(k8sClient, namespace)
+	monitors, err := k8s.ListPolarDBXMonitorsWithContext(c.Request.Context(), k8sClient, namespace)
 	if err != nil {
 		util.HandleK8sError(c, "failed to list monitors", err)
 		return
@@ -35,7 +35,7 @@ func Create(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse monitor data", "details": err.Error()})
 		return
 	}
-	created, err := k8s.CreatePolarDBXMonitor(k8sClient, namespace, &monitor)
+	created, err := k8s.CreatePolarDBXMonitorWithContext(c.Request.Context(), k8sClient, namespace, &monitor)
 	if err != nil {
 		util.HandleK8sError(c, "failed to create monitor", err)
 		return
@@ -50,7 +50,7 @@ func Get(c *gin.Context) {
 	}
 	ns := c.Param("namespace")
 	name := c.Param("name")
-	m, err := k8s.GetPolarDBXMonitor(k8sClient, ns, name)
+	m, err := k8s.GetPolarDBXMonitorWithContext(c.Request.Context(), k8sClient, ns, name)
 	if err != nil {
 		util.HandleK8sError(c, "failed to get monitor", err)
 		return
@@ -70,7 +70,7 @@ func Update(c *gin.Context) {
 		return
 	}
 	m.Namespace = ns
-	um, err := k8s.UpdatePolarDBXMonitor(k8sClient, ns, &m)
+	um, err := k8s.UpdatePolarDBXMonitorWithContext(c.Request.Context(), k8sClient, ns, &m)
 	if err != nil {
 		util.HandleK8sError(c, "failed to update monitor", err)
 		return
@@ -85,7 +85,7 @@ func Delete(c *gin.Context) {
 	}
 	ns := c.Param("namespace")
 	name := c.Param("name")
-	if err := k8s.DeletePolarDBXMonitor(k8sClient, ns, name); err != nil {
+	if err := k8s.DeletePolarDBXMonitorWithContext(c.Request.Context(), k8sClient, ns, name); err != nil {
 		util.HandleK8sError(c, "failed to delete monitor", err)
 		return
 	}

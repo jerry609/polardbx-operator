@@ -30,7 +30,9 @@ func List(c *gin.Context) {
 	if !ok {
 		return
 	}
-	clusters, err := k8s.ListPolarDBXClustersWithContext(c.Request.Context(), cli, "")
+	ctx, cancel := util.ListCtx(c)
+	defer cancel()
+	clusters, err := k8s.ListPolarDBXClustersWithContext(ctx, cli, "")
 	if err != nil {
 		util.HandleK8sError(c, "failed to list clusters", err)
 		return
@@ -43,6 +45,8 @@ func Create(c *gin.Context) {
 	if !ok {
 		return
 	}
+	ctx, cancel := util.CrudCtx(c)
+	defer cancel()
 	var cluster polardbxv1.PolarDBXCluster
 	if err := c.ShouldBindJSON(&cluster); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse cluster data", "details": err.Error()})
@@ -52,7 +56,7 @@ func Create(c *gin.Context) {
 	if ns == "" {
 		ns = "default"
 	}
-	created, err := k8s.CreatePolarDBXClusterWithContext(c.Request.Context(), cli, ns, &cluster)
+	created, err := k8s.CreatePolarDBXClusterWithContext(ctx, cli, ns, &cluster)
 	if err != nil {
 		util.HandleK8sError(c, "failed to create cluster", err)
 		return

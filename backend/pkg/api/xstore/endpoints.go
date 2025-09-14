@@ -26,7 +26,7 @@ func List(c *gin.Context) {
 		return
 	}
 	ns := util.DefaultNamespace(c, "default")
-	items, err := k8s.ListXStores(cli, ns)
+	items, err := k8s.ListXStoresWithContext(c.Request.Context(), cli, ns)
 	if err != nil {
 		util.HandleK8sError(c, "failed to list xstores", err)
 		return
@@ -45,7 +45,7 @@ func Create(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid xstore", "details": err.Error()})
 		return
 	}
-	created, err := k8s.CreateXStore(cli, ns, &body)
+	created, err := k8s.CreateXStoreWithContext(c.Request.Context(), cli, ns, &body)
 	if err != nil {
 		util.HandleK8sError(c, "failed to create xstore", err)
 		return
@@ -60,7 +60,7 @@ func Get(c *gin.Context) {
 	}
 	ns := c.Param("namespace")
 	name := c.Param("name")
-	item, err := k8s.GetXStore(cli, ns, name)
+	item, err := k8s.GetXStoreWithContext(c.Request.Context(), cli, ns, name)
 	if err != nil {
 		util.HandleK8sError(c, "failed to get xstore", err)
 		return
@@ -80,7 +80,7 @@ func Update(c *gin.Context) {
 		return
 	}
 	body.Namespace = ns
-	updated, err := k8s.UpdateXStore(cli, ns, &body)
+	updated, err := k8s.UpdateXStoreWithContext(c.Request.Context(), cli, ns, &body)
 	if err != nil {
 		util.HandleK8sError(c, "failed to update xstore", err)
 		return
@@ -95,7 +95,7 @@ func Delete(c *gin.Context) {
 	}
 	ns := c.Param("namespace")
 	name := c.Param("name")
-	if err := k8s.DeleteXStore(cli, ns, name); err != nil {
+	if err := k8s.DeleteXStoreWithContext(c.Request.Context(), cli, ns, name); err != nil {
 		util.HandleK8sError(c, "failed to delete xstore", err)
 		return
 	}
@@ -125,7 +125,7 @@ func ListBackups(c *gin.Context) {
 	}
 	ns := util.DefaultNamespace(c, "default")
 	view := c.DefaultQuery("view", "detail")
-	items, err := k8s.ListXStoreBackups(cli, ns)
+	items, err := k8s.ListXStoreBackupsWithContext(c.Request.Context(), cli, ns)
 	if err != nil {
 		util.HandleK8sError(c, "failed to list xstore backups", err)
 		return
@@ -148,7 +148,7 @@ func CreateBackup(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid xstore backup", "details": err.Error()})
 		return
 	}
-	created, err := k8s.CreateXStoreBackup(cli, ns, &body)
+	created, err := k8s.CreateXStoreBackupWithContext(c.Request.Context(), cli, ns, &body)
 	if err != nil {
 		util.HandleK8sError(c, "failed to create xstore backup", err)
 		return
@@ -163,7 +163,7 @@ func GetBackup(c *gin.Context) {
 	}
 	ns := c.Param("namespace")
 	name := c.Param("name")
-	item, err := k8s.GetXStoreBackup(cli, ns, name)
+	item, err := k8s.GetXStoreBackupWithContext(c.Request.Context(), cli, ns, name)
 	if err != nil {
 		util.HandleK8sError(c, "failed to get xstore backup", err)
 		return
@@ -183,7 +183,7 @@ func UpdateBackup(c *gin.Context) {
 		return
 	}
 	body.Namespace = ns
-	updated, err := k8s.UpdateXStoreBackup(cli, ns, &body)
+	updated, err := k8s.UpdateXStoreBackupWithContext(c.Request.Context(), cli, ns, &body)
 	if err != nil {
 		util.HandleK8sError(c, "failed to update xstore backup", err)
 		return
@@ -198,7 +198,7 @@ func DeleteBackup(c *gin.Context) {
 	}
 	ns := c.Param("namespace")
 	name := c.Param("name")
-	if err := k8s.DeleteXStoreBackup(cli, ns, name); err != nil {
+	if err := k8s.DeleteXStoreBackupWithContext(c.Request.Context(), cli, ns, name); err != nil {
 		util.HandleK8sError(c, "failed to delete xstore backup", err)
 		return
 	}
@@ -232,7 +232,7 @@ func GetBackupRemoteInfo(c *gin.Context) {
 	}
 	ns := c.Param("namespace")
 	name := c.Param("name")
-	bk, err := k8s.GetXStoreBackup(cli, ns, name)
+	bk, err := k8s.GetXStoreBackupWithContext(c.Request.Context(), cli, ns, name)
 	if err != nil {
 		util.HandleK8sError(c, "failed to get xstore backup", err)
 		return
@@ -464,7 +464,7 @@ func createFollower(c *gin.Context) {
 	}
 
 	// Ensure target XStore exists
-	if _, err := k8s.GetXStore(cli, namespace, request.XStoreName); err != nil {
+	if _, err := k8s.GetXStoreWithContext(c.Request.Context(), cli, namespace, request.XStoreName); err != nil {
 		if k8serrors.IsNotFound(err) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "xstore not found", "details": fmt.Sprintf("xstore %s/%s not found", namespace, request.XStoreName)})
 			return

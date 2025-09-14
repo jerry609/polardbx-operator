@@ -473,7 +473,7 @@ func DeletePolarDBXBackupScheduleWithContext(ctx context.Context, c client.Clien
 	return c.Delete(ctx, obj)
 }
 
-// PolarDBXParameterTemplate Management Functions
+// PolarDBXParameter Template Management Functions
 
 func ListPolarDBXParameterTemplates(c client.Client, namespace string) ([]polardbxv1.PolarDBXParameterTemplate, error) {
 	var templateList polardbxv1.PolarDBXParameterTemplateList
@@ -745,4 +745,332 @@ func DeleteClusterKnobs(c client.Client, namespace, name string) error {
 	knobs.Name = name
 	knobs.Namespace = namespace
 	return c.Delete(context.TODO(), knobs)
+}
+
+// Context-aware variants for Backup core CRUD
+func ListPolarDBXBackupsWithContext(ctx context.Context, c client.Client, namespace, clusterName string) ([]polardbxv1.PolarDBXBackup, error) {
+	var list polardbxv1.PolarDBXBackupList
+	opts := []client.ListOption{client.InNamespace(namespace), client.MatchingLabels{"polardbx/name": clusterName}}
+	if err := c.List(ctx, &list, opts...); err != nil {
+		return nil, err
+	}
+	return list.Items, nil
+}
+
+func CreatePolarDBXBackupWithContext(ctx context.Context, c client.Client, namespace string, backup *polardbxv1.PolarDBXBackup) (*polardbxv1.PolarDBXBackup, error) {
+	if backup.Namespace == "" {
+		backup.Namespace = namespace
+	}
+	if err := c.Create(ctx, backup); err != nil {
+		return nil, err
+	}
+	return backup, nil
+}
+
+func CreatePolarDBXBackupDryRunWithContext(ctx context.Context, c client.Client, namespace string, backup *polardbxv1.PolarDBXBackup) (*polardbxv1.PolarDBXBackup, error) {
+	if backup.Namespace == "" {
+		backup.Namespace = namespace
+	}
+	opts := &client.CreateOptions{DryRun: []string{metav1.DryRunAll}}
+	if err := c.Create(ctx, backup, opts); err != nil {
+		return nil, err
+	}
+	return backup, nil
+}
+
+func DeletePolarDBXBackupWithContext(ctx context.Context, c client.Client, namespace, name string) error {
+	obj := &polardbxv1.PolarDBXBackup{}
+	obj.Name = name
+	obj.Namespace = namespace
+	return c.Delete(ctx, obj)
+}
+
+// Context-aware variants for Parameters CRUD
+func ListPolarDBXParametersWithContext(ctx context.Context, c client.Client, namespace string) ([]polardbxv1.PolarDBXParameter, error) {
+	var list polardbxv1.PolarDBXParameterList
+	if err := c.List(ctx, &list, client.InNamespace(namespace)); err != nil {
+		return nil, err
+	}
+	return list.Items, nil
+}
+func GetPolarDBXParameterWithContext(ctx context.Context, c client.Client, namespace, name string) (*polardbxv1.PolarDBXParameter, error) {
+	var obj polardbxv1.PolarDBXParameter
+	if err := c.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, &obj); err != nil {
+		return nil, err
+	}
+	return &obj, nil
+}
+func CreatePolarDBXParameterWithContext(ctx context.Context, c client.Client, namespace string, param *polardbxv1.PolarDBXParameter) (*polardbxv1.PolarDBXParameter, error) {
+	if param.Namespace == "" {
+		param.Namespace = namespace
+	}
+	if err := c.Create(ctx, param); err != nil {
+		return nil, err
+	}
+	return param, nil
+}
+func UpdatePolarDBXParameterWithContext(ctx context.Context, c client.Client, namespace string, param *polardbxv1.PolarDBXParameter) (*polardbxv1.PolarDBXParameter, error) {
+	if err := c.Update(ctx, param); err != nil {
+		return nil, err
+	}
+	return param, nil
+}
+func DeletePolarDBXParameterWithContext(ctx context.Context, c client.Client, namespace, name string) error {
+	obj := &polardbxv1.PolarDBXParameter{}
+	obj.Name = name
+	obj.Namespace = namespace
+	return c.Delete(ctx, obj)
+}
+
+// Context-aware variants for ParameterTemplates CRUD
+func ListPolarDBXParameterTemplatesWithContext(ctx context.Context, c client.Client, namespace string) ([]polardbxv1.PolarDBXParameterTemplate, error) {
+	var list polardbxv1.PolarDBXParameterTemplateList
+	if err := c.List(ctx, &list, client.InNamespace(namespace)); err != nil {
+		return nil, err
+	}
+	return list.Items, nil
+}
+func GetPolarDBXParameterTemplateWithContext(ctx context.Context, c client.Client, namespace, name string) (*polardbxv1.PolarDBXParameterTemplate, error) {
+	var obj polardbxv1.PolarDBXParameterTemplate
+	if err := c.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, &obj); err != nil {
+		return nil, err
+	}
+	return &obj, nil
+}
+func CreatePolarDBXParameterTemplateWithContext(ctx context.Context, c client.Client, namespace string, tpl *polardbxv1.PolarDBXParameterTemplate) (*polardbxv1.PolarDBXParameterTemplate, error) {
+	if tpl.Namespace == "" {
+		tpl.Namespace = namespace
+	}
+	if err := c.Create(ctx, tpl); err != nil {
+		return nil, err
+	}
+	return tpl, nil
+}
+func UpdatePolarDBXParameterTemplateWithContext(ctx context.Context, c client.Client, namespace string, tpl *polardbxv1.PolarDBXParameterTemplate) (*polardbxv1.PolarDBXParameterTemplate, error) {
+	if err := c.Update(ctx, tpl); err != nil {
+		return nil, err
+	}
+	return tpl, nil
+}
+func DeletePolarDBXParameterTemplateWithContext(ctx context.Context, c client.Client, namespace, name string) error {
+	obj := &polardbxv1.PolarDBXParameterTemplate{}
+	obj.Name = name
+	obj.Namespace = namespace
+	return c.Delete(ctx, obj)
+}
+
+// Context-aware variants for SystemTask CRUD
+func ListSystemTasksWithContext(ctx context.Context, c client.Client, namespace string) ([]polardbxv1.SystemTask, error) {
+	var list polardbxv1.SystemTaskList
+	if err := c.List(ctx, &list, client.InNamespace(namespace)); err != nil {
+		return nil, err
+	}
+	return list.Items, nil
+}
+func GetSystemTaskWithContext(ctx context.Context, c client.Client, namespace, name string) (*polardbxv1.SystemTask, error) {
+	var obj polardbxv1.SystemTask
+	if err := c.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, &obj); err != nil {
+		return nil, err
+	}
+	return &obj, nil
+}
+func CreateSystemTaskWithContext(ctx context.Context, c client.Client, namespace string, task *polardbxv1.SystemTask) (*polardbxv1.SystemTask, error) {
+	if task.Namespace == "" {
+		task.Namespace = namespace
+	}
+	if err := c.Create(ctx, task); err != nil {
+		return nil, err
+	}
+	return task, nil
+}
+func UpdateSystemTaskWithContext(ctx context.Context, c client.Client, namespace string, task *polardbxv1.SystemTask) (*polardbxv1.SystemTask, error) {
+	if err := c.Update(ctx, task); err != nil {
+		return nil, err
+	}
+	return task, nil
+}
+func DeleteSystemTaskWithContext(ctx context.Context, c client.Client, namespace, name string) error {
+	obj := &polardbxv1.SystemTask{}
+	obj.Name = name
+	obj.Namespace = namespace
+	return c.Delete(ctx, obj)
+}
+
+// Context-aware variants for LogCollector CRUD
+func ListPolarDBXLogCollectorsWithContext(ctx context.Context, c client.Client, namespace string) ([]polardbxv1.PolarDBXLogCollector, error) {
+	var list polardbxv1.PolarDBXLogCollectorList
+	if err := c.List(ctx, &list, client.InNamespace(namespace)); err != nil {
+		return nil, err
+	}
+	return list.Items, nil
+}
+func CreatePolarDBXLogCollectorWithContext(ctx context.Context, c client.Client, namespace string, obj *polardbxv1.PolarDBXLogCollector) (*polardbxv1.PolarDBXLogCollector, error) {
+	if obj.Namespace == "" {
+		obj.Namespace = namespace
+	}
+	if err := c.Create(ctx, obj); err != nil {
+		return nil, err
+	}
+	return obj, nil
+}
+func GetPolarDBXLogCollectorWithContext(ctx context.Context, c client.Client, namespace, name string) (*polardbxv1.PolarDBXLogCollector, error) {
+	var out polardbxv1.PolarDBXLogCollector
+	if err := c.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+func UpdatePolarDBXLogCollectorWithContext(ctx context.Context, c client.Client, namespace string, obj *polardbxv1.PolarDBXLogCollector) (*polardbxv1.PolarDBXLogCollector, error) {
+	if err := c.Update(ctx, obj); err != nil {
+		return nil, err
+	}
+	return obj, nil
+}
+func DeletePolarDBXLogCollectorWithContext(ctx context.Context, c client.Client, namespace, name string) error {
+	inst := &polardbxv1.PolarDBXLogCollector{}
+	inst.Name = name
+	inst.Namespace = namespace
+	return c.Delete(ctx, inst)
+}
+
+// Context-aware variants for BackupBinlog CRUD
+func ListPolarDBXBackupBinlogsWithContext(ctx context.Context, c client.Client, namespace string) ([]polardbxv1.PolarDBXBackupBinlog, error) {
+	var list polardbxv1.PolarDBXBackupBinlogList
+	if err := c.List(ctx, &list, client.InNamespace(namespace)); err != nil {
+		return nil, err
+	}
+	return list.Items, nil
+}
+func CreatePolarDBXBackupBinlogWithContext(ctx context.Context, c client.Client, namespace string, obj *polardbxv1.PolarDBXBackupBinlog) (*polardbxv1.PolarDBXBackupBinlog, error) {
+	if obj.Namespace == "" {
+		obj.Namespace = namespace
+	}
+	if err := c.Create(ctx, obj); err != nil {
+		return nil, err
+	}
+	return obj, nil
+}
+func GetPolarDBXBackupBinlogWithContext(ctx context.Context, c client.Client, namespace, name string) (*polardbxv1.PolarDBXBackupBinlog, error) {
+	var out polardbxv1.PolarDBXBackupBinlog
+	if err := c.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+func UpdatePolarDBXBackupBinlogWithContext(ctx context.Context, c client.Client, namespace string, obj *polardbxv1.PolarDBXBackupBinlog) (*polardbxv1.PolarDBXBackupBinlog, error) {
+	if err := c.Update(ctx, obj); err != nil {
+		return nil, err
+	}
+	return obj, nil
+}
+
+// Context-aware variants for XStore CRUD
+func ListXStoresWithContext(ctx context.Context, c client.Client, namespace string) ([]polardbxv1.XStore, error) {
+	var list polardbxv1.XStoreList
+	if err := c.List(ctx, &list, client.InNamespace(namespace)); err != nil {
+		return nil, err
+	}
+	return list.Items, nil
+}
+func CreateXStoreWithContext(ctx context.Context, c client.Client, namespace string, x *polardbxv1.XStore) (*polardbxv1.XStore, error) {
+	if x.Namespace == "" {
+		x.Namespace = namespace
+	}
+	if err := c.Create(ctx, x); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+func GetXStoreWithContext(ctx context.Context, c client.Client, namespace, name string) (*polardbxv1.XStore, error) {
+	var out polardbxv1.XStore
+	if err := c.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+func UpdateXStoreWithContext(ctx context.Context, c client.Client, namespace string, x *polardbxv1.XStore) (*polardbxv1.XStore, error) {
+	if err := c.Update(ctx, x); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+func DeleteXStoreWithContext(ctx context.Context, c client.Client, namespace, name string) error {
+	obj := &polardbxv1.XStore{}
+	obj.Name = name
+	obj.Namespace = namespace
+	return c.Delete(ctx, obj)
+}
+
+// Context-aware variants for XStoreBackup CRUD
+func ListXStoreBackupsWithContext(ctx context.Context, c client.Client, namespace string) ([]polardbxv1.XStoreBackup, error) {
+	var list polardbxv1.XStoreBackupList
+	if err := c.List(ctx, &list, client.InNamespace(namespace)); err != nil {
+		return nil, err
+	}
+	return list.Items, nil
+}
+func CreateXStoreBackupWithContext(ctx context.Context, c client.Client, namespace string, obj *polardbxv1.XStoreBackup) (*polardbxv1.XStoreBackup, error) {
+	if obj.Namespace == "" {
+		obj.Namespace = namespace
+	}
+	if err := c.Create(ctx, obj); err != nil {
+		return nil, err
+	}
+	return obj, nil
+}
+func GetXStoreBackupWithContext(ctx context.Context, c client.Client, namespace, name string) (*polardbxv1.XStoreBackup, error) {
+	var out polardbxv1.XStoreBackup
+	if err := c.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+func UpdateXStoreBackupWithContext(ctx context.Context, c client.Client, namespace string, obj *polardbxv1.XStoreBackup) (*polardbxv1.XStoreBackup, error) {
+	if err := c.Update(ctx, obj); err != nil {
+		return nil, err
+	}
+	return obj, nil
+}
+func DeleteXStoreBackupWithContext(ctx context.Context, c client.Client, namespace, name string) error {
+	obj := &polardbxv1.XStoreBackup{}
+	obj.Name = name
+	obj.Namespace = namespace
+	return c.Delete(ctx, obj)
+}
+
+// Context-aware variants for PolarDBXMonitor CRUD
+func ListPolarDBXMonitorsWithContext(ctx context.Context, c client.Client, namespace string) ([]polardbxv1.PolarDBXMonitor, error) {
+	var list polardbxv1.PolarDBXMonitorList
+	if err := c.List(ctx, &list, client.InNamespace(namespace)); err != nil {
+		return nil, err
+	}
+	return list.Items, nil
+}
+func CreatePolarDBXMonitorWithContext(ctx context.Context, c client.Client, namespace string, m *polardbxv1.PolarDBXMonitor) (*polardbxv1.PolarDBXMonitor, error) {
+	if m.Namespace == "" {
+		m.Namespace = namespace
+	}
+	if err := c.Create(ctx, m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+func GetPolarDBXMonitorWithContext(ctx context.Context, c client.Client, namespace, name string) (*polardbxv1.PolarDBXMonitor, error) {
+	var out polardbxv1.PolarDBXMonitor
+	if err := c.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+func UpdatePolarDBXMonitorWithContext(ctx context.Context, c client.Client, namespace string, m *polardbxv1.PolarDBXMonitor) (*polardbxv1.PolarDBXMonitor, error) {
+	if err := c.Update(ctx, m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+func DeletePolarDBXMonitorWithContext(ctx context.Context, c client.Client, namespace, name string) error {
+	obj := &polardbxv1.PolarDBXMonitor{}
+	obj.Name = name
+	obj.Namespace = namespace
+	return c.Delete(ctx, obj)
 }

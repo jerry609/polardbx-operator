@@ -1,7 +1,9 @@
 package util
 
 import (
+	"context"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -74,4 +76,19 @@ func HandleK8sError(c *gin.Context, context string, err error) {
 	default:
 		c.JSON(http.StatusInternalServerError, gin.H{"error": context, "details": err.Error()})
 	}
+}
+
+// ---- Handler timeout helpers ----
+
+const (
+	DefaultListTimeout = 15 * time.Second
+	DefaultCRUDTimeout = 60 * time.Second
+)
+
+func ListCtx(c *gin.Context) (context.Context, context.CancelFunc) {
+	return context.WithTimeout(c.Request.Context(), DefaultListTimeout)
+}
+
+func CrudCtx(c *gin.Context) (context.Context, context.CancelFunc) {
+	return context.WithTimeout(c.Request.Context(), DefaultCRUDTimeout)
 }

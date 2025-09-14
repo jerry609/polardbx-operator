@@ -17,7 +17,7 @@ func List(c *gin.Context) {
 		return
 	}
 	ns := util.DefaultNamespace(c, "default")
-	items, err := k8s.ListPolarDBXParameters(cli, ns)
+	items, err := k8s.ListPolarDBXParametersWithContext(c.Request.Context(), cli, ns)
 	if err != nil {
 		util.HandleK8sError(c, "failed to list parameters", err)
 		return
@@ -32,7 +32,7 @@ func Get(c *gin.Context) {
 	}
 	ns := util.DefaultNamespace(c, "default")
 	name := c.Param("name")
-	item, err := k8s.GetPolarDBXParameter(cli, ns, name)
+	item, err := k8s.GetPolarDBXParameterWithContext(c.Request.Context(), cli, ns, name)
 	if err != nil {
 		util.HandleK8sError(c, "failed to get parameter", err)
 		return
@@ -51,7 +51,7 @@ func Create(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid parameter", "details": err.Error()})
 		return
 	}
-	created, err := k8s.CreatePolarDBXParameter(cli, ns, &body)
+	created, err := k8s.CreatePolarDBXParameterWithContext(c.Request.Context(), cli, ns, &body)
 	if err != nil {
 		util.HandleK8sError(c, "failed to create parameter", err)
 		return
@@ -70,7 +70,7 @@ func Update(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid parameter", "details": err.Error()})
 		return
 	}
-	updated, err := k8s.UpdatePolarDBXParameter(cli, ns, &body)
+	updated, err := k8s.UpdatePolarDBXParameterWithContext(c.Request.Context(), cli, ns, &body)
 	if err != nil {
 		util.HandleK8sError(c, "failed to update parameter", err)
 		return
@@ -85,7 +85,7 @@ func Delete(c *gin.Context) {
 	}
 	ns := util.DefaultNamespace(c, "default")
 	name := c.Param("name")
-	if err := k8s.DeletePolarDBXParameter(cli, ns, name); err != nil {
+	if err := k8s.DeletePolarDBXParameterWithContext(c.Request.Context(), cli, ns, name); err != nil {
 		util.HandleK8sError(c, "failed to delete parameter", err)
 		return
 	}
@@ -99,7 +99,7 @@ func ListTemplates(c *gin.Context) {
 		return
 	}
 	ns := util.DefaultNamespace(c, "default")
-	items, err := k8s.ListPolarDBXParameterTemplates(cli, ns)
+	items, err := k8s.ListPolarDBXParameterTemplatesWithContext(c.Request.Context(), cli, ns)
 	if err != nil {
 		util.HandleK8sError(c, "failed to list parameter templates", err)
 		return
@@ -114,7 +114,7 @@ func GetTemplate(c *gin.Context) {
 	}
 	ns := util.DefaultNamespace(c, "default")
 	name := c.Param("name")
-	item, err := k8s.GetPolarDBXParameterTemplate(cli, ns, name)
+	item, err := k8s.GetPolarDBXParameterTemplateWithContext(c.Request.Context(), cli, ns, name)
 	if err != nil {
 		util.HandleK8sError(c, "failed to get parameter template", err)
 		return
@@ -133,7 +133,7 @@ func CreateTemplate(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid parameter template", "details": err.Error()})
 		return
 	}
-	created, err := k8s.CreatePolarDBXParameterTemplate(cli, ns, &body)
+	created, err := k8s.CreatePolarDBXParameterTemplateWithContext(c.Request.Context(), cli, ns, &body)
 	if err != nil {
 		util.HandleK8sError(c, "failed to create parameter template", err)
 		return
@@ -152,7 +152,7 @@ func UpdateTemplate(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid parameter template", "details": err.Error()})
 		return
 	}
-	updated, err := k8s.UpdatePolarDBXParameterTemplate(cli, ns, &body)
+	updated, err := k8s.UpdatePolarDBXParameterTemplateWithContext(c.Request.Context(), cli, ns, &body)
 	if err != nil {
 		util.HandleK8sError(c, "failed to update parameter template", err)
 		return
@@ -167,7 +167,7 @@ func DeleteTemplate(c *gin.Context) {
 	}
 	ns := util.DefaultNamespace(c, "default")
 	name := c.Param("name")
-	if err := k8s.DeletePolarDBXParameterTemplate(cli, ns, name); err != nil {
+	if err := k8s.DeletePolarDBXParameterTemplateWithContext(c.Request.Context(), cli, ns, name); err != nil {
 		util.HandleK8sError(c, "failed to delete parameter template", err)
 		return
 	}

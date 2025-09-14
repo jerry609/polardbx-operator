@@ -19,7 +19,7 @@ func List(c *gin.Context) {
 		return
 	}
 	ns := c.DefaultQuery("namespace", "default")
-	items, err := k8s.ListPolarDBXBackupBinlogs(cli, ns)
+	items, err := k8s.ListPolarDBXBackupBinlogsWithContext(c.Request.Context(), cli, ns)
 	if err != nil {
 		util.HandleK8sError(c, "failed to list backup binlogs", err)
 		return
@@ -42,7 +42,7 @@ func Create(c *gin.Context) {
 	if body.Namespace == "" {
 		body.Namespace = ns
 	}
-	created, err := k8s.CreatePolarDBXBackupBinlog(cli, ns, &body)
+	created, err := k8s.CreatePolarDBXBackupBinlogWithContext(c.Request.Context(), cli, ns, &body)
 	if err != nil {
 		util.HandleK8sError(c, "failed to create backup binlog", err)
 		return
@@ -58,7 +58,7 @@ func Get(c *gin.Context) {
 	}
 	ns := c.Param("namespace")
 	name := c.Param("name")
-	item, err := k8s.GetPolarDBXBackupBinlog(cli, ns, name)
+	item, err := k8s.GetPolarDBXBackupBinlogWithContext(c.Request.Context(), cli, ns, name)
 	if err != nil {
 		util.HandleK8sError(c, "failed to get backup binlog", err)
 		return
@@ -81,7 +81,7 @@ func Update(c *gin.Context) {
 	}
 	body.Namespace = ns
 	body.Name = name
-	updated, err := k8s.UpdatePolarDBXBackupBinlog(cli, ns, &body)
+	updated, err := k8s.UpdatePolarDBXBackupBinlogWithContext(c.Request.Context(), cli, ns, &body)
 	if err != nil {
 		util.HandleK8sError(c, "failed to update backup binlog", err)
 		return

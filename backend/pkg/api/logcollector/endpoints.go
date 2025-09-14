@@ -32,7 +32,7 @@ func List(c *gin.Context) {
 		return
 	}
 	namespace := c.DefaultQuery("namespace", "default")
-	collectors, err := k8s.ListPolarDBXLogCollectors(k8sClient, namespace)
+	collectors, err := k8s.ListPolarDBXLogCollectorsWithContext(c.Request.Context(), k8sClient, namespace)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list log collectors", "details": err.Error()})
 		return
@@ -51,7 +51,7 @@ func Create(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse log collector data", "details": err.Error()})
 		return
 	}
-	createdCollector, err := k8s.CreatePolarDBXLogCollector(k8sClient, namespace, &collector)
+	createdCollector, err := k8s.CreatePolarDBXLogCollectorWithContext(c.Request.Context(), k8sClient, namespace, &collector)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create log collector", "details": err.Error()})
 		return
@@ -66,7 +66,7 @@ func Get(c *gin.Context) {
 	}
 	namespace := c.Param("namespace")
 	name := c.Param("name")
-	collector, err := k8s.GetPolarDBXLogCollector(k8sClient, namespace, name)
+	collector, err := k8s.GetPolarDBXLogCollectorWithContext(c.Request.Context(), k8sClient, namespace, name)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "failed to get log collector", "details": err.Error()})
 		return
@@ -86,7 +86,7 @@ func Update(c *gin.Context) {
 		return
 	}
 	collector.Namespace = namespace
-	updatedCollector, err := k8s.UpdatePolarDBXLogCollector(k8sClient, namespace, &collector)
+	updatedCollector, err := k8s.UpdatePolarDBXLogCollectorWithContext(c.Request.Context(), k8sClient, namespace, &collector)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update log collector", "details": err.Error()})
 		return
@@ -101,7 +101,7 @@ func Delete(c *gin.Context) {
 	}
 	namespace := c.Param("namespace")
 	name := c.Param("name")
-	if err := k8s.DeletePolarDBXLogCollector(k8sClient, namespace, name); err != nil {
+	if err := k8s.DeletePolarDBXLogCollectorWithContext(c.Request.Context(), k8sClient, namespace, name); err != nil {
 		util.HandleK8sError(c, "failed to delete log collector", err)
 		return
 	}

@@ -22,7 +22,7 @@ func List(c *gin.Context) {
 	}
 	clusterName := c.Param("name")
 	namespace := c.Param("namespace")
-	backups, err := k8s.ListPolarDBXBackups(cli, namespace, clusterName)
+	backups, err := k8s.ListPolarDBXBackupsWithContext(c.Request.Context(), cli, namespace, clusterName)
 	if err != nil {
 		util.HandleK8sError(c, "failed to list backups", err)
 		return
@@ -44,7 +44,7 @@ func Create(c *gin.Context) {
 	clusterName := c.Param("name")
 	namespace := c.Param("namespace")
 	backup.Spec.Cluster.Name = clusterName
-	created, err := k8s.CreatePolarDBXBackup(cli, namespace, &backup)
+	created, err := k8s.CreatePolarDBXBackupWithContext(c.Request.Context(), cli, namespace, &backup)
 	if err != nil {
 		util.HandleK8sError(c, "failed to create backup", err)
 		return
@@ -70,7 +70,7 @@ func Validate(c *gin.Context) {
 	if ns == "" {
 		ns = "default"
 	}
-	if _, err := k8s.CreatePolarDBXBackupDryRun(cli, ns, &backup); err != nil {
+	if _, err := k8s.CreatePolarDBXBackupDryRunWithContext(c.Request.Context(), cli, ns, &backup); err != nil {
 		util.HandleK8sError(c, "backup validation failed", err)
 		return
 	}
@@ -192,7 +192,7 @@ func Delete(c *gin.Context) {
 	}
 	ns := c.Param("namespace")
 	name := c.Param("name")
-	if err := k8s.DeletePolarDBXBackup(cli, ns, name); err != nil {
+	if err := k8s.DeletePolarDBXBackupWithContext(c.Request.Context(), cli, ns, name); err != nil {
 		util.HandleK8sError(c, "failed to delete backup", err)
 		return
 	}
