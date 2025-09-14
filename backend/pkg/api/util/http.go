@@ -2,6 +2,7 @@ package util
 
 import (
 	"context"
+	"encoding/base64"
 	"net/http"
 	"time"
 
@@ -9,6 +10,10 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"polardbx-ui-backend/pkg/k8s"
+
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 // K8sClientFromContext returns controller-runtime client from gin context.
@@ -91,4 +96,61 @@ func ListCtx(c *gin.Context) (context.Context, context.CancelFunc) {
 
 func CrudCtx(c *gin.Context) (context.Context, context.CancelFunc) {
 	return context.WithTimeout(c.Request.Context(), DefaultCRUDTimeout)
+}
+
+// ExtractKubeconfigB64 extracts kubeconfig (base64) from header/query/body.
+func ExtractKubeconfigB64(c *gin.Context) (string, bool) {
+	kubeconfigB64 := c.GetHeader("X-Kubeconfig-B64")
+	if kubeconfigB64 == "" {
+		if v := c.Query("kubeconfig"); v != "" {
+			kubeconfigB64 = v
+		}
+	}
+	if kubeconfigB64 == "" {
+		if v := c.Query("k"); v != "" {
+			kubeconfigB64 = v
+		}
+	}
+	if kubeconfigB64 == "" && c.Request.Body != nil {
+		var payload struct {
+			Kubeconfig string `json:"kubeconfig"`
+		}
+		_ = c.ShouldBindJSON(&payload)
+		if payload.Kubeconfig != "" {
+			kubeconfigB64 = payload.Kubeconfig
+		}
+	}
+	if kubeconfigB64 == "" {
+		return "", false
+	}
+	return kubeconfigB64, true
+}
+
+// InitClientsFromKubeconfigB64 decodes and initializes clients, injects into context.
+func InitClientsFromKubeconfigB64(c *gin.Context, kubeconfigB64 string) (client.Client, kubernetes.Interface, error) {
+	cfgBytes, err := base64.StdEncoding.DecodeString(kubeconfigB64)
+	if err != nil {
+		return nil, nil, err
+	}
+	ctrlClient, clientset, err := k8s.NewClientsFromKubeconfig(cfgBytes)
+	if err != nil {
+		return nil, nil, err
+	}
+	c.Set("k8sClient", ctrlClient)
+	c.Set("clientset", clientset)
+	if loaded, e := clientcmd.Load(cfgBytes); e == nil && loaded != nil {
+		ctxName := loaded.CurrentContext
+		user := ctxName
+		if ctx, ok := loaded.Contexts[ctxName]; ok && ctx != nil {
+			if ctx.AuthInfo != "" {
+				user = ctx.AuthInfo
+			}
+			if ctx.Namespace != "" {
+				c.Set("k8sDefaultNamespace", ctx.Namespace)
+			}
+		}
+		c.Set("k8sUser", user)
+		c.Set("k8sContext", ctxName)
+	}
+	return ctrlClient, clientset, nil
 }

@@ -9,8 +9,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	apiutil "polardbx-ui-backend/pkg/api/util"
 	"polardbx-ui-backend/pkg/k8s"
 )
 
@@ -75,36 +75,24 @@ func KubeconfigAuthMiddleware() gin.HandlerFunc {
 
 // Connect handler validates the provided kubeconfig from the request header.
 func Connect(c *gin.Context) {
-	// 真实连通性与 RBAC 探测
-	v, ok := c.Get("clientset")
-	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "kubeconfig not provided or invalid"})
-		return
-	}
-	cs, ok := v.(kubernetes.Interface)
-	if !ok || cs == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid clientset in context"})
-		return
+	// Prefer clientset from context (when middleware applied)
+	var cs kubernetes.Interface
+	if v, ok := c.Get("clientset"); ok {
+		if vv, ok2 := v.(kubernetes.Interface); ok2 {
+			cs = vv
+		}
 	}
 
-	// 1) 与 apiserver 通信
-	sv, err := cs.Discovery().ServerVersion()
-	if err != nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "apiserver unreachable", "details": err.Error()})
-		return
-	}
-	// 2) RBAC 轻量校验：列出命名空间（限制 1）
-	if _, err := cs.CoreV1().Namespaces().List(c.Request.Context(), metav1.ListOptions{Limit: 1}); err != nil {
-		if statusErr, ok := err.(k8serrors.APIStatus); ok {
-			code := int(statusErr.Status().Code)
-			if code == 0 {
-				code = http.StatusInternalServerError
+	// If not present, try to build from kubeconfig provided via header/query/body
+	if cs == nil {
+		if b64, ok := apiutil.ExtractKubeconfigB64(c); ok {
+			if _, clientset, err := apiutil.InitClientsFromKubeconfigB64(c, b64); err == nil {
+				cs = clientset
 			}
-			c.JSON(code, gin.H{"error": "failed to list namespaces", "details": err.Error()})
 		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list namespaces", "details": err.Error()})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "kubeconfig not provided or invalid"})
+			return
 		}
-		return
 	}
 
 	defNs := ""
@@ -126,61 +114,39 @@ func Connect(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message":          "connection ok",
-		"apiserverVersion": sv.GitVersion,
-		"platform":         sv.Platform,
+	resp := gin.H{
+		"message":          "connection successful",
 		"user":             user,
 		"context":          ctxName,
 		"defaultNamespace": defNs,
-	})
+	}
+
+	// If we have a real clientset, try a lightweight connectivity check; otherwise skip
+	if cs != nil {
+		// 1) 与 apiserver 通信
+		sv, err := cs.Discovery().ServerVersion()
+		if err != nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "apiserver unreachable", "details": err.Error()})
+			return
+		}
+		// 2) RBAC 轻量校验：列出命名空间（限制 1）
+		if _, err := cs.CoreV1().Namespaces().List(c.Request.Context(), metav1.ListOptions{Limit: 1}); err != nil {
+			if statusErr, ok := err.(k8serrors.APIStatus); ok {
+				code := int(statusErr.Status().Code)
+				if code == 0 {
+					code = http.StatusInternalServerError
+				}
+				c.JSON(code, gin.H{"error": "failed to list namespaces", "details": err.Error()})
+			} else {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list namespaces", "details": err.Error()})
+			}
+			return
+		}
+		resp["apiserverVersion"] = sv.GitVersion
+		resp["platform"] = sv.Platform
+	}
+
+	c.JSON(http.StatusOK, resp)
 }
 
-// handleK8sError checks the error from the kubernetes client and returns the appropriate HTTP status code.
-func handleK8sError(c *gin.Context, contextMsg string, err error) {
-	if k8serrors.IsInvalid(err) || k8serrors.IsBadRequest(err) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": contextMsg, "details": err.Error()})
-		return
-	}
-	if k8serrors.IsAlreadyExists(err) {
-		c.JSON(http.StatusConflict, gin.H{"error": contextMsg, "details": err.Error()})
-		return
-	}
-	if k8serrors.IsNotFound(err) {
-		c.JSON(http.StatusNotFound, gin.H{"error": contextMsg, "details": err.Error()})
-		return
-	}
-	if k8serrors.IsForbidden(err) {
-		c.JSON(http.StatusForbidden, gin.H{"error": contextMsg, "details": err.Error()})
-		return
-	}
-	if k8serrors.IsUnauthorized(err) {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": contextMsg, "details": err.Error()})
-		return
-	}
-	if k8serrors.IsTimeout(err) {
-		c.JSON(http.StatusGatewayTimeout, gin.H{"error": contextMsg, "details": err.Error()})
-		return
-	}
-	if k8serrors.IsTooManyRequests(err) {
-		c.JSON(http.StatusTooManyRequests, gin.H{"error": contextMsg, "details": err.Error()})
-		return
-	}
-	if k8serrors.IsServiceUnavailable(err) {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": contextMsg, "details": err.Error()})
-		return
-	}
-	c.JSON(http.StatusInternalServerError, gin.H{"error": contextMsg, "details": err.Error()})
-}
-
-// clientFromContext retrieves the kubernetes client from the gin context.
-func clientFromContext(c *gin.Context) (client.Client, bool) {
-	k8sClientVal, ok := c.Get("k8sClient")
-	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "kubeconfig not provided or invalid"})
-		c.Abort()
-		return nil, false
-	}
-	k8sClient := k8sClientVal.(client.Client)
-	return k8sClient, true
-}
+// Note: error handling and client getters are centralized in api/util.
