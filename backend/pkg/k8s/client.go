@@ -432,6 +432,47 @@ func DeletePolarDBXBackupSchedule(c client.Client, namespace, name string) error
 	return c.Delete(context.TODO(), schedule)
 }
 
+// Context-aware variants for BackupSchedule
+func ListPolarDBXBackupSchedulesWithContext(ctx context.Context, c client.Client, namespace string) ([]polardbxv1.PolarDBXBackupSchedule, error) {
+	var list polardbxv1.PolarDBXBackupScheduleList
+	if err := c.List(ctx, &list, client.InNamespace(namespace)); err != nil {
+		return nil, err
+	}
+	return list.Items, nil
+}
+
+func CreatePolarDBXBackupScheduleWithContext(ctx context.Context, c client.Client, namespace string, schedule *polardbxv1.PolarDBXBackupSchedule) (*polardbxv1.PolarDBXBackupSchedule, error) {
+	if schedule.Namespace == "" {
+		schedule.Namespace = namespace
+	}
+	if err := c.Create(ctx, schedule); err != nil {
+		return nil, err
+	}
+	return schedule, nil
+}
+
+func GetPolarDBXBackupScheduleWithContext(ctx context.Context, c client.Client, namespace, name string) (*polardbxv1.PolarDBXBackupSchedule, error) {
+	var item polardbxv1.PolarDBXBackupSchedule
+	if err := c.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, &item); err != nil {
+		return nil, err
+	}
+	return &item, nil
+}
+
+func UpdatePolarDBXBackupScheduleWithContext(ctx context.Context, c client.Client, namespace string, schedule *polardbxv1.PolarDBXBackupSchedule) (*polardbxv1.PolarDBXBackupSchedule, error) {
+	if err := c.Update(ctx, schedule); err != nil {
+		return nil, err
+	}
+	return schedule, nil
+}
+
+func DeletePolarDBXBackupScheduleWithContext(ctx context.Context, c client.Client, namespace, name string) error {
+	obj := &polardbxv1.PolarDBXBackupSchedule{}
+	obj.Name = name
+	obj.Namespace = namespace
+	return c.Delete(ctx, obj)
+}
+
 // PolarDBXParameterTemplate Management Functions
 
 func ListPolarDBXParameterTemplates(c client.Client, namespace string) ([]polardbxv1.PolarDBXParameterTemplate, error) {

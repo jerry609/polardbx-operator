@@ -19,7 +19,7 @@ func ListSchedules(c *gin.Context) {
 		return
 	}
 	ns := util.DefaultNamespace(c, "default")
-	items, err := k8s.ListPolarDBXBackupSchedules(cli, ns)
+	items, err := k8s.ListPolarDBXBackupSchedulesWithContext(c.Request.Context(), cli, ns)
 	if err != nil {
 		util.HandleK8sError(c, "failed to list backup schedules", err)
 		return
@@ -39,7 +39,7 @@ func CreateSchedule(c *gin.Context) {
 		return
 	}
 	body.Namespace = ns
-	created, err := k8s.CreatePolarDBXBackupSchedule(cli, ns, &body)
+	created, err := k8s.CreatePolarDBXBackupScheduleWithContext(c.Request.Context(), cli, ns, &body)
 	if err != nil {
 		util.HandleK8sError(c, "failed to create backup schedule", err)
 		return
@@ -54,7 +54,7 @@ func GetSchedule(c *gin.Context) {
 	}
 	ns := c.Param("namespace")
 	name := c.Param("name")
-	item, err := k8s.GetPolarDBXBackupSchedule(cli, ns, name)
+	item, err := k8s.GetPolarDBXBackupScheduleWithContext(c.Request.Context(), cli, ns, name)
 	if err != nil {
 		util.HandleK8sError(c, "failed to get backup schedule", err)
 		return
@@ -74,7 +74,7 @@ func UpdateSchedule(c *gin.Context) {
 		return
 	}
 	body.Namespace = ns
-	updated, err := k8s.UpdatePolarDBXBackupSchedule(cli, ns, &body)
+	updated, err := k8s.UpdatePolarDBXBackupScheduleWithContext(c.Request.Context(), cli, ns, &body)
 	if err != nil {
 		util.HandleK8sError(c, "failed to update backup schedule", err)
 		return
@@ -89,7 +89,7 @@ func DeleteSchedule(c *gin.Context) {
 	}
 	ns := c.Param("namespace")
 	name := c.Param("name")
-	if err := k8s.DeletePolarDBXBackupSchedule(cli, ns, name); err != nil {
+	if err := k8s.DeletePolarDBXBackupScheduleWithContext(c.Request.Context(), cli, ns, name); err != nil {
 		util.HandleK8sError(c, "failed to delete backup schedule", err)
 		return
 	}
