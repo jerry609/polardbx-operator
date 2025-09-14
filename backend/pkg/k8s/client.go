@@ -70,8 +70,8 @@ func NewClientsFromKubeconfig(kubeconfig []byte) (client.Client, kubernetes.Inte
 	return c, clientset, nil
 }
 
-// GetPodLogs retrieves logs from a specified pod.
-func GetPodLogs(clientset kubernetes.Interface, namespace, podName, containerName string, tailLines int64) (string, error) {
+// GetPodLogsWithContext retrieves logs from a specified pod with context.
+func GetPodLogsWithContext(ctx context.Context, clientset kubernetes.Interface, namespace, podName, containerName string, tailLines int64) (string, error) {
 	opts := &corev1.PodLogOptions{
 		Container: containerName,
 	}
@@ -80,7 +80,7 @@ func GetPodLogs(clientset kubernetes.Interface, namespace, podName, containerNam
 	}
 
 	req := clientset.CoreV1().Pods(namespace).GetLogs(podName, opts)
-	podLogs, err := req.Stream(context.TODO())
+	podLogs, err := req.Stream(ctx)
 	if err != nil {
 		return "", fmt.Errorf("error in opening log stream: %w", err)
 	}
@@ -92,6 +92,11 @@ func GetPodLogs(clientset kubernetes.Interface, namespace, podName, containerNam
 	}
 
 	return string(logBytes), nil
+}
+
+// Deprecated: use GetPodLogsWithContext
+func GetPodLogs(clientset kubernetes.Interface, namespace, podName, containerName string, tailLines int64) (string, error) {
+	return GetPodLogsWithContext(context.Background(), clientset, namespace, podName, containerName, tailLines)
 }
 
 func ListPolarDBXClusters(c client.Client, namespace string) ([]polardbxv1.PolarDBXCluster, error) {
@@ -155,6 +160,66 @@ func PatchPolarDBXCluster(c client.Client, namespace, name string, patchData []b
 	}
 
 	return updatedCluster, nil
+}
+
+// Context-aware variants for cluster operations
+func ListPolarDBXClustersWithContext(ctx context.Context, c client.Client, namespace string) ([]polardbxv1.PolarDBXCluster, error) {
+	var clusterList polardbxv1.PolarDBXClusterList
+	if err := c.List(ctx, &clusterList, client.InNamespace(namespace)); err != nil {
+		return nil, err
+	}
+	return clusterList.Items, nil
+}
+
+func CreatePolarDBXClusterWithContext(ctx context.Context, c client.Client, namespace string, cluster *polardbxv1.PolarDBXCluster) (*polardbxv1.PolarDBXCluster, error) {
+	if cluster.Namespace == "" {
+		cluster.Namespace = namespace
+	}
+	if err := c.Create(ctx, cluster); err != nil {
+		return nil, err
+	}
+	return cluster, nil
+}
+
+func GetPolarDBXClusterWithContext(ctx context.Context, c client.Client, namespace, name string) (*polardbxv1.PolarDBXCluster, error) {
+	var cluster polardbxv1.PolarDBXCluster
+	if err := c.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, &cluster); err != nil {
+		return nil, err
+	}
+	return &cluster, nil
+}
+
+func DeletePolarDBXClusterWithContext(ctx context.Context, c client.Client, namespace, name string) error {
+	var cluster polardbxv1.PolarDBXCluster
+	cluster.Name = name
+	cluster.Namespace = namespace
+	return c.Delete(ctx, &cluster)
+}
+
+func UpdatePolarDBXClusterWithContext(ctx context.Context, c client.Client, namespace string, cluster *polardbxv1.PolarDBXCluster) (*polardbxv1.PolarDBXCluster, error) {
+	if cluster.Namespace == "" {
+		cluster.Namespace = namespace
+	}
+	if err := c.Update(ctx, cluster); err != nil {
+		return nil, err
+	}
+	return cluster, nil
+}
+
+func PatchPolarDBXClusterWithContext(ctx context.Context, c client.Client, namespace, name string, patchData []byte) (*polardbxv1.PolarDBXCluster, error) {
+	cluster := &polardbxv1.PolarDBXCluster{}
+	if err := c.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, cluster); err != nil {
+		return nil, err
+	}
+	patch := client.RawPatch(types.MergePatchType, patchData)
+	if err := c.Patch(ctx, cluster, patch); err != nil {
+		return nil, err
+	}
+	updated := &polardbxv1.PolarDBXCluster{}
+	if err := c.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, updated); err != nil {
+		return nil, err
+	}
+	return updated, nil
 }
 
 func ListPolarDBXBackups(c client.Client, namespace, clusterName string) ([]polardbxv1.PolarDBXBackup, error) {

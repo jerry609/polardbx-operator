@@ -30,7 +30,7 @@ func List(c *gin.Context) {
 	if !ok {
 		return
 	}
-	clusters, err := k8s.ListPolarDBXClusters(cli, "")
+	clusters, err := k8s.ListPolarDBXClustersWithContext(c.Request.Context(), cli, "")
 	if err != nil {
 		util.HandleK8sError(c, "failed to list clusters", err)
 		return
@@ -52,7 +52,7 @@ func Create(c *gin.Context) {
 	if ns == "" {
 		ns = "default"
 	}
-	created, err := k8s.CreatePolarDBXCluster(cli, ns, &cluster)
+	created, err := k8s.CreatePolarDBXClusterWithContext(c.Request.Context(), cli, ns, &cluster)
 	if err != nil {
 		util.HandleK8sError(c, "failed to create cluster", err)
 		return
@@ -147,7 +147,7 @@ func CreateFromConfig(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to convert cluster configuration", "details": err.Error()})
 		return
 	}
-	created, err := k8s.CreatePolarDBXCluster(cli, req.Namespace, cluster)
+	created, err := k8s.CreatePolarDBXClusterWithContext(c.Request.Context(), cli, req.Namespace, cluster)
 	if err != nil {
 		util.HandleK8sError(c, "failed to create cluster", err)
 		return
@@ -244,7 +244,7 @@ func Get(c *gin.Context) {
 	}
 	ns := c.Param("namespace")
 	name := c.Param("name")
-	cluster, err := k8s.GetPolarDBXCluster(cli, ns, name)
+	cluster, err := k8s.GetPolarDBXClusterWithContext(c.Request.Context(), cli, ns, name)
 	if err != nil {
 		util.HandleK8sError(c, "cluster not found", err)
 		return
@@ -267,7 +267,7 @@ func Delete(c *gin.Context) {
 			return
 		}
 	}
-	if err := k8s.DeletePolarDBXCluster(cli, ns, name); err != nil {
+	if err := k8s.DeletePolarDBXClusterWithContext(c.Request.Context(), cli, ns, name); err != nil {
 		util.HandleK8sError(c, "failed to delete cluster", err)
 		return
 	}
@@ -286,13 +286,13 @@ func Update(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse cluster data", "details": err.Error()})
 		return
 	}
-	existing, err := k8s.GetPolarDBXCluster(cli, ns, name)
+	existing, err := k8s.GetPolarDBXClusterWithContext(c.Request.Context(), cli, ns, name)
 	if err != nil {
 		util.HandleK8sError(c, "cluster not found", err)
 		return
 	}
 	body.SetResourceVersion(existing.GetResourceVersion())
-	updated, err := k8s.UpdatePolarDBXCluster(cli, ns, &body)
+	updated, err := k8s.UpdatePolarDBXClusterWithContext(c.Request.Context(), cli, ns, &body)
 	if err != nil {
 		util.HandleK8sError(c, "failed to update cluster", err)
 		return
@@ -340,7 +340,7 @@ func UpdateLogConfig(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create patch data"})
 		return
 	}
-	cluster, err := k8s.PatchPolarDBXCluster(cli, ns, clusterName, patchBytes)
+	cluster, err := k8s.PatchPolarDBXClusterWithContext(c.Request.Context(), cli, ns, clusterName, patchBytes)
 	if err != nil {
 		util.HandleK8sError(c, "failed to update cluster log config", err)
 		return
@@ -399,7 +399,7 @@ func Scale(c *gin.Context) {
 		return
 	}
 	b, _ := json.Marshal(patch)
-	cluster, err := k8s.PatchPolarDBXCluster(cli, ns, name, b)
+	cluster, err := k8s.PatchPolarDBXClusterWithContext(c.Request.Context(), cli, ns, name, b)
 	if err != nil {
 		util.HandleK8sError(c, "failed to scale cluster", err)
 		return
@@ -445,7 +445,7 @@ func Upgrade(c *gin.Context) {
 		patch["spec"].(map[string]any)["upgradeStrategy"] = req.Strategy
 	}
 	b, _ := json.Marshal(patch)
-	cluster, err := k8s.PatchPolarDBXCluster(cli, ns, name, b)
+	cluster, err := k8s.PatchPolarDBXClusterWithContext(c.Request.Context(), cli, ns, name, b)
 	if err != nil {
 		util.HandleK8sError(c, "failed to upgrade cluster", err)
 		return

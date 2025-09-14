@@ -39,7 +39,7 @@ func GetLogs(c *gin.Context) {
 	if v, err := strconv.ParseInt(tailStr, 10, 64); err == nil && v > 0 {
 		tail = v
 	}
-	result, err := k8s.GetPodLogs(cs, ns, pod, container, tail)
+	result, err := k8s.GetPodLogsWithContext(c.Request.Context(), cs, ns, pod, container, tail)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get logs", "details": err.Error()})
 		return
