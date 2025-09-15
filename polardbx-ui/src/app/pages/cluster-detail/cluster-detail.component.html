@@ -226,6 +226,17 @@
       </div>
     </nz-tab>
 
+    <!-- 变更向导选项卡 -->
+    <nz-tab nzTitle="变更向导">
+      <ng-template #nzTabHeading>
+        <i nz-icon nzType="arrow-right"></i>
+        变更向导
+      </ng-template>
+      <div class="tab-content">
+        <app-cluster-change-wizard></app-cluster-change-wizard>
+      </div>
+    </nz-tab>
+
     <!-- 节点选项卡 -->
     <nz-tab nzTitle="节点">
       <ng-template #nzTabHeading>
