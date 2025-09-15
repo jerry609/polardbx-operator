@@ -148,6 +148,12 @@
             版本升级
           </button>
         </span>
+        <span *nzSpaceItem>
+          <button nz-button nzType="primary" (click)="router.navigate(['/clusters', clusterNamespace || 'default', clusterName || '', 'change'])">
+            <i nz-icon nzType="arrow-right"></i>
+            变更向导
+          </button>
+        </span>
       </nz-space>
     </div>
   </nz-card>

@@ -1,0 +1,442 @@
+import { Component, OnInit, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { ActivatedRoute, Router } from '@angular/router';
+import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { NzCardModule } from 'ng-zorro-antd/card';
+import { NzStepsModule } from 'ng-zorro-antd/steps';
+import { NzButtonModule } from 'ng-zorro-antd/button';
+import { NzIconModule } from 'ng-zorro-antd/icon';
+import { NzFormModule } from 'ng-zorro-antd/form';
+import { NzSelectModule } from 'ng-zorro-antd/select';
+import { NzInputNumberModule } from 'ng-zorro-antd/input-number';
+import { NzAlertModule } from 'ng-zorro-antd/alert';
+import { NzResultModule } from 'ng-zorro-antd/result';
+import { NzTagModule } from 'ng-zorro-antd/tag';
+import { NzGridModule } from 'ng-zorro-antd/grid';
+import { NzSpinModule } from 'ng-zorro-antd/spin';
+import { NzMessageService } from 'ng-zorro-antd/message';
+import { PrechangeCheckComponent } from '../prechange-check/prechange-check.component';
+import { ApiService } from '../../services/api.service';
+
+@Component({
+  selector: 'app-cluster-change-wizard',
+  standalone: true,
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    NzCardModule,
+    NzStepsModule,
+    NzButtonModule,
+    NzIconModule,
+    NzFormModule,
+    NzSelectModule,
+    NzInputNumberModule,
+    NzAlertModule,
+    NzResultModule,
+    NzTagModule,
+    NzGridModule,
+    NzSpinModule,
+    PrechangeCheckComponent
+  ],
+  template: `
+    <div class="wizard">
+      <nz-card [nzTitle]="'集群变更向导'">
+        <nz-steps [nzCurrent]="currentStep" nzDirection="horizontal">
+          <nz-step nzTitle="预检" nzDescription="安全检查"></nz-step>
+          <nz-step nzTitle="选择操作" nzDescription="升级/扩缩容/配置"></nz-step>
+          <nz-step nzTitle="参数" nzDescription="填写变更参数"></nz-step>
+          <nz-step nzTitle="影响评估" nzDescription="阻断项校验"></nz-step>
+          <nz-step nzTitle="执行" nzDescription="执行与监控"></nz-step>
+          <nz-step nzTitle="回验" nzDescription="健康与建议"></nz-step>
+        </nz-steps>
+
+        <div class="step-body" *ngIf="currentStep === 0">
+          <app-prechange-check
+            [embedded]="true"
+            [initialNamespace]="namespace"
+            [initialCluster]="name"
+            [autoRun]="true"
+            (completed)="onPrecheckCompleted($event)">
+          </app-prechange-check>
+
+          <div class="step-actions">
+            <button nz-button nzType="default" (click)="goBackToCluster()">
+              <i nz-icon nzType="left"></i>
+              返回集群
+            </button>
+            <button nz-button nzType="primary" [disabled]="!precheckPass && !ackWarnings" (click)="next()">
+              下一步
+              <i nz-icon nzType="right"></i>
+            </button>
+            <label class="ack" *ngIf="!precheckPass && hasWarn">
+              <input type="checkbox" [(ngModel)]="ackWarnings" /> 我已知晓警告并继续
+            </label>
+          </div>
+        </div>
+
+        <div class="step-body" *ngIf="currentStep === 1">
+          <nz-grid>
+            <div nz-row nzGutter="16">
+              <div nz-col [nzSpan]="8">
+                <nz-card class="op-card" [nzBordered]="true" (click)="selectOp('scale')" [class.active]="opType==='scale'">
+                  <h3><i nz-icon nzType="desktop"></i> 扩缩容</h3>
+                  <p>调整 CN/DN 副本数，滚动方式，平滑扩缩</p>
+                  <nz-tag nzColor="blue">低风险</nz-tag>
+                </nz-card>
+              </div>
+              <div nz-col [nzSpan]="8">
+                <nz-card class="op-card" [nzBordered]="true" (click)="selectOp('upgrade')" [class.active]="opType==='upgrade'">
+                  <h3><i nz-icon nzType="rocket"></i> 版本升级</h3>
+                  <p>选择目标版本并滚动升级</p>
+                  <nz-tag nzColor="orange">中风险</nz-tag>
+                </nz-card>
+              </div>
+              <div nz-col [nzSpan]="8">
+                <nz-card class="op-card" [nzBordered]="true" (click)="selectOp('config')" [class.active]="opType==='config'">
+                  <h3><i nz-icon nzType="setting"></i> 配置变更</h3>
+                  <p>修改关键参数，按需重启</p>
+                  <nz-tag nzColor="processing">可回滚</nz-tag>
+                </nz-card>
+              </div>
+            </div>
+          </nz-grid>
+          <div class="step-actions">
+            <button nz-button nzType="default" (click)="prev()">
+              <i nz-icon nzType="left"></i>
+              上一步
+            </button>
+            <button nz-button nzType="primary" [disabled]="!opType" (click)="next()">
+              下一步
+              <i nz-icon nzType="right"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="step-body" *ngIf="currentStep === 2">
+          <!-- 参数表单：按操作类型切换 -->
+          <form nz-form [formGroup]="scaleForm" nzLayout="vertical" *ngIf="opType==='scale'">
+            <div nz-row [nzGutter]="16">
+              <div nz-col [nzSpan]="8">
+                <nz-form-item>
+                  <nz-form-label nzRequired>CN 副本</nz-form-label>
+                  <nz-form-control>
+                    <nz-input-number formControlName="cnReplicas" [nzMin]="1" [nzMax]="32" style="width: 100%"></nz-input-number>
+                  </nz-form-control>
+                </nz-form-item>
+              </div>
+              <div nz-col [nzSpan]="8">
+                <nz-form-item>
+                  <nz-form-label nzRequired>DN 副本</nz-form-label>
+                  <nz-form-control>
+                    <nz-input-number formControlName="dnReplicas" [nzMin]="1" [nzMax]="64" style="width: 100%"></nz-input-number>
+                  </nz-form-control>
+                </nz-form-item>
+              </div>
+            </div>
+          </form>
+
+          <form nz-form [formGroup]="upgradeForm" nzLayout="vertical" *ngIf="opType==='upgrade'">
+            <nz-form-item>
+              <nz-form-label nzRequired>目标版本</nz-form-label>
+              <nz-form-control>
+                <nz-select formControlName="targetVersion" nzPlaceHolder="请选择目标版本">
+                  <nz-option nzValue="5.4.19" nzLabel="5.4.19 (推荐)"></nz-option>
+                  <nz-option nzValue="5.4.18" nzLabel="5.4.18"></nz-option>
+                </nz-select>
+              </nz-form-control>
+            </nz-form-item>
+          </form>
+
+          <div class="step-actions">
+            <button nz-button nzType="default" (click)="prev()">
+              <i nz-icon nzType="left"></i>
+              上一步
+            </button>
+            <button nz-button nzType="primary" [disabled]="!canProceedParams()" (click)="goToImpact()">
+              下一步
+              <i nz-icon nzType="right"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="step-body" *ngIf="currentStep === 3">
+          <nz-spin [nzSpinning]="impactLoading" nzTip="正在评估影响...">
+            <nz-alert [nzType]="impactPass ? 'success' : (impactHasError ? 'error' : 'warning')" nzShowIcon
+              [nzMessage]="impactPass ? '评估通过' : (impactHasError ? '存在阻断项' : '存在警告项')"
+              [nzDescription]="impactDescription">
+            </nz-alert>
+
+            <div class="impact-list" *ngIf="impactPlan.length">
+              <div class="impact-item" *ngFor="let it of impactPlan; trackBy: trackByIdx">
+                <nz-tag [nzColor]="it.state==='ok' ? 'green' : (it.state==='warn' ? 'orange' : 'red')">{{ it.state }}</nz-tag>
+                <span class="impact-id">{{ it.id }}</span>
+                <span class="impact-msg">{{ it.message }}</span>
+                <span class="actions" *ngIf="it.state!=='ok'">
+                  <button nz-button nzType="link" (click)="navigateSuggested(it.id)">前往处理</button>
+                </span>
+              </div>
+            </div>
+          </nz-spin>
+          <div class="step-actions">
+            <button nz-button nzType="default" (click)="prev()">
+              <i nz-icon nzType="left"></i>
+              上一步
+            </button>
+            <button nz-button nzType="primary" [disabled]="impactHasError" (click)="next()">
+              下一步
+              <i nz-icon nzType="right"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="step-body" *ngIf="currentStep === 4">
+          <nz-spin [nzSpinning]="executing" nzTip="正在执行变更...">
+            <div class="execute" *ngIf="!executed">
+              <button nz-button nzType="primary" (click)="startExecute()" [disabled]="!opType">
+                <i nz-icon nzType="play-circle"></i>
+                开始执行
+              </button>
+            </div>
+            <div class="logs" *ngIf="logs.length">
+              <pre>{{ logs.join('\n') }}</pre>
+            </div>
+          </nz-spin>
+          <div class="step-actions">
+            <button nz-button nzType="default" (click)="prev()" [disabled]="executing">
+              <i nz-icon nzType="left"></i>
+              上一步
+            </button>
+            <button nz-button nzType="primary" (click)="next()" [disabled]="!executed">
+              下一步
+              <i nz-icon nzType="right"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="step-body" *ngIf="currentStep === 5">
+          <nz-result [nzStatus]="postPass ? 'success' : 'warning'" [nzTitle]="postPass ? '回验通过' : '回验存在警告'" [nzSubTitle]="postDescription"></nz-result>
+          <div class="step-actions">
+            <button nz-button nzType="default" (click)="goBackToCluster()">
+              返回集群
+            </button>
+            <button nz-button nzType="primary" (click)="navigateAfter()">
+              查看建议页
+            </button>
+          </div>
+        </div>
+      </nz-card>
+    </div>
+  `,
+  styles: [`
+    .wizard { padding: 16px; }
+    .step-body { margin-top: 16px; }
+    .step-actions { margin-top: 16px; display: flex; gap: 8px; align-items: center; }
+    .op-card { cursor: pointer; transition: all .2s; }
+    .op-card.active { border-color: #1890ff; box-shadow: 0 0 0 2px rgba(24,144,255,.1); }
+    .impact-list { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+    .impact-item { padding: 8px; border: 1px solid #f0f0f0; border-radius: 6px; display: flex; gap: 8px; align-items: center; }
+    .impact-id { font-weight: 500; }
+    .impact-msg { color: rgba(0,0,0,.65); }
+    .logs pre { background: #0b1021; color: #e6e6e6; padding: 12px; border-radius: 6px; min-height: 140px; }
+    .ack { margin-left: auto; color: #faad14; }
+  `]
+})
+export class ClusterChangeWizardComponent implements OnInit {
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private fb = inject(FormBuilder);
+  private api = inject(ApiService);
+  private msg = inject(NzMessageService);
+
+  namespace = 'default';
+  name = '';
+
+  currentStep = 0;
+  precheckPass = false;
+  hasWarn = false;
+  ackWarnings = false;
+
+  opType: 'scale'|'upgrade'|'config' | null = null;
+  scaleForm: FormGroup;
+  upgradeForm: FormGroup;
+
+  // impact/dry-run
+  impactLoading = false;
+  impactPass = false;
+  impactHasError = false;
+  impactDescription = '';
+  impactPlan: Array<{ id: string; state: 'ok'|'warn'|'error'; message: string }> = [];
+  impactToken = '';
+  impactSig = '';
+
+  // execute
+  executing = false;
+  executed = false;
+  logs: string[] = [];
+
+  // post verify
+  postPass = false;
+  postDescription = '';
+
+  constructor() {
+    this.scaleForm = this.fb.group({
+      cnReplicas: [2, [Validators.required, Validators.min(1)]],
+      dnReplicas: [2, [Validators.required, Validators.min(1)]]
+    });
+    this.upgradeForm = this.fb.group({
+      targetVersion: ['5.4.19', [Validators.required]]
+    });
+  }
+
+  ngOnInit(): void {
+    this.route.params.subscribe(p => {
+      this.namespace = p['namespace'] || this.namespace;
+      this.name = p['name'] || this.name;
+    });
+  }
+
+  onPrecheckCompleted(evt: { pass: boolean; hasWarn: boolean; hasError: boolean }): void {
+    this.precheckPass = !!evt?.pass;
+    this.hasWarn = !!evt?.hasWarn;
+    this.ackWarnings = false;
+  }
+
+  next(): void { this.currentStep = Math.min(5, this.currentStep + 1); }
+  prev(): void { this.currentStep = Math.max(0, this.currentStep - 1); }
+
+  selectOp(op: 'scale'|'upgrade'|'config'): void { this.opType = op; }
+
+  canProceedParams(): boolean {
+    if (this.opType === 'scale') return this.scaleForm.valid;
+    if (this.opType === 'upgrade') return this.upgradeForm.valid;
+    if (this.opType === 'config') return true; // 留待后续实现
+    return false;
+  }
+
+  goToImpact(): void {
+    this.currentStep = 3;
+    this.evaluateImpact();
+  }
+
+  evaluateImpact(): void {
+    this.impactLoading = true;
+    this.impactPlan = [];
+    const op: any = this.opType || 'config';
+    const spec = this.opType === 'scale' ? this.scaleForm.value
+      : this.opType === 'upgrade' ? this.upgradeForm.value
+      : {};
+    this.api.runPrecheck(this.namespace, this.name, op, spec).subscribe({
+      next: (res: any) => {
+        const plan = Array.isArray(res?.plan) ? res.plan : [];
+        this.impactPlan = plan;
+        this.impactToken = res?.token || '';
+        this.impactSig = res?.tokenSig || '';
+        const hasError = plan.some((p: any) => p.state === 'error');
+        const hasWarn = plan.some((p: any) => p.state === 'warn');
+        this.impactHasError = hasError;
+        this.impactPass = !hasError;
+        this.impactDescription = hasError ? '存在阻断项，请先处理后再继续'
+          : hasWarn ? '存在警告项，可在知晓风险后继续'
+          : '未发现阻断项，可继续执行';
+        this.impactLoading = false;
+      },
+      error: () => {
+        this.impactPlan = [];
+        this.impactHasError = true;
+        this.impactPass = false;
+        this.impactDescription = '影响评估失败，请重试';
+        this.impactLoading = false;
+      }
+    });
+  }
+
+  startExecute(): void {
+    if (!this.opType) return;
+    this.executing = true;
+    this.logs = [];
+    const log = (s: string) => { this.logs.push(`[${new Date().toLocaleTimeString()}] ${s}`); };
+    if (this.opType === 'scale') {
+      log('开始扩缩容任务');
+      this.api.scaleCluster(this.namespace, this.name, this.scaleForm.value, this.impactToken, this.impactSig).subscribe({
+        next: () => {
+          log('扩缩容请求已提交');
+          this.executing = false;
+          this.executed = true;
+          this.msg.success('扩缩容任务已启动');
+          this.postVerify();
+        },
+        error: (e) => {
+          log(`扩缩容失败: ${e?.message || '未知错误'}`);
+          this.executing = false;
+        }
+      });
+    } else if (this.opType === 'upgrade') {
+      log('开始升级任务');
+      this.api.upgradeCluster(this.namespace, this.name, this.upgradeForm.value, this.impactToken, this.impactSig).subscribe({
+        next: () => {
+          log('升级请求已提交');
+          this.executing = false;
+          this.executed = true;
+          this.msg.success('升级任务已启动');
+          this.postVerify();
+        },
+        error: (e) => {
+          log(`升级失败: ${e?.message || '未知错误'}`);
+          this.executing = false;
+        }
+      });
+    } else {
+      // 配置变更留待后续
+      log('配置变更暂未实现');
+      this.executing = false;
+    }
+  }
+
+  postVerify(): void {
+    // 简化回验：再次调用 config 类型预检
+    this.api.runPrecheck(this.namespace, this.name, 'config').subscribe({
+      next: (res: any) => {
+        const plan = Array.isArray(res?.plan) ? res.plan : [];
+        const hasError = plan.some((p: any) => p.state === 'error');
+        const hasWarn = plan.some((p: any) => p.state === 'warn');
+        this.postPass = !hasError;
+        this.postDescription = hasError ? '仍有阻断项，请处理后再试'
+          : hasWarn ? '存在警告项，建议尽快处理'
+          : '集群状态良好';
+      },
+      error: () => {
+        this.postPass = false;
+        this.postDescription = '回验失败，请稍后重试';
+      }
+    });
+  }
+
+  navigateSuggested(id: string): void {
+    const lower = (id || '').toLowerCase();
+    if (lower.includes('backup')) {
+      this.router.navigateByUrl('/backup/xstore-backups');
+      return;
+    }
+    if (lower.includes('hpfs') || lower.includes('sink') || lower.includes('storage')) {
+      this.router.navigateByUrl('/backup/xstore-backups');
+      return;
+    }
+    if (lower.includes('pod') || lower.includes('workload') || lower.includes('kube')) {
+      this.router.navigate(['/operations','nodes', this.namespace, this.name]);
+      return;
+    }
+    this.msg.info('请前往相关页面处理');
+  }
+
+  navigateAfter(): void {
+    this.router.navigate(['/clusters', this.namespace, this.name]);
+  }
+
+  goBackToCluster(): void {
+    this.router.navigate(['/clusters', this.namespace, this.name]);
+  }
+
+  trackByIdx(i: number): number { return i; }
+}
+
+

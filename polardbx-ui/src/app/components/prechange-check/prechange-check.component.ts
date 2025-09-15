@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, Input, Output, EventEmitter, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NzCardModule } from 'ng-zorro-antd/card';
@@ -23,7 +23,7 @@ import { NzStatisticModule } from 'ng-zorro-antd/statistic';
   imports: [CommonModule, FormsModule, NzCardModule, NzFormModule, NzInputModule, NzButtonModule, NzIconModule, NzTagModule, NzSpinModule, NzDividerModule, NzGridModule, NzEmptyModule, NzResultModule, NzStatisticModule],
   template: `
     <div class="prechange-check">
-      <div class="page-header">
+      <div class="page-header" *ngIf="!embedded">
         <div class="header-content">
           <div class="header-info">
             <h1 class="page-title">
@@ -36,7 +36,7 @@ import { NzStatisticModule } from 'ng-zorro-antd/statistic';
       </div>
 
       <div class="page-content">
-        <nz-card class="control-panel" nzTitle="检查配置">
+        <nz-card class="control-panel" nzTitle="检查配置" *ngIf="!embedded">
           <form nz-form nzLayout="vertical">
             <div nz-row nzGutter="16" class="input-row">
               <div nz-col [nzSpan]="8">
@@ -64,7 +64,7 @@ import { NzStatisticModule } from 'ng-zorro-antd/statistic';
                         <i nz-icon nzType="play-circle"></i>
                         执行检查
                       </button>
-                      <button nz-button nzType="default" nzSize="default" [disabled]="!cluster || !namespace" (click)="createPrecheckTask()">
+                      <button nz-button nzType="default" nzSize="default" [disabled]="!cluster || !namespace" (click)="createPrecheckTask()" *ngIf="!embedded">
                         <i nz-icon nzType="profile"></i>
                         创建任务
                       </button>
@@ -307,6 +307,12 @@ import { NzStatisticModule } from 'ng-zorro-antd/statistic';
   `]
 })
 export class PrechangeCheckComponent implements OnInit {
+  @Input() embedded = false;
+  @Input() initialNamespace?: string;
+  @Input() initialCluster?: string;
+  @Input() autoRun = false;
+  @Output() completed = new EventEmitter<{ pass: boolean; hasWarn: boolean; hasError: boolean; checklist: Array<{ name: string; status: string; message: string }> }>();
+
   namespace = 'default';
   cluster = '';
   loading = false;
@@ -319,7 +325,13 @@ export class PrechangeCheckComponent implements OnInit {
   private msg = inject(NzMessageService);
   private router = inject(Router);
 
-  ngOnInit(): void {}
+  ngOnInit(): void {
+    if (this.initialNamespace) this.namespace = this.initialNamespace;
+    if (this.initialCluster) this.cluster = this.initialCluster;
+    if (this.autoRun && this.cluster) {
+      Promise.resolve().then(() => this.runChecks());
+    }
+  }
 
   statusColor(s: string): string {
     if (s === 'ok') return 'success';
@@ -371,8 +383,16 @@ export class PrechangeCheckComponent implements OnInit {
         const plan = Array.isArray(res?.plan) ? res.plan : [];
         this.checklist = plan.map((p: any) => ({ name: p.id || 'check', status: p.state || 'warn', message: p.message || '' }));
         this.loading = false;
+        const hasWarn = this.checklist.some(i => i.status === 'warn');
+        const hasError = this.checklist.some(i => i.status !== 'ok' && i.status !== 'warn');
+        const pass = !hasError;
+        this.completed.emit({ pass, hasWarn, hasError, checklist: this.checklist.slice() });
       },
-      error: () => { this.checklist = []; this.loading = false; }
+      error: () => { 
+        this.checklist = []; 
+        this.loading = false; 
+        this.completed.emit({ pass: false, hasWarn: false, hasError: true, checklist: [] });
+      }
     });
   }
 

@@ -21,6 +21,10 @@ export const routes: Routes = [
         path: 'clusters/:namespace/:name', 
         loadComponent: () => import('./pages/cluster-detail/cluster-detail.component').then(m => m.ClusterDetailComponent)
       },
+      {
+        path: 'clusters/:namespace/:name/change',
+        loadComponent: () => import('./components/cluster-change-wizard/cluster-change-wizard.component').then(m => m.ClusterChangeWizardComponent)
+      },
       
       // Backup Management Module
       {
