@@ -1,5 +1,6 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { NzCardModule } from 'ng-zorro-antd/card';
@@ -23,6 +24,7 @@ import { ApiService } from '../../services/api.service';
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     ReactiveFormsModule,
     NzCardModule,
     NzStepsModule,
@@ -75,31 +77,29 @@ import { ApiService } from '../../services/api.service';
         </div>
 
         <div class="step-body" *ngIf="currentStep === 1">
-          <nz-grid>
-            <div nz-row nzGutter="16">
-              <div nz-col [nzSpan]="8">
-                <nz-card class="op-card" [nzBordered]="true" (click)="selectOp('scale')" [class.active]="opType==='scale'">
-                  <h3><i nz-icon nzType="desktop"></i> 扩缩容</h3>
-                  <p>调整 CN/DN 副本数，滚动方式，平滑扩缩</p>
-                  <nz-tag nzColor="blue">低风险</nz-tag>
-                </nz-card>
-              </div>
-              <div nz-col [nzSpan]="8">
-                <nz-card class="op-card" [nzBordered]="true" (click)="selectOp('upgrade')" [class.active]="opType==='upgrade'">
-                  <h3><i nz-icon nzType="rocket"></i> 版本升级</h3>
-                  <p>选择目标版本并滚动升级</p>
-                  <nz-tag nzColor="orange">中风险</nz-tag>
-                </nz-card>
-              </div>
-              <div nz-col [nzSpan]="8">
-                <nz-card class="op-card" [nzBordered]="true" (click)="selectOp('config')" [class.active]="opType==='config'">
-                  <h3><i nz-icon nzType="setting"></i> 配置变更</h3>
-                  <p>修改关键参数，按需重启</p>
-                  <nz-tag nzColor="processing">可回滚</nz-tag>
-                </nz-card>
-              </div>
+          <div nz-row nzGutter="16">
+            <div nz-col [nzSpan]="8">
+              <nz-card class="op-card" [nzBordered]="true" (click)="selectOp('scale')" [class.active]="opType==='scale'">
+                <h3><i nz-icon nzType="desktop"></i> 扩缩容</h3>
+                <p>调整 CN/DN 副本数，滚动方式，平滑扩缩</p>
+                <nz-tag nzColor="blue">低风险</nz-tag>
+              </nz-card>
             </div>
-          </nz-grid>
+            <div nz-col [nzSpan]="8">
+              <nz-card class="op-card" [nzBordered]="true" (click)="selectOp('upgrade')" [class.active]="opType==='upgrade'">
+                <h3><i nz-icon nzType="rocket"></i> 版本升级</h3>
+                <p>选择目标版本并滚动升级</p>
+                <nz-tag nzColor="orange">中风险</nz-tag>
+              </nz-card>
+            </div>
+            <div nz-col [nzSpan]="8">
+              <nz-card class="op-card" [nzBordered]="true" (click)="selectOp('config')" [class.active]="opType==='config'">
+                <h3><i nz-icon nzType="setting"></i> 配置变更</h3>
+                <p>修改关键参数，按需重启</p>
+                <nz-tag nzColor="processing">可回滚</nz-tag>
+              </nz-card>
+            </div>
+          </div>
           <div class="step-actions">
             <button nz-button nzType="default" (click)="prev()">
               <i nz-icon nzType="left"></i>
@@ -145,6 +145,53 @@ import { ApiService } from '../../services/api.service';
                 </nz-select>
               </nz-form-control>
             </nz-form-item>
+          </form>
+
+          <form nz-form [formGroup]="configForm" nzLayout="vertical" *ngIf="opType==='config'">
+            <div nz-row nzGutter="16">
+              <div nz-col [nzSpan]="8">
+                <nz-form-item>
+                  <nz-form-label>CN 日志级别</nz-form-label>
+                  <nz-form-control>
+                    <nz-select formControlName="cnLogLevel">
+                      <nz-option nzValue="INFO" nzLabel="INFO"></nz-option>
+                      <nz-option nzValue="WARN" nzLabel="WARN"></nz-option>
+                      <nz-option nzValue="ERROR" nzLabel="ERROR"></nz-option>
+                      <nz-option nzValue="DEBUG" nzLabel="DEBUG"></nz-option>
+                    </nz-select>
+                  </nz-form-control>
+                </nz-form-item>
+              </div>
+              <div nz-col [nzSpan]="8">
+                <nz-form-item>
+                  <nz-form-label>DN 日志级别</nz-form-label>
+                  <nz-form-control>
+                    <nz-select formControlName="dnLogLevel">
+                      <nz-option nzValue="INFO" nzLabel="INFO"></nz-option>
+                      <nz-option nzValue="WARN" nzLabel="WARN"></nz-option>
+                      <nz-option nzValue="ERROR" nzLabel="ERROR"></nz-option>
+                      <nz-option nzValue="DEBUG" nzLabel="DEBUG"></nz-option>
+                    </nz-select>
+                  </nz-form-control>
+                </nz-form-item>
+              </div>
+              <div nz-col [nzSpan]="8">
+                <nz-form-item>
+                  <nz-form-label>慢 SQL 阈值 (ms)</nz-form-label>
+                  <nz-form-control>
+                    <nz-input-number formControlName="slowLogThresholdMs" [nzMin]="100" [nzMax]="600000" [nzStep]="100" style="width: 100%"></nz-input-number>
+                  </nz-form-control>
+                </nz-form-item>
+              </div>
+            </div>
+            <div nz-row>
+              <div nz-col [nzSpan]="8">
+                <label style="display:flex;align-items:center;gap:8px;">
+                  <input type="checkbox" [(ngModel)]="_enableSqlAuditModel" (ngModelChange)="configForm.patchValue({ enableSqlAudit: _enableSqlAuditModel })" />
+                  启用 SQL 审计
+                </label>
+              </div>
+            </div>
           </form>
 
           <div class="step-actions">
@@ -259,6 +306,8 @@ export class ClusterChangeWizardComponent implements OnInit {
   opType: 'scale'|'upgrade'|'config' | null = null;
   scaleForm: FormGroup;
   upgradeForm: FormGroup;
+  configForm: FormGroup;
+  _enableSqlAuditModel = false;
 
   // impact/dry-run
   impactLoading = false;
@@ -286,6 +335,12 @@ export class ClusterChangeWizardComponent implements OnInit {
     this.upgradeForm = this.fb.group({
       targetVersion: ['5.4.19', [Validators.required]]
     });
+    this.configForm = this.fb.group({
+      cnLogLevel: ['INFO', [Validators.required]],
+      dnLogLevel: ['INFO', [Validators.required]],
+      slowLogThresholdMs: [2000, [Validators.required, Validators.min(100)]],
+      enableSqlAudit: [false]
+    });
   }
 
   ngOnInit(): void {
@@ -309,7 +364,7 @@ export class ClusterChangeWizardComponent implements OnInit {
   canProceedParams(): boolean {
     if (this.opType === 'scale') return this.scaleForm.valid;
     if (this.opType === 'upgrade') return this.upgradeForm.valid;
-    if (this.opType === 'config') return true; // 留待后续实现
+    if (this.opType === 'config') return this.configForm.valid;
     return false;
   }
 
@@ -324,7 +379,7 @@ export class ClusterChangeWizardComponent implements OnInit {
     const op: any = this.opType || 'config';
     const spec = this.opType === 'scale' ? this.scaleForm.value
       : this.opType === 'upgrade' ? this.upgradeForm.value
-      : {};
+      : this.configForm.value;
     this.api.runPrecheck(this.namespace, this.name, op, spec).subscribe({
       next: (res: any) => {
         const plan = Array.isArray(res?.plan) ? res.plan : [];
@@ -385,10 +440,39 @@ export class ClusterChangeWizardComponent implements OnInit {
           this.executing = false;
         }
       });
-    } else {
-      // 配置变更留待后续
-      log('配置变更暂未实现');
-      this.executing = false;
+    } else if (this.opType === 'config') {
+      log('开始应用配置变更');
+      const cfg = this.configForm.value;
+      const applyCn$ = this.api.updateClusterLogConfig(this.namespace, this.name, 'cn', {
+        logLevel: cfg.cnLogLevel,
+        enableSqlAudit: !!cfg.enableSqlAudit,
+        slowLogThresholdMs: Number(cfg.slowLogThresholdMs)
+      });
+      const applyDn$ = this.api.updateClusterLogConfig(this.namespace, this.name, 'dn', {
+        logLevel: cfg.dnLogLevel
+      });
+      applyCn$.subscribe({
+        next: () => {
+          log('CN 日志配置已更新');
+          applyDn$.subscribe({
+            next: () => {
+              log('DN 日志配置已更新');
+              this.executing = false;
+              this.executed = true;
+              this.msg.success('配置变更已提交');
+              this.postVerify();
+            },
+            error: (e2) => {
+              log(`DN 配置更新失败: ${e2?.message || '未知错误'}`);
+              this.executing = false;
+            }
+          });
+        },
+        error: (e1) => {
+          log(`CN 配置更新失败: ${e1?.message || '未知错误'}`);
+          this.executing = false;
+        }
+      });
     }
   }
 
