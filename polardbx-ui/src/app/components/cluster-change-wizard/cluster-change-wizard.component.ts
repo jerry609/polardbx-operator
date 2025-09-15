@@ -500,14 +500,54 @@ export class ClusterChangeWizardComponent implements OnInit {
 
   navigateSuggested(id: string): void {
     const lower = (id || '').toLowerCase();
-    if (lower.includes('backup')) {
-      this.router.navigateByUrl('/backup/xstore-backups');
+
+    // 备份与存储相关
+    if (lower.includes('backup') || lower.includes('recentbackup')) {
+      this.router.navigateByUrl('/backup/manual-backups');
+      return;
+    }
+    if (lower.includes('binlog')) {
+      this.router.navigateByUrl('/backup/backup-binlogs');
       return;
     }
     if (lower.includes('hpfs') || lower.includes('sink') || lower.includes('storage')) {
       this.router.navigateByUrl('/backup/xstore-backups');
       return;
     }
+
+    // 集群/工作负载与 Pod 就绪
+    if (lower.includes('podsready') || lower.includes('controllersready')) {
+      this.router.navigate(['/clusters', this.namespace, this.name], { queryParams: { tab: 'nodes' } });
+      return;
+    }
+    if (lower.includes('clusterready')) {
+      this.router.navigate(['/clusters', this.namespace, this.name]);
+      return;
+    }
+
+    // 调度与节点健康
+    if (lower.includes('scheduling') || lower.includes('diskpressure') || lower.includes('node')) {
+      this.router.navigateByUrl('/operations/nodes');
+      return;
+    }
+
+    // 资源与权限
+    if (lower.includes('resourcequota') || lower.includes('rbac') || lower.includes('crd')) {
+      this.router.navigateByUrl('/operations/settings');
+      return;
+    }
+
+    // 监控/RPO/版本兼容
+    if (lower.includes('rpo')) {
+      this.router.navigateByUrl('/operations/monitoring/health');
+      return;
+    }
+    if (lower.includes('versioncompat') || lower.includes('version')) {
+      this.router.navigate(['/clusters', this.namespace, this.name, 'change']);
+      return;
+    }
+
+    // Pod/Workload 通用兜底
     if (lower.includes('pod') || lower.includes('workload') || lower.includes('kube')) {
       this.router.navigate(['/operations','nodes', this.namespace, this.name]);
       return;
