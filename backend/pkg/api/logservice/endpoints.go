@@ -53,43 +53,45 @@ func Status(c *gin.Context) {
 		desiredLS = dep.Status.Replicas
 	}
 
-	// Pod-level CrashLoopBackOff detection
-	var fbPodName, fbReason string
+	// Pod-level details: CrashLoopBackOff and frequent restarts (flapping)
+	var fbPodName, fbReason, fbLastReason string
 	var fbRestarts int32
 	if existsFB {
 		if pods, err := clientset.CoreV1().Pods(ns).List(c.Request.Context(), metav1.ListOptions{LabelSelector: "app=filebeat"}); err == nil {
 			for i := range pods.Items {
 				p := pods.Items[i]
 				for _, cs := range p.Status.ContainerStatuses {
-					if cs.State.Waiting != nil && cs.State.Waiting.Reason == "CrashLoopBackOff" {
-						fbPodName = p.Name
-						fbReason = cs.State.Waiting.Reason
+					if cs.RestartCount > fbRestarts {
 						fbRestarts = cs.RestartCount
-						break
+						fbPodName = p.Name
+						if cs.LastTerminationState.Terminated != nil {
+							fbLastReason = cs.LastTerminationState.Terminated.Reason
+						}
 					}
-				}
-				if fbReason != "" {
-					break
+					if cs.State.Waiting != nil && cs.State.Waiting.Reason == "CrashLoopBackOff" {
+						fbReason = cs.State.Waiting.Reason
+					}
 				}
 			}
 		}
 	}
-	var lsPodName, lsReason string
+	var lsPodName, lsReason, lsLastReason string
 	var lsRestarts int32
 	if existsLS {
 		if pods, err := clientset.CoreV1().Pods(ns).List(c.Request.Context(), metav1.ListOptions{LabelSelector: "app=logstash"}); err == nil {
 			for i := range pods.Items {
 				p := pods.Items[i]
 				for _, cs := range p.Status.ContainerStatuses {
-					if cs.State.Waiting != nil && cs.State.Waiting.Reason == "CrashLoopBackOff" {
-						lsPodName = p.Name
-						lsReason = cs.State.Waiting.Reason
+					if cs.RestartCount > lsRestarts {
 						lsRestarts = cs.RestartCount
-						break
+						lsPodName = p.Name
+						if cs.LastTerminationState.Terminated != nil {
+							lsLastReason = cs.LastTerminationState.Terminated.Reason
+						}
 					}
-				}
-				if lsReason != "" {
-					break
+					if cs.State.Waiting != nil && cs.State.Waiting.Reason == "CrashLoopBackOff" {
+						lsReason = cs.State.Waiting.Reason
+					}
 				}
 			}
 		}
@@ -103,12 +105,19 @@ func Status(c *gin.Context) {
 		}
 	}
 
+	// thresholds for flapping
+	const restartFlappingThreshold int32 = 5
+
 	fbStatus := "not_found"
 	if existsFB {
 		if fbReason == "CrashLoopBackOff" {
 			fbStatus = "crashloop"
 		} else if desiredFB > 0 && readyFB == desiredFB {
-			fbStatus = "running"
+			if fbRestarts >= restartFlappingThreshold {
+				fbStatus = "flapping"
+			} else {
+				fbStatus = "running"
+			}
 		} else {
 			fbStatus = "error"
 		}
@@ -118,7 +127,11 @@ func Status(c *gin.Context) {
 		if lsReason == "CrashLoopBackOff" {
 			lsStatus = "crashloop"
 		} else if desiredLS > 0 && readyLS == desiredLS {
-			lsStatus = "running"
+			if lsRestarts >= restartFlappingThreshold {
+				lsStatus = "flapping"
+			} else {
+				lsStatus = "running"
+			}
 		} else {
 			lsStatus = "error"
 		}
@@ -142,11 +155,11 @@ func Status(c *gin.Context) {
 		"state":                   state,
 		"status":                  state,
 	}
-	if fbStatus == "crashloop" {
-		resp["components"].(gin.H)["filebeat"].(gin.H)["pod"] = gin.H{"name": fbPodName, "reason": fbReason, "restarts": fbRestarts}
+	if existsFB {
+		resp["components"].(gin.H)["filebeat"].(gin.H)["pod"] = gin.H{"name": fbPodName, "restarts": fbRestarts, "lastReason": fbLastReason, "crashReason": fbReason}
 	}
-	if lsStatus == "crashloop" {
-		resp["components"].(gin.H)["logstash"].(gin.H)["pod"] = gin.H{"name": lsPodName, "reason": lsReason, "restarts": lsRestarts}
+	if existsLS {
+		resp["components"].(gin.H)["logstash"].(gin.H)["pod"] = gin.H{"name": lsPodName, "restarts": lsRestarts, "lastReason": lsLastReason, "crashReason": lsReason}
 	}
 	if state == "not_installed" {
 		resp["installHint"] = "helm install polardbx-logcollector charts/polardbx-logcollector -n polardbx-logcollector --create-namespace"
