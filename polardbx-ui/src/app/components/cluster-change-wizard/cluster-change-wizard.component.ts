@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -295,8 +295,8 @@ export class ClusterChangeWizardComponent implements OnInit {
   private api = inject(ApiService);
   private msg = inject(NzMessageService);
 
-  namespace = 'default';
-  name = '';
+  @Input() namespace: string = 'default';
+  @Input('clusterName') name: string = '';
 
   currentStep = 0;
   precheckPass = false;
