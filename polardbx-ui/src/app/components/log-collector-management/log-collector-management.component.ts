@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, TemplateRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { NzTabsModule } from 'ng-zorro-antd/tabs';
@@ -560,9 +560,8 @@ export class LogCollectorManagementComponent implements OnInit, OnDestroy {
   
   collectorForm: FormGroup;
   // 模板引用 (用于 NzModalService 动态渲染)
-  // 注意：类型标注为 any 以避免编译器在模板上下文中的限制
-  detailsDialog: any;
-  configDialog: any;
+  @ViewChild('detailsDialog', { static: true }) detailsDialog!: TemplateRef<any>;
+  @ViewChild('configDialog', { static: true }) configDialog!: TemplateRef<any>;
 
   constructor(
     private apiService: ApiService,
@@ -629,6 +628,32 @@ export class LogCollectorManagementComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (collectors: PolarDBXLogCollector[]) => {
           this.logCollectors = collectors || [];
+          // 兜底：如果某些采集器没有 status，从平台状态接口融合信息
+          this.apiService.getLogServiceStatus().pipe(takeUntil(this.destroy$)).subscribe({
+            next: (s: any) => {
+              const comps = s?.components || {};
+              const fb = comps?.filebeat || {};
+              const ls = comps?.logstash || {};
+              this.logCollectors = (this.logCollectors || []).map(c => {
+                const cc: any = c as any;
+                if (!cc.status) { cc.status = {}; }
+                if (!cc.status.configStatus) {
+                  const fbReady = fb?.replicas?.ready ?? 0;
+                  const fbTotal = fb?.replicas?.total ?? 0;
+                  const lsReady = ls?.replicas?.ready ?? 0;
+                  const lsTotal = ls?.replicas?.total ?? 0;
+                  cc.status.configStatus = {
+                    fileBeatReadyCount: fbReady,
+                    fileBeatCount: fbTotal,
+                    logStashReadyCount: lsReady,
+                    logStashCount: lsTotal
+                  } as any;
+                }
+                return cc as PolarDBXLogCollector;
+              });
+            },
+            error: () => {}
+          });
         },
         error: (error) => {
           console.error('加载日志采集器失败:', error);
