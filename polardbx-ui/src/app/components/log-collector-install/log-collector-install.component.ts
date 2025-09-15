@@ -631,14 +631,22 @@ export class LogCollectorInstallComponent implements OnInit {
         const components = res?.components || {};
         const fb = components?.filebeat || {};
         const ls = components?.logstash || {};
-        const ready = (fb.ready === true) && (ls.ready === true);
+        const fbStatus: string = fb.status || (fb.ready ? 'running' : 'error');
+        const lsStatus: string = ls.status || (ls.ready ? 'running' : 'error');
+        const fbReady = fb?.replicas?.ready ?? (fb.ready ? 1 : 0);
+        const fbTotal = fb?.replicas?.total ?? 0;
+        const lsReady = ls?.replicas?.ready ?? (ls.ready ? 1 : 0);
+        const lsTotal = ls?.replicas?.total ?? 0;
+        const bothRunning = fbStatus === 'running' && lsStatus === 'running';
+        const toText = (s: string) => (s === 'running' ? 'ready' : (s === 'crashloop' ? 'crashloop' : 'not ready'));
         this.environmentChecks[0] = {
           ...this.environmentChecks[0],
-          status: ready ? 'success' : 'warning',
-          result: `filebeat: ${fb.ready ? 'ready' : 'not ready'}, logstash: ${ls.ready ? 'ready' : 'not ready'}`
+          status: bothRunning ? 'success' : (fbStatus === 'crashloop' || lsStatus === 'crashloop' ? 'warning' : 'warning'),
+          result: `filebeat: ${toText(fbStatus)}${fbTotal?` (${fbReady}/${fbTotal})`:''}, logstash: ${toText(lsStatus)}${lsTotal?` (${lsReady}/${lsTotal})`:''}`
         };
         this.environmentChecks[1] = { ...this.environmentChecks[1], status: 'success', result: ns };
-        this.allChecksPassed = true; // 允许继续（未安装也可继续到安装执行）
+        // 允许继续（未全部就绪也可继续到安装执行/回验）
+        this.allChecksPassed = true;
         this.checking = false;
       },
       error: () => {
@@ -832,7 +840,9 @@ export class LogCollectorInstallComponent implements OnInit {
       this.api.getLogServiceStatus().subscribe({
         next: (s: any) => {
           const comps = s?.components || {};
-          const ok = !!(comps?.filebeat?.ready && comps?.logstash?.ready);
+          const fbStatus: string = comps?.filebeat?.status || (comps?.filebeat?.ready ? 'running' : 'error');
+          const lsStatus: string = comps?.logstash?.status || (comps?.logstash?.ready ? 'running' : 'error');
+          const ok = (fbStatus === 'running') && (lsStatus === 'running');
           if (ok) {
             this.installSuccess = true;
             this.verifying = false;
