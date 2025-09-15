@@ -539,8 +539,19 @@ export class XStoreFollowerManagementComponent implements OnInit {
       const pod = ((row as any).status?.targetPod || (row as any).spec?.targetPodName || '').trim();
       const podName = pod || 'unknown';
       if (!podName || podName === 'unknown') { this.snackBar.open('未能确定目标 Pod', '关闭', { duration: 2500 }); return; }
-      const logs = await this.apiService.getPodLogs(ns, podName, '', 400).toPromise();
-      alert(`Pod ${podName} 日志（最后400行）：\n\n${logs || '(空)'}`);
+      // 先探测容器列表
+      const podObj = await this.apiService.getPod(ns, podName).toPromise();
+      const containers: string[] = (((podObj as any)?.spec?.containers) || []).map((c: any) => c?.name).filter(Boolean);
+      let container = '';
+      if (containers.length === 1) {
+        container = containers[0];
+      } else if (containers.length > 1) {
+        const choice = window.prompt(`该 Pod 有多个容器，请输入要查看的容器名：\n${containers.join(', ')}`, containers[0]);
+        if (!choice) { return; }
+        container = choice.trim();
+      }
+      const logs = await this.apiService.getPodLogs(ns, podName, container, 400).toPromise();
+      alert(`Pod ${podName}${container ? ' / ' + container : ''} 日志（最后400行）：\n\n${logs || '(空)'}`);
     } catch (e) {
       this.snackBar.open('获取日志失败', '关闭', { duration: 3000 });
     }
@@ -558,6 +569,8 @@ export class XStoreFollowerManagementComponent implements OnInit {
       lines.push(`Name: ${p?.metadata?.name}`);
       lines.push(`Phase: ${(p as any)?.status?.phase}`);
       lines.push(`Node: ${(p as any)?.spec?.nodeName}`);
+      const containers = (((p as any)?.spec?.containers) || []).map((c: any) => c?.name).filter(Boolean);
+      if (containers.length) { lines.push(`Containers: ${containers.join(', ')}`); }
       cond.forEach((c: any) => lines.push(`${c.type}: ${c.status} (${c.reason || ''})`));
       alert(lines.join('\n'));
     } catch (e) {
