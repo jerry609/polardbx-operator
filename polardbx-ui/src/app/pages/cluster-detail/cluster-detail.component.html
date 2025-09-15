@@ -233,7 +233,10 @@
         变更向导
       </ng-template>
       <div class="tab-content">
-        <app-cluster-change-wizard></app-cluster-change-wizard>
+        <app-cluster-change-wizard 
+          [namespace]="clusterNamespace" 
+          [clusterName]="clusterName">
+        </app-cluster-change-wizard>
       </div>
     </nz-tab>
 
@@ -376,14 +379,32 @@
       </div>
     </nz-tab>
 
-    <!-- 集群变配选项卡 -->
-    <nz-tab nzTitle="集群变配">
+    <!-- 快速变配选项卡 -->
+    <nz-tab nzTitle="快速变配">
       <ng-template #nzTabHeading>
         <i nz-icon nzType="setting"></i>
-        集群变配
+        快速变配
       </ng-template>
       
       <div class="tab-content">
+        <!-- 操作模式选择 -->
+        <nz-card class="mode-selector-card">
+          <nz-alert 
+            nzType="info" 
+            nzMessage="变更模式选择"
+            nzDescription="快速模式适合开发环境和简单调整；向导模式适合生产环境和复杂变更"
+            nzShowIcon
+            style="margin-bottom: 16px;">
+          </nz-alert>
+          <div class="mode-buttons">
+            <button nz-button nzType="primary" (click)="selectedTabIndex = 1" style="margin-right: 12px;">
+              <i nz-icon nzType="arrow-right"></i>
+              使用向导模式（推荐）
+            </button>
+            <span style="color: rgba(0,0,0,0.45);">或继续使用下方快速模式</span>
+          </div>
+        </nz-card>
+
         <!-- 当前配置概览 -->
         <nz-card nzTitle="当前集群配置" class="current-config-card">
           <div nz-row [nzGutter]="[24, 16]" class="config-overview">
@@ -426,72 +447,16 @@
           </div>
         </nz-card>
 
-        <!-- 前置检查卡片 -->
-        <nz-card nzTitle="前置检查" class="precheck-card" *ngIf="precheck">
-          <div class="precheck-content">
-            <nz-alert 
-              [nzType]="precheck.pass ? 'success' : 'warning'"
-              [nzMessage]="precheck.pass ? '前置检查通过，可以执行变配操作' : '前置检查发现问题，请先解决'"
-              [nzDescription]="getCheckDescription()"
-              nzShowIcon>
-            </nz-alert>
 
-            <div class="precheck-actions" style="margin-top: 16px;">
-              <nz-space>
-                <span *nzSpaceItem>
-                  <button 
-                    nz-button 
-                    nzType="default" 
-                    (click)="runPrecheck()"
-                      [nzLoading]="loadingService.isLoading('PRECHECK_RUN')">
-                    <i nz-icon nzType="sync"></i>
-                    重新检查
-                  </button>
-                </span>
-                <span *nzSpaceItem>
-                  <button nz-button nzType="link" (click)="copyPrecheckDetails()">
-                    <i nz-icon nzType="copy"></i>
-                    复制预检详情
-                  </button>
-                </span>
-              </nz-space>
-            </div>
-
-            <!-- 详细检查信息 -->
-            <nz-collapse nzGhost style="margin-top: 16px;">
-              <nz-collapse-panel nzHeader="详细检查信息" nzActive="false">
-                <div nz-row [nzGutter]="[16, 16]" *ngIf="precheck.checks">
-                  <div nz-col [nzSpan]="12">
-                    <h4>版本信息</h4>
-                    <p><strong>当前版本:</strong> {{ precheck.checks.currentVersion || '未知' }}</p>
-                    <p><strong>目标版本:</strong> {{ precheck.checks.targetVersion || '无变更' }}</p>
-                    <p><strong>版本兼容:</strong> 
-                      <nz-tag [nzColor]="precheck.checks.versionOk ? 'green' : 'red'">
-                        {{ precheck.checks.versionOk ? '兼容' : '不兼容' }}
-                      </nz-tag>
-                    </p>
-                  </div>
-                  <div nz-col [nzSpan]="12">
-                    <h4>资源与配额</h4>
-                    <p><strong>配额健康:</strong> 
-                      <nz-tag [nzColor]="precheck.checks.quotaOk ? 'green' : 'red'">
-                        {{ precheck.checks.quotaOk ? '正常' : '不足' }}
-                      </nz-tag>
-                    </p>
-                    <p><strong>存储连接:</strong> 
-                      <nz-tag [nzColor]="precheck.checks.storageConnectivity === 'configured' ? 'green' : 'orange'">
-                        {{ precheck.checks.storageConnectivity }}
-                      </nz-tag>
-                    </p>
-                  </div>
-                </div>
-              </nz-collapse-panel>
-            </nz-collapse>
-          </div>
-        </nz-card>
-
-        <!-- 变配表单 -->
-        <nz-card nzTitle="变配设置" class="config-form-card">
+        <!-- 快速变配表单 -->
+        <nz-card nzTitle="快速变配" class="config-form-card">
+          <nz-alert 
+            nzType="warning" 
+            nzMessage="快速模式"
+            nzDescription="快速模式仅进行基本校验，建议生产环境使用向导模式"
+            nzShowIcon
+            style="margin-bottom: 16px;">
+          </nz-alert>
           <form nz-form [formGroup]="configForm" nzLayout="vertical">
             <div nz-row [nzGutter]="24">
               <div nz-col [nzSpan]="8">
@@ -538,13 +503,6 @@
               </div>
             </div>
 
-            <nz-form-item>
-              <nz-form-control>
-                <nz-checkbox formControlName="acknowledgeWarnings" *ngIf="!precheck?.pass && precheck?.hasWarn">
-                  我已了解警告信息，仍要继续执行变配
-                </nz-checkbox>
-              </nz-form-control>
-            </nz-form-item>
 
             <nz-form-item>
               <nz-form-control>
@@ -553,11 +511,11 @@
                     <button 
                       nz-button 
                       nzType="primary" 
-                      (click)="applyConfig()"
-                      [disabled]="!canApplyConfig()"
+                      (click)="quickApplyConfig()"
+                      [disabled]="!configForm.valid || !hasConfigChanges()"
                       [nzLoading]="loadingService.isLoading('CLUSTER_SCALE')">
                       <i nz-icon nzType="check"></i>
-                      应用变配
+                      快速应用
                     </button>
                   </span>
                   <span *nzSpaceItem>
@@ -574,21 +532,39 @@
       </div>
     </nz-tab>
 
-    <!-- 版本升级选项卡 -->
-    <nz-tab nzTitle="版本升级">
+    <!-- 快速升级选项卡 -->
+    <nz-tab nzTitle="快速升级">
       <ng-template #nzTabHeading>
         <i nz-icon nzType="rocket"></i>
-        版本升级
+        快速升级
       </ng-template>
       
       <div class="tab-content">
-        <nz-card nzTitle="版本升级" class="upgrade-card">
+        <!-- 操作模式选择 -->
+        <nz-card class="mode-selector-card">
           <nz-alert 
             nzType="info" 
-            nzMessage="版本升级功能"
-            nzDescription="升级集群到新版本，请确保已做好数据备份"
+            nzMessage="升级模式选择"
+            nzDescription="快速升级适合紧急场景；向导模式提供完整的升级流程和安全检查"
             nzShowIcon
-            style="margin-bottom: 24px;">
+            style="margin-bottom: 16px;">
+          </nz-alert>
+          <div class="mode-buttons">
+            <button nz-button nzType="primary" (click)="selectedTabIndex = 1" style="margin-right: 12px;">
+              <i nz-icon nzType="arrow-right"></i>
+              使用向导模式（推荐）
+            </button>
+            <span style="color: rgba(0,0,0,0.45);">或继续使用下方快速升级</span>
+          </div>
+        </nz-card>
+
+        <nz-card nzTitle="快速升级" class="upgrade-card">
+          <nz-alert 
+            nzType="warning" 
+            nzMessage="快速模式"
+            nzDescription="快速升级跳过详细检查，建议仅在开发环境使用"
+            nzShowIcon
+            style="margin-bottom: 16px;">
           </nz-alert>
           
           <form nz-form [formGroup]="upgradeForm" nzLayout="vertical">
@@ -609,11 +585,11 @@
                     <button 
                       nz-button 
                       nzType="primary" 
-                      (click)="startUpgrade()"
-                      [disabled]="!canStartUpgrade()"
+                      (click)="quickStartUpgrade()"
+                      [disabled]="!upgradeForm.valid"
                       [nzLoading]="loadingService.isLoading('CLUSTER_UPGRADE')">
                       <i nz-icon nzType="rocket"></i>
-                      开始升级
+                      快速升级
                     </button>
                   </span>
                   <span *nzSpaceItem>

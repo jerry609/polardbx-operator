@@ -1059,6 +1059,69 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
     }
   }
 
+  // 快速变配方法 - 跳过前置检查
+  quickApplyConfig(): void {
+    if (!this.configForm.valid || !this.cluster) {
+      this.messageService.error('请检查配置信息');
+      return;
+    }
+
+    this.messageService.warning('快速模式将跳过前置检查，仅建议在开发环境使用');
+    
+    // 构建变配请求
+    const config = this.configForm.value;
+    const scalingRequest: any = {};
+
+    // 检查哪些副本数发生了变化
+    if (config.cnReplicas !== this.cnReplicas) {
+      scalingRequest.cnReplicas = config.cnReplicas;
+    }
+    if (config.dnReplicas !== this.dnReplicas) {
+      scalingRequest.dnReplicas = config.dnReplicas;
+    }
+
+    // 如果没有变化，不需要发送请求
+    if (Object.keys(scalingRequest).length === 0) {
+      this.messageService.info('配置没有变化');
+      return;
+    }
+
+    // 确认对话框
+    const changeList = [];
+    if (scalingRequest.cnReplicas !== undefined) {
+      changeList.push(`CN 节点: ${this.cnReplicas} → ${scalingRequest.cnReplicas}`);
+    }
+    if (scalingRequest.dnReplicas !== undefined) {
+      changeList.push(`DN 节点: ${this.dnReplicas} → ${scalingRequest.dnReplicas}`);
+    }
+
+    if (confirm(`确定要快速应用以下配置变更吗？\n${changeList.join('\n')}\n\n⚠️ 快速模式将跳过前置检查`)) {
+      // 直接调用扩缩容 API，跳过前置检查
+      this.apiService.scaleCluster(this.clusterNamespace, this.clusterName, scalingRequest)
+        .subscribe({
+          next: (response: any) => {
+            this.messageService.success('快速变配请求已提交');
+            // 更新本地状态
+            if (scalingRequest.cnReplicas !== undefined) {
+              this.cnReplicas = scalingRequest.cnReplicas;
+            }
+            if (scalingRequest.dnReplicas !== undefined) {
+              this.dnReplicas = scalingRequest.dnReplicas;
+            }
+            // 刷新集群数据
+            setTimeout(() => {
+              this.loadClusterData();
+            }, 2000);
+          },
+          error: (error) => {
+            console.error('快速变配失败:', error);
+            this.messageService.error(`快速变配失败: ${error.message || '未知错误'}`);
+          }
+        });
+    }
+  }
+
+  // 原有的完整变配方法（保留用于向导模式）
   applyConfig(): void {
     if (!this.configForm.valid || !this.cluster) {
       this.messageService.error('请检查配置信息');
@@ -1263,6 +1326,50 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
     });
   }
 
+  // 快速升级方法 - 跳过前置检查
+  quickStartUpgrade(): void {
+    if (!this.upgradeForm.valid || !this.cluster) {
+      this.messageService.error('请检查升级配置');
+      return;
+    }
+
+    this.messageService.warning('快速升级将跳过安全检查，仅建议在开发环境使用');
+    
+    const targetVersion = this.upgradeForm.value.targetVersion;
+    const currentVersion = this.clusterVersion;
+
+    const upgradeRequest = {
+      targetVersion: targetVersion,
+      strategy: 'rolling', // 默认使用滚动升级
+      maxUnavailable: 1
+    };
+
+    const confirmMessage = `确定要快速升级集群吗？\n\n` +
+                          `当前版本: ${currentVersion}\n` +
+                          `目标版本: ${targetVersion}\n` +
+                          `升级策略: 滚动升级\n\n` +
+                          `⚠️ 快速模式将跳过安全检查，升级过程中可能会有短暂的服务中断`;
+
+    if (confirm(confirmMessage)) {
+      // 直接调用升级 API，跳过前置检查
+      this.apiService.upgradeCluster(this.clusterNamespace, this.clusterName, upgradeRequest)
+        .subscribe({
+          next: (response: any) => {
+            this.messageService.success('快速升级请求已提交');
+            // 刷新集群数据
+            setTimeout(() => {
+              this.loadClusterData();
+            }, 3000);
+          },
+          error: (error) => {
+            console.error('快速升级失败:', error);
+            this.messageService.error(`快速升级失败: ${error.message || '未知错误'}`);
+          }
+        });
+    }
+  }
+
+  // 原有的完整升级方法（保留用于向导模式）
   startUpgrade(): void {
     if (!this.upgradeForm.valid || !this.cluster) {
       this.messageService.error('请检查升级配置');
