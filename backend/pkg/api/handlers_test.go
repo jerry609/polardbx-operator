@@ -23,7 +23,7 @@ import (
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 	crfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	api_backup "polardbx-ui-backend/pkg/api/backup"
+	domain_pxc "polardbx-ui-backend/pkg/api/domain/polardbxclusters"
 )
 
 func setupRouter() *gin.Engine {
@@ -117,6 +117,24 @@ func setupRouterWithClients(kc crclient.Client, cs *k8sfake.Clientset) *gin.Engi
 }
 
 func TestPipelineCreateUpdate_Get_HappyPath(t *testing.T) {
+	cs := k8sfake.NewSimpleClientset()
+	r := setupRouterWithClientset(cs)
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodPut, "/api/v1/log-collectors/ns/pipeline", strings.NewReader("not-json"))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
+	}
+	var body map[string]any
+	_ = json.Unmarshal(w.Body.Bytes(), &body)
+	if _, ok := body["error"]; !ok {
+		t.Fatalf("expected error in response")
+	}
+}
+
+// --- Happy path with fake clientset ---
+func TestPipelineCreateUpdate_Get_HappyPath_2(t *testing.T) {
 	cs := k8sfake.NewSimpleClientset()
 	r := setupRouterWithClientset(cs)
 
@@ -293,7 +311,7 @@ func TestBackupOverview_Aggregation(t *testing.T) {
 	fakeClient := crfake.NewClientBuilder().WithScheme(scheme).WithObjects(b1, b2, b3).Build()
 	router := gin.Default()
 	router.Use(func(c *gin.Context) { c.Set("k8sClient", fakeClient) })
-	router.GET("/api/v1/backups/overview", api_backup.GetBackupOverview)
+	router.GET("/api/v1/backups/overview", domain_pxc.GetBackupOverview)
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest(http.MethodGet, "/api/v1/backups/overview?namespace=ns1", nil)

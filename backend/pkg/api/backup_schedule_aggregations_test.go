@@ -14,7 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	crfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	api_backup "polardbx-ui-backend/pkg/api/backup"
+	domain_pxc "polardbx-ui-backend/pkg/api/domain/polardbxclusters"
 )
 
 func TestGetBackupScheduleNextRuns(t *testing.T) {
@@ -37,7 +37,7 @@ func TestGetBackupScheduleNextRuns(t *testing.T) {
 	fakeClient := crfake.NewClientBuilder().WithScheme(scheme).WithObjects(s1, s2).Build()
 	r := gin.Default()
 	r.Use(func(c *gin.Context) { c.Set("k8sClient", fakeClient) })
-	r.GET("/api/v1/backup-schedules/next-run", api_backup.GetNextRuns)
+	r.GET("/api/v1/backup-schedules/next-run", domain_pxc.GetScheduleNextRuns)
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest(http.MethodGet, "/api/v1/backup-schedules/next-run?namespace="+ns+"&now="+nowFixed.Format(time.RFC3339), nil)

@@ -19,7 +19,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	api_backupbinlog "polardbx-ui-backend/pkg/api/backupbinlog"
+	domain_pxc "polardbx-ui-backend/pkg/api/domain/polardbxclusters"
 )
 
 func setupBackupBinlogTest() (*gin.Engine, client.Client) {
@@ -385,10 +385,10 @@ func TestBackupBinlogBusinessLogic(t *testing.T) {
 func RegisterBackupBinlogRoutes(router *gin.Engine) {
 	api := router.Group("/api/v1")
 	{
-		api.GET("/backup-binlogs", api_backupbinlog.List)
-		api.POST("/backup-binlogs", api_backupbinlog.Create)
-		api.GET("/backup-binlogs/:namespace/:name", api_backupbinlog.Get)
-		api.PUT("/backup-binlogs/:namespace/:name", api_backupbinlog.Update)
-		api.DELETE("/backup-binlogs/:namespace/:name", api_backupbinlog.Delete)
+		api.GET("/backup-binlogs", domain_pxc.ListBackupBinlogs)
+		api.POST("/backup-binlogs", domain_pxc.CreateBackupBinlog)
+		api.GET("/backup-binlogs/:namespace/:name", domain_pxc.GetBackupBinlog)
+		api.PUT("/backup-binlogs/:namespace/:name", domain_pxc.UpdateBackupBinlog)
+		api.DELETE("/backup-binlogs/:namespace/:name", domain_pxc.DeleteBackupBinlog)
 	}
 }

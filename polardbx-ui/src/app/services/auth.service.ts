@@ -55,6 +55,11 @@ export class AuthService {
   // --- Kubeconfig-based access helpers (legacy, still supported) ---
   saveKubeconfig(kubeconfig: string): void {
     localStorage.setItem('kubeconfig', kubeconfig);
+    // 额外缓存 base64 供 SSE 查询参数使用（SSE 无法自定义 Header）
+    try {
+      const b64 = btoa(unescape(encodeURIComponent(kubeconfig)));
+      localStorage.setItem('kubeconfig-b64', b64);
+    } catch {}
   }
 
   getKubeconfig(): string | null {
@@ -63,6 +68,7 @@ export class AuthService {
 
   clearKubeconfig(): void {
     localStorage.removeItem('kubeconfig');
+    localStorage.removeItem('kubeconfig-b64');
   }
 
   isAuthenticated(): boolean {

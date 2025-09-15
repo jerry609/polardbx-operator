@@ -21,6 +21,7 @@ import { NzProgressModule } from 'ng-zorro-antd/progress';
 import { NzStepsModule } from 'ng-zorro-antd/steps';
 import { NzAlertModule } from 'ng-zorro-antd/alert';
 import { NzEmptyModule } from 'ng-zorro-antd/empty';
+import { NzModalModule, NzModalService } from 'ng-zorro-antd/modal';
 import { Subject } from 'rxjs';
 import { takeUntil, finalize } from 'rxjs/operators';
 
@@ -68,7 +69,8 @@ import {
     NzProgressModule,
     NzStepsModule,
     NzAlertModule,
-    NzEmptyModule
+    NzEmptyModule,
+    NzModalModule
   ],
   template: `
     <div class="log-collector-management">
@@ -505,6 +507,38 @@ import {
         <p>正在加载日志采集器...</p>
       </div>
     </ng-template>
+
+    <!-- 详情对话框模板 -->
+    <ng-template #detailsDialog let-data>
+      <h3 style="margin-top:0">采集器详情</h3>
+      <div class="detail-row"><strong>名称:</strong> {{ data?.metadata?.name }}</div>
+      <div class="detail-row"><strong>命名空间:</strong> {{ data?.metadata?.namespace }}</div>
+      <div class="detail-row"><strong>FileBeat:</strong> {{ data?.spec?.fileBeatName || '-' }}</div>
+      <div class="detail-row"><strong>LogStash:</strong> {{ data?.spec?.logStashName || '-' }}</div>
+      <div class="detail-row" *ngIf="data?.status?.configStatus as cs">
+        <strong>配置状态:</strong>
+        <pre style="white-space:pre-wrap;background:#f6f8fa;padding:8px;border-radius:4px">{{ cs | json }}</pre>
+      </div>
+      <div class="detail-row" *ngIf="!data?.status?.configStatus">
+        <nz-alert nzType="info" nzMessage="暂无配置状态" nzShowIcon></nz-alert>
+      </div>
+    </ng-template>
+
+    <!-- 配置查看对话框模板 -->
+    <ng-template #configDialog let-data>
+      <h3 style="margin-top:0">配置查看</h3>
+      <div *ngIf="data?.status?.configStatus as cs">
+        <nz-card nzTitle="ConfigStatus" nzSize="small" style="margin-bottom:12px">
+          <pre style="white-space:pre-wrap;background:#f6f8fa;padding:8px;border-radius:4px">{{ cs | json }}</pre>
+        </nz-card>
+        <nz-card nzTitle="Spec Snapshot" nzSize="small" *ngIf="data?.status?.specSnapshot as snap">
+          <pre style="white-space:pre-wrap;background:#f6f8fa;padding:8px;border-radius:4px">{{ snap | json }}</pre>
+        </nz-card>
+      </div>
+      <div *ngIf="!data?.status?.configStatus">
+        <nz-alert nzType="info" nzMessage="该采集器暂无配置可显示" nzShowIcon></nz-alert>
+      </div>
+    </ng-template>
   `,
   styleUrl: './log-collector-management.component.scss'
 })
@@ -525,12 +559,17 @@ export class LogCollectorManagementComponent implements OnInit, OnDestroy {
   namingPatterns = NAMING_PATTERNS;
   
   collectorForm: FormGroup;
+  // 模板引用 (用于 NzModalService 动态渲染)
+  // 注意：类型标注为 any 以避免编译器在模板上下文中的限制
+  detailsDialog: any;
+  configDialog: any;
 
   constructor(
     private apiService: ApiService,
     private loadingService: LoadingService,
     private fb: FormBuilder,
-    private message: NzMessageService
+    private message: NzMessageService,
+    private modal: NzModalService
   ) {
     this.collectorForm = this.createCollectorForm();
   }
@@ -581,7 +620,8 @@ export class LogCollectorManagementComponent implements OnInit, OnDestroy {
   }
 
   loadLogCollectors(): void {
-    this.apiService.getLogCollectors()
+    const ns = this.collectorForm?.get('namespace')?.value || 'default';
+    this.apiService.getLogCollectors(ns)
       .pipe(
         takeUntil(this.destroy$),
         finalize(() => {})
@@ -722,13 +762,27 @@ export class LogCollectorManagementComponent implements OnInit, OnDestroy {
   }
 
   viewCollectorDetails(collector: PolarDBXLogCollector): void {
-    // TODO: 实现采集器详情对话框
-    console.log('查看采集器详情:', collector);
+    this.modal.create({
+      nzTitle: '采集器详情',
+      nzContent: (this as any).detailsDialog,
+      nzData: collector,
+      nzFooter: null,
+      nzWidth: 720
+    });
   }
 
   viewConfiguration(collector: PolarDBXLogCollector): void {
-    // TODO: 实现配置查看器对话框
-    console.log('查看配置:', collector);
+    if (!this.hasConfiguration(collector)) {
+      this.message.info('该采集器暂无配置可显示');
+      return;
+    }
+    this.modal.create({
+      nzTitle: '查看配置',
+      nzContent: (this as any).configDialog,
+      nzData: collector,
+      nzFooter: null,
+      nzWidth: 900
+    });
   }
 
 

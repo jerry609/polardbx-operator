@@ -20,15 +20,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	api_backup "polardbx-ui-backend/pkg/api/backup"
-	backupbinlog "polardbx-ui-backend/pkg/api/backupbinlog"
-	api_cluster "polardbx-ui-backend/pkg/api/cluster"
-	api_logcollector "polardbx-ui-backend/pkg/api/logcollector"
 	monitor "polardbx-ui-backend/pkg/api/monitor"
 	parameters "polardbx-ui-backend/pkg/api/parameters"
 	restore "polardbx-ui-backend/pkg/api/restore"
-	xstore "polardbx-ui-backend/pkg/api/xstore"
 	"polardbx-ui-backend/pkg/k8s"
+
+	// domain handlers
+	domain_pxc "polardbx-ui-backend/pkg/api/domain/polardbxclusters"
+	domain_xs "polardbx-ui-backend/pkg/api/domain/xstores"
 )
 
 // IntegrationTestSuite provides comprehensive integration testing for all API endpoints
@@ -67,24 +66,31 @@ func setupIntegrationTestRouter(k8sClientProvider k8s.ClientProvider) *gin.Engin
 	v1 := router.Group("/api/v1")
 	v1.Use(KubeconfigAuthMiddleware())
 	{
-		// Cluster routes (subpackages)
-		v1.GET("/clusters", api_cluster.List)
-		v1.POST("/clusters", api_cluster.Create)
-		v1.GET("/clusters/:namespace/:name", api_cluster.Get)
-		v1.PUT("/clusters/:namespace/:name", api_cluster.Update)
-		v1.DELETE("/clusters/:namespace/:name", api_cluster.Delete)
+		// Cluster routes (domain)
+		v1.GET("/clusters", domain_pxc.List)
+		v1.POST("/clusters", domain_pxc.Create)
+		v1.GET("/clusters/:namespace/:name", domain_pxc.Get)
+		v1.PUT("/clusters/:namespace/:name", domain_pxc.Update)
+		v1.DELETE("/clusters/:namespace/:name", domain_pxc.Delete)
 
-		// Backup routes (subpackages)
-		v1.GET("/clusters/:namespace/:name/backups", api_backup.List)
-		v1.POST("/clusters/:namespace/:name/backups", api_backup.Create)
-		v1.DELETE("/backups/:namespace/:name", api_backup.Delete)
+		// Backup routes (domain)
+		v1.GET("/clusters/:namespace/:name/backups", domain_pxc.ListBackups)
+		v1.POST("/clusters/:namespace/:name/backups", domain_pxc.CreateBackup)
+		v1.DELETE("/backups/:namespace/:name", domain_pxc.DeleteBackup)
 
-		// XStore routes
-		v1.GET("/xstores", xstore.List)
-		v1.POST("/xstores", xstore.Create)
-		v1.GET("/xstores/:namespace/:name", xstore.Get)
-		v1.PUT("/xstores/:namespace/:name", xstore.Update)
-		v1.DELETE("/xstores/:namespace/:name", xstore.Delete)
+		// BackupBinlog routes → domain
+		v1.GET("/backup-binlogs", domain_pxc.ListBackupBinlogs)
+		v1.POST("/backup-binlogs", domain_pxc.CreateBackupBinlog)
+		v1.GET("/backup-binlogs/:namespace/:name", domain_pxc.GetBackupBinlog)
+		v1.PUT("/backup-binlogs/:namespace/:name", domain_pxc.UpdateBackupBinlog)
+		v1.DELETE("/backup-binlogs/:namespace/:name", domain_pxc.DeleteBackupBinlog)
+
+		// XStore routes → domain
+		v1.GET("/xstores", domain_xs.List)
+		v1.POST("/xstores", domain_xs.Create)
+		v1.GET("/xstores/:namespace/:name", domain_xs.Get)
+		v1.PUT("/xstores/:namespace/:name", domain_xs.Update)
+		v1.DELETE("/xstores/:namespace/:name", domain_xs.Delete)
 
 		// Monitor routes
 		v1.GET("/monitors", monitor.List)
@@ -165,24 +171,24 @@ func (suite *IntegrationTestSuite) TestConnectEndpoint() {
 }
 
 func (suite *IntegrationTestSuite) TestAPICRUDOperations() {
-	// Test all function handlers exist (subpackages)
-	assert.NotNil(suite.T(), api_cluster.List)
-	assert.NotNil(suite.T(), api_cluster.Create)
-	assert.NotNil(suite.T(), api_cluster.Get)
-	assert.NotNil(suite.T(), api_cluster.Update)
-	assert.NotNil(suite.T(), api_cluster.Delete)
+	// Test cluster handlers -> domain
+	assert.NotNil(suite.T(), domain_pxc.List)
+	assert.NotNil(suite.T(), domain_pxc.Create)
+	assert.NotNil(suite.T(), domain_pxc.Get)
+	assert.NotNil(suite.T(), domain_pxc.Update)
+	assert.NotNil(suite.T(), domain_pxc.Delete)
 
-	// Test backup handlers (subpackages)
-	assert.NotNil(suite.T(), api_backup.List)
-	assert.NotNil(suite.T(), api_backup.Create)
-	assert.NotNil(suite.T(), api_backup.Delete)
+	// Test backup handlers -> domain
+	assert.NotNil(suite.T(), domain_pxc.ListBackups)
+	assert.NotNil(suite.T(), domain_pxc.CreateBackup)
+	assert.NotNil(suite.T(), domain_pxc.DeleteBackup)
 
-	// Test XStore handlers
-	assert.NotNil(suite.T(), xstore.List)
-	assert.NotNil(suite.T(), xstore.Create)
-	assert.NotNil(suite.T(), xstore.Get)
-	assert.NotNil(suite.T(), xstore.Update)
-	assert.NotNil(suite.T(), xstore.Delete)
+	// Test XStore handlers -> domain
+	assert.NotNil(suite.T(), domain_xs.List)
+	assert.NotNil(suite.T(), domain_xs.Create)
+	assert.NotNil(suite.T(), domain_xs.Get)
+	assert.NotNil(suite.T(), domain_xs.Update)
+	assert.NotNil(suite.T(), domain_xs.Delete)
 
 	// Test Monitor handlers
 	assert.NotNil(suite.T(), monitor.List)
@@ -198,66 +204,24 @@ func (suite *IntegrationTestSuite) TestAPICRUDOperations() {
 	assert.NotNil(suite.T(), parameters.Update)
 	assert.NotNil(suite.T(), parameters.Delete)
 
-	// Test Backup Schedule handlers (subpackages)
-	assert.NotNil(suite.T(), api_backup.ListSchedules)
-	assert.NotNil(suite.T(), api_backup.CreateSchedule)
-	assert.NotNil(suite.T(), api_backup.GetSchedule)
-	assert.NotNil(suite.T(), api_backup.UpdateSchedule)
-	assert.NotNil(suite.T(), api_backup.DeleteSchedule)
+	// Test Backup Schedule handlers (migrated to domain)
+	assert.NotNil(suite.T(), domain_pxc.ListSchedules)
+	assert.NotNil(suite.T(), domain_pxc.CreateSchedule)
+	assert.NotNil(suite.T(), domain_pxc.GetSchedule)
+	assert.NotNil(suite.T(), domain_pxc.UpdateSchedule)
+	assert.NotNil(suite.T(), domain_pxc.DeleteSchedule)
 
-	// Test Parameter Template handlers - skip for now (not part of this refactor)
-	// assert.NotNil(suite.T(), ListParameterTemplates)
-	// assert.NotNil(suite.T(), CreateParameterTemplate)
-	// assert.NotNil(suite.T(), GetParameterTemplate)
-	// assert.NotNil(suite.T(), UpdateParameterTemplate)
-	// assert.NotNil(suite.T(), DeleteParameterTemplate)
-
-	// Test System Task handlers - skip for now
-	// assert.NotNil(suite.T(), ListSystemTasks)
-	// assert.NotNil(suite.T(), CreateSystemTask)
-	// assert.NotNil(suite.T(), GetSystemTask)
-	// assert.NotNil(suite.T(), UpdateSystemTask)
-	// assert.NotNil(suite.T(), DeleteSystemTask)
-
-	// Test Log Collector handlers (subpackages)
-	assert.NotNil(suite.T(), api_logcollector.List)
-	assert.NotNil(suite.T(), api_logcollector.Create)
-	assert.NotNil(suite.T(), api_logcollector.Get)
-	assert.NotNil(suite.T(), api_logcollector.Update)
-	assert.NotNil(suite.T(), api_logcollector.Delete)
-
-	// Test Backup Binlog handlers (moved to api/backupbinlog)
-	assert.NotNil(suite.T(), backupbinlog.List)
-	assert.NotNil(suite.T(), backupbinlog.Create)
-	assert.NotNil(suite.T(), backupbinlog.Get)
-	assert.NotNil(suite.T(), backupbinlog.Update)
-	assert.NotNil(suite.T(), backupbinlog.Delete)
+	// Test Backup Binlog handlers (migrated to domain handlers)
+	assert.NotNil(suite.T(), domain_pxc.ListBackupBinlogs)
+	assert.NotNil(suite.T(), domain_pxc.CreateBackupBinlog)
+	assert.NotNil(suite.T(), domain_pxc.GetBackupBinlog)
+	assert.NotNil(suite.T(), domain_pxc.UpdateBackupBinlog)
+	assert.NotNil(suite.T(), domain_pxc.DeleteBackupBinlog)
 
 	// Test Recovery handlers (moved to api/restore)
 	assert.NotNil(suite.T(), restore.RestoreCluster)
 	assert.NotNil(suite.T(), restore.InitiatePITR)
 	assert.NotNil(suite.T(), restore.GetRestoreStatus)
-
-	// Test XStore Follower handlers (moved to api/xstore)
-	assert.NotNil(suite.T(), xstore.ListFollowers)
-	assert.NotNil(suite.T(), xstore.CreateFollower)
-	assert.NotNil(suite.T(), xstore.GetFollower)
-	assert.NotNil(suite.T(), xstore.UpdateFollower)
-	assert.NotNil(suite.T(), xstore.DeleteFollower)
-
-	// Test XStore Backup handlers (moved to api/xstore)
-	assert.NotNil(suite.T(), xstore.ListBackups)
-	assert.NotNil(suite.T(), xstore.CreateBackup)
-	assert.NotNil(suite.T(), xstore.GetBackup)
-	assert.NotNil(suite.T(), xstore.UpdateBackup)
-	assert.NotNil(suite.T(), xstore.DeleteBackup)
-
-	// Test Cluster Knobs handlers - skip for now
-	// assert.NotNil(suite.T(), GetClusterKnobsList)
-	// assert.NotNil(suite.T(), CreateClusterKnobs)
-	// assert.NotNil(suite.T(), GetClusterKnobs)
-	// assert.NotNil(suite.T(), UpdateClusterKnobs)
-	// assert.NotNil(suite.T(), DeleteClusterKnobs)
 }
 
 func (suite *IntegrationTestSuite) TestClusterOperations() {
@@ -388,28 +352,28 @@ func TestIntegrationAPISuite(t *testing.T) {
 // Individual test functions for specific functionality
 
 func TestClusterHandlerExists(t *testing.T) {
-	// Test that cluster handlers are properly defined
-	assert.NotNil(t, api_cluster.List)
-	assert.NotNil(t, api_cluster.Create)
-	assert.NotNil(t, api_cluster.Get)
-	assert.NotNil(t, api_cluster.Update)
-	assert.NotNil(t, api_cluster.Delete)
+	// Test that cluster handlers are properly defined (domain)
+	assert.NotNil(t, domain_pxc.List)
+	assert.NotNil(t, domain_pxc.Create)
+	assert.NotNil(t, domain_pxc.Get)
+	assert.NotNil(t, domain_pxc.Update)
+	assert.NotNil(t, domain_pxc.Delete)
 }
 
 func TestBackupHandlerExists(t *testing.T) {
 	// Test that backup handlers are properly defined
-	assert.NotNil(t, api_backup.List)
-	assert.NotNil(t, api_backup.Create)
-	assert.NotNil(t, api_backup.Delete)
+	assert.NotNil(t, domain_pxc.ListBackups)
+	assert.NotNil(t, domain_pxc.CreateBackup)
+	assert.NotNil(t, domain_pxc.DeleteBackup)
 }
 
 func TestXStoreHandlerExists(t *testing.T) {
 	// Test that XStore handlers are properly defined
-	assert.NotNil(t, xstore.List)
-	assert.NotNil(t, xstore.Create)
-	assert.NotNil(t, xstore.Get)
-	assert.NotNil(t, xstore.Update)
-	assert.NotNil(t, xstore.Delete)
+	assert.NotNil(t, domain_xs.List)
+	assert.NotNil(t, domain_xs.Create)
+	assert.NotNil(t, domain_xs.Get)
+	assert.NotNil(t, domain_xs.Update)
+	assert.NotNil(t, domain_xs.Delete)
 }
 
 func TestMonitorHandlerExists(t *testing.T) {
@@ -425,17 +389,17 @@ func TestAllCRDHandlersExist(t *testing.T) {
 	// Simplified to only assert handlers relevant to this refactor
 	handlers := []interface{}{
 		// XStore
-		xstore.List, xstore.Create, xstore.Get, xstore.Update, xstore.Delete,
+		domain_xs.List, domain_xs.Create, domain_xs.Get, domain_xs.Update, domain_xs.Delete,
 		// Monitor
 		monitor.List, monitor.Create, monitor.Get, monitor.Update, monitor.Delete,
 		// Parameters
 		parameters.List, parameters.Create, parameters.Get, parameters.Update, parameters.Delete,
 		// BackupBinlog
-		backupbinlog.List, backupbinlog.Create, backupbinlog.Get, backupbinlog.Update, backupbinlog.Delete,
+		domain_pxc.ListBackupBinlogs, domain_pxc.CreateBackupBinlog, domain_pxc.GetBackupBinlog, domain_pxc.UpdateBackupBinlog, domain_pxc.DeleteBackupBinlog,
 		// XStoreFollower
-		xstore.ListFollowers, xstore.CreateFollower, xstore.GetFollower, xstore.UpdateFollower, xstore.DeleteFollower,
+		domain_xs.ListFollowers, domain_xs.CreateFollower, domain_xs.GetFollower, domain_xs.UpdateFollower, domain_xs.DeleteFollower,
 		// XStoreBackup
-		xstore.ListBackups, xstore.CreateBackup, xstore.GetBackup, xstore.UpdateBackup, xstore.DeleteBackup,
+		domain_xs.ListBackups, domain_xs.CreateBackup, domain_xs.GetBackup, domain_xs.UpdateBackup, domain_xs.DeleteBackup,
 		// Recovery APIs
 		restore.RestoreCluster, restore.InitiatePITR, restore.GetRestoreStatus,
 	}

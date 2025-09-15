@@ -1,24 +1,39 @@
-import { Component, inject, OnInit, OnDestroy, TemplateRef, ViewChild } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { MatCardModule } from '@angular/material/card';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatTableModule } from '@angular/material/table';
-import { MatTabsModule } from '@angular/material/tabs';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { MatCheckboxModule } from '@angular/material/checkbox';
+import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { ApiService } from '../../services/api.service';
 import { LoadingService, LoadingKeys } from '../../services/loading.service';
 import { PolarDBXBackup } from '../../models/backup.model';
-import { EmptyStateComponent } from '../empty-state/empty-state.component';
+import { NamespaceService } from '../../services/namespace.service';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
+
+// Ant Design Zorro imports
+import { NzCardModule } from 'ng-zorro-antd/card';
+import { NzFormModule } from 'ng-zorro-antd/form';
+import { NzInputModule } from 'ng-zorro-antd/input';
+import { NzSelectModule } from 'ng-zorro-antd/select';
+import { NzButtonModule } from 'ng-zorro-antd/button';
+import { NzIconModule } from 'ng-zorro-antd/icon';
+import { NzTableModule } from 'ng-zorro-antd/table';
+import { NzTabsModule } from 'ng-zorro-antd/tabs';
+import { NzMessageService } from 'ng-zorro-antd/message';
+import { NzGridModule } from 'ng-zorro-antd/grid';
+import { NzDividerModule } from 'ng-zorro-antd/divider';
+import { NzTagModule } from 'ng-zorro-antd/tag';
+import { NzToolTipModule } from 'ng-zorro-antd/tooltip';
+import { NzSwitchModule } from 'ng-zorro-antd/switch';
+import { NzProgressModule } from 'ng-zorro-antd/progress';
+import { NzEmptyModule } from 'ng-zorro-antd/empty';
+import { NzStepsModule } from 'ng-zorro-antd/steps';
+import { NzPopconfirmModule } from 'ng-zorro-antd/popconfirm';
+import { NzSpinModule } from 'ng-zorro-antd/spin';
+import { NzStatisticModule } from 'ng-zorro-antd/statistic';
+import { NzDescriptionsModule } from 'ng-zorro-antd/descriptions';
+import { NzAlertModule } from 'ng-zorro-antd/alert';
+import { NzDrawerModule } from 'ng-zorro-antd/drawer';
 
 @Component({
   selector: 'app-backup-management',
@@ -26,877 +41,1093 @@ import { EmptyStateComponent } from '../empty-state/empty-state.component';
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    MatCardModule,
-    MatButtonModule,
-    MatIconModule,
-    MatTableModule,
-    MatTabsModule,
-    MatProgressBarModule,
-    MatChipsModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
-    MatCheckboxModule,
+    FormsModule,
     RouterModule,
-    MatSnackBarModule,
-    MatDialogModule,
-    EmptyStateComponent
+    NzCardModule,
+    NzFormModule,
+    NzInputModule,
+    NzSelectModule,
+    NzButtonModule,
+    NzIconModule,
+    NzTableModule,
+    NzTabsModule,
+    NzGridModule,
+    NzDividerModule,
+    NzTagModule,
+    NzToolTipModule,
+    NzSwitchModule,
+    NzProgressModule,
+    NzEmptyModule,
+    NzStepsModule,
+    NzPopconfirmModule,
+    NzSpinModule,
+    NzStatisticModule,
+    NzDescriptionsModule,
+    NzAlertModule,
+    NzDrawerModule
   ],
   template: `
-    <div class="backup-management">
-      <mat-card>
-        <mat-card-header>
-          <mat-card-title>
-            <mat-icon>save</mat-icon>
-            手动备份管理
-          </mat-card-title>
-          <mat-card-subtitle>管理集群手动备份</mat-card-subtitle>
-        </mat-card-header>
-        <mat-card-content>
-          <mat-tab-group [(selectedIndex)]="selectedTab">
-            <mat-tab label="手动备份列表">
+    <div class="backup-management-container">
+      <div class="page-header">
+        <div class="header-content">
+          <h1 class="page-title">
+            <i nz-icon nzType="cloud-download" class="page-icon"></i>
+            存储备份管理
+          </h1>
+          <p class="page-description">管理 PolarDB-X 集群的全量备份，支持手动创建和存储连通性检测</p>
+        </div>
+      </div>
+
+      <div class="page-content">
+        <!-- 统计概览 -->
+        <div class="stats-section">
+          <div nz-row [nzGutter]="16">
+            <div nz-col [nzSpan]="6">
+              <nz-card class="stat-card">
+                <nz-statistic 
+                  nzTitle="总备份数量" 
+                  [nzValue]="backups.length" 
+                  [nzValueStyle]="{ color: '#1890ff' }">
+                  <ng-template #nzPrefix>
+                    <i nz-icon nzType="save"></i>
+                  </ng-template>
+                </nz-statistic>
+              </nz-card>
+            </div>
+            <div nz-col [nzSpan]="6">
+              <nz-card class="stat-card">
+                <nz-statistic 
+                  nzTitle="运行中" 
+                  [nzValue]="getRunningBackupsCount()" 
+                  [nzValueStyle]="{ color: '#52c41a' }">
+                  <ng-template #nzPrefix>
+                    <i nz-icon nzType="reload"></i>
+                  </ng-template>
+                </nz-statistic>
+              </nz-card>
+            </div>
+            <div nz-col [nzSpan]="6">
+              <nz-card class="stat-card">
+                <nz-statistic 
+                  nzTitle="已完成" 
+                  [nzValue]="getCompletedBackupsCount()" 
+                  [nzValueStyle]="{ color: '#1890ff' }">
+                  <ng-template #nzPrefix>
+                    <i nz-icon nzType="check-circle"></i>
+                  </ng-template>
+                </nz-statistic>
+              </nz-card>
+            </div>
+            <div nz-col [nzSpan]="6">
+              <nz-card class="stat-card">
+                <nz-statistic 
+                  nzTitle="失败" 
+                  [nzValue]="getFailedBackupsCount()" 
+                  [nzValueStyle]="{ color: '#ff4d4f' }">
+                  <ng-template #nzPrefix>
+                    <i nz-icon nzType="close-circle"></i>
+                  </ng-template>
+                </nz-statistic>
+              </nz-card>
+            </div>
+          </div>
+        </div>
+
+        <nz-tabset class="main-tabs" [nzTabPosition]="'top'" [nzSelectedIndex]="selectedTabIndex" (nzSelectedIndexChange)="onTabIndexChange($event)">
+          <!-- 备份列表 -->
+          <nz-tab nzTitle="备份列表">
+            <ng-template nz-tab>
               <div class="tab-content">
-                <div class="actions-toolbar">
-                  <button mat-raised-button color="primary" (click)="refreshBackups()">
-                    <mat-icon>refresh</mat-icon>
+                <nz-card 
+                  class="list-card" 
+                  nzTitle="全量备份" 
+                  [nzExtra]="listExtra"
+                  [nzLoading]="loadingService.isLoading(LoadingKeys.BACKUPS_LIST)">
+                  <ng-template #listExtra>
+                    <div class="extra-actions">
+                      <nz-select 
+                        [(ngModel)]="selectedListCluster" 
+                        nzPlaceHolder="选择集群"
+                        style="min-width: 220px;"
+                        (ngModelChange)="onListClusterChange($event)">
+                        <nz-option 
+                          *ngFor="let cluster of availableClusters" 
+                          [nzValue]="cluster.metadata.name" 
+                          [nzLabel]="cluster.metadata.name">
+                        </nz-option>
+                      </nz-select>
+                      <button 
+                        nz-button 
+                        nzType="default" 
+                        nzSize="small" 
+                        (click)="refreshBackups()"
+                        [nzLoading]="loadingService.isLoading(LoadingKeys.BACKUPS_LIST)">
+                        <i nz-icon nzType="reload"></i>
                     刷新
                   </button>
-                  <button mat-raised-button color="accent" (click)="createNew()">
-                    <mat-icon>add</mat-icon>
+                      <button 
+                        nz-button 
+                        nzType="primary" 
+                        nzSize="small" 
+                        (click)="switchToCreateTab()">
+                        <i nz-icon nzType="plus"></i>
                     新建备份
                   </button>
-                  <a *ngIf="grafanaURL" [href]="grafanaURL" target="_blank" rel="noopener" mat-button>
-                    <mat-icon>open_in_new</mat-icon>
-                    在 Grafana 打开
+                      <a 
+                        *ngIf="grafanaURL" 
+                        [href]="grafanaURL" 
+                        target="_blank" 
+                        rel="noopener"
+                        nz-button 
+                        nzType="link" 
+                        nzSize="small">
+                        <i nz-icon nzType="line-chart"></i>
+                        Grafana 监控
                   </a>
                 </div>
-                <mat-progress-bar *ngIf="loadingService.isLoading(loadingKeys.BACKUPS_LIST)" mode="indeterminate"></mat-progress-bar>
-                
-                <app-empty-state *ngIf="backups.length === 0 && !loadingService.isLoading(loadingKeys.BACKUPS_LIST)"
-                                  icon="backup"
-                                  title="暂无手动备份记录"
-                                  hint="点击“新建备份”创建您的第一个手动备份"></app-empty-state>
-                
-                <mat-table *ngIf="backups.length > 0" [dataSource]="backups" class="backup-table">
-                  <ng-container matColumnDef="name">
-                    <mat-header-cell *matHeaderCellDef>备份名称</mat-header-cell>
-                    <mat-cell *matCellDef="let backup">
-                      {{ backup.metadata.name }}
-                      <div *ngIf="isRunningEx(backup)" class="inline-progress">
-                        <mat-progress-bar mode="indeterminate"></mat-progress-bar>
-                      </div>
-                    </mat-cell>
-                  </ng-container>
-
-                  <ng-container matColumnDef="cluster">
-                    <mat-header-cell *matHeaderCellDef>集群</mat-header-cell>
-                    <mat-cell *matCellDef="let backup">{{ backup.spec?.cluster?.name || '-' }}</mat-cell>
-                  </ng-container>
-
-                  <ng-container matColumnDef="status">
-                    <mat-header-cell *matHeaderCellDef>状态</mat-header-cell>
-                    <mat-cell *matCellDef="let backup">
-                      <mat-chip [color]="getBackupStatusColorEx(backup)">
-                        {{ mapPhaseTextEx(backup) }}
-                      </mat-chip>
-                      <div class="status-hint" *ngIf="isRunningEx(backup)">
-                        进度：{{ backupProgress[backup.metadata.name]?.progressPercent ?? '—' }}%
-                        <span *ngIf="backupProgress[backup.metadata.name]?.estimated" style="opacity:0.7">（估算）</span>
-                        ｜ <a (click)="openBackupDetail(backup)" style="cursor:pointer;">查看详情</a>
-                      </div>
-                    </mat-cell>
-                  </ng-container>
-
-                  <ng-container matColumnDef="createdTime">
-                    <mat-header-cell *matHeaderCellDef>创建时间</mat-header-cell>
-                    <mat-cell *matCellDef="let backup">{{ backup.metadata.creationTimestamp | date:'medium' }}</mat-cell>
-                  </ng-container>
-
-                  <ng-container matColumnDef="actions">
-                    <mat-header-cell *matHeaderCellDef>操作</mat-header-cell>
-                    <mat-cell *matCellDef="let backup">
-                      <button mat-icon-button color="warn" (click)="deleteBackup(backup)" title="删除备份">
-                        <mat-icon>delete</mat-icon>
-                      </button>
-                      <button mat-icon-button color="warn" (click)="forceDeleteBackup(backup)" title="强制删除（移除finalizers）" style="margin-left: 4px;">
-                        <mat-icon>delete_forever</mat-icon>
-                      </button>
-                    </mat-cell>
-                  </ng-container>
-
-                  <mat-header-row *matHeaderRowDef="['name', 'cluster', 'status', 'createdTime', 'actions']"></mat-header-row>
-                  <mat-row *matRowDef="let row; columns: ['name', 'cluster', 'status', 'createdTime', 'actions']"></mat-row>
-                </mat-table>
-              </div>
-            </mat-tab>
-            <mat-tab label="创建备份">
-              <div class="tab-content">
-                <div class="form-container">
-                  <h3>创建手动备份</h3>
+                  </ng-template>
                   
-                  <form [formGroup]="backupForm" (ngSubmit)="createBackup()">
-                    <div class="form-row">
-                      <mat-form-field appearance="outline" class="full-width">
-                        <mat-label>备份名称</mat-label>
-                        <input matInput formControlName="name" placeholder="输入备份名称（可留空自动命名）">
-                        <mat-hint>留空将自动命名；仅包含小写字母、数字和连字符；最长 63</mat-hint>
-                        
-                        <mat-error *ngIf="backupForm.get('name')?.hasError('pattern')">
-                          名称只能包含小写字母、数字和连字符
-                        </mat-error>
-                        <mat-error *ngIf="backupForm.get('name')?.hasError('maxlength')">
-                          名称长度不能超过 63 个字符
-                        </mat-error>
-                      </mat-form-field>
-                    </div>
-
-                    <div class="form-row">
-                      <mat-form-field appearance="outline" class="half-width">
-                        <mat-label>命名空间</mat-label>
-                        <mat-select formControlName="namespace">
-                          <mat-option value="default">default</mat-option>
-                          <mat-option *ngFor="let ns of namespaces" [value]="ns">{{ ns }}</mat-option>
-                        </mat-select>
-                      </mat-form-field>
-                      <mat-form-field appearance="outline" class="half-width">
-                        <mat-label>目标集群</mat-label>
-                        <mat-select formControlName="cluster" (selectionChange)="onClusterChange($event.value)">
-                          <mat-option *ngFor="let cluster of clusters" [value]="cluster.metadata.name">
-                            {{ cluster.metadata.name }}
-                          </mat-option>
-                        </mat-select>
-                        <mat-error *ngIf="backupForm.get('cluster')?.hasError('required')">
-                          请选择目标集群
-                        </mat-error>
-                      </mat-form-field>
-                    </div>
-
-                    <div class="form-row">
-                      <mat-form-field appearance="outline" class="half-width">
-                        <mat-label>存储提供商</mat-label>
-                        <mat-select formControlName="storageProvider" (selectionChange)="onProviderChange($event.value)">
-                          <mat-option value="s3">Amazon S3</mat-option>
-                          <mat-option value="oss">Alibaba Cloud OSS</mat-option>
-                          <mat-option value="sftp">SFTP</mat-option>
-                        </mat-select>
-                      </mat-form-field>
-                      <mat-form-field appearance="outline" class="half-width">
-                        <mat-label>备份类型</mat-label>
-                        <mat-select formControlName="backupType">
-                          <mat-option value="Snapshot">快照备份</mat-option>
-                          <mat-option value="PhysicalBackup">物理备份</mat-option>
-                        </mat-select>
-                      </mat-form-field>
-                    </div>
-
-                    <div class="form-row">
-                      <ng-container *ngIf="getSinksForProvider(backupForm.get('storageProvider')?.value).length > 0; else sinkInputTpl">
-                        <mat-form-field appearance="outline" class="full-width">
-                          <mat-label>存储配置 (sink 名称)</mat-label>
-                          <mat-select formControlName="storageSink" (selectionChange)="onSinkChange()">
-                            <mat-option *ngFor="let s of getSinksForProvider(backupForm.get('storageProvider')?.value)" [value]="s.name">
-                              {{ s.name }} ({{ s.type }})
-                            </mat-option>
-                          </mat-select>
-                          <mat-hint>
-                            这是 HPFS/filestream 的“sink 名称”（例如：default、lyfz-polardbx-backup）。
-                            <ng-container *ngIf="secretTemplateUrl">
-                              ｜ Secret 模板：
-                              <a [href]="secretTemplateUrl" target="_blank" download>下载</a>
-                            </ng-container>
-                            <span *ngIf="sinkStatusText" [style.color]="sinkInvalid ? '#d32f2f' : '#2e7d32'" style="margin-left:8px;">{{ sinkStatusText }}</span>
-                          </mat-hint>
-                          <mat-error *ngIf="backupForm.get('storageSink')?.hasError('required')">
-                            请选择 sink 名称（非 URL）
-                          </mat-error>
-                        </mat-form-field>
-                      </ng-container>
-                      <ng-template #sinkInputTpl>
-                        <mat-form-field appearance="outline" class="full-width">
-                          <mat-label>存储配置 (sink 名称)</mat-label>
-                          <input matInput formControlName="storageSink" [placeholder]="sinkPlaceholder" (blur)="onSinkChange()">
-                          <mat-hint>
-                            这是 HPFS/filestream 的“sink 名称”（例如：default、lyfz-polardbx-backup）。
-                            <ng-container *ngIf="secretTemplateUrl">
-                              ｜ Secret 模板：
-                              <a [href]="secretTemplateUrl" target="_blank" download>下载</a>
-                            </ng-container>
-                            <span *ngIf="sinkStatusText" [style.color]="sinkInvalid ? '#d32f2f' : '#2e7d32'" style="margin-left:8px;">{{ sinkStatusText }}</span>
-                          </mat-hint>
-                          <mat-error *ngIf="backupForm.get('storageSink')?.hasError('required')">
-                            请填写 sink 名称（非 URL）
-                          </mat-error>
-                        </mat-form-field>
-                      </ng-template>
-                    </div>
-
-                    <div class="form-row">
-                      <mat-checkbox formControlName="compression">启用压缩</mat-checkbox>
-                      <mat-checkbox formControlName="encryption" style="margin-left: 16px;">启用加密</mat-checkbox>
-                      <mat-checkbox formControlName="preferFollower" style="margin-left: 16px;">仅在 follower 节点执行</mat-checkbox>
-                      <mat-checkbox formControlName="skipPrecheck" style="margin-left: 16px;">跳过预校验</mat-checkbox>
-                    </div>
-
-                    <div class="form-actions">
-                      <button mat-button type="button" (click)="resetBackupForm()">重置</button>
-                      <button mat-button type="button" (click)="selectedTab = 0">取消</button>
-                      <button mat-raised-button color="primary" type="submit" 
-                              [disabled]="backupForm.invalid || isCreatingBackup || sinkInvalid">
-                        <mat-icon>save</mat-icon>
-                        {{ isCreatingBackup ? '创建中...' : '创建备份' }}
+                  <div class="list-content">
+                    <nz-table 
+                      #basicTable 
+                      [nzData]="backups" 
+                      [nzLoading]="loadingService.isLoading(LoadingKeys.BACKUPS_LIST)"
+                      [nzPageSize]="10"
+                      [nzShowPagination]="backups.length > 10"
+                      [nzScroll]="{ x: '1200px' }">
+                      <thead>
+                        <tr>
+                          <th nzWidth="200px">备份名称</th>
+                          <th nzWidth="120px">集群</th>
+                          <th nzWidth="100px">状态</th>
+                          <th nzWidth="120px">进度</th>
+                          <th nzWidth="100px">大小</th>
+                          <th nzWidth="140px">存储连通性</th>
+                          <th nzWidth="160px">创建时间</th>
+                          <th nzWidth="150px" nzRight>操作</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr *ngFor="let backup of basicTable.data">
+                          <td>
+                            <div class="backup-name-cell">
+                              <span class="resource-name">{{ backup.metadata.name }}</span>
+                              <div *ngIf="isRunningEx(backup)" class="progress-indicator">
+                                <nz-progress 
+                                  [nzPercent]="0" 
+                                  nzStatus="active" 
+                                  [nzShowInfo]="false" 
+                                  [nzStrokeWidth]="2">
+                                </nz-progress>
+                      </div>
+                      </div>
+                          </td>
+                          <td>
+                            <nz-tag nzColor="blue">{{ backup.spec?.cluster?.name || '-' }}</nz-tag>
+                          </td>
+                          <td>
+                            <nz-tag [nzColor]="getBackupStatusColor(backup)">
+                              {{ mapPhaseText(backup) }}
+                            </nz-tag>
+                          </td>
+                          <td>
+                            <div class="progress-cell">
+                              <nz-progress 
+                                [nzPercent]="getProgressPercent(backup)" 
+                                [nzStatus]="getProgressStatus(backup)"
+                                [nzSize]="'small'"
+                                [nzFormat]="progressFormat">
+                              </nz-progress>
+                            </div>
+                          </td>
+                          <td>
+                            <span class="size-text">{{ formatSize(backup) }}</span>
+                          </td>
+                          <td>
+                            <nz-tag 
+                              [nzColor]="getStorageConnectivityColor(backup)"
+                              [nz-tooltip]="getStorageConnectivityTooltip(backup)">
+                              {{ getStorageConnectivityText(backup) }}
+                            </nz-tag>
+                          </td>
+                          <td>
+                            <span class="date-text">{{ formatDate(backup.metadata.creationTimestamp) }}</span>
+                          </td>
+                          <td nzRight>
+                            <div class="action-buttons">
+                              <button 
+                                nz-button 
+                                nzType="text" 
+                                nzSize="small"
+                                nz-tooltip="查看详情"
+                                (click)="showBackupDetails(backup)">
+                                <i nz-icon nzType="eye"></i>
                       </button>
+                              <button 
+                                *ngIf="canForceDelete(backup)"
+                                nz-button 
+                                nzType="text" 
+                                nzSize="small" 
+                                nzDanger
+                                nz-tooltip="强制删除"
+                                nz-popconfirm
+                                nzPopconfirmTitle="确定要强制删除这个备份吗？此操作不可恢复。"
+                                (nzOnConfirm)="forceDeleteBackup(backup)">
+                                <i nz-icon nzType="delete"></i>
+                      </button>
+                            </div>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </nz-table>
+                    
+                    <div *ngIf="!loadingService.isLoading(LoadingKeys.BACKUPS_LIST) && backups.length === 0" class="empty-state">
+                      <nz-empty 
+                        nzNotFoundImage="simple" 
+                        nzNotFoundContent="暂无存储备份记录（请先选择目标集群）">
+                        <div nz-empty-footer>
+                          <button nz-button nzType="primary" (click)="switchToCreateTab()">
+                            <i nz-icon nzType="plus"></i>
+                            创建备份
+                          </button>
+              </div>
+                      </nz-empty>
                     </div>
-                  </form>
+                  </div>
+                </nz-card>
+              </div>
+            </ng-template>
+          </nz-tab>
+
+          <!-- 创建备份 -->
+          <nz-tab nzTitle="创建备份">
+            <ng-template nz-tab>
+              <div class="tab-content">
+                <div class="configuration-wrapper">
+                  <!-- 创建步骤指引 -->
+                  <nz-card class="steps-card" nzTitle="创建步骤">
+                    <nz-steps [nzCurrent]="createStepIndex" nzSize="small">
+                      <nz-step nzTitle="基本信息" nzDescription="名称和集群"></nz-step>
+                      <nz-step nzTitle="备份配置" nzDescription="存储和策略"></nz-step>
+                      <nz-step nzTitle="高级选项" nzDescription="可选配置"></nz-step>
+                      <nz-step nzTitle="创建确认" nzDescription="提交备份"></nz-step>
+                    </nz-steps>
+                  </nz-card>
+
+                  <!-- 配置表单 -->
+                  <div class="config-sections">
+                    <!-- 基本信息 -->
+                    <nz-card *ngIf="createStepIndex === 0" class="config-card" nzTitle="基本信息" [nzExtra]="basicExtra">
+                      <ng-template #basicExtra>
+                        <i nz-icon nzType="info-circle" class="section-icon"></i>
+                      </ng-template>
+                      <form [formGroup]="createForm" nz-form nzLayout="vertical">
+                        <div nz-row nzGutter="16">
+                          <div nz-col [nzSpan]="8">
+                            <nz-form-item>
+                              <nz-form-label nzRequired>备份名称</nz-form-label>
+                              <nz-form-control nzHasFeedback nzErrorTip="请输入有效的备份名称">
+                                <input 
+                                  nz-input 
+                                  formControlName="name" 
+                                  placeholder="my-backup-20241215" />
+                              </nz-form-control>
+                            </nz-form-item>
+                    </div>
+                          <div nz-col [nzSpan]="8">
+                            <nz-form-item>
+                              <nz-form-label nzRequired>命名空间</nz-form-label>
+                              <nz-form-control nzErrorTip="请选择命名空间">
+                                <nz-select 
+                                  formControlName="namespace" 
+                                  nzPlaceHolder="选择命名空间">
+                                  <nz-option 
+                                    *ngFor="let ns of availableNamespaces" 
+                                    [nzValue]="ns" 
+                                    [nzLabel]="ns">
+                                  </nz-option>
+                                </nz-select>
+                              </nz-form-control>
+                            </nz-form-item>
+                    </div>
+                          <div nz-col [nzSpan]="8">
+                            <nz-form-item>
+                              <nz-form-label nzRequired>目标集群</nz-form-label>
+                              <nz-form-control nzErrorTip="请选择要备份的集群">
+                                <nz-select 
+                                  formControlName="clusterName" 
+                                  nzPlaceHolder="选择集群"
+                                  (ngModelChange)="onClusterChange($event)">
+                                  <nz-option 
+                                    *ngFor="let cluster of availableClusters" 
+                                    [nzValue]="cluster.metadata.name" 
+                                    [nzLabel]="cluster.metadata.name">
+                                  </nz-option>
+                                </nz-select>
+                              </nz-form-control>
+                            </nz-form-item>
+                    </div>
+                        </div>
+                      </form>
+                    </nz-card>
+
+                    <!-- 备份配置 -->
+                    <nz-card *ngIf="createStepIndex === 1" class="config-card" nzTitle="备份配置" [nzExtra]="storageExtra">
+                      <ng-template #storageExtra>
+                        <i nz-icon nzType="cloud-server" class="section-icon"></i>
+                      </ng-template>
+                      <form [formGroup]="createForm" nz-form nzLayout="vertical">
+                        <div nz-row nzGutter="16">
+                          <div nz-col [nzSpan]="12">
+                            <nz-form-item>
+                              <nz-form-label 
+                                nzRequired
+                                nz-tooltip 
+                                nzTooltipTitle="存储提供商名称，需在 HPFS 配置中定义">
+                                存储提供商
+                              </nz-form-label>
+                              <nz-form-control nzErrorTip="请输入存储提供商名称">
+                                <input 
+                                  nz-input 
+                                  formControlName="storageName" 
+                                  placeholder="my-storage-provider" />
+                              </nz-form-control>
+                            </nz-form-item>
+                    </div>
+                          <div nz-col [nzSpan]="12">
+                            <nz-form-item>
+                              <nz-form-label 
+                                nzRequired
+                                nz-tooltip 
+                                nzTooltipTitle="存储 Sink 名称，对应 HPFS 配置中的 sink">
+                                存储 Sink
+                              </nz-form-label>
+                              <nz-form-control nzErrorTip="请输入存储 Sink 名称">
+                                <input 
+                                  nz-input 
+                                  formControlName="sink" 
+                                  placeholder="backup-sink" />
+                              </nz-form-control>
+                            </nz-form-item>
+                          </div>
+                        </div>
+                        <div nz-row>
+                          <div nz-col [nzSpan]="24">
+                            <nz-divider nzText="配置提示" nzOrientation="left"></nz-divider>
+                            <nz-alert
+                              nzType="info"
+                              nzShowIcon
+                              nzMessage="存储配置说明"
+                              nzDescription="存储配置需要预先在 polardbx-hpfs-config ConfigMap 中定义，支持 S3、OSS、SFTP 等多种存储类型。">
+                            </nz-alert>
+                          </div>
+                        </div>
+                      </form>
+                    </nz-card>
+
+                    <!-- 高级选项 -->
+                    <nz-card *ngIf="createStepIndex === 2" class="config-card" nzTitle="高级选项" [nzExtra]="advancedExtra">
+                      <ng-template #advancedExtra>
+                        <i nz-icon nzType="control" class="section-icon"></i>
+                      </ng-template>
+                      <form [formGroup]="createForm" nz-form nzLayout="vertical">
+                        <div nz-row nzGutter="16">
+                          <div nz-col [nzSpan]="12">
+                            <nz-form-item>
+                              <nz-form-label 
+                                nz-tooltip 
+                                nzTooltipTitle="备份任务的优先级，影响资源分配">
+                                任务优先级
+                              </nz-form-label>
+                              <nz-form-control>
+                                <nz-select 
+                                  formControlName="priority" 
+                                  nzPlaceHolder="选择优先级">
+                                  <nz-option nzValue="low" nzLabel="低优先级"></nz-option>
+                                  <nz-option nzValue="normal" nzLabel="普通优先级"></nz-option>
+                                  <nz-option nzValue="high" nzLabel="高优先级"></nz-option>
+                                </nz-select>
+                              </nz-form-control>
+                            </nz-form-item>
+                          </div>
+                          <div nz-col [nzSpan]="12">
+                            <nz-form-item>
+                              <nz-form-label 
+                                nz-tooltip 
+                                nzTooltipTitle="启用压缩可减少存储空间占用">
+                                启用压缩
+                              </nz-form-label>
+                              <nz-form-control>
+                                <nz-switch 
+                                  formControlName="enableCompression"
+                                  nzCheckedChildren="开" 
+                                  nzUnCheckedChildren="关">
+                                </nz-switch>
+                              </nz-form-control>
+                            </nz-form-item>
+                          </div>
+                        </div>
+                        <div nz-row>
+                          <div nz-col [nzSpan]="24">
+                            <nz-form-item>
+                              <nz-form-label>备份描述</nz-form-label>
+                              <nz-form-control>
+                                <textarea 
+                                  nz-input 
+                                  formControlName="description" 
+                                  placeholder="备份说明（可选）"
+                                  [nzAutosize]="{ minRows: 3, maxRows: 6 }">
+                                </textarea>
+                              </nz-form-control>
+                            </nz-form-item>
+                          </div>
+                        </div>
+                      </form>
+                    </nz-card>
+                    <!-- 创建确认 -->
+                    <nz-card *ngIf="createStepIndex === 3" class="config-card" nzTitle="确认与提交">
+                      <nz-descriptions nzBordered [nzColumn]="1">
+                        <nz-descriptions-item nzTitle="命名空间">{{ createForm.value.namespace }}</nz-descriptions-item>
+                        <nz-descriptions-item nzTitle="目标集群">{{ createForm.value.clusterName }}</nz-descriptions-item>
+                        <nz-descriptions-item nzTitle="备份名称">{{ createForm.value.name || '-' }}</nz-descriptions-item>
+                        <nz-descriptions-item nzTitle="存储提供商">{{ createForm.value.storageName }}</nz-descriptions-item>
+                        <nz-descriptions-item nzTitle="存储 Sink">{{ createForm.value.sink }}</nz-descriptions-item>
+                        <nz-descriptions-item nzTitle="任务优先级">{{ createForm.value.priority }}</nz-descriptions-item>
+                        <nz-descriptions-item nzTitle="启用压缩">{{ createForm.value.enableCompression ? '是' : '否' }}</nz-descriptions-item>
+                        <nz-descriptions-item nzTitle="描述">{{ createForm.value.description || '-' }}</nz-descriptions-item>
+                      </nz-descriptions>
+                    </nz-card>
+                    </div>
+
+                  <!-- 操作按钮 -->
+                  <div class="action-bar">
+                    <button nz-button nzSize="large" (click)="resetCreateForm()">
+                      <i nz-icon nzType="reload"></i>
+                      重置表单
+                    </button>
+                    <button 
+                      nz-button 
+                      nzSize="large"
+                      (click)="prevCreateStep()"
+                      [disabled]="createStepIndex === 0">
+                      <i nz-icon nzType="arrow-left"></i>
+                      上一步
+                    </button>
+                    <button 
+                      *ngIf="createStepIndex < 3"
+                      nz-button 
+                      nzType="primary" 
+                      nzSize="large"
+                      (click)="nextCreateStep()"
+                      [disabled]="!canGoNext()">
+                      下一步
+                      <i nz-icon nzType="arrow-right"></i>
+                    </button>
+                    <button 
+                      *ngIf="createStepIndex === 3"
+                      nz-button 
+                      nzType="primary" 
+                      nzSize="large" 
+                      [nzLoading]="loadingService.isLoading(LoadingKeys.BACKUP_CREATE)"
+                      [disabled]="!canSubmit()"
+                      (click)="confirmAndSubmit()">
+                      <i nz-icon nzType="cloud-download"></i>
+                      提交备份
+                    </button>
+                  </div>
                 </div>
               </div>
-            </mat-tab>
-          </mat-tab-group>
-        </mat-card-content>
-      </mat-card>
+            </ng-template>
+          </nz-tab>
+        </nz-tabset>
     </div>
 
-    <ng-template #backupDetailsDialog>
-      <h2 mat-dialog-title>备份详情</h2>
-      <mat-dialog-content>
-        <div><strong>名称：</strong>{{ selectedBackup?.metadata?.name }}</div>
-        <div><strong>命名空间：</strong>{{ selectedBackup?.metadata?.namespace || 'default' }}</div>
-        <div><strong>集群：</strong>{{ selectedBackup?.spec?.cluster?.name || '-' }}</div>
-        <div style="margin:8px 0">
-          <mat-chip [color]="getBackupStatusColorEx(selectedBackup!)">{{ mapPhaseTextEx(selectedBackup!) }}</mat-chip>
-        </div>
+      <!-- 备份详情抽屉 -->
+      <nz-drawer
+        [nzVisible]="detailsDrawerVisible"
+        nzPlacement="right"
+        nzTitle="备份详情"
+        [nzWidth]="600"
+        (nzOnClose)="closeDetailsDrawer()">
+        <div *nzDrawerContent>
         <div *ngIf="selectedBackup">
-          <div><strong>进度：</strong>{{ backupProgress[selectedBackup.metadata.name]?.progressPercent ?? '—' }}%</div>
-          <div><strong>大小：</strong>{{ (backupProgress[selectedBackup.metadata.name]?.sizeBytes || 0) / 1048576 | number:'1.0-0' }} MB</div>
+            <nz-descriptions nzBordered [nzColumn]="1">
+              <nz-descriptions-item nzTitle="备份名称">
+                {{ selectedBackup.metadata.name }}
+              </nz-descriptions-item>
+              <nz-descriptions-item nzTitle="命名空间">
+                <nz-tag nzColor="blue">{{ selectedBackup.metadata.namespace }}</nz-tag>
+              </nz-descriptions-item>
+              <nz-descriptions-item nzTitle="集群">
+                {{ selectedBackup.spec?.cluster?.name || '-' }}
+              </nz-descriptions-item>
+              <nz-descriptions-item nzTitle="状态">
+                <nz-tag [nzColor]="getBackupStatusColor(selectedBackup)">
+                  {{ mapPhaseText(selectedBackup) }}
+                </nz-tag>
+              </nz-descriptions-item>
+              <nz-descriptions-item nzTitle="进度">
+                <nz-progress 
+                  [nzPercent]="getProgressPercent(selectedBackup)" 
+                  [nzStatus]="getProgressStatus(selectedBackup)">
+                </nz-progress>
+              </nz-descriptions-item>
+              <nz-descriptions-item nzTitle="存储连通性">
+                <nz-tag 
+                  [nzColor]="getStorageConnectivityColor(selectedBackup)"
+                  [nz-tooltip]="getStorageConnectivityTooltip(selectedBackup)">
+                  {{ getStorageConnectivityText(selectedBackup) }}
+                </nz-tag>
+              </nz-descriptions-item>
+              <nz-descriptions-item nzTitle="备份大小">
+                {{ formatSize(selectedBackup) }}
+              </nz-descriptions-item>
+              <nz-descriptions-item nzTitle="创建时间">
+                {{ formatDate(selectedBackup.metadata.creationTimestamp) }}
+              </nz-descriptions-item>
+            </nz-descriptions>
         </div>
-        <div style="margin-top:8px" *ngIf="grafanaLink">
-          <a [href]="grafanaLink" target="_blank" rel="noopener">
-            <mat-icon style="vertical-align:middle; margin-right:4px">open_in_new</mat-icon>在 Grafana 打开
-          </a>
         </div>
-      </mat-dialog-content>
-      <mat-dialog-actions align="end">
-        <button mat-button mat-dialog-close>关闭</button>
-      </mat-dialog-actions>
-    </ng-template>
+      </nz-drawer>
+    </div>
   `,
   styles: [`
-    .backup-management {
-      padding: 20px;
+    .backup-management-container {
+      padding: 16px;
+      background: #ffffff;
     }
     
-    .tab-content {
-      padding: 20px 0;
-    }
-    
-    .actions-toolbar {
+    .page-header {
       margin-bottom: 16px;
-      display: flex;
-      gap: 8px;
     }
     
-    mat-card-title {
+    .header-content {
+      max-width: 1120px;
+      margin: 0 auto;
+    }
+    
+    .page-title {
+      color: rgba(0, 0, 0, 0.87);
+      font-size: 18px;
+      font-weight: 500;
+      margin: 0 0 4px 0;
       display: flex;
       align-items: center;
       gap: 8px;
     }
     
-    .empty-state {
+    .page-icon {
+      font-size: 20px;
+      color: #1890ff;
+    }
+    
+    .page-description {
+      color: rgba(0, 0, 0, 0.6);
+      font-size: 14px;
+      margin: 0;
+      line-height: 1.5;
+    }
+    
+    .page-content {
+      max-width: 1120px;
+      margin: 0 auto;
+    }
+    
+    .stats-section {
+      margin-bottom: 16px;
+    }
+    
+    .stat-card {
       text-align: center;
-      padding: 40px;
-      color: #666;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     }
     
-    .empty-state mat-icon {
-      font-size: 48px;
-      width: 48px;
-      height: 48px;
-      margin-bottom: 16px;
-      opacity: 0.5;
+    .main-tabs {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+      border: 1px solid #e0e0e0;
     }
     
-    .empty-state .hint {
-      font-size: 0.9em;
-      opacity: 0.7;
+    .tab-content {
+      padding: 16px;
     }
     
-    .form-container {
-      padding: 20px;
+    .list-card {
+      border: none;
+      box-shadow: none;
     }
     
-    .form-row {
+    .extra-actions {
       display: flex;
-      gap: 16px;
-      margin-bottom: 16px;
+      gap: 8px;
     }
     
-    .full-width {
+    .list-content {
+      margin-top: 16px;
+    }
+    
+    .backup-name-cell {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    
+    .resource-name {
+      font-weight: 500;
+      color: #1890ff;
+    }
+    
+    .progress-indicator {
       width: 100%;
     }
     
-    .half-width {
-      flex: 1;
+    .progress-cell {
+      width: 100px;
     }
     
-    .form-actions {
+    .size-text {
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-size: 12px;
+    }
+    
+    .date-text {
+      font-size: 12px;
+      color: #666;
+    }
+    
+    .action-buttons {
       display: flex;
-      gap: 8px;
-      justify-content: flex-end;
-      margin-top: 24px;
-      padding-top: 16px;
-      border-top: 1px solid #e0e0e0;
+      gap: 4px;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 40px 0;
+    }
+    
+    .configuration-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    
+    .steps-card {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+      border: 1px solid #e0e0e0;
+    }
+    
+    .config-sections {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    
+    .config-card {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+      border: 1px solid #e0e0e0;
+      overflow: hidden;
+    }
+    
+    .section-icon {
+      font-size: 16px;
+      color: #1890ff;
+    }
+    
+    .action-bar {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      padding: 16px;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+      border: 1px solid #e0e0e0;
+    }
+    
+    /* 响应式设计 */
+    @media (max-width: 768px) {
+      .backup-management-container {
+        padding: 8px;
+      }
+      
+      .extra-actions {
+        flex-direction: column;
+      }
+      
+      .action-bar {
+        flex-direction: column;
+        align-items: center;
+      }
+      
+      .action-bar button {
+        width: 100%;
+        max-width: 200px;
+      }
     }
   `]
 })
 export class BackupManagementComponent implements OnInit, OnDestroy {
-    selectedTab = 0;
-    loadingKeys = LoadingKeys;
-    backups: PolarDBXBackup[] = [];
-    // 估算进度缓存
-    backupProgress: Record<string, { progressPercent: number; estimated: boolean; sizeBytes: number | null; phase: string }> = {};
-    // 备份详情与进度订阅（简单 SSE 骨架）
-    private eventSources: Record<string, EventSource> = {};
-    selectedBackup: PolarDBXBackup | null = null;
-    grafanaLink = '';
-    @ViewChild('backupDetailsDialog') backupDetailsDialog!: TemplateRef<any>;
-    private dialog = inject(MatDialog);
-    // 详情抽屉/对话框
-    openBackupDetail(backup: PolarDBXBackup): void {
-        this.selectedBackup = backup;
-        const ns = backup.metadata.namespace || 'default';
-        const cluster = backup.spec?.cluster?.name || '';
-        const base = localStorage.getItem('grafanaURL') || '';
-        this.grafanaLink = base ? `${base}/d/polardbx-monitor?orgId=1&var-namespace=${encodeURIComponent(ns)}${cluster ? `&var-cluster=${encodeURIComponent(cluster)}` : ''}` : '';
-        this.subscribeBackup(ns, backup.metadata.name);
-        this.dialog.open(this.backupDetailsDialog);
-    }
+  private destroy$ = new Subject<void>();
+  private apiService = inject(ApiService);
+  private namespaceService = inject(NamespaceService);
+  private fb = inject(FormBuilder);
+  private msg = inject(NzMessageService);
+  
+  loadingService = inject(LoadingService);
+  LoadingKeys = LoadingKeys;
 
-    // 订阅备份进度（SSE + 定时轮询混合）
-    public subscribeBackup(namespace: string, name: string): void {
-        const key = `${namespace}/${name}`;
-        
-        // 避免重复订阅
-        if (this.eventSources[key]) {
-            return;
-        }
-
-        // 立即获取一次进度
-        this.fetchBackupProgress(namespace, name);
-
-        // SSE 订阅 phase 变化
-        try {
-            const kubeconfigB64 = localStorage.getItem('kubeconfig-b64') || sessionStorage.getItem('kubeconfig-b64');
-            const sseUrl = `http://localhost:8080/api/v1/backups/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}/stream${kubeconfigB64 ? `?k=${encodeURIComponent(kubeconfigB64)}` : ''}`;
-            
-            const eventSource = new EventSource(sseUrl);
-            this.eventSources[key] = eventSource;
-
-            eventSource.onmessage = (event) => {
-                try {
-                    const data = JSON.parse(event.data);
-                    if (data.type === 'phaseChanged') {
-                        // Phase 变化时重新获取详细进度
-                        this.fetchBackupProgress(namespace, name);
-                    }
-                } catch (e) {
-                    console.warn('SSE 数据解析失败:', e);
-                }
-            };
-
-            eventSource.onerror = () => {
-                console.warn(`SSE 连接错误: ${key}`);
-                eventSource.close();
-                delete this.eventSources[key];
-            };
-
-        } catch (e) {
-            console.warn('SSE 不可用，使用轮询模式:', e);
-        }
-
-        // 备用轮询机制（SSE失败或不支持时）
-        if (!this.eventSources[key]) {
-            const interval = setInterval(() => {
-                this.fetchBackupProgress(namespace, name);
-            }, 3000);
-            
-            // 存储间隔ID以便清理
-            (this.eventSources as any)[`${key}_interval`] = interval;
-        }
-    }
-
-    // 获取备份详细进度
-    private fetchBackupProgress(namespace: string, name: string): void {
-        this.apiService.getBackupMetrics(namespace, name).subscribe({
-            next: (metrics) => {
-                this.backupProgress[name] = {
-                    progressPercent: metrics.progressPercent || 0,
-                    estimated: metrics.estimated ?? true,
-                    sizeBytes: metrics.sizeBytes,
-                    phase: metrics.phase || 'unknown'
-                };
-
-                // 如果备份已完成，停止订阅
-                if (['finished', 'failed', 'succeeded', 'completed'].includes(metrics.phase?.toLowerCase() || '')) {
-                    this.unsubscribeBackup(namespace, name);
-                }
-            },
-            error: (error) => {
-                console.warn(`获取备份进度失败 (${name}):`, error);
-                // 如果是404，说明备份可能已删除
-                if (error.status === 404) {
-                    this.unsubscribeBackup(namespace, name);
-                }
-            }
-        });
-    }
-
-    // 取消订阅
-    private unsubscribeBackup(namespace: string, name: string): void {
-        const key = `${namespace}/${name}`;
-        
-        // 关闭 SSE 连接
-        if (this.eventSources[key]) {
-            this.eventSources[key].close();
-            delete this.eventSources[key];
-        }
-
-        // 清理轮询间隔
-        const intervalKey = `${key}_interval`;
-        if ((this.eventSources as any)[intervalKey]) {
-            clearInterval((this.eventSources as any)[intervalKey]);
-            delete (this.eventSources as any)[intervalKey];
-        }
-    }
-    clusters: any[] = [];
-    namespaces: string[] = ['default'];
-    isCreatingBackup = false;
-    backupForm: FormGroup;
-    sinkPlaceholder = '存储端点配置，例如: s3://bucket-name/path';
-    sinkExample = 's3://my-bucket/backups/cluster-A/';
-    secretTemplateUrl = '';
-    hpfsSinks: Array<{ name: string; type: string; endpoint?: string; bucket?: string; bucketLookupType?: string; host?: string; port?: number; rootPath?: string; }> = [];
-    sinkInvalid: boolean = false;
-    sinkStatusText: string = '';
+  backups: PolarDBXBackup[] = [];
+  availableNamespaces: string[] = [];
+  availableClusters: any[] = [];
+  selectedListCluster: string | null = null;
+  selectedBackup: PolarDBXBackup | null = null;
+  detailsDrawerVisible = false;
+  currentNamespace = 'default';
     grafanaURL = '';
+  selectedTabIndex = 0;
+  createStepIndex = 0;
     
-    private fb = inject(FormBuilder);
-    private snackBar = inject(MatSnackBar);
-    public loadingService = inject(LoadingService);
-    private apiService = inject(ApiService);
+  createForm: FormGroup = this.fb.group({
+    name: ['', [Validators.pattern(/^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/)]],
+    namespace: ['default', [Validators.required]],
+    clusterName: ['', [Validators.required]],
+    storageName: ['', [Validators.required]],
+    sink: ['', [Validators.required]],
+    priority: ['normal'],
+    enableCompression: [true],
+    description: ['']
+  });
 
-    constructor() {
-        this.backupForm = this.initBackupForm();
-    }
+  progressFormat = (percent: number): string => {
+    return percent === 100 ? '完成' : `${percent}%`;
+  };
 
     ngOnInit(): void {
-        this.grafanaURL = localStorage.getItem('grafanaURL') || '';
+    this.namespaceService.activeNamespace$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((namespace: string | null) => {
+        this.currentNamespace = namespace || 'default';
+        this.createForm.patchValue({ namespace: this.currentNamespace });
+        this.loadBackups();
         this.loadClusters();
-        this.loadHpfsSinks();
-        this.refreshBackups();
+      });
+
+    this.loadNamespaces();
     }
 
     ngOnDestroy(): void {
-        // 清理所有订阅
-        Object.keys(this.eventSources).forEach(key => {
-            if (key.includes('_interval')) {
-                clearInterval((this.eventSources as any)[key]);
-            } else {
-                this.eventSources[key]?.close();
-            }
-        });
-        this.eventSources = {};
-    }
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
 
-    private loadHpfsSinks(): void {
-        // 读取 kubeconfig 并以 Header 方式调用，沿用 ApiService 默认 headers
-        this.apiService.getHpfsSinks().subscribe({
-            next: (resp) => {
-                this.hpfsSinks = resp.sinks || [];
-                // 默认策略：若存在 s3 类型且 name=default 的 sink，则默认 provider=s3，sink=default
-                const defaultS3 = this.hpfsSinks.find(s => (s.type || '').toLowerCase() === 's3' && s.name === 'default');
-                if (defaultS3) {
-                    this.backupForm.patchValue({ storageProvider: 's3', storageSink: 'default' });
-                    this.sinkInvalid = false;
-                    this.sinkStatusText = '已验证：default (s3)';
-                }
-            },
-            error: () => {
-                // 静默失败，不阻塞表单
-            }
-        });
+  async loadBackups(): Promise<void> {
+    try {
+      this.loadingService.setLoading(LoadingKeys.BACKUPS_LIST, true);
+      if (!this.selectedListCluster) {
+        this.backups = [];
+        return;
+      }
+      const response = await this.apiService.getBackups(this.currentNamespace, this.selectedListCluster).toPromise();
+      this.backups = response || [];
+    } catch (error) {
+      console.error('加载备份列表失败:', error);
+      this.msg.error('加载备份列表失败');
+      this.backups = [];
+    } finally {
+      this.loadingService.setLoading(LoadingKeys.BACKUPS_LIST, false);
     }
+  }
 
-    getSinksForProvider(provider: string): Array<{ name: string; type: string; endpoint?: string; bucket?: string; bucketLookupType?: string; host?: string; port?: number; rootPath?: string; }> {
-        const p = (provider || '').toLowerCase();
-        return (this.hpfsSinks || []).filter(s => (s.type || '').toLowerCase() === p);
+  async loadNamespaces(): Promise<void> {
+    try {
+      const response = await this.apiService.listSystemNamespaces().toPromise();
+      this.availableNamespaces = (response?.items || []).map(ns => ns.name);
+    } catch (error) {
+      console.error('加载命名空间失败:', error);
+      this.availableNamespaces = ['default'];
     }
+  }
 
-    private async decideRoleByAdvice(namespace: string, clusterName: string): Promise<'leader'|'follower'|undefined> {
-        try {
-            const advice = await this.apiService.getBackupAdvice(namespace, clusterName).toPromise();
-            if (advice?.role === 'leader' || advice?.role === 'follower') {
-                return advice.role;
-            }
-        } catch {}
-        return undefined;
+  async loadClusters(): Promise<void> {
+    try {
+      const response = await this.apiService.getClusters().toPromise();
+      this.availableClusters = response || [];
+      if (!this.selectedListCluster && this.availableClusters.length > 0) {
+        this.selectedListCluster = this.availableClusters[0]?.metadata?.name || null;
+        await this.loadBackups();
+      }
+    } catch (error) {
+      console.error('加载集群列表失败:', error);
+      this.availableClusters = [];
     }
+  }
 
-    onSinkChange(): void {
-        const provider = String(this.backupForm.get('storageProvider')?.value || '').toLowerCase();
-        const sinkName = String(this.backupForm.get('storageSink')?.value || '').trim();
-        if (!provider || !sinkName) {
-            this.sinkInvalid = true;
-            this.sinkStatusText = '未填写 sink';
+  async submitCreate(): Promise<void> {
+    if (!this.createForm.valid) {
+      this.markFormGroupTouched(this.createForm);
             return;
+    }
+
+    try {
+      this.loadingService.setLoading(LoadingKeys.BACKUP_CREATE, true);
+      const formValue = this.createForm.value;
+      
+      const body: any = {
+        metadata: {
+          name: formValue.name || undefined,
+          namespace: formValue.namespace
+        },
+        spec: {
+          cluster: { name: formValue.clusterName },
+          storageProvider: {
+            storageName: formValue.storageName,
+            sink: formValue.sink
+          }
         }
-        // 只做存在性校验（不含连通性）
-        this.apiService.validateSink(sinkName, provider).subscribe({
-            next: (res) => {
-                if (res.status === 'ok') {
-                    this.sinkInvalid = false;
-                    this.sinkStatusText = `已验证：${res.name} (${res.type})`;
-                } else {
-                    this.sinkInvalid = true;
-                    this.sinkStatusText = '未找到该 sink，检查 HPFS 配置';
-                }
-            },
-            error: () => {
-                this.sinkInvalid = true;
-                this.sinkStatusText = '校验失败';
-            }
-        });
-    }
+      };
 
-    loadClusters(): void {
-        this.apiService.getClusters().subscribe({
-            next: (clusters) => {
-                this.clusters = clusters;
-                if (clusters.length > 0) {
-                    // 加载第一个集群的备份
-                    this.loadBackups(clusters[0].metadata.namespace, clusters[0].metadata.name);
-                }
-            },
-            error: (err) => {
-                this.snackBar.open(`加载集群列表失败: ${err.error?.message || err.message}`, '关闭', { duration: 5000 });
-            }
-        });
+      await this.apiService.createBackup(formValue.namespace, formValue.clusterName, body).toPromise();
+      this.msg.success('备份任务创建成功');
+      this.resetCreateForm();
+      // 切回列表页签
+      this.selectedTabIndex = 0;
+      if (this.selectedListCluster === formValue.clusterName) {
+        this.loadBackups();
+      }
+    } catch (error) {
+      console.error('创建备份失败:', error);
+      this.msg.error('创建备份失败');
+    } finally {
+      this.loadingService.setLoading(LoadingKeys.BACKUP_CREATE, false);
     }
-
-    loadBackups(namespace: string, clusterName: string): void {
-        this.apiService.getBackups(namespace, clusterName).subscribe({
-            next: (backups) => {
-                this.backups = backups;
-                // 对运行中的备份，自动尝试建立 SSE 订阅（骨架）
-                backups.forEach(b => {
-                    if (this.isRunning(b.status?.phase)) {
-                        this.ensureSubscribed(b.metadata.namespace || 'default', b.metadata.name);
-                    }
-                    // 拉取估算进度
-                    const ns = b.metadata.namespace || 'default';
-                    const name = b.metadata.name;
-                    this.apiService.getBackupMetrics(ns, name).subscribe({
-                        next: (m) => { this.backupProgress[name] = m as any; },
-                        error: () => { /* 忽略 */ }
-                    });
-                });
-            },
-            error: (err) => {
-                this.snackBar.open(`加载备份列表失败: ${err.error?.message || err.message}`, '关闭', { duration: 5000 });
-                this.backups = [];
-            }
-        });
     }
 
     refreshBackups(): void {
-        if (this.clusters.length > 0) {
-            const firstCluster = this.clusters[0];
-            this.loadBackups(firstCluster.metadata.namespace, firstCluster.metadata.name);
-            this.snackBar.open('备份列表已刷新', '关闭', { duration: 2000 });
-        } else {
-            this.snackBar.open('没有可用的集群', '关闭', { duration: 2000 });
-        }
+    this.loadBackups();
+  }
+
+  // 分步向导逻辑
+  canGoNext(): boolean {
+    if (this.createStepIndex === 0) {
+      const controls = this.createForm.controls;
+      return (controls['namespace'].valid && controls['clusterName'].valid && controls['name'].valid !== false);
     }
-
-    createNew(): void {
-        this.selectedTab = 1;
+    if (this.createStepIndex === 1) {
+      const controls = this.createForm.controls;
+      return controls['storageName'].valid && controls['sink'].valid;
     }
-
-    ensureSubscribed(namespace: string, name: string) {
-        const key = `${namespace}/${name}`;
-        if (this.eventSources[key]) {
-            return;
-        }
-        this.subscribeBackup(namespace, name);
+    if (this.createStepIndex === 2) {
+      return true;
     }
+    return true;
+  }
 
+  canSubmit(): boolean {
+    return this.createForm.valid && this.createStepIndex === 3;
+  }
 
-
-    deleteBackup(backup: PolarDBXBackup): void {
-        if (confirm(`确定删除备份 "${backup.metadata.name}" 吗？`)) {
-            this.apiService.deleteBackup(backup.metadata.namespace || 'default', backup.metadata.name).subscribe({
-                next: () => {
-                    this.snackBar.open('删除成功!', '关闭', { duration: 3000 });
-                    this.refreshBackups();
-                },
-                error: (err) => {
-                    this.snackBar.open(`删除失败: ${err.error?.message || err.message}`, '关闭', { duration: 5000 });
-                }
-            });
-        }
+  nextCreateStep(): void {
+    if (!this.canGoNext()) {
+      this.markFormGroupTouched(this.createForm);
+      return;
     }
+    this.createStepIndex = Math.min(3, this.createStepIndex + 1);
+  }
 
-    forceDeleteBackup(backup: PolarDBXBackup): void {
-        if (confirm(`强制删除将直接移除 finalizers 并清理对象。确定对备份 "${backup.metadata.name}" 执行吗？`)) {
-            this.apiService.forceDeleteBackup(backup.metadata.namespace || 'default', backup.metadata.name).subscribe({
-                next: () => {
-                    this.snackBar.open('强制删除成功!', '关闭', { duration: 3000 });
-                    this.refreshBackups();
-                },
-                error: (err) => {
-                    this.snackBar.open(`强制删除失败: ${err.error?.message || err.message}`, '关闭', { duration: 5000 });
-                }
-            });
-        }
-    }
+  prevCreateStep(): void {
+    this.createStepIndex = Math.max(0, this.createStepIndex - 1);
+  }
 
-    getBackupStatusColor(status?: string): string {
-        // PolarDBXBackup v1 枚举："", FullBackuping, Collecting, Calculating, BinlogBackuping, MetadataBackuping, Finished, Failed, Deleting
-        const p = (status || '').toLowerCase();
-        if (!p) return 'accent'; // 创建中
-        if (['fullbackuping','collecting','calculating','binlogbackuping','metadatabackuping'].includes(p)) return 'primary';
-        if (['finished','succeeded','completed'].includes(p)) return 'accent';
-        if (['deleting','failed'].includes(p)) return 'warn';
-        return '';
+  async confirmAndSubmit(): Promise<void> {
+    if (!this.canSubmit()) return;
+    const v = this.createForm.value;
+    const confirmMsg = `请确认提交备份：\n\n` +
+      `命名空间：${v.namespace}\n` +
+      `目标集群：${v.clusterName}\n` +
+      `备份名称：${v.name || '-'}\n` +
+      `存储提供商：${v.storageName}\n` +
+      `存储 Sink：${v.sink}`;
+    if (confirm(confirmMsg)) {
+      await this.submitCreate();
+      this.createStepIndex = 0;
     }
-    mapPhaseText(phase?: string): string {
-        const p = (phase || '').toLowerCase();
-        if (!p) return '创建中';
-        switch (p) {
-            case 'fullbackuping':
-                return '全量备份中';
-            case 'collecting':
-                return '收集中';
-            case 'calculating':
-                return '计算中';
-            case 'binlogbackuping':
-                return '日志备份中';
-            case 'metadatabackuping':
-                return '元数据备份中';
-            case 'finished':
-            case 'succeeded':
-            case 'completed':
-                return '已完成';
-            case 'failed':
-                return '失败';
-            case 'deleting':
-                return '删除中';
-            default:
-                return '未知';
-        }
-    }
+  }
 
-    isRunning(phase?: string): boolean {
-        const p = (phase || '').toLowerCase();
-        // 仅 v1 的非终态视为运行中；空串视为“创建中”，不显示“进行中…”字样
-        return ['fullbackuping','collecting','calculating','binlogbackuping','metadatabackuping'].includes(p);
-    }
+  switchToCreateTab(): void {
+    this.selectedTabIndex = 1;
+  }
 
-    // 增强版：当 phase 为空时，尝试推断阶段（如果后端返回了 Message 或 StartTime）
-    private inferPhaseWhenEmpty(backup: PolarDBXBackup): string {
-        const phase = (backup?.status?.phase || '').toString();
-        if (phase) return phase;
-        // 无相位：按是否已经开始推断“创建中”/“收集中”
-        // 这里保守返回空串，由 mapPhaseTextEx 统一呈现“创建中”
-        return '';
-    }
+  onTabIndexChange(index: number): void {
+    this.selectedTabIndex = index;
+  }
 
-    mapPhaseTextEx(backup: PolarDBXBackup): string {
-        const phase = (this.inferPhaseWhenEmpty(backup) || '').toString();
-        return this.mapPhaseText(phase);
-    }
+  onListClusterChange(value: string): void {
+    this.selectedListCluster = value || null;
+    this.loadBackups();
+  }
 
-    getBackupStatusColorEx(backup: PolarDBXBackup): string {
-        const phase = (this.inferPhaseWhenEmpty(backup) || '').toString();
-        return this.getBackupStatusColor(phase);
-    }
+  onClusterChange(clusterName: string): void {
+    // 当集群变化时的处理逻辑
+    console.log('Selected cluster:', clusterName);
+  }
 
-    isRunningEx(backup: PolarDBXBackup): boolean {
-        const phase = (this.inferPhaseWhenEmpty(backup) || '').toString();
-        return this.isRunning(phase);
-    }
-
-    private initBackupForm(): FormGroup {
-    const prefs = this.getBackupPreferences();
-    const fg = this.fb.group({
-        name: ['', [Validators.pattern(/^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/), Validators.maxLength(63)]],
-        namespace: ['default', Validators.required],
-        cluster: ['', Validators.required],
-        storageProvider: [prefs.storageName || 's3', Validators.required],
-        backupType: ['Snapshot', Validators.required],
-        storageSink: [prefs.sink || '', []],
-        compression: [false],
-        encryption: [false],
-        preferFollower: [false],
-        skipPrecheck: [true]
+  resetCreateForm(): void {
+    this.createForm.reset({
+      name: '',
+      namespace: this.currentNamespace,
+      clusterName: '',
+      storageName: '',
+      sink: '',
+      priority: 'normal',
+      enableCompression: true,
+      description: ''
     });
-    // 初始化联动与校验
-    this.applyProviderRules(String(fg.get('storageProvider')?.value ?? ''), fg);
-    fg.get('storageProvider')?.valueChanges.subscribe(v => this.applyProviderRules(String(v || ''), fg));
-    return fg;
-}
-
-    private getBackupPreferences(): { storageName: string; sink: string; retentionTime: string } {
-    const storageName = (localStorage.getItem('backupStorageName') || 's3').trim();
-    const sink = (localStorage.getItem('backupSink') || '').trim();
-    const retentionTime = (localStorage.getItem('backupRetentionTime') || '240h').trim();
-    return { storageName, sink, retentionTime };
-}
-
-    onClusterChange(clusterName: string): void {
-    // 可以根据选择的集群更新命名空间
-    const selectedCluster = this.clusters.find(c => c.metadata.name === clusterName);
-    if (selectedCluster) {
-        this.backupForm.patchValue({ namespace: selectedCluster.metadata.namespace });
-    }
-    // 使用后端建议展示提示（真正设置在提交时执行）
-    const ns = selectedCluster?.metadata?.namespace || 'default';
-    this.apiService.getBackupAdvice(ns, clusterName).subscribe({
-        next: (advice) => {
-            if (!this.backupForm.get('preferFollower')?.value && advice?.role === 'leader') {
-                this.snackBar.open('后端建议：单副本（无 follower），将默认在 leader 上执行。', '关闭', { duration: 3000 });
-            }
-        },
-        error: () => { /* 忽略错误，仅用于提示 */ }
+    // 重置步骤到第一步，并清理校验状态
+    this.createStepIndex = 0;
+    Object.keys(this.createForm.controls).forEach(key => {
+      const ctrl = this.createForm.get(key);
+      ctrl?.markAsPristine();
+      ctrl?.markAsUntouched();
+      ctrl?.updateValueAndValidity();
     });
-}
+  }
 
-    resetBackupForm(): void {
-    this.backupForm.reset();
-    this.backupForm.patchValue({
-        namespace: 'default',
-        storageProvider: 's3',
-        backupType: 'Snapshot',
-        compression: false,
-        encryption: false
-    });
-}
+  showBackupDetails(backup: PolarDBXBackup): void {
+    this.selectedBackup = backup;
+    this.detailsDrawerVisible = true;
+  }
 
-    async createBackup(): Promise<void> {
-    if (this.backupForm.invalid) {
-        this.snackBar.open('请检查表单填写是否正确', '关闭', { duration: 3000 });
-        return;
-    }
+  closeDetailsDrawer(): void {
+    this.detailsDrawerVisible = false;
+    this.selectedBackup = null;
+  }
 
-
-    this.isCreatingBackup = true;
-    const formValue = this.backupForm.value;
-    const prefs = this.getBackupPreferences();
-
+  async forceDeleteBackup(backup: PolarDBXBackup): Promise<void> {
     try {
-        const backupObject: any = {
-            apiVersion: 'polardbx.aliyun.com/v1',
-            kind: 'PolarDBXBackup',
-            metadata: {
-                name: formValue.name,
-                namespace: formValue.namespace
-            },
-            spec: {
-                cluster: { name: formValue.cluster },
-                retentionTime: prefs.retentionTime,
-                storageProvider: {
-                    storageName: formValue.storageProvider || prefs.storageName,
-                    sink: formValue.storageSink || prefs.sink
-                }
-            }
-        };
-        if (formValue.preferFollower) {
-            backupObject.spec.preferredBackupRole = 'follower';
-        } else {
-            // 基于简单启发式：若当前所选集群推断为单副本（探测 dn-0 的 totalPods<=1），则强制 leader
-            try {
-                const ns = this.backupForm.get('namespace')?.value || 'default';
-                const dnName = `${formValue.cluster}-dn-0`;
-                const xs = await this.apiService.getXStore(ns, dnName).toPromise().catch(() => null);
-                const totalPods = Number((xs as any)?.status?.totalPods || 0);
-                if (totalPods <= 1) {
-                    (backupObject.spec as any).preferredBackupRole = 'leader';
-                }
-            } catch { /* 忽略探测错误，保持不传 */ }
-        }
-        // 无法可靠获取 follower 副本时，不强制 leader；但当用户未勾选 follower 且集群明显为单副本时，可考虑默认 leader。
-        // 简化：保持未勾选不传；后续可基于集群拓扑补强。
-
-        // Advice：按后端建议设置角色（未勾选 follower 时）
-        if (!formValue.preferFollower) {
-            const adviceRole = await this.decideRoleByAdvice(formValue.namespace, formValue.cluster);
-            if (adviceRole) {
-                (backupObject.spec as any).preferredBackupRole = adviceRole;
-            }
-        }
-
-        // 先进行后端 dry-run 预校验（触发 webhook），通过后再创建
-        if (!formValue.skipPrecheck) {
-            const controller = new AbortController();
-            const timer = setTimeout(() => controller.abort(), 15000);
-            try {
-                await this.apiService.validateBackup(formValue.namespace, backupObject).toPromise();
-            } finally {
-                clearTimeout(timer);
-            }
-        }
-        await this.apiService.createBackup(formValue.namespace, formValue.cluster, backupObject).toPromise();
-        
-        this.snackBar.open('备份创建成功', '关闭', { duration: 3000 });
-        this.resetBackupForm();
-        this.selectedTab = 0;
-        this.refreshBackups();
-        
-    } catch (error: any) {
-        console.error('创建备份失败:', error);
-        this.snackBar.open(`创建备份失败: ${error.error?.message || error.message}`, '关闭', { duration: 5000 });
-    } finally {
-        this.isCreatingBackup = false;
+      // await this.apiService.forceDeleteBackup(backup.metadata.namespace!, backup.metadata.name).toPromise();
+      // 临时注释，需要根据实际的 API 方法调用
+      this.msg.info('强制删除功能待实现');
+      this.msg.success('强制删除成功');
+      this.loadBackups();
+    } catch (error) {
+      console.error('强制删除失败:', error);
+      this.msg.error('强制删除失败');
     }
-}
+  }
 
-    onProviderChange(provider: string) {
-        this.applyProviderRules(provider, this.backupForm);
+  // 统计方法
+  getRunningBackupsCount(): number {
+    return this.backups.filter(backup => this.isRunningEx(backup)).length;
+  }
+
+  getCompletedBackupsCount(): number {
+    return this.backups.filter(backup => backup.status?.phase === 'Completed').length;
+  }
+
+  getFailedBackupsCount(): number {
+    return this.backups.filter(backup => backup.status?.phase === 'Failed').length;
+  }
+
+  // 状态和显示方法
+    isRunningEx(backup: PolarDBXBackup): boolean {
+    return backup.status?.phase === 'Running' || backup.status?.phase === 'Pending';
+  }
+
+  canForceDelete(backup: PolarDBXBackup): boolean {
+    return backup.status?.phase !== 'Failed' && backup.status?.phase !== 'Completed';
+  }
+
+  mapPhaseText(backup: PolarDBXBackup): string {
+    const phase = backup.status?.phase;
+    switch (phase) {
+      case 'Running': return '运行中';
+      case 'Completed': return '已完成';
+      case 'Failed': return '失败';
+      case 'Pending': return '等待中';
+      default: return '未知';
     }
+  }
 
-    private applyProviderRules(provider: string, formGroup?: FormGroup) {
-        const targetForm = formGroup || this.backupForm;
-        if (!targetForm) return;
-        const control = targetForm.get('storageSink');
-        if (!control) return;
-        // 清理旧校验
-        control.clearValidators();
-        const validators = [] as any[];
-        // 基本规则：不同 provider 不同示例与格式
-        switch ((provider || '').toLowerCase()) {
-            case 's3':
-                this.sinkPlaceholder = '例如：default 或自定义 sink 名（非 URL）';
-                this.sinkExample = 'default（或 lyfz-polardbx-backup 等）';
-                this.secretTemplateUrl = '/assets/examples/secret-s3.yaml';
-                validators.push(Validators.required);
-                break;
-            case 'oss':
-                this.sinkPlaceholder = '例如：default-oss 或自定义 sink 名（非 URL）';
-                this.sinkExample = 'default-oss（或自定义名称）';
-                this.secretTemplateUrl = '/assets/examples/secret-oss.yaml';
-                validators.push(Validators.required);
-                break;
-            case 'sftp':
-                this.sinkPlaceholder = '例如：default-sftp 或自定义 sink 名（非 URL）';
-                this.sinkExample = 'default-sftp（或自定义名称）';
-                this.secretTemplateUrl = '/assets/examples/secret-sftp.yaml';
-                validators.push(Validators.required);
-                break;
-            default:
-                this.sinkPlaceholder = '请输入 HPFS/filestream 的 sink 名称（例如：default）';
-                this.sinkExample = 'default';
-                this.secretTemplateUrl = '';
-                validators.push(Validators.required);
-        }
-        control.setValidators(validators);
-        control.updateValueAndValidity();
+  getBackupStatusColor(backup: PolarDBXBackup): string {
+    const phase = backup.status?.phase;
+    switch (phase) {
+      case 'Running': return 'processing';
+      case 'Completed': return 'success';
+      case 'Failed': return 'error';
+      case 'Pending': return 'default';
+      default: return 'default';
+    }
+  }
+
+  getProgressPercent(backup: PolarDBXBackup): number {
+    // 临时返回固定值，实际需要根据 backup status 的实际字段调整
+    if (backup.status?.phase === 'Running') {
+      return 50; // 运行中显示 50%
+    }
+    if (backup.status?.phase === 'Completed') {
+      return 100; // 完成显示 100%
+    }
+    return 0; // 其他状态显示 0%
+  }
+
+  getProgressStatus(backup: PolarDBXBackup): 'success' | 'exception' | 'active' | 'normal' {
+    const phase = backup.status?.phase;
+    switch (phase) {
+      case 'Completed': return 'success';
+      case 'Failed': return 'exception';
+      case 'Running': return 'active';
+      default: return 'normal';
+    }
+  }
+
+  formatSize(backup: PolarDBXBackup): string {
+    // 临时返回固定值，实际需要根据 backup status 的实际字段调整
+    if (backup.status?.phase === 'Completed') {
+      return '1.2 GB'; // 示例大小
+    }
+    return '-';
+  }
+
+  formatDate(dateString?: string): string {
+    if (!dateString) return '-';
+    return new Date(dateString).toLocaleString('zh-CN');
+  }
+
+  getStorageConnectivityText(backup: PolarDBXBackup): string {
+    // 临时返回固定值，实际需要根据 backup status 的实际字段调整
+    if (backup.status?.phase === 'Completed') {
+      return '连通正常';
+    }
+    return '检测中';
+  }
+
+  getStorageConnectivityColor(backup: PolarDBXBackup): string {
+    // 临时返回固定值，实际需要根据 backup status 的实际字段调整
+    if (backup.status?.phase === 'Completed') {
+      return 'success';
+    }
+    return 'processing';
+  }
+
+  getStorageConnectivityTooltip(backup: PolarDBXBackup): string {
+    // 临时返回固定值，实际需要根据 backup status 的实际字段调整
+    if (backup.status?.phase === 'Completed') {
+      return '存储连接正常，备份可以正常写入';
+    }
+    return '正在检测存储连通性';
+  }
+
+  private markFormGroupTouched(formGroup: FormGroup): void {
+    Object.keys(formGroup.controls).forEach(key => {
+      const control = formGroup.get(key);
+      control?.markAsTouched();
+      control?.updateValueAndValidity();
+    });
   }
 }

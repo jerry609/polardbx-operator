@@ -18,7 +18,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	api_xstore "polardbx-ui-backend/pkg/api/xstore"
+	domain_xs "polardbx-ui-backend/pkg/api/domain/xstores"
 )
 
 func setupXStoreBackupTestRouter(fakeClient client.Client) *gin.Engine {
@@ -28,12 +28,12 @@ func setupXStoreBackupTestRouter(fakeClient client.Client) *gin.Engine {
 		c.Set("k8sClient", fakeClient)
 	})
 
-	// Register XStoreBackup routes
-	router.GET("/xstore-backups", api_xstore.ListBackups)
-	router.POST("/xstore-backups", api_xstore.CreateBackup)
-	router.GET("/xstore-backups/:namespace/:name", api_xstore.GetBackup)
-	router.PUT("/xstore-backups/:namespace/:name", api_xstore.UpdateBackup)
-	router.DELETE("/xstore-backups/:namespace/:name", api_xstore.DeleteBackup)
+	// Register XStoreBackup routes (domain)
+	router.GET("/xstore-backups", domain_xs.ListBackups)
+	router.POST("/xstore-backups", domain_xs.CreateBackup)
+	router.GET("/xstore-backups/:namespace/:name", domain_xs.GetBackup)
+	router.PUT("/xstore-backups/:namespace/:name", domain_xs.UpdateBackup)
+	router.DELETE("/xstore-backups/:namespace/:name", domain_xs.DeleteBackup)
 
 	return router
 }

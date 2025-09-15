@@ -33,11 +33,14 @@ func ContextInfo(c *gin.Context) {
 func ListNamespaces(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
+		// Return empty list to avoid frontend errors when kubeconfig is not initialized
+		c.JSON(http.StatusOK, gin.H{"items": []any{}, "count": 0, "warning": "k8s client not initialized"})
 		return
 	}
 	var nsList corev1.NamespaceList
 	if err := cli.List(c.Request.Context(), &nsList, &client.ListOptions{}); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list namespaces", "details": err.Error()})
+		// Return empty list with details to keep UI working
+		c.JSON(http.StatusOK, gin.H{"items": []any{}, "count": 0, "warning": "failed to list namespaces", "details": err.Error()})
 		return
 	}
 	items := make([]gin.H, 0, len(nsList.Items))

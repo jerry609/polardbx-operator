@@ -133,18 +133,20 @@ export const routes: Routes = [
             path: 'logs',
             loadComponent: () => import('./components/logs-hub/logs-hub.component').then(m => m.LogsHubComponent),
             children: [
-              { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+              { path: '', redirectTo: 'install', pathMatch: 'full' },
+              { path: 'overview', loadComponent: () => import('./components/logs-overview/logs-overview.component').then(m => m.LogsOverviewComponent) },
               { path: 'dashboard', loadComponent: () => import('./components/log-service-dashboard/log-service-dashboard.component').then(m => m.LogServiceDashboardComponent) },
               { path: 'collectors', loadComponent: () => import('./components/log-collector-management/log-collector-management.component').then(m => m.LogCollectorManagementComponent) },
               { path: 'ilm', loadComponent: () => import('./components/log-collector-ilm/log-collector-ilm.component').then(m => m.LogCollectorIlmComponent) },
-              { path: 'search', loadComponent: () => import('./components/logs-query/logs-query.component').then(m => m.LogsQueryComponent) }
+              { path: 'search', loadComponent: () => import('./components/logs-query/logs-query.component').then(m => m.LogsQueryComponent) },
+              { path: 'install', loadComponent: () => import('./components/log-collector-install/log-collector-install.component').then(m => m.LogCollectorInstallComponent) }
             ]
           },
           { 
             path: 'monitoring',
             loadComponent: () => import('./components/monitoring-hub/monitoring-hub.component').then(m => m.MonitoringHubComponent),
             children: [
-              { path: '', redirectTo: 'overview', pathMatch: 'full' },
+              { path: '', redirectTo: 'install', pathMatch: 'full' },
               { path: 'overview', loadComponent: () => import('./components/monitoring-overview/monitoring-overview.component').then(m => m.MonitoringOverviewComponent) },
               { path: 'config', loadComponent: () => import('./components/monitor-management/monitor-management.component').then(m => m.MonitorManagementComponent) },
               { path: 'install', loadComponent: () => import('./components/monitoring-install-wizard/monitoring-install-wizard.component').then(m => m.MonitoringInstallWizardComponent) },

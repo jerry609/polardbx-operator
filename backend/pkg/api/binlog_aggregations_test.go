@@ -14,7 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	api_backup "polardbx-ui-backend/pkg/api/backup"
+	domain_pxc "polardbx-ui-backend/pkg/api/domain/polardbxclusters"
 )
 
 func TestGetBinlogMetrics(t *testing.T) {
@@ -40,7 +40,7 @@ func TestGetBinlogMetrics(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(b, pb).Build()
 	r := gin.Default()
 	r.Use(func(c *gin.Context) { c.Set("k8sClient", fakeClient) })
-	r.GET("/api/v1/backups/binlog/metrics", api_backup.GetBinlogMetrics)
+	r.GET("/api/v1/backups/binlog/metrics", domain_pxc.GetBinlogMetrics)
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest(http.MethodGet, "/api/v1/backups/binlog/metrics?namespace=ns1&now="+nowFixed.Format(time.RFC3339), nil)

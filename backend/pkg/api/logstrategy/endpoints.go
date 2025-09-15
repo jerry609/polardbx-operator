@@ -85,7 +85,12 @@ func saveList(c *gin.Context, cm *corev1.ConfigMap, list []Strategy) error {
 func List(c *gin.Context) {
 	cm, err := getStore(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load strategy store", "details": err.Error()})
+		// 兼容前端：返回空列表而不是 500，避免页面崩溃
+		c.JSON(http.StatusOK, gin.H{"total": 0, "items": []any{}, "warning": "strategy store not accessible", "details": err.Error()})
+		return
+	}
+	if cm == nil {
+		c.JSON(http.StatusOK, gin.H{"total": 0, "items": []any{}})
 		return
 	}
 	list := loadList(cm)
@@ -509,4 +514,50 @@ func Apply(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"applied": true, "namespace": ns, "cluster": s.ClusterName, "logstash": gin.H{"restarted": dep != nil}, "pipelineKey": pipelineKey})
+}
+
+// TestConnection validates connectivity to Elasticsearch using simple HTTP request
+// Payload example: {"hosts":["https://es:9200"], "username":"elastic", "password":"xxx"}
+func TestConnection(c *gin.Context) {
+	var payload struct {
+		Hosts    []string `json:"hosts"`
+		Username string   `json:"username"`
+		Password string   `json:"password"`
+	}
+	if err := c.ShouldBindJSON(&payload); err != nil || len(payload.Hosts) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payload", "details": "hosts required"})
+		return
+	}
+	host := strings.TrimSpace(payload.Hosts[0])
+	if host == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid host"})
+		return
+	}
+	if !strings.Contains(host, "://") {
+		host = "http://" + host
+	}
+	// Use HEAD first; fall back to GET
+	client := &http.Client{Timeout: 5 * time.Second}
+	req, _ := http.NewRequest(http.MethodHead, host, nil)
+	if payload.Username != "" {
+		req.SetBasicAuth(payload.Username, payload.Password)
+	}
+	resp, err := client.Do(req)
+	if err != nil || resp.StatusCode >= 400 {
+		// fallback GET /
+		req2, _ := http.NewRequest(http.MethodGet, host, nil)
+		if payload.Username != "" {
+			req2.SetBasicAuth(payload.Username, payload.Password)
+		}
+		resp2, err2 := client.Do(req2)
+		if err2 != nil || resp2.StatusCode >= 400 {
+			code := http.StatusBadGateway
+			if resp2 != nil {
+				code = resp2.StatusCode
+			}
+			c.JSON(code, gin.H{"error": "elasticsearch connection failed"})
+			return
+		}
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true})
 }

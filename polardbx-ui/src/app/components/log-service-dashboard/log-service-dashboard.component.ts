@@ -589,15 +589,8 @@ export class LogServiceDashboardComponent implements OnInit, OnDestroy {
         },
         error: (error) => {
           console.error('加载服务状态失败:', error);
-          // 模拟数据用于演示
-          this.serviceStatus = {
-            status: 'not_installed',
-            components: {
-              filebeat: { status: 'not_found' },
-              logstash: { status: 'not_found' }
-            },
-            installCommand: 'helm install --namespace polardbx-logcollector polardbx-logcollector https://github.com/polardb/polardbx-operator/releases/download/v1.7.0/polardbx-logcollector-1.6.2.tgz'
-          };
+          // 不再注入演示数据，保持空值以提示真实错误
+          this.serviceStatus = undefined as any;
         }
       });
   }
@@ -617,23 +610,8 @@ export class LogServiceDashboardComponent implements OnInit, OnDestroy {
         },
         error: (error) => {
           console.error('加载日志策略失败:', error);
-          // 模拟数据用于演示
-          this.strategies = [
-            {
-              name: 'my-cluster-es',
-              targetCluster: 'my-polardbx-cluster',
-              outputType: 'elasticsearch',
-              status: 'active',
-              config: {
-                elasticsearch: {
-                  hosts: ['https://es-cluster:9200'],
-                  username: 'elastic',
-                  index: 'polardbx-logs'
-                }
-              },
-              createdAt: '2024-01-15T10:30:00Z'
-            }
-          ];
+          // 不再注入演示数据
+          this.strategies = [];
         }
       });
   }
@@ -739,15 +717,15 @@ export class LogServiceDashboardComponent implements OnInit, OnDestroy {
 
   editStrategy(strategy: LogStrategy): void {
     this.editingStrategy = strategy;
+    const esCfg = strategy.config?.elasticsearch || {} as any;
     this.strategyForm.patchValue({
       name: strategy.name,
       targetCluster: strategy.targetCluster,
       outputType: strategy.outputType,
-      esHosts: strategy.config.elasticsearch?.hosts?.[0] || '',
-      esUsername: strategy.config.elasticsearch?.username || '',
-      esIndex: strategy.config.elasticsearch?.index || ''
+      esHosts: Array.isArray(esCfg.hosts) ? (esCfg.hosts[0] || '') : (esCfg.hosts || ''),
+      esUsername: esCfg.username || '',
+      esIndex: esCfg.index || ''
     });
-    // 禁用名称字段（编辑模式）
     this.strategyForm.get('name')?.disable();
     this.isModalVisible = true;
   }

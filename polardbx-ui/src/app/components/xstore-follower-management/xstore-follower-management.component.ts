@@ -84,8 +84,6 @@ export class XStoreFollowerManagementComponent implements OnInit {
   followers: XStoreFollowerWithStatus[] = [];
   dataSource = new MatTableDataSource<XStoreFollowerWithStatus>();
   
-
-  
   // Table configuration
   displayedColumns: string[] = [
     'name', 
@@ -160,6 +158,11 @@ export class XStoreFollowerManagementComponent implements OnInit {
         this.followerForm.patchValue({ targetPodName: '' });
       }
     });
+
+    // Reload XStores when namespace changes
+    this.followerForm.get('namespace')?.valueChanges.subscribe(async (ns: string) => {
+      await this.onNamespaceChange(ns);
+    });
   }
 
   private updateResourceValidators(enabled: boolean): void {
@@ -181,8 +184,9 @@ export class XStoreFollowerManagementComponent implements OnInit {
 
   private async loadInitialData(): Promise<void> {
     try {
-      // Load available XStores
-      this.availableXStores = await this.apiService.getXStores(this.data.namespace).toPromise() || [];
+      // Load available XStores using current namespace from form (fallback to dialog data -> default)
+      const ns = this.followerForm?.get('namespace')?.value || this.data.namespace || 'default';
+      this.availableXStores = await this.apiService.getXStores(ns).toPromise() || [];
       
       // Filter valid source XStores
       await this.filterValidSourceXStores();
@@ -227,7 +231,8 @@ export class XStoreFollowerManagementComponent implements OnInit {
 
   private async loadFollowers(): Promise<void> {
     try {
-      const followers = await this.apiService.getXStoreFollowers(this.data.namespace).toPromise() || [];
+      const ns = this.followerForm?.get('namespace')?.value || this.data.namespace || 'default';
+      const followers = await this.apiService.getXStoreFollowers(ns).toPromise() || [];
       this.followers = followers.map((follower: XStoreFollower) => this.enrichFollowerWithStatus(follower));
       this.dataSource.data = this.followers;
     } catch (error) {
@@ -261,50 +266,29 @@ export class XStoreFollowerManagementComponent implements OnInit {
     // Auto-select first valid source if available
     if (this.validSourceXStores.length > 0 && this.data.mode === 'create') {
       const autoSelected = this.validSourceXStores[0].metadata.name;
-      
-      // 🎯 Set auto-selected value with explicit control update
       this.followerForm.patchValue({ fromXStore: autoSelected });
-      
-      // 🔍 Force update and verify
       this.followerForm.get('fromXStore')?.setValue(autoSelected);
       this.followerForm.get('fromXStore')?.markAsDirty();
       this.followerForm.get('fromXStore')?.updateValueAndValidity();
-      
-      console.log(`🎯 Auto-selected source XStore: ${autoSelected}`);
-      console.log(`✅ Form control value after auto-selection:`, this.followerForm.get('fromXStore')?.value);
     }
   }
 
   private async isValidSourceXStore(xstore: XStore): Promise<boolean> {
     try {
-      // 1. Check XStore phase - must be Running
       if (xstore.status?.phase !== 'Running') {
-        console.log(`XStore ${xstore.metadata.name} is not Running (phase: ${xstore.status?.phase})`);
         return false;
       }
-
-      // 2. Check replica status if available (safe access)
       const replicaStatus = (xstore.status as any)?.replicaStatus;
       if (replicaStatus) {
         const readyReplicas = replicaStatus.ready || replicaStatus.available || 0;
         const totalReplicas = replicaStatus.total || 0;
-        
         if (readyReplicas === 0 || totalReplicas === 0) {
-          console.log(`XStore ${xstore.metadata.name} has no ready replicas (${readyReplicas}/${totalReplicas})`);
           return false;
         }
-        
-        console.log(`XStore ${xstore.metadata.name} appears valid (Running, ${readyReplicas}/${totalReplicas} ready)`);
         return true;
       }
-
-      // 3. Fallback: if we can't get detailed status, assume valid if Running
-      // This is safe for basic validation
-      console.log(`XStore ${xstore.metadata.name} appears valid (Running with replicas)`);
       return true;
-      
     } catch (error) {
-      console.error(`Error checking XStore ${xstore.metadata.name}:`, error);
       return false;
     }
   }
@@ -312,28 +296,24 @@ export class XStoreFollowerManagementComponent implements OnInit {
   private enrichFollowerWithStatus(follower: XStoreFollower): XStoreFollowerWithStatus {
     const status = follower.status;
     const phase = status?.phase || '';
-    
-    // Map actual phase values to recovery states
     const isRecovering = ['FollowerPhaseCheck', 'FollowerPhaseBackupPrepare', 'FollowerPhaseBackupStart', 
                          'FollowerPhaseBackup', 'FollowerPhaseLoggerRebuild', 'FollowerPhaseMonitorBackup',
                          'FollowerPhaseBeforeRestore', 'FollowerPhaseRestore', 'FollowerPhaseAfterRestore',
                          'FollowerPhaseLoggerCreate', 'FollowerCreateRemotePod'].includes(phase);
     const isHealthy = phase === 'FollowerPhaseSuccess';
     const hasFailed = phase === 'FollowerPhaseFailed';
-    
     return {
       ...follower,
       isRecovering,
       isHealthy,
       hasFailures: hasFailed,
       displayStatus: this.getDisplayStatus(phase),
-      lastActivity: follower.metadata.creationTimestamp // Use creation time as last activity
+      lastActivity: follower.metadata.creationTimestamp
     };
   }
 
   private getDisplayStatus(phase?: string): string {
     if (!phase) return '已创建';
-    
     const statusMap: { [key: string]: string } = {
       '': '已创建',
       'FollowerPhaseCheck': '检查中',
@@ -352,11 +332,9 @@ export class XStoreFollowerManagementComponent implements OnInit {
       'FollowerCreateRemotePod': '创建远程Pod',
       'FollowerPhaseDeleting': '删除中'
     };
-
     return statusMap[phase] || phase;
   }
 
-  // Tooltip for phase chip
   getPhaseTooltip(follower: XStoreFollowerWithStatus): string {
     const s = follower.status as any;
     const phase = s?.phase || 'Unknown';
@@ -388,7 +366,6 @@ export class XStoreFollowerManagementComponent implements OnInit {
   save(): void {
     if (this.followerForm.valid) {
       this.isLoading = true;
-      // 实现保存逻辑
       const formValue = this.followerForm.value;
       const request: CreateXStoreFollowerRequest = {
         name: formValue.name,
@@ -396,13 +373,12 @@ export class XStoreFollowerManagementComponent implements OnInit {
         targetPodName: formValue.targetPodName,
         fromXStore: formValue.fromXStore
       };
-
       this.apiService.createXStoreFollower('default', request).subscribe({
         next: (result) => {
           this.snackBar.open('XStore Follower 创建成功', '关闭', { duration: 3000 });
           this.isLoading = false;
           this.refreshFollowers();
-          this.selectedTab = 0; // 切换到列表页面
+          this.selectedTab = 0;
         },
         error: (error) => {
           this.snackBar.open('创建失败: ' + error.message, '关闭', { duration: 5000 });
@@ -423,8 +399,6 @@ export class XStoreFollowerManagementComponent implements OnInit {
       forceRecreate: follower.spec.forceRecreate,
       priority: follower.spec.priority || 1
     });
-
-    // Populate resource form if resources are defined
     const resources = follower.spec.resources;
     if (resources) {
       this.resourceForm.patchValue({
@@ -437,8 +411,6 @@ export class XStoreFollowerManagementComponent implements OnInit {
         limitsStorage: resources.limits?.storage || '20Gi'
       });
     }
-
-    // Populate node selector if defined
     const nodeSelector = follower.spec.nodeSelector;
     if (nodeSelector && Object.keys(nodeSelector).length > 0) {
       const firstKey = Object.keys(nodeSelector)[0];
@@ -452,25 +424,16 @@ export class XStoreFollowerManagementComponent implements OnInit {
     }
   }
 
-  // Create or update XStore follower
   async saveFollower(): Promise<void> {
     if (!this.followerForm.valid) {
       return;
     }
-
     this.isProcessing = true;
-
     try {
       const formValue = this.followerForm.value;
       const resourceValue = this.resourceForm.value;
-
-      // 🔍 Debug: Log current form values
-      console.log('📝 Form values before submission:', formValue);
-      console.log('📝 fromXStore value:', formValue.fromXStore);
-      console.log('📝 Form control value:', this.followerForm.get('fromXStore')?.value);
-
       const request: CreateXStoreFollowerRequest = {
-        name: formValue.name, // Add user-provided name
+        name: formValue.name,
         xStoreName: formValue.xStoreName,
         targetPodName: formValue.targetPodName && formValue.targetPodName.trim() !== '' ? formValue.targetPodName : undefined,
         fromXStore: formValue.fromXStore && formValue.fromXStore.trim() !== '' ? formValue.fromXStore : undefined,
@@ -478,29 +441,14 @@ export class XStoreFollowerManagementComponent implements OnInit {
         forceRecreate: formValue.forceRecreate,
         priority: formValue.priority,
         resources: resourceValue.enableResourceLimits ? {
-          requests: {
-            cpu: resourceValue.requestsCpu,
-            memory: resourceValue.requestsMemory,
-            storage: resourceValue.requestsStorage
-          },
-          limits: {
-            cpu: resourceValue.limitsCpu,
-            memory: resourceValue.limitsMemory,
-            storage: resourceValue.limitsStorage
-          }
+          requests: { cpu: resourceValue.requestsCpu, memory: resourceValue.requestsMemory, storage: resourceValue.requestsStorage },
+          limits: { cpu: resourceValue.limitsCpu, memory: resourceValue.limitsMemory, storage: resourceValue.limitsStorage }
         } : undefined,
-        nodeSelector: resourceValue.nodeSelector.enabled ? {
-          [resourceValue.nodeSelector.key]: resourceValue.nodeSelector.value
-        } : undefined
+        nodeSelector: resourceValue.nodeSelector.enabled ? { [resourceValue.nodeSelector.key]: resourceValue.nodeSelector.value } : undefined
       };
-
-      // 🔍 Debug: Log final request
-      console.log('📤 Final request to backend:', request);
-
       if (this.data.mode === 'create') {
         await this.apiService.createXStoreFollower(formValue.namespace, request).toPromise();
       } else if (this.data.mode === 'edit' && this.data.follower) {
-        // For edit mode, we need to update the existing follower
         const updatedFollower: XStoreFollower = {
           ...this.data.follower,
           spec: {
@@ -514,23 +462,13 @@ export class XStoreFollowerManagementComponent implements OnInit {
             nodeSelector: request.nodeSelector
           }
         };
-        
         await this.apiService.updateXStoreFollower(formValue.namespace, updatedFollower).toPromise();
       }
-
-      // Show success message
       const action = this.data.mode === 'create' ? '创建' : '更新';
-      this.snackBar.open(`XStore Follower ${action}成功！`, '关闭', {
-        duration: 3000,
-        horizontalPosition: 'center',
-        verticalPosition: 'top'
-      });
-
-      // Reload the followers list if we're in management mode
+      this.snackBar.open(`XStore Follower ${action}成功！`, '关闭', { duration: 3000, horizontalPosition: 'center', verticalPosition: 'top' });
       if (this.selectedTab === 0) {
         await this.loadFollowers();
       }
-
       this.dialogRef?.close(true);
     } catch (error) {
       console.error('Failed to save XStore follower:', error);
@@ -539,259 +477,107 @@ export class XStoreFollowerManagementComponent implements OnInit {
     }
   }
 
-  // Delete XStore follower
   async deleteFollower(follower: XStoreFollowerWithStatus): Promise<void> {
     if (!confirm(`确定要删除 XStore Follower "${follower.metadata.name}" 吗？此操作不可撤销。`)) {
       return;
     }
-
     try {
-      await this.apiService.deleteXStoreFollower(
-        follower.metadata.namespace, 
-        follower.metadata.name
-      ).toPromise();
-      
+      await this.apiService.deleteXStoreFollower(follower.metadata.namespace, follower.metadata.name).toPromise();
       await this.loadFollowers();
     } catch (error) {
       console.error('Failed to delete XStore follower:', error);
     }
   }
 
-  // Edit existing follower
   editFollower(follower: XStoreFollowerWithStatus): void {
     this.data.mode = 'edit';
     this.data.follower = follower;
     this.populateFormFromFollower(follower);
-    this.selectedTab = 1; // Switch to form tab
+    this.selectedTab = 1;
   }
 
-  // View follower details
   viewFollower(follower: XStoreFollowerWithStatus): void {
-    // Extract source XStore name from fromPodName (e.g., "quick-start-minimal-j7sv-dn-2-single-0" -> "quick-start-minimal-j7sv-dn-2")
     const getSourceXStoreName = (fromPodName: string): string => {
       if (!fromPodName) return '未指定';
-      // Remove common pod suffixes (-single-0, -candidate-0, etc.)
       const match = fromPodName.match(/^(.+?)-(single|candidate|follower)-\d+$/);
       return match ? match[1] : fromPodName;
     };
-
-    // Create a detailed view dialog
-    const details = {
-      基本信息: [
-        { label: '名称', value: follower.metadata.name },
-        { label: '命名空间', value: follower.metadata.namespace },
-        { label: '目标 XStore', value: follower.spec.xStoreName },
-        { label: '创建时间', value: follower.metadata.creationTimestamp }
-      ],
-      配置信息: [
-        { label: '目标 XStore', value: follower.spec.xStoreName },
-        { label: 'UID', value: (follower.spec as any).xStoreUid || '未指定' },
-        { label: '源 XStore', value: getSourceXStoreName((follower.spec as any).fromPodName) },
-        { label: '源 Pod', value: (follower.spec as any).fromPodName || '未指定' },
-        { label: '备份集', value: (follower.spec as any).fromBackupSet || '未指定' },
-        { label: '强制重建', value: (follower.spec as any).forceRecreate ? '是' : '否' },
-        { label: '优先级', value: (follower.spec as any).priority?.toString() || '未设置' }
-      ],
-      状态信息: [
-        { label: '当前阶段', value: follower.displayStatus },
-        { label: '阶段代码', value: follower.status?.phase || '无' },
-        { label: '当前任务', value: (follower.status as any)?.currentJobTask || '无' },
-        { label: '备份 Job', value: (follower.status as any)?.backupJobName || '无' },
-        { label: '恢复 Job', value: (follower.status as any)?.restoreJobName || '无' },
-        { label: '当前 Job', value: (follower.status as any)?.currentJobName || '无' },
-        { label: '是否恢复中', value: follower.isRecovering ? '是' : '否' },
-        { label: '是否健康', value: follower.isHealthy ? '是' : '否' },
-        { label: '有失败记录', value: follower.hasFailures ? '是' : '否' }
-      ]
-    };
-
-    // Format details as readable text
+    const details = { 基本信息: [ { label: '名称', value: follower.metadata.name }, { label: '命名空间', value: follower.metadata.namespace }, { label: '目标 XStore', value: follower.spec.xStoreName }, { label: '创建时间', value: follower.metadata.creationTimestamp } ] } as any;
     let message = '';
-    Object.entries(details).forEach(([section, items]) => {
+    Object.entries(details).forEach(([section, items]: any) => {
       message += `【${section}】\n`;
-      items.forEach(item => {
-        message += `${item.label}: ${item.value}\n`;
-      });
+      items.forEach((item: any) => { message += `${item.label}: ${item.value}\n`; });
       message += '\n';
     });
-
     alert(message);
   }
 
-  // Refresh followers list
-  async refreshFollowers(): Promise<void> {
-    await this.loadFollowers();
-  }
+  async refreshFollowers(): Promise<void> { await this.loadFollowers(); }
 
-  // Refresh XStore list and revalidate sources
   async refreshXStores(): Promise<void> {
     try {
-      this.availableXStores = await this.apiService.getXStores(this.data.namespace).toPromise() || [];
+      const ns = this.followerForm?.get('namespace')?.value || this.data.namespace || 'default';
+      this.availableXStores = await this.apiService.getXStores(ns).toPromise() || [];
       await this.filterValidSourceXStores();
-      
-      this.snackBar.open('XStore 列表已刷新', '关闭', {
-        duration: 2000,
-        horizontalPosition: 'center',
-        verticalPosition: 'top'
-      });
+      this.snackBar.open('XStore 列表已刷新', '关闭', { duration: 2000, horizontalPosition: 'center', verticalPosition: 'top' });
     } catch (error) {
       console.error('Failed to refresh XStores:', error);
-      this.snackBar.open('刷新 XStore 列表失败', '关闭', {
-        duration: 3000,
-        horizontalPosition: 'center',
-        verticalPosition: 'top'
-      });
+      this.snackBar.open('刷新 XStore 列表失败', '关闭', { duration: 3000, horizontalPosition: 'center', verticalPosition: 'top' });
     }
   }
 
-  // Get status chip color
-  getStatusColor(phase?: string): string {
-    if (!phase) return 'basic';
-    
-    // Map XStoreFollower phases to colors
-    if (phase === 'FollowerPhaseSuccess') return 'primary';
-    if (phase === 'FollowerPhaseFailed') return 'warn';
-    if (['FollowerPhaseCheck', 'FollowerPhaseBackupPrepare', 'FollowerPhaseBackupStart', 
-         'FollowerPhaseBackup', 'FollowerPhaseLoggerRebuild', 'FollowerPhaseMonitorBackup',
-         'FollowerPhaseBeforeRestore', 'FollowerPhaseRestore', 'FollowerPhaseAfterRestore',
-         'FollowerPhaseLoggerCreate', 'FollowerCreateRemotePod'].includes(phase)) {
-      return 'accent'; // Processing phases
+  private async onNamespaceChange(ns: string): Promise<void> {
+    try {
+      this.availableXStores = await this.apiService.getXStores(ns || 'default').toPromise() || [];
+      await this.filterValidSourceXStores();
+      this.followerForm.patchValue({ xStoreName: '', targetPodName: '' });
+      this.targetPods = [];
+      this.filteredTargetPods = [];
+    } catch (e) {
+      console.error('Failed to reload XStores for namespace:', ns, e);
+      this.availableXStores = [];
+      this.validSourceXStores = [];
     }
-    
-    return 'basic'; // Default/unknown phases
   }
 
-  // Get progress percentage based on phase
   getProgressPercentage(follower: XStoreFollowerWithStatus): number {
     const phase = follower.status?.phase || '';
-    
-    // Estimate progress based on phase
-    const progressMap: { [key: string]: number } = {
-      '': 0,
-      'FollowerPhaseCheck': 10,
-      'FollowerPhaseBackupPrepare': 20,
-      'FollowerPhaseBackupStart': 30,
-      'FollowerPhaseBackup': 50,
-      'FollowerPhaseLoggerRebuild': 60,
-      'FollowerPhaseMonitorBackup': 65,
-      'FollowerPhaseBeforeRestore': 70,
-      'FollowerPhaseRestore': 85,
-      'FollowerPhaseAfterRestore': 95,
-      'FollowerPhaseSuccess': 100,
-      'FollowerPhaseWaitSwitch': 90,
-      'FollowerPhaseFailed': 0,
-      'FollowerPhaseLoggerCreate': 40,
-      'FollowerCreateRemotePod': 25,
-      'FollowerPhaseDeleting': 50
-    };
-    
+    const progressMap: { [key: string]: number } = { '': 0, 'FollowerPhaseCheck': 10, 'FollowerPhaseBackupPrepare': 20, 'FollowerPhaseBackupStart': 30, 'FollowerPhaseBackup': 50, 'FollowerPhaseLoggerRebuild': 60, 'FollowerPhaseMonitorBackup': 65, 'FollowerPhaseBeforeRestore': 70, 'FollowerPhaseRestore': 85, 'FollowerPhaseAfterRestore': 95, 'FollowerPhaseSuccess': 100, 'FollowerPhaseWaitSwitch': 90, 'FollowerPhaseFailed': 0, 'FollowerPhaseLoggerCreate': 40, 'FollowerCreateRemotePod': 25, 'FollowerPhaseDeleting': 50 };
     return progressMap[phase] || 0;
   }
 
-  // Check if form is valid
-  isFormValid(): boolean {
-    return this.followerForm.valid && 
-           (!this.resourceForm.get('enableResourceLimits')?.value || this.resourceForm.valid);
-  }
+  isFormValid(): boolean { return this.followerForm.valid && (!this.resourceForm.get('enableResourceLimits')?.value || this.resourceForm.valid); }
 
-  // Cancel operation
-  cancel(): void {
-    if (this.dialogRef) {
-      this.dialogRef.close();
-    } else {
-      this.selectedTab = 0;
-    }
-  }
+  cancel(): void { if (this.dialogRef) { this.dialogRef.close(); } else { this.selectedTab = 0; } }
 
-  // Get field error message
   getFieldError(formGroup: FormGroup, fieldName: string): string {
     const field = formGroup.get(fieldName);
     if (field?.errors && field.touched) {
-      if (field.errors['required']) {
-        return '此字段为必填项';
-      }
-      if (field.errors['pattern']) {
-        return '格式不正确，请使用小写字母、数字和连字符';
-      }
-      if (field.errors['min']) {
-        return `最小值为 ${field.errors['min'].min}`;
-      }
-      if (field.errors['max']) {
-        return `最大值为 ${field.errors['max'].max}`;
-      }
+      if (field.errors['required']) return '此字段为必填项';
+      if (field.errors['pattern']) return '格式不正确，请使用小写字母、数字和连字符';
+      if (field.errors['min']) return `最小值为 ${field.errors['min'].min}`;
+      if (field.errors['max']) return `最大值为 ${field.errors['max'].max}`;
     }
     return '';
   }
 
-  // Switch to create mode
   async createNew(): Promise<void> {
     this.data.mode = 'create';
-    this.followerForm.reset({
-      namespace: this.data.namespace || 'default',
-      priority: 1,
-      forceRecreate: false
-    });
-    this.resourceForm.reset({
-      enableResourceLimits: false,
-      requestsCpu: '1',
-      requestsMemory: '2Gi',
-      requestsStorage: '10Gi',
-      limitsCpu: '2',
-      limitsMemory: '4Gi',
-      limitsStorage: '20Gi',
-      nodeSelector: {
-        enabled: false,
-        key: '',
-        value: ''
-      }
-    });
-    
-    // 🎯 Auto-select appropriate source XStore
-    console.log('🚀 Triggering auto-selection for new XStoreFollower');
+    this.followerForm.reset({ namespace: this.data.namespace || 'default', priority: 1, forceRecreate: false });
+    this.resourceForm.reset({ enableResourceLimits: false, requestsCpu: '1', requestsMemory: '2Gi', requestsStorage: '10Gi', limitsCpu: '2', limitsMemory: '4Gi', limitsStorage: '20Gi', nodeSelector: { enabled: false, key: '', value: '' } });
     await this.filterValidSourceXStores();
-    
-    this.selectedTab = 1; // Switch to form tab
+    this.selectedTab = 1;
   }
 
-  // Get title based on mode
-  getTitle(): string {
-    switch (this.data.mode) {
-      case 'create': return '创建 XStore Follower';
-      case 'edit': return '编辑 XStore Follower';
-      case 'view': return 'XStore Follower 详情';
-      default: return 'XStore Follower 管理';
-    }
-  }
+  getTitle(): string { switch (this.data.mode) { case 'create': return '创建 XStore Follower'; case 'edit': return '编辑 XStore Follower'; case 'view': return 'XStore Follower 详情'; default: return 'XStore Follower 管理'; } }
 
-  // Get XStore ready status for display
   getXStoreReadyStatus(xstore: XStore): string {
     try {
-      // Try to get replica status first
       const replicaStatus = (xstore.status as any)?.replicaStatus;
-      if (replicaStatus) {
-        const ready = replicaStatus.ready || replicaStatus.available || 0;
-        const total = replicaStatus.total || 0;
-        return `${ready}/${total} Ready`;
-      }
-
-      // Fallback to readyStatus if available (this might be the correct field)
-      const readyStatus = (xstore.status as any)?.readyStatus;
-      if (readyStatus && typeof readyStatus === 'string') {
-        return `${readyStatus}`;
-      }
-
-      // Check detailedStatus
-      const detailedStatus = (xstore.status as any)?.detailedStatus;
-      if (detailedStatus && detailedStatus.replicaStatus) {
-        const ready = detailedStatus.replicaStatus.ready || detailedStatus.replicaStatus.available || 0;
-        const total = detailedStatus.replicaStatus.total || 0;
-        return `${ready}/${total} Ready`;
-      }
-
-      // Final fallback - show as available since it passed filtering
+      if (replicaStatus) { const ready = replicaStatus.ready || replicaStatus.available || 0; const total = replicaStatus.total || 0; return `${ready}/${total} Ready`; }
+      const readyStatus = (xstore.status as any)?.readyStatus; if (readyStatus && typeof readyStatus === 'string') { return `${readyStatus}`; }
+      const detailedStatus = (xstore.status as any)?.detailedStatus; if (detailedStatus && detailedStatus.replicaStatus) { const ready = detailedStatus.replicaStatus.ready || detailedStatus.replicaStatus.available || 0; const total = detailedStatus.replicaStatus.total || 0; return `${ready}/${total} Ready`; }
       return 'Available';
-    } catch (error) {
-      return 'Unknown';
-    }
+    } catch (error) { return 'Unknown'; }
   }
 }

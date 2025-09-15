@@ -883,6 +883,9 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
     const svg = this.topologySvgRef.nativeElement;
     // 清空
     while (svg.firstChild) svg.removeChild(svg.firstChild);
+    // 容器尺寸
+    const containerWidth = (svg.clientWidth || svg.getBoundingClientRect().width || 300);
+    const containerHeight = (svg.clientHeight || svg.getBoundingClientRect().height || 220);
     // 定义箭头样式
     const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
     const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
@@ -902,6 +905,10 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
     g.setGraph({ rankdir: 'LR', nodesep: 20, ranksep: 40 });
     g.setDefaultEdgeLabel(() => ({}));
 
+    // 内容分组，便于整体缩放/平移
+    const contentGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    svg.appendChild(contentGroup);
+
     // 定义节点 (只显示有实际Pod或有期望副本的节点)
     const roles: Array<{ id: 'cn'|'dn'|'gms'|'cdc'; label: string; count: number }> = [
       { id: 'cn', label: `CN (${this.roleSummary['cn'].ready}/${this.roleSummary['cn'].total})`, count: this.roleSummary['cn'].total },
@@ -914,8 +921,11 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
       roles.push({ id: 'cdc', label: `CDC (${this.roleSummary['cdc'].ready}/${this.roleSummary['cdc'].total})`, count: this.roleSummary['cdc'].total });
     }
     
+    // 根据容器宽度限制节点最大宽度
+    const maxNodeWidth = Math.max(120, Math.min(220, Math.floor(containerWidth * 0.35)));
     for (const r of roles) {
-      const width = 90 + r.label.length * 6;
+      const calc = 90 + r.label.length * 6;
+      const width = Math.min(calc, maxNodeWidth);
       const height = 36;
       g.setNode(r.id, { label: r.label, width, height });
     }
@@ -945,7 +955,7 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
       rect.setAttribute('stroke-width', '1');
       rect.style.cursor = 'pointer';
       rect.addEventListener('click', () => { this.selectedTabIndex = 1; });
-      svg.appendChild(rect);
+      contentGroup.appendChild(rect);
 
       const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       text.setAttribute('x', String(n.x));
@@ -955,7 +965,7 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
       text.textContent = n.label;
       text.style.cursor = 'pointer';
       text.addEventListener('click', () => { this.selectedTabIndex = 1; });
-      svg.appendChild(text);
+      contentGroup.appendChild(text);
 
       // 内置 tooltip（原生 title）列出 Pod
       const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
@@ -984,7 +994,29 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
       const t = document.createElementNS('http://www.w3.org/2000/svg', 'title');
       t.textContent = `链路 ${e.v} → ${e.w}`;
       path.appendChild(t);
-      svg.appendChild(path);
+      contentGroup.appendChild(path);
+    }
+
+    // 根据布局结果与容器尺寸计算缩放，确保内容完整可见
+    const nodeList = g.nodes().map((v: string) => g.node(v) as any);
+    if (nodeList.length > 0) {
+      const minX = Math.min(...nodeList.map((n: any) => n.x - n.width / 2));
+      const maxX = Math.max(...nodeList.map((n: any) => n.x + n.width / 2));
+      const minY = Math.min(...nodeList.map((n: any) => n.y - n.height / 2));
+      const maxY = Math.max(...nodeList.map((n: any) => n.y + n.height / 2));
+
+      const layoutWidth = Math.max(1, maxX - minX);
+      const layoutHeight = Math.max(1, maxY - minY);
+      const padding = 12;
+      const availableWidth = Math.max(1, containerWidth - padding * 2);
+      const availableHeight = Math.max(1, containerHeight - padding * 2);
+      const scaleW = availableWidth / layoutWidth;
+      const scaleH = availableHeight / layoutHeight;
+      const scale = Math.min(1, scaleW, scaleH);
+
+      const translateX = padding + (availableWidth - layoutWidth * scale) / 2 - minX * scale;
+      const translateY = padding + (availableHeight - layoutHeight * scale) / 2 - minY * scale;
+      contentGroup.setAttribute('transform', `translate(${translateX}, ${translateY}) scale(${scale})`);
     }
   }
 

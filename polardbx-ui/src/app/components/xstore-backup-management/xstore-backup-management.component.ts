@@ -20,12 +20,28 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { EmptyStateComponent } from '../empty-state/empty-state.component';
+import { NzCardModule } from 'ng-zorro-antd/card';
+import { NzButtonModule } from 'ng-zorro-antd/button';
+import { NzIconModule } from 'ng-zorro-antd/icon';
+import { NzTagModule } from 'ng-zorro-antd/tag';
+import { NzProgressModule } from 'ng-zorro-antd/progress';
+import { NzTableModule } from 'ng-zorro-antd/table';
+import { NzToolTipModule } from 'ng-zorro-antd/tooltip';
+import { NzGridModule } from 'ng-zorro-antd/grid';
+import { NzFormModule } from 'ng-zorro-antd/form';
+import { NzInputModule } from 'ng-zorro-antd/input';
+import { NzSelectModule } from 'ng-zorro-antd/select';
+import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
+import { NzDividerModule } from 'ng-zorro-antd/divider';
+import { NzInputNumberModule } from 'ng-zorro-antd/input-number';
+import { NzAlertModule } from 'ng-zorro-antd/alert';
 import { ApiService } from '../../services/api.service';
 import { LoadingService, LoadingKeys } from '../../services/loading.service';
 import { XStoreBackup, XStoreBackupWithStatus, CreateXStoreBackupRequest } from '../../models/xstore-backup.model';
 import { XStore } from '../../models/xstore.model';
 import { MatTableDataSource } from '@angular/material/table';
 import { Observable } from 'rxjs';
+import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { NamespaceService } from '../../services/namespace.service';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
@@ -60,302 +76,597 @@ export interface XStoreBackupDialogData {
     MatProgressBarModule,
     MatCheckboxModule,
     MatExpansionModule,
-    EmptyStateComponent
+    EmptyStateComponent,
+    NzCardModule,
+    NzButtonModule,
+    NzIconModule,
+    NzTagModule,
+    NzProgressModule,
+    NzTableModule,
+    NzToolTipModule,
+    NzGridModule,
+    NzFormModule,
+    NzInputModule,
+    NzSelectModule,
+    NzCheckboxModule,
+    NzDividerModule,
+    NzInputNumberModule,
+    NzAlertModule
   ],
   template: `
     <div class="xstore-backup-management">
-      <mat-card>
-        <mat-card-header>
-          <mat-card-title>
-            <mat-icon>storage</mat-icon>
-            存储备份管理
-          </mat-card-title>
-          <mat-card-subtitle>管理XStore存储级备份</mat-card-subtitle>
-        </mat-card-header>
-        <mat-card-content>
+      <nz-card nzTitle="存储备份管理" [nzExtra]="headerExtra" class="header-card">
+        <ng-template #headerExtra>
+          <span class="subtitle">管理 XStore 存储级备份</span>
+        </ng-template>
+        <div class="mat-like-tabs">
           <mat-tab-group [(selectedIndex)]="selectedTab">
             <mat-tab label="存储备份列表">
               <div class="tab-content">
-                <div>
-                  <button mat-raised-button color="primary" (click)="refreshBackups()">
-                    <mat-icon>refresh</mat-icon>
+                <div class="list-actions">
+                  <button nz-button nzType="default" (click)="refreshBackups()">
+                    <i nz-icon nzType="reload"></i>
                     刷新
                   </button>
-                  <button mat-raised-button color="accent" style="margin-left: 8px" (click)="createNew()">
-                    <mat-icon>add</mat-icon>
+                  <button nz-button nzType="primary" style="margin-left:8px" (click)="createNew()">
+                    <i nz-icon nzType="plus"></i>
                     新建备份
                   </button>
-                  <mat-button-toggle-group style="margin-left: 12px" [value]="viewMode" (change)="onChangeViewMode($event.value)">
-                    <mat-button-toggle value="summary">汇总</mat-button-toggle>
-                    <mat-button-toggle value="detail">明细</mat-button-toggle>
-                  </mat-button-toggle-group>
+                  <div class="view-toggle">
+                    <button nz-button [nzType]="viewMode==='summary' ? 'primary' : 'default'" (click)="onChangeViewMode('summary')">汇总</button>
+                    <button nz-button [nzType]="viewMode==='detail' ? 'primary' : 'default'" (click)="onChangeViewMode('detail')">明细</button>
                 </div>
-                <mat-progress-bar *ngIf="loadingService.isLoading(loadingKeys.XSTORE_BACKUP_LIST)" mode="indeterminate"></mat-progress-bar>
-                <table mat-table [dataSource]="dataSource" class="full-width-table">
-                  <ng-container matColumnDef="name">
-                    <th mat-header-cell *matHeaderCellDef>名称</th>
-                    <td mat-cell *matCellDef="let b">{{ b.metadata.name }}</td>
-                  </ng-container>
-                  <ng-container matColumnDef="xStoreName">
-                    <th mat-header-cell *matHeaderCellDef>XStore/类别</th>
-                    <td mat-cell *matCellDef="let b">
+                </div>
+                <nz-table #xTable [nzData]="backups" nzSize="middle" [nzFrontPagination]="true" [nzPageSize]="10">
+                  <thead>
+                    <tr>
+                      <th>名称</th>
+                      <th>XStore/类别</th>
+                      <th>类型</th>
+                      <th>状态</th>
+                      <th>大小</th>
+                      <th>开始时间</th>
+                      <th style="width:160px">进度</th>
+                      <th style="width:140px">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let b of xTable.data">
+                      <td>{{ b.metadata.name }}</td>
+                      <td>
                       {{ getXStoreName(b) }}
-                      <span class="category-pill" [matTooltip]="getCategoryTooltip(b)" matTooltipPosition="above" *ngIf="getCategoryDisplay(b) as cat"> · {{ cat }}</span>
+                        <nz-tag nzColor="geekblue" *ngIf="getCategoryDisplay(b) as cat" nz-tooltip [nzTooltipTitle]="getCategoryTooltip(b)">{{ cat }}</nz-tag>
                     </td>
-                  </ng-container>
-                  <ng-container matColumnDef="backupType">
-                    <th mat-header-cell *matHeaderCellDef>类型</th>
-                    <td mat-cell *matCellDef="let b">{{ (b.spec.backupType || 'full') | titlecase }}</td>
-                  </ng-container>
-                  <ng-container matColumnDef="phase">
-                    <th mat-header-cell *matHeaderCellDef>状态</th>
-                    <td mat-cell *matCellDef="let b">
-                      <mat-chip [color]="getStatusColor(b.status?.phase)">{{ b.displayStatus || (b.status?.phase || '未知') }}</mat-chip>
+                      <td>{{ (b.spec.backupType || 'full') | titlecase }}</td>
+                      <td>
+                        <nz-tag [nzColor]="getNzStatusColor(b.status?.phase)">{{ b.displayStatus || (b.status?.phase || '未知') }}</nz-tag>
                     </td>
-                  </ng-container>
-                  <ng-container matColumnDef="size">
-                    <th mat-header-cell *matHeaderCellDef>大小</th>
-                    <td mat-cell *matCellDef="let b">{{ b.displaySize }}</td>
-                  </ng-container>
-                  <ng-container matColumnDef="creationTime">
-                    <th mat-header-cell *matHeaderCellDef>开始时间</th>
-                    <td mat-cell *matCellDef="let b">{{ b.status?.startTime || '-' }}</td>
-                  </ng-container>
-                  <ng-container matColumnDef="status">
-                    <th mat-header-cell *matHeaderCellDef>进度</th>
-                    <td mat-cell *matCellDef="let b">
-                      <mat-progress-bar [value]="getProgressPercentage(b)" mode="determinate"></mat-progress-bar>
+                      <td>{{ b.displaySize }}</td>
+                      <td>{{ b.status?.startTime || '-' }}</td>
+                      <td>
+                        <nz-progress [nzPercent]="getProgressPercentage(b)" nzSize="small"></nz-progress>
                     </td>
-                  </ng-container>
-                  <ng-container matColumnDef="actions">
-                    <th mat-header-cell *matHeaderCellDef>操作</th>
-                    <td mat-cell *matCellDef="let b">
-                      <button mat-icon-button (click)="viewBackup(b)"><mat-icon>visibility</mat-icon></button>
-                      <button mat-icon-button (click)="editBackup(b)"><mat-icon>edit</mat-icon></button>
-                      <button mat-icon-button color="warn" (click)="deleteBackup(b)"><mat-icon>delete</mat-icon></button>
-                      <button mat-icon-button color="warn" matTooltip="强制删除（移除finalizers）" (click)="forceDeleteBackup(b)">
-                        <mat-icon>delete_forever</mat-icon>
-                      </button>
+                      <td>
+                        <button nz-button nzType="link" (click)="viewBackup(b)"><i nz-icon nzType="eye"></i></button>
+                        <button nz-button nzType="link" (click)="editBackup(b)"><i nz-icon nzType="edit"></i></button>
+                        <button nz-button nzType="link" nzDanger (click)="deleteBackup(b)"><i nz-icon nzType="delete"></i></button>
+                        <button nz-button nzType="link" nzDanger nz-tooltip nzTooltipTitle="强制删除（移除finalizers）" (click)="forceDeleteBackup(b)"><i nz-icon nzType="delete"></i></button>
                     </td>
-                  </ng-container>
-                  <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-                  <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
-                  <tr class="mat-row" *matNoDataRow>
-                    <td class="mat-cell" colspan="9999">
-                      <app-empty-state icon="storage" title="暂无存储备份" hint="点击“新建备份”创建首个存储备份"></app-empty-state>
+                    </tr>
+                    <tr *ngIf="!xTable.data?.length">
+                      <td colspan="8">
+                      <app-empty-state icon="hdd" title="暂无存储备份" hint="点击“新建备份”创建首个存储备份"></app-empty-state>
                     </td>
                   </tr>
-                </table>
+                  </tbody>
+                </nz-table>
               </div>
             </mat-tab>
             <mat-tab label="创建备份配置">
               <div class="tab-content">
-                <form [formGroup]="backupForm">
-                  <mat-card>
-                    <mat-card-title>基础配置</mat-card-title>
-                    <mat-card-content>
+                <form nz-form [formGroup]="backupForm">
+                  <nz-card nzTitle="基础配置" [nzExtra]="basicHelpTemplate">
                       <div class="form-row">
-                        <mat-form-field appearance="outline" class="half">
-                          <mat-label>名称</mat-label>
-                          <input matInput formControlName="name">
-                        </mat-form-field>
-                        <mat-form-field appearance="outline" class="half">
-                          <mat-label>命名空间</mat-label>
-                          <input matInput formControlName="namespace">
-                        </mat-form-field>
+                      <div class="half">
+                        <nz-form-item>
+                          <nz-form-label [nzRequired]="true">备份名称</nz-form-label>
+                          <nz-form-control nzHasFeedback [nzValidateStatus]="backupForm.get('name')?.invalid && backupForm.get('name')?.touched ? 'error' : ''">
+                            <input nz-input formControlName="name" placeholder="输入备份配置名称" />
+                            <div *ngIf="backupForm.get('name')?.invalid && backupForm.get('name')?.touched" style="color: #ff4d4f; font-size: 12px; margin-top: 4px;">
+                              请输入有效的备份名称
+                            </div>
+                          </nz-form-control>
+                        </nz-form-item>
+                      </div>
+                      <div class="half">
+                        <nz-form-item>
+                          <nz-form-label [nzRequired]="true">命名空间</nz-form-label>
+                          <nz-form-control nzHasFeedback>
+                            <input nz-input formControlName="namespace" placeholder="例如：default" />
+                          </nz-form-control>
+                        </nz-form-item>
+                      </div>
                       </div>
                       <div class="form-row">
-                        <mat-form-field appearance="outline" class="half">
-                          <mat-label>XStore</mat-label>
-                          <mat-select formControlName="xStoreName">
-                            <mat-option *ngFor="let x of availableXStores" [value]="x.metadata.name">{{ x.metadata.name }}</mat-option>
-                          </mat-select>
-                        </mat-form-field>
-                        <mat-form-field appearance="outline" class="half">
-                          <mat-label>备份类型</mat-label>
-                          <mat-select formControlName="backupType">
-                            <mat-option *ngFor="let t of backupTypes" [value]="t.value">{{ t.label }}</mat-option>
-                          </mat-select>
-                        </mat-form-field>
+                      <div class="half">
+                        <nz-form-item>
+                          <nz-form-label [nzRequired]="true">目标 XStore</nz-form-label>
+                          <nz-form-control>
+                            <nz-select formControlName="xStoreName" nzPlaceHolder="选择要备份的 XStore 实例" nzShowSearch>
+                              <nz-option *ngFor="let x of availableXStores" [nzValue]="x.metadata.name" [nzLabel]="x.metadata.name">
+                                <i nz-icon nzType="database" style="margin-right: 8px;"></i>
+                                {{ x.metadata.name }}
+                                <nz-tag nzColor="blue" style="margin-left: 8px;">{{ x.status?.phase || '未知' }}</nz-tag>
+                              </nz-option>
+                            </nz-select>
+                          </nz-form-control>
+                        </nz-form-item>
+                      </div>
+                      <div class="half">
+                        <nz-form-item>
+                          <nz-form-label [nzRequired]="true">备份类型</nz-form-label>
+                          <nz-form-control>
+                            <nz-select formControlName="backupType">
+                              <nz-option *ngFor="let t of backupTypes" [nzValue]="t.value" [nzLabel]="t.label">
+                                <i nz-icon [nzType]="getBackupTypeIcon(t.value)" style="margin-right: 8px;"></i>
+                                {{ t.label }}
+                              </nz-option>
+                            </nz-select>
+                          </nz-form-control>
+                        </nz-form-item>
+                      </div>
                       </div>
                       <div class="form-row">
-                        <mat-form-field appearance="outline" class="full">
-                          <mat-label>定时表达式（可选）</mat-label>
-                          <input matInput formControlName="schedule" placeholder="例如：0 2 * * *">
-                        </mat-form-field>
+                      <div class="full">
+                        <nz-form-item>
+                          <nz-form-label>
+                            <span>定时表达式（可选）</span>
+                            <i nz-icon nzType="question-circle" nz-tooltip nzTooltipTitle="Cron 表达式格式：分 时 日 月 周，例如每天凌晨2点：0 2 * * *" style="margin-left: 4px; color: #999;"></i>
+                          </nz-form-label>
+                          <nz-form-control>
+                            <nz-input-group [nzPrefix]="cronPrefixTemplate" [nzSuffix]="cronSuffixTemplate">
+                              <input nz-input formControlName="schedule" placeholder="例如：0 2 * * * （每天凌晨2点执行）" />
+                            </nz-input-group>
+                          </nz-form-control>
+                        </nz-form-item>
                       </div>
-                      <div class="form-row">
-                        <mat-checkbox formControlName="compression">启用压缩</mat-checkbox>
-                        <mat-checkbox formControlName="enableEncryption" style="margin-left:16px">启用加密</mat-checkbox>
+                    </div>
+
+                    <nz-divider nzText="备份选项" nzOrientation="left"></nz-divider>
+                    <div class="form-row" style="align-items: center;">
+                      <div style="flex: 1;">
+                        <label nz-checkbox formControlName="compression">
+                          <span style="margin-left: 8px;">启用压缩</span>
+                        </label>
+                        <div style="color: #666; font-size: 12px; margin-top: 4px; margin-left: 24px;">
+                          压缩备份文件以节省存储空间，但会增加 CPU 使用量
+                        </div>
                       </div>
-                    </mat-card-content>
-                  </mat-card>
+                      <div style="flex: 1;">
+                        <label nz-checkbox formControlName="enableEncryption">
+                          <span style="margin-left: 8px;">启用加密</span>
+                        </label>
+                        <div style="color: #666; font-size: 12px; margin-top: 4px; margin-left: 24px;">
+                          对备份文件进行加密保护，提高数据安全性
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- 模板定义 -->
+                    <ng-template #basicHelpTemplate>
+                      <i nz-icon nzType="question-circle" nz-tooltip nzTooltipTitle="配置备份任务的基本参数"></i>
+                    </ng-template>
+
+                    <ng-template #cronPrefixTemplate>
+                      <i nz-icon nzType="schedule"></i>
+                    </ng-template>
+
+                    <ng-template #cronSuffixTemplate>
+                      <i nz-icon nzType="info-circle" nz-tooltip nzTooltipTitle="留空表示立即执行一次性备份"></i>
+                    </ng-template>
+                  </nz-card>
                 </form>
 
-                <form [formGroup]="storageForm" style="margin-top:16px">
-                  <mat-card>
-                    <mat-card-title>存储配置</mat-card-title>
-                    <mat-card-content>
+                <form nz-form [formGroup]="storageForm" style="margin-top:16px">
+                  <nz-card nzTitle="存储配置" [nzExtra]="storageHelpTemplate">
                       <div class="form-row">
-                        <mat-form-field appearance="outline" class="half">
-                          <mat-label>存储类型</mat-label>
-                          <mat-select formControlName="storageType">
-                            <mat-option *ngFor="let s of storageProviders" [value]="s.value">{{ s.label }}</mat-option>
-                          </mat-select>
-                        </mat-form-field>
+                      <div class="half">
+                        <nz-form-item>
+                          <nz-form-label [nzRequired]="true">存储类型</nz-form-label>
+                          <nz-form-control>
+                            <nz-select formControlName="storageType" nzPlaceHolder="选择存储类型">
+                              <nz-option *ngFor="let s of storageProviders" [nzValue]="s.value" [nzLabel]="s.label">
+                                <i nz-icon [nzType]="getStorageIcon(s.value)" style="margin-right: 8px;"></i>
+                                {{ s.label }}
+                              </nz-option>
+                            </nz-select>
+                          </nz-form-control>
+                        </nz-form-item>
                       </div>
+                      <div class="half">
+                        <nz-form-item>
+                          <nz-form-label [nzRequired]="true">Sink 名称</nz-form-label>
+                          <nz-form-control>
+                            <nz-select formControlName="sinkName" nzPlaceHolder="选择 HPFS 中已配置的 sink 名称" nzShowSearch>
+                              <nz-option *ngFor="let s of hpfsSinks.filter(x => x.type?.toLowerCase() === (selectedStorageType||'').toLowerCase())"
+                                         [nzValue]="s.name" [nzLabel]="s.name">
+                                <i nz-icon [nzType]="getStorageIcon(s.type)"></i>
+                                {{ s.name }}
+                                <span style="color:#999;margin-left:8px">{{ s.endpoint || s.host || '' }}</span>
+                              </nz-option>
+                            </nz-select>
+                            <div style="margin-top:6px; font-size:12px;">
+                              <ng-container [ngSwitch]="sinkStatus">
+                                <span *ngSwitchCase="'valid'" style="color:#52c41a">已校验：sink 存在</span>
+                                <span *ngSwitchCase="'invalid'" style="color:#ff4d4f">未找到该 sink，请检查 HPFS 配置</span>
+                                <span *ngSwitchCase="'checking'" style="color:#1890ff">正在校验...</span>
+                                <span *ngSwitchDefault style="color:#999">从 HPFS ConfigMap 中选择 sink</span>
+                              </ng-container>
+                            </div>
+                          </nz-form-control>
+                        </nz-form-item>
+                      </div>
+                    </div>
+
                       <div *ngIf="selectedStorageType === 'oss'" formGroupName="ossConfig">
+                      <nz-divider nzText="阿里云 OSS 配置" nzOrientation="left"></nz-divider>
+                      <div class="help-text">该信息应配置在 <code>polardbx-operator-system/polardbx-hpfs-config</code> 的 <code>config.yaml</code> 中（前端不保存凭据）。例如：</div>
+                      <pre class="config-summary" [innerText]="exampleOssYaml"></pre>
                         <div class="form-row">
-                          <mat-form-field appearance="outline" class="half">
-                            <mat-label>AccessKeyId</mat-label>
-                            <input matInput formControlName="accessKeyId">
-                          </mat-form-field>
-                          <mat-form-field appearance="outline" class="half">
-                            <mat-label>AccessKeySecret</mat-label>
-                            <input matInput formControlName="accessKeySecret">
-                          </mat-form-field>
+                        <div class="half">
+                          <nz-form-item>
+                            <nz-form-label [nzRequired]="true">Access Key ID</nz-form-label>
+                            <nz-form-control nzHasFeedback>
+                              <input nz-input formControlName="accessKeyId" placeholder="请输入 Access Key ID" />
+                            </nz-form-control>
+                          </nz-form-item>
+                        </div>
+                        <div class="half">
+                          <nz-form-item>
+                            <nz-form-label [nzRequired]="true">Access Key Secret</nz-form-label>
+                            <nz-form-control nzHasFeedback>
+                              <nz-input-group [nzSuffix]="secretSuffixTemplate">
+                                <input nz-input [type]="showSecret ? 'text' : 'password'" formControlName="accessKeySecret" placeholder="请输入 Access Key Secret" />
+                              </nz-input-group>
+                            </nz-form-control>
+                          </nz-form-item>
+                        </div>
                         </div>
                         <div class="form-row">
-                          <mat-form-field appearance="outline" class="half">
-                            <mat-label>Bucket</mat-label>
-                            <input matInput formControlName="bucket">
-                          </mat-form-field>
-                          <mat-form-field appearance="outline" class="half">
-                            <mat-label>Endpoint</mat-label>
-                            <input matInput formControlName="endpoint">
-                          </mat-form-field>
+                        <div class="half">
+                          <nz-form-item>
+                            <nz-form-label [nzRequired]="true">Bucket</nz-form-label>
+                            <nz-form-control>
+                              <input nz-input formControlName="bucket" placeholder="存储桶名称" />
+                            </nz-form-control>
+                          </nz-form-item>
                         </div>
+                        <div class="half">
+                          <nz-form-item>
+                            <nz-form-label [nzRequired]="true">Endpoint</nz-form-label>
+                            <nz-form-control>
+                              <input nz-input formControlName="endpoint" placeholder="例如：oss-cn-beijing.aliyuncs.com" />
+                            </nz-form-control>
+                          </nz-form-item>
                       </div>
+                      </div>
+                    </div>
+
                       <div *ngIf="selectedStorageType === 's3'" formGroupName="s3Config">
+                      <nz-divider nzText="Amazon S3 配置" nzOrientation="left"></nz-divider>
+                      <div class="help-text">在 HPFS ConfigMap 中配置 S3 sink，例如：</div>
+                      <pre class="config-summary" [innerText]="exampleS3Yaml"></pre>
                         <div class="form-row">
-                          <mat-form-field appearance="outline" class="half">
-                            <mat-label>AccessKeyId</mat-label>
-                            <input matInput formControlName="accessKeyId">
-                          </mat-form-field>
-                          <mat-form-field appearance="outline" class="half">
-                            <mat-label>SecretAccessKey</mat-label>
-                            <input matInput formControlName="secretAccessKey">
-                          </mat-form-field>
+                        <div class="half">
+                          <nz-form-item>
+                            <nz-form-label [nzRequired]="true">Access Key ID</nz-form-label>
+                            <nz-form-control>
+                              <input nz-input formControlName="accessKeyId" placeholder="请输入 Access Key ID" />
+                            </nz-form-control>
+                          </nz-form-item>
+                        </div>
+                        <div class="half">
+                          <nz-form-item>
+                            <nz-form-label [nzRequired]="true">Secret Access Key</nz-form-label>
+                            <nz-form-control>
+                              <nz-input-group [nzSuffix]="secretSuffixTemplate">
+                                <input nz-input [type]="showSecret ? 'text' : 'password'" formControlName="secretAccessKey" placeholder="请输入 Secret Access Key" />
+                              </nz-input-group>
+                            </nz-form-control>
+                          </nz-form-item>
+                        </div>
                         </div>
                         <div class="form-row">
-                          <mat-form-field appearance="outline" class="half">
-                            <mat-label>Bucket</mat-label>
-                            <input matInput formControlName="bucket">
-                          </mat-form-field>
-                          <mat-form-field appearance="outline" class="half">
-                            <mat-label>Region</mat-label>
-                            <input matInput formControlName="region">
-                          </mat-form-field>
+                        <div class="half">
+                          <nz-form-item>
+                            <nz-form-label [nzRequired]="true">Bucket</nz-form-label>
+                            <nz-form-control>
+                              <input nz-input formControlName="bucket" placeholder="存储桶名称" />
+                            </nz-form-control>
+                          </nz-form-item>
                         </div>
+                        <div class="half">
+                          <nz-form-item>
+                            <nz-form-label [nzRequired]="true">Region</nz-form-label>
+                            <nz-form-control>
+                              <input nz-input formControlName="region" placeholder="例如：us-east-1" />
+                            </nz-form-control>
+                          </nz-form-item>
                       </div>
+                      </div>
+                    </div>
+
                       <div *ngIf="selectedStorageType === 'sftp'" formGroupName="sftpConfig">
+                      <nz-divider nzText="SFTP 配置" nzOrientation="left"></nz-divider>
+                      <div class="help-text">在 HPFS ConfigMap 中配置 SFTP sink，例如：</div>
+                      <pre class="config-summary" [innerText]="exampleSftpYaml"></pre>
                         <div class="form-row">
-                          <mat-form-field appearance="outline" class="half">
-                            <mat-label>Host</mat-label>
-                            <input matInput formControlName="host">
-                          </mat-form-field>
-                          <mat-form-field appearance="outline" class="half">
-                            <mat-label>Port</mat-label>
-                            <input matInput type="number" formControlName="port">
-                          </mat-form-field>
+                        <div class="half">
+                          <nz-form-item>
+                            <nz-form-label [nzRequired]="true">主机地址</nz-form-label>
+                            <nz-form-control>
+                              <input nz-input formControlName="host" placeholder="SFTP 服务器地址" />
+                            </nz-form-control>
+                          </nz-form-item>
+                        </div>
+                        <div class="half">
+                          <nz-form-item>
+                            <nz-form-label [nzRequired]="true">端口</nz-form-label>
+                            <nz-form-control>
+                              <nz-input-number formControlName="port" [nzMin]="1" [nzMax]="65535" nzPlaceHolder="22" style="width: 100%;"></nz-input-number>
+                            </nz-form-control>
+                          </nz-form-item>
+                        </div>
                         </div>
                         <div class="form-row">
-                          <mat-form-field appearance="outline" class="half">
-                            <mat-label>Username</mat-label>
-                            <input matInput formControlName="username">
-                          </mat-form-field>
-                          <mat-form-field appearance="outline" class="half">
-                            <mat-label>Remote Path</mat-label>
-                            <input matInput formControlName="remotePath">
-                          </mat-form-field>
+                        <div class="half">
+                          <nz-form-item>
+                            <nz-form-label [nzRequired]="true">用户名</nz-form-label>
+                            <nz-form-control>
+                              <input nz-input formControlName="username" placeholder="SFTP 用户名" />
+                            </nz-form-control>
+                          </nz-form-item>
+                        </div>
+                        <div class="half">
+                          <nz-form-item>
+                            <nz-form-label [nzRequired]="true">远程路径</nz-form-label>
+                            <nz-form-control>
+                              <input nz-input formControlName="remotePath" placeholder="/backup/path" />
+                            </nz-form-control>
+                          </nz-form-item>
+                      </div>
+                      </div>
+                    </div>
+
+                    <!-- 模板定义 -->
+                    <ng-template #storageHelpTemplate>
+                      <i nz-icon nzType="question-circle" nz-tooltip nzTooltipTitle="选择合适的存储后端来保存备份文件"></i>
+                    </ng-template>
+
+                    <ng-template #secretSuffixTemplate>
+                      <i nz-icon [nzType]="showSecret ? 'eye-invisible' : 'eye'" (click)="showSecret = !showSecret" style="cursor: pointer;"></i>
+                    </ng-template>
+                  </nz-card>
+                </form>
+
+                <form nz-form [formGroup]="retentionForm" style="margin-top:16px">
+                  <nz-card nzTitle="保留策略" [nzExtra]="retentionHelpTemplate">
+                    <div style="margin-bottom: 16px;">
+                      <label nz-checkbox formControlName="enableRetention">
+                        <span style="margin-left: 8px;">启用保留策略</span>
+                      </label>
+                      <div style="color: #666; font-size: 12px; margin-top: 4px;">
+                        配置备份文件的自动清理规则，避免存储空间过度占用
+                      </div>
+                    </div>
+                    
+                    <div *ngIf="retentionForm.get('enableRetention')?.value">
+                      <nz-alert 
+                        nzType="info" 
+                        nzMessage="保留策略说明" 
+                        nzDescription="系统会按照以下规则保留备份文件，达到任一条件即触发清理。建议根据业务需求合理配置。"
+                        nzShowIcon
+                        style="margin-bottom: 16px;">
+                      </nz-alert>
+                      
+                      <div class="form-row">
+                        <div class="third">
+                          <nz-form-item>
+                            <nz-form-label nzTooltipTitle="保留最近的 N 个备份文件">
+                              <i nz-icon nzType="info-circle" style="margin-right: 4px;"></i>
+                              保留数量
+                            </nz-form-label>
+                            <nz-form-control>
+                              <nz-input-number 
+                                formControlName="retain" 
+                                [nzMin]="1" 
+                                [nzMax]="999" 
+                                nzPlaceHolder="10"
+                                style="width: 100%;">
+                              </nz-input-number>
+                            </nz-form-control>
+                          </nz-form-item>
+                        </div>
+                        <div class="third">
+                          <nz-form-item>
+                            <nz-form-label nzTooltipTitle="保留指定天数内的备份文件">
+                              <i nz-icon nzType="calendar" style="margin-right: 4px;"></i>
+                              保留天数
+                            </nz-form-label>
+                            <nz-form-control>
+                              <nz-input-number 
+                                formControlName="retainDays" 
+                                [nzMin]="1" 
+                                [nzMax]="365" 
+                                nzPlaceHolder="30"
+                                style="width: 100%;">
+                              </nz-input-number>
+                            </nz-form-control>
+                          </nz-form-item>
+                        </div>
+                        <div class="third">
+                          <nz-form-item>
+                            <nz-form-label nzTooltipTitle="保留指定小时内的备份文件">
+                              <i nz-icon nzType="clock-circle" style="margin-right: 4px;"></i>
+                              保留小时
+                            </nz-form-label>
+                            <nz-form-control>
+                              <nz-input-number 
+                                formControlName="retainHours" 
+                                [nzMin]="1" 
+                                [nzMax]="8760" 
+                                nzPlaceHolder="72"
+                                style="width: 100%;">
+                              </nz-input-number>
+                            </nz-form-control>
+                          </nz-form-item>
                         </div>
                       </div>
-                    </mat-card-content>
-                  </mat-card>
+                    </div>
+
+                    <ng-template #retentionHelpTemplate>
+                      <i nz-icon nzType="question-circle" nz-tooltip nzTooltipTitle="自动清理过期的备份文件，节省存储空间"></i>
+                    </ng-template>
+                  </nz-card>
                 </form>
 
-                <form [formGroup]="retentionForm" style="margin-top:16px">
-                  <mat-card>
-                    <mat-card-title>保留策略</mat-card-title>
-                    <mat-card-content>
-                      <mat-checkbox formControlName="enableRetention">启用保留策略</mat-checkbox>
-                      <div class="form-row" *ngIf="retentionForm.get('enableRetention')?.value">
-                        <mat-form-field appearance="outline" class="third">
-                          <mat-label>保留数量</mat-label>
-                          <input matInput type="number" formControlName="retain">
-                        </mat-form-field>
-                        <mat-form-field appearance="outline" class="third">
-                          <mat-label>保留天数</mat-label>
-                          <input matInput type="number" formControlName="retainDays">
-                        </mat-form-field>
-                        <mat-form-field appearance="outline" class="third">
-                          <mat-label>保留小时</mat-label>
-                          <input matInput type="number" formControlName="retainHours">
-                        </mat-form-field>
+                <form nz-form [formGroup]="resourceForm" style="margin-top:16px">
+                  <nz-card nzTitle="资源配置" [nzExtra]="resourceHelpTemplate">
+                    <div style="margin-bottom: 16px;">
+                      <label nz-checkbox formControlName="enableResourceLimits">
+                        <span style="margin-left: 8px;">启用资源限制</span>
+                      </label>
+                      <div style="color: #666; font-size: 12px; margin-top: 4px;">
+                        为备份任务分配合适的计算资源，确保备份性能和集群稳定性
                       </div>
-                    </mat-card-content>
-                  </mat-card>
+                      </div>
+                    
+                    <div *ngIf="resourceForm.get('enableResourceLimits')?.value">
+                      <nz-divider nzText="资源请求 (Requests)" nzOrientation="left"></nz-divider>
+                      <div class="form-row">
+                        <div class="third">
+                          <nz-form-item>
+                            <nz-form-label nzTooltipTitle="容器启动时保证分配的 CPU 核数">
+                              <i nz-icon nzType="dashboard" style="margin-right: 4px;"></i>
+                              CPU
+                            </nz-form-label>
+                            <nz-form-control>
+                              <input nz-input formControlName="requestsCpu" placeholder="例如：100m" />
+                            </nz-form-control>
+                          </nz-form-item>
+                        </div>
+                        <div class="third">
+                          <nz-form-item>
+                            <nz-form-label nzTooltipTitle="容器启动时保证分配的内存大小">
+                              <i nz-icon nzType="database" style="margin-right: 4px;"></i>
+                              Memory
+                            </nz-form-label>
+                            <nz-form-control>
+                              <input nz-input formControlName="requestsMemory" placeholder="例如：256Mi" />
+                            </nz-form-control>
+                          </nz-form-item>
+                        </div>
+                        <div class="third">
+                          <nz-form-item>
+                            <nz-form-label nzTooltipTitle="备份过程中需要的临时存储空间">
+                              <i nz-icon nzType="hdd" style="margin-right: 4px;"></i>
+                              Storage
+                            </nz-form-label>
+                            <nz-form-control>
+                              <input nz-input formControlName="requestsStorage" placeholder="例如：1Gi" />
+                            </nz-form-control>
+                          </nz-form-item>
+                        </div>
+                      </div>
+
+                      <nz-divider nzText="资源上限 (Limits)" nzOrientation="left"></nz-divider>
+                      <div class="form-row">
+                        <div class="third">
+                          <nz-form-item>
+                            <nz-form-label nzTooltipTitle="容器可使用的 CPU 上限">
+                              <i nz-icon nzType="dashboard" style="margin-right: 4px;"></i>
+                              CPU
+                            </nz-form-label>
+                            <nz-form-control>
+                              <input nz-input formControlName="limitsCpu" placeholder="例如：500m" />
+                            </nz-form-control>
+                          </nz-form-item>
+                        </div>
+                        <div class="third">
+                          <nz-form-item>
+                            <nz-form-label nzTooltipTitle="容器可使用的内存上限">
+                              <i nz-icon nzType="database" style="margin-right: 4px;"></i>
+                              Memory
+                            </nz-form-label>
+                            <nz-form-control>
+                              <input nz-input formControlName="limitsMemory" placeholder="例如：512Mi" />
+                            </nz-form-control>
+                          </nz-form-item>
+                        </div>
+                        <div class="third">
+                          <nz-form-item>
+                            <nz-form-label nzTooltipTitle="备份过程中可使用的存储上限">
+                              <i nz-icon nzType="hdd" style="margin-right: 4px;"></i>
+                              Storage
+                            </nz-form-label>
+                            <nz-form-control>
+                              <input nz-input formControlName="limitsStorage" placeholder="例如：2Gi" />
+                            </nz-form-control>
+                          </nz-form-item>
+                        </div>
+                      </div>
+                    </div>
+
+                    <ng-template #resourceHelpTemplate>
+                      <i nz-icon nzType="question-circle" nz-tooltip nzTooltipTitle="配置备份任务的计算资源分配"></i>
+                    </ng-template>
+                  </nz-card>
                 </form>
 
-                <form [formGroup]="resourceForm" style="margin-top:16px">
-                  <mat-card>
-                    <mat-card-title>资源配置</mat-card-title>
-                    <mat-card-content>
-                      <mat-checkbox formControlName="enableResourceLimits">启用资源限制</mat-checkbox>
-                      <div class="form-row" *ngIf="resourceForm.get('enableResourceLimits')?.value">
-                        <mat-form-field appearance="outline" class="third">
-                          <mat-label>Requests CPU</mat-label>
-                          <input matInput formControlName="requestsCpu">
-                        </mat-form-field>
-                        <mat-form-field appearance="outline" class="third">
-                          <mat-label>Requests Memory</mat-label>
-                          <input matInput formControlName="requestsMemory">
-                        </mat-form-field>
-                        <mat-form-field appearance="outline" class="third">
-                          <mat-label>Requests Storage</mat-label>
-                          <input matInput formControlName="requestsStorage">
-                        </mat-form-field>
-                      </div>
-                      <div class="form-row" *ngIf="resourceForm.get('enableResourceLimits')?.value">
-                        <mat-form-field appearance="outline" class="third">
-                          <mat-label>Limits CPU</mat-label>
-                          <input matInput formControlName="limitsCpu">
-                        </mat-form-field>
-                        <mat-form-field appearance="outline" class="third">
-                          <mat-label>Limits Memory</mat-label>
-                          <input matInput formControlName="limitsMemory">
-                        </mat-form-field>
-                        <mat-form-field appearance="outline" class="third">
-                          <mat-label>Limits Storage</mat-label>
-                          <input matInput formControlName="limitsStorage">
-                        </mat-form-field>
-                      </div>
-                    </mat-card-content>
-                  </mat-card>
-                </form>
-
-                <div style="margin-top:16px; display:flex; gap:8px; justify-content:flex-end">
-                  <button mat-button type="button" (click)="resetForms()">重置</button>
-                  <button mat-raised-button color="primary" [disabled]="!isFormValid() || isProcessing" (click)="saveBackup()">
-                    <mat-icon>save</mat-icon>
-                    保存
+                <nz-card nzTitle="操作确认" style="margin-top:16px">
+                  <div style="margin-bottom: 16px;">
+                    <nz-alert 
+                      nzType="info" 
+                      nzMessage="配置检查" 
+                      [nzDescription]="getConfigSummary()"
+                      nzShowIcon>
+                    </nz-alert>
+                  </div>
+                  
+                  <div style="display:flex; gap:12px; justify-content:flex-end; align-items: center;">
+                    <button nz-button type="button" (click)="resetForms()" [nzLoading]="isProcessing">
+                      <i nz-icon nzType="reload"></i>
+                      重置配置
+                    </button>
+                    <button nz-button nzType="default" (click)="previewConfig()" [disabled]="!isFormValid()">
+                      <i nz-icon nzType="eye"></i>
+                      预览配置
+                    </button>
+                    <button nz-button nzType="primary" [disabled]="!isFormValid() || isProcessing" (click)="saveBackup()" [nzLoading]="isProcessing">
+                      <i nz-icon nzType="save"></i>
+                      {{ isProcessing ? '创建中...' : '创建备份配置' }}
                   </button>
                 </div>
+                </nz-card>
               </div>
             </mat-tab>
           </mat-tab-group>
-        </mat-card-content>
-      </mat-card>
+        </div>
+      </nz-card>
     </div>
   `,
   styles: [`
     .xstore-backup-management {
       padding: 20px;
     }
+    .header-card .subtitle { color: rgba(0,0,0,0.45); }
+    .mat-like-tabs { margin-top: 8px; }
     
     .tab-content {
       padding: 20px;
     }
+    .list-actions { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+    .view-toggle { margin-left: auto; display: flex; gap: 8px; }
     
     mat-card-title {
       display: flex;
@@ -365,6 +676,51 @@ export interface XStoreBackupDialogData {
     .category-pill {
       color: rgba(0,0,0,0.54);
       margin-left: 4px;
+      font-size: 12px;
+    }
+
+    /* 表单样式优化 */
+    .form-row {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 16px;
+      align-items: flex-start;
+    }
+    .form-row .half {
+      flex: 1;
+    }
+    .form-row .third {
+      flex: 1;
+    }
+    .form-row .full {
+      flex: 1;
+    }
+
+    /* 卡片间距优化 */
+    nz-card {
+      margin-bottom: 0;
+    }
+    
+    /* 表单验证反馈优化 */
+    nz-form-explain {
+      font-size: 12px;
+      margin-top: 4px;
+    }
+
+    /* 帮助提示样式 */
+    .help-text {
+      color: #666;
+      font-size: 12px;
+      margin-top: 4px;
+    }
+
+    /* 配置汇总样式 */
+    .config-summary {
+      background: #f5f5f5;
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 16px;
+      font-family: monospace;
       font-size: 12px;
     }
   `]
@@ -386,6 +742,8 @@ export class XStoreBackupManagementComponent implements OnInit, OnDestroy {
 
   // Data
   availableXStores: XStore[] = [];
+  hpfsSinks: Array<{ name: string; type: string; endpoint?: string; bucket?: string; host?: string; port?: number; rootPath?: string; bucketLookupType?: string }> = [];
+  sinkStatus: 'idle' | 'valid' | 'invalid' | 'checking' = 'idle';
   backups: XStoreBackupWithStatus[] = [];
   dataSource = new MatTableDataSource<XStoreBackupWithStatus>();
   // 汇总/明细视图切换，默认汇总
@@ -396,7 +754,12 @@ export class XStoreBackupManagementComponent implements OnInit, OnDestroy {
   // UI State
   isProcessing = false;
   selectedTab = 0;
+  showSecret = false;
   private destroy$ = new Subject<void>();
+  // Examples for HPFS ConfigMap snippets
+  exampleOssYaml: string = `sinks:\n  - name: default\n    type: oss\n    endpoint: oss-cn-beijing.aliyuncs.com\n    accessKey: <OSS_AK>\n    accessSecret: <OSS_SK>\n    bucket: my-bucket\n`;
+  exampleS3Yaml: string = `sinks:\n  - name: default\n    type: s3\n    endpoint: play.min.io\n    useSSL: true\n    bucketLookupType: dns\n    accessKey: <S3_AK>\n    secretKey: <S3_SK>\n    bucket: my-bucket\n`;
+  exampleSftpYaml: string = `sinks:\n  - name: default\n    type: sftp\n    host: sftp.example.com\n    port: 22\n    user: backup\n    password: <SFTP_PASSWORD>\n    rootPath: /data/backup\n`;
   
   // Table configuration
   displayedColumns: string[] = [
@@ -462,6 +825,7 @@ export class XStoreBackupManagementComponent implements OnInit, OnDestroy {
     // Storage configuration form
     this.storageForm = this.fb.group({
       storageType: ['oss', Validators.required],
+      sinkName: ['', Validators.required],
       ossConfig: this.fb.group({
         accessKeyId: ['', Validators.required],
         accessKeySecret: ['', Validators.required],
@@ -542,25 +906,10 @@ export class XStoreBackupManagementComponent implements OnInit, OnDestroy {
         control?.updateValueAndValidity();
       });
     });
-
-    // Minimal validators that align with backend (sink-only)
-    if (storageType === 's3') {
-      const g = this.storageForm.get('s3Config') as FormGroup;
-      g.get('bucket')?.setValidators([Validators.required]);
-      g.get('bucket')?.updateValueAndValidity();
-    } else if (storageType === 'oss') {
-      const g = this.storageForm.get('ossConfig') as FormGroup;
-      g.get('bucket')?.setValidators([Validators.required]);
-      g.get('bucket')?.updateValueAndValidity();
-    } else if (storageType === 'sftp') {
-      const g = this.storageForm.get('sftpConfig') as FormGroup;
-      g.get('host')?.setValidators([Validators.required]);
-      g.get('username')?.setValidators([Validators.required]);
-      g.get('remotePath')?.setValidators([Validators.required]);
-      g.get('host')?.updateValueAndValidity();
-      g.get('username')?.updateValueAndValidity();
-      g.get('remotePath')?.updateValueAndValidity();
-    }
+    // 后端契约：仅需 storageProvider.storageName + storageProvider.sink
+    const sinkCtl = this.storageForm.get('sinkName');
+    sinkCtl?.setValidators([Validators.required]);
+    sinkCtl?.updateValueAndValidity();
   }
 
   private updateRetentionValidators(enabled: boolean): void {
@@ -603,6 +952,33 @@ export class XStoreBackupManagementComponent implements OnInit, OnDestroy {
       // Load available XStores
       this.availableXStores = await this.apiService.getXStores(this.data.namespace).toPromise() || [];
       
+      // Load HPFS sinks for selection
+      const sinksResp = await this.apiService.getHpfsSinks().toPromise();
+      this.hpfsSinks = (sinksResp?.sinks || []).filter((s: any) => !!s?.name && !!s?.type);
+
+      // Wire sink validation on change
+      const sinkCtl = this.storageForm.get('sinkName');
+      const typeCtl = this.storageForm.get('storageType');
+      if (sinkCtl && typeCtl) {
+        sinkCtl.valueChanges.pipe(debounceTime(200), distinctUntilChanged(), takeUntil(this.destroy$)).subscribe(async (val: string) => {
+          this.sinkStatus = 'checking';
+          try {
+            const name = (val || '').trim();
+            const type = (typeCtl.value || '').toString();
+            if (!name || !type) { this.sinkStatus = 'idle'; return; }
+            const res = await this.apiService.validateSink(name, type).toPromise();
+            this.sinkStatus = (res?.status === 'ok') ? 'valid' : 'invalid';
+          } catch {
+            this.sinkStatus = 'invalid';
+          }
+        });
+        typeCtl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(() => {
+          // Reset sink selection when type changes
+          sinkCtl.setValue('');
+          this.sinkStatus = 'idle';
+        });
+      }
+
       // Load existing backups
       await this.loadBackups();
     } catch (error) {
@@ -878,7 +1254,7 @@ export class XStoreBackupManagementComponent implements OnInit, OnDestroy {
 
     // Use sink NAME configured in HPFS (not URL). Default to 'default'.
     const storageType: 'oss' | 's3' | 'sftp' = storageValue.storageType;
-    const sink = (localStorage.getItem('xstoreBackupSinkName') || localStorage.getItem('backupSinkName') || 'default').trim();
+    const sink = (storageValue.sinkName || localStorage.getItem('xstoreBackupSinkName') || localStorage.getItem('backupSinkName') || 'default').trim();
 
     // Convert retention to duration string (hours) if enabled
     let retentionTime: string | undefined;
@@ -985,6 +1361,18 @@ export class XStoreBackupManagementComponent implements OnInit, OnDestroy {
     return '';
   }
 
+  // Map material chip color semantics to ng-zorro tag colors
+  getNzStatusColor(phase?: string): string {
+    if (!phase) return 'default';
+    const ok = ['Completed', 'Finished'];
+    const running = ['Running', 'Pending', 'Backuping', 'Collecting', 'Calculating', 'Binloging', 'MetadataBackuping', 'Waiting', 'Deleting'];
+    const fail = ['Failed'];
+    if (ok.includes(phase)) return 'green';
+    if (fail.includes(phase)) return 'red';
+    if (running.includes(phase)) return 'blue';
+    return 'default';
+  }
+
   getProgressPercentage(backup: XStoreBackupWithStatus): number {
     return backup.status?.progress?.percentage || 0;
   }
@@ -1066,5 +1454,42 @@ export class XStoreBackupManagementComponent implements OnInit, OnDestroy {
 
   get selectedStorageType(): string {
     return this.storageForm.get('storageType')?.value || 'oss';
+  }
+
+  getStorageIcon(type: string): string {
+    switch (type) {
+      case 'oss': return 'cloud';
+      case 's3': return 'amazon';
+      case 'sftp': return 'share-alt';
+      default: return 'database';
+    }
+  }
+
+  getBackupTypeIcon(type: string): string {
+    switch (type) {
+      case 'full': return 'database';
+      case 'incremental': return 'diff';
+      default: return 'file-sync';
+    }
+  }
+
+  getConfigSummary(): string {
+    const name = this.backupForm.get('name')?.value || '未设置';
+    const xstore = this.backupForm.get('xStoreName')?.value || '未选择';
+    const type = this.backupForm.get('backupType')?.value || '未选择';
+    const storage = this.storageForm.get('storageType')?.value || '未选择';
+    const schedule = this.backupForm.get('schedule')?.value ? '定时备份' : '立即备份';
+    
+    return `备份名称：${name} | 目标：${xstore} | 类型：${type} | 存储：${storage} | 模式：${schedule}`;
+  }
+
+  previewConfig(): void {
+    // 可以在这里显示配置预览对话框
+    console.log('预览配置:', {
+      backup: this.backupForm.value,
+      storage: this.storageForm.value,
+      retention: this.retentionForm.value,
+      resource: this.resourceForm.value
+    });
   }
 }

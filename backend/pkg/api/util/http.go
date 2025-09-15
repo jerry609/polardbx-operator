@@ -14,6 +14,8 @@ import (
 	"polardbx-ui-backend/pkg/k8s"
 
 	"k8s.io/client-go/tools/clientcmd"
+
+	polardbxv1 "github.com/alibaba/polardbx-operator/api/v1"
 )
 
 // K8sClientFromContext returns controller-runtime client from gin context.
@@ -153,4 +155,14 @@ func InitClientsFromKubeconfigB64(c *gin.Context, kubeconfigB64 string) (client.
 		c.Set("k8sContext", ctxName)
 	}
 	return ctrlClient, clientset, nil
+}
+
+// NotFound is a helper for deprecated endpoints after migration.
+func NotFound(c *gin.Context) {
+	c.JSON(http.StatusNotFound, gin.H{"error": "endpoint deprecated", "details": "use new domain handlers"})
+}
+
+// K8sPatchClusterJSON is a small wrapper to patch PolarDBXCluster with raw JSON merge patch.
+func K8sPatchClusterJSON(ctx context.Context, cli client.Client, namespace, name string, patch []byte) (*polardbxv1.PolarDBXCluster, error) {
+	return k8s.PatchPolarDBXClusterWithContext(ctx, cli, namespace, name, patch)
 }

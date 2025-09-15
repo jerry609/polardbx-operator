@@ -18,7 +18,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	api_xstore "polardbx-ui-backend/pkg/api/xstore"
+	domain_xs "polardbx-ui-backend/pkg/api/domain/xstores"
 )
 
 func setupXStoreFollowerTestRouter(fakeClient client.Client) *gin.Engine {
@@ -29,16 +29,16 @@ func setupXStoreFollowerTestRouter(fakeClient client.Client) *gin.Engine {
 	})
 
 	// Register XStoreFollower routes
-	router.GET("/xstore-followers", api_xstore.ListFollowers)
-	router.POST("/xstore-followers", api_xstore.CreateFollower)
-	router.GET("/xstore-followers/:namespace/:name", api_xstore.GetFollower)
-	router.PUT("/xstore-followers/:namespace/:name", api_xstore.UpdateFollower)
-	router.DELETE("/xstore-followers/:namespace/:name", api_xstore.DeleteFollower)
+	router.GET("/xstore-followers", domain_xs.ListFollowers)
+	router.POST("/xstore-followers", domain_xs.CreateFollower)
+	router.GET("/xstore-followers/:namespace/:name", domain_xs.GetFollower)
+	router.PUT("/xstore-followers/:namespace/:name", domain_xs.UpdateFollower)
+	router.DELETE("/xstore-followers/:namespace/:name", domain_xs.DeleteFollower)
 
 	// Rebuild wrappers
-	router.POST("/xstore-rebuild/:namespace/:name/logger", api_xstore.RebuildLogger)
-	router.POST("/xstore-rebuild/:namespace/:name/learner", api_xstore.RebuildLearner)
-	router.POST("/xstore-rebuild/:namespace/:name/auto", api_xstore.AutoRebuild)
+	router.POST("/xstore-rebuild/:namespace/:name/logger", domain_xs.RebuildLogger)
+	router.POST("/xstore-rebuild/:namespace/:name/learner", domain_xs.RebuildLearner)
+	router.POST("/xstore-rebuild/:namespace/:name/auto", domain_xs.AutoRebuild)
 
 	return router
 }

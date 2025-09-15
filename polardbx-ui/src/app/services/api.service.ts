@@ -452,11 +452,12 @@ export class ApiService {
 
   // XStore Management Methods
 
-  getXStores(namespace = 'default'): Observable<XStore[]> {
+  getXStores(namespace?: string): Observable<XStore[]> {
+    const params = namespace ? new HttpParams().set('namespace', namespace) : this.withNs();
     return this.handleRequest(
       this.http.get<XStore[]>(`${this.baseUrl}/xstores`, {
         headers: this.getHeaders(),
-        params: this.withNs()
+        params
       }),
       LoadingKeys.XSTORE_LIST,
       `/xstores`,
@@ -814,11 +815,12 @@ export class ApiService {
   }
 
   // LogCollectors
-  getLogCollectors(namespace = 'default'): Observable<PolarDBXLogCollector[]> {
+  getLogCollectors(namespace: string = 'polardbx-logcollector'): Observable<PolarDBXLogCollector[]> {
+    const params = new HttpParams().set('namespace', namespace);
     return this.handleRequest(
       this.http.get<PolarDBXLogCollector[]>(`${this.baseUrl}/log-collectors`, {
         headers: this.getHeaders(),
-        params: this.withNs()
+        params
       }),
       LoadingKeys.LOG_COLLECTOR_LIST,
       `/log-collectors`,
@@ -827,10 +829,23 @@ export class ApiService {
   }
 
   createLogCollector(namespace: string, collectorRequest: CreateLogCollectorRequest): Observable<PolarDBXLogCollector> {
+    const params = new HttpParams().set('namespace', namespace || collectorRequest.namespace || 'default');
+    const body: PolarDBXLogCollector = {
+      apiVersion: 'polardbx.aliyun.com/v1',
+      kind: 'PolarDBXLogCollector',
+      metadata: {
+        name: collectorRequest.name,
+        namespace: collectorRequest.namespace || namespace || 'default'
+      },
+      spec: {
+        fileBeatName: collectorRequest.fileBeatName,
+        logStashName: collectorRequest.logStashName
+      }
+    } as any;
     return this.handleRequest(
-      this.http.post<PolarDBXLogCollector>(`${this.baseUrl}/log-collectors`, collectorRequest, {
+      this.http.post<PolarDBXLogCollector>(`${this.baseUrl}/log-collectors`, body, {
         headers: this.getHeaders(),
-        params: this.withNs()
+        params
       }),
       LoadingKeys.LOG_COLLECTOR_CREATE,
       `/log-collectors`,
@@ -965,8 +980,9 @@ export class ApiService {
 
   getXStoreFollowers(namespace?: string): Observable<XStoreFollower[]> {
     const url = `${this.baseUrl}/xstore-followers`;
+    const params = namespace ? new HttpParams().set('namespace', namespace) : this.withNs();
     return this.handleRequest(
-      this.http.get<XStoreFollower[]>(url, { headers: this.getHeaders(), params: this.withNs() }),
+      this.http.get<XStoreFollower[]>(url, { headers: this.getHeaders(), params }),
       LoadingKeys.XSTORE_LIST,
       '/xstore-followers',
       'GET'
@@ -974,10 +990,11 @@ export class ApiService {
   }
 
   createXStoreFollower(namespace: string, followerRequest: CreateXStoreFollowerRequest): Observable<XStoreFollower> {
+    const params = new HttpParams().set('namespace', namespace || 'default');
     return this.handleRequest(
       this.http.post<XStoreFollower>(`${this.baseUrl}/xstore-followers`, followerRequest, {
         headers: this.getHeaders(),
-        params: this.withNs()
+        params
       }),
       LoadingKeys.XSTORE_CREATE,
       `/xstore-followers`,
@@ -1139,6 +1156,17 @@ export class ApiService {
     );
   }
 
+  deleteBackupBinlog(namespace: string, name: string): Observable<any> {
+    return this.handleRequest(
+      this.http.delete(`${this.baseUrl}/backup-binlogs/${namespace}/${name}`, {
+        headers: this.getHeaders()
+      }),
+      LoadingKeys.BACKUP_BINLOG_DELETE,
+      `/backup-binlogs/${namespace}/${name}`,
+      'DELETE'
+    );
+  }
+
   getBackupBinlog(namespace: string, name: string): Observable<PolarDBXBackupBinlog> {
     return this.handleRequest(
       this.http.get<PolarDBXBackupBinlog>(`${this.baseUrl}/backup-binlogs/${namespace}/${name}`, {
@@ -1158,17 +1186,6 @@ export class ApiService {
       LoadingKeys.BACKUP_BINLOG_UPDATE,
       `/backup-binlogs/${namespace}/${name}`,
       'PUT'
-    );
-  }
-
-  deleteBackupBinlog(namespace: string, name: string): Observable<any> {
-    return this.handleRequest(
-      this.http.delete(`${this.baseUrl}/backup-binlogs/${namespace}/${name}`, {
-        headers: this.getHeaders()
-      }),
-      LoadingKeys.BACKUP_BINLOG_DELETE,
-      `/backup-binlogs/${namespace}/${name}`,
-      'DELETE'
     );
   }
 
@@ -1663,8 +1680,35 @@ export class ApiService {
   }
 
   getLogStrategies(): Observable<any[]> {
-    return this.handleRequest(
-      this.http.get<any[]>(`${this.baseUrl}/log-strategies`, { headers: this.getHeaders() }),
+    const req = this.http
+      .get<any>(`${this.baseUrl}/log-strategies`, { headers: this.getHeaders() })
+      .pipe(
+        map((res: any) => (Array.isArray(res) ? res : (res?.items || []))),
+        map((items: any[]) => (items || []).map((s: any) => {
+          const output = s?.output || {};
+          const type = (output.type || s?.outputType || 'stdout').toLowerCase();
+          const hostsStr: string = output.hosts || '';
+          const hostsArr = hostsStr ? hostsStr.split(',').map((h: string) => h.trim()).filter(Boolean) : [];
+          return {
+            name: s?.name,
+            targetCluster: s?.clusterName || s?.targetCluster || '',
+            outputType: type,
+            status: s?.status || 'active',
+            config: type === 'elasticsearch' ? {
+              elasticsearch: {
+                hosts: hostsArr,
+                username: output.username || '',
+                password: '',
+                index: output.index || ''
+              }
+            } : {},
+            createdAt: s?.createdAt || '',
+            updatedAt: s?.updatedAt || ''
+          };
+        }))
+      );
+    return this.handleRequest<any[]>(
+      req,
       LoadingKeys.LOG_STRATEGIES_LIST,
       '/log-strategies',
       'GET'
@@ -1672,8 +1716,10 @@ export class ApiService {
   }
 
   createLogStrategy(strategy: any): Observable<any> {
+    // 将前端策略模型映射为后端所需模型
+    const payload = this.mapToBackendLogStrategy(strategy);
     return this.handleRequest(
-      this.http.post(`${this.baseUrl}/log-strategies`, strategy, { headers: this.getHeaders() }),
+      this.http.post(`${this.baseUrl}/log-strategies`, payload, { headers: this.getHeaders() }),
       LoadingKeys.LOG_STRATEGY_SAVE,
       '/log-strategies',
       'POST'
@@ -1681,8 +1727,9 @@ export class ApiService {
   }
 
   updateLogStrategy(name: string, strategy: any): Observable<any> {
+    const payload = this.mapToBackendLogStrategy({ ...strategy, name });
     return this.handleRequest(
-      this.http.put(`${this.baseUrl}/log-strategies/${name}`, strategy, { headers: this.getHeaders() }),
+      this.http.put(`${this.baseUrl}/log-strategies/${name}`, payload, { headers: this.getHeaders() }),
       LoadingKeys.LOG_STRATEGY_SAVE,
       `/log-strategies/${name}`,
       'PUT'
@@ -1705,5 +1752,37 @@ export class ApiService {
       '/log-strategies/test-connection',
       'POST'
     );
+  }
+
+  // 将 UI 模型转换为后端所需的 Strategy 模型
+  private mapToBackendLogStrategy(ui: any): any {
+    const name: string = ui?.name || '';
+    const clusterName: string = ui?.targetCluster || ui?.clusterName || '';
+    const outputType: string = (ui?.outputType || ui?.output?.type || 'stdout').toLowerCase();
+    // 处理 ES 配置
+    const es = ui?.config?.elasticsearch || {};
+    const hostsArr: string[] = Array.isArray(es.hosts) ? es.hosts : (es.hosts ? [es.hosts] : []);
+    const hostsJoined = hostsArr.filter(Boolean).join(',');
+    const username: string = es.username || ui?.esUsername || '';
+    const password: string = es.password || ui?.esPassword || '';
+    const useTLS = hostsArr.some((h) => typeof h === 'string' && h.trim().toLowerCase().startsWith('https://'));
+    const authType = username ? 'basic' : 'none';
+
+    return {
+      name: name,
+      clusterName: clusterName,
+      // clusterNamespace 可省略，后端默认使用 default
+      enableCN: true,
+      enableDN: true,
+      output: {
+        type: outputType,
+        hosts: hostsJoined,
+        authType: authType,
+        username: username,
+        password: password,
+        useTLS: useTLS,
+        caCrt: ''
+      }
+    };
   }
 }

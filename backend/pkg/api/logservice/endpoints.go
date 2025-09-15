@@ -61,14 +61,40 @@ func Status(c *gin.Context) {
 		}
 	}
 
+	fbStatus := "not_found"
+	if existsFB {
+		if desiredFB > 0 && readyFB == desiredFB {
+			fbStatus = "running"
+		} else {
+			fbStatus = "error"
+		}
+	}
+	lsStatus := "not_found"
+	if existsLS {
+		if desiredLS > 0 && readyLS == desiredLS {
+			lsStatus = "running"
+		} else {
+			lsStatus = "error"
+		}
+	}
+
 	resp := gin.H{
 		"namespace": ns,
 		"components": gin.H{
-			"filebeat": gin.H{"exists": existsFB, "ready": readyFB, "desired": desiredFB, "error": errString(dsErr)},
-			"logstash": gin.H{"exists": existsLS, "ready": readyLS, "desired": desiredLS, "error": errString(depErr)},
+			"filebeat": gin.H{
+				"status":   fbStatus,
+				"replicas": gin.H{"ready": readyFB, "total": desiredFB},
+				"error":    errString(dsErr),
+			},
+			"logstash": gin.H{
+				"status":   lsStatus,
+				"replicas": gin.H{"ready": readyLS, "total": desiredLS},
+				"error":    errString(depErr),
+			},
 		},
 		"pipelineConfigMapExists": cm != nil,
 		"state":                   state,
+		"status":                  state,
 	}
 	if state == "not_installed" {
 		resp["installHint"] = "helm install polardbx-logcollector charts/polardbx-logcollector -n polardbx-logcollector --create-namespace"

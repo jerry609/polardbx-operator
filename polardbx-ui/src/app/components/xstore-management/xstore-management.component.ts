@@ -230,7 +230,8 @@ export class XStoreManagementComponent implements OnInit {
   }
 
   loadXStores(): void {
-    this.apiService.getXStores('default').subscribe({
+    // 使用全局选择的命名空间（ApiService 内部会从 localStorage.activeNamespace 读取）
+    this.apiService.getXStores().subscribe({
       next: (xstores) => {
         this.xstores = xstores;
       },

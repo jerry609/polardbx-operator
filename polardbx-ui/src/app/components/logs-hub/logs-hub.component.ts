@@ -26,6 +26,18 @@ import { filter } from 'rxjs/operators';
         <nz-tabset nzType="card" class="main-tabs" [nzTabBarGutter]="8"
                    [nzSelectedIndex]="selectedIndex"
                    (nzSelectedIndexChange)="onTabChange($event)">
+          <nz-tab nzTitle="安装向导">
+            <ng-template #nzTabHeading>
+              <i nz-icon nzType="tool"></i>
+              <span>安装向导</span>
+            </ng-template>
+          </nz-tab>
+          <nz-tab nzTitle="总览">
+            <ng-template #nzTabHeading>
+              <i nz-icon nzType="appstore"></i>
+              <span>总览</span>
+            </ng-template>
+          </nz-tab>
           <nz-tab nzTitle="服务仪表盘">
             <ng-template #nzTabHeading>
               <i nz-icon nzType="dashboard"></i>
@@ -138,7 +150,7 @@ export class LogsHubComponent implements OnInit {
   selectedIndex = 0;
   totalCollectors = 0;
   activePolicies = 0;
-  private paths = ['dashboard', 'collectors', 'ilm', 'search'];
+  private paths = ['install', 'overview', 'dashboard', 'collectors', 'ilm', 'search'];
 
   constructor(private router: Router, private route: ActivatedRoute) {}
 
@@ -154,7 +166,7 @@ export class LogsHubComponent implements OnInit {
 
   private updateSelectedFromUrl(): void {
     const child = this.route.firstChild;
-    const seg = child?.snapshot?.url?.[0]?.path || 'dashboard';
+    const seg = child?.snapshot?.url?.[0]?.path || 'install';
     const idx = this.paths.indexOf(seg);
     this.selectedIndex = idx >= 0 ? idx : 0;
   }

@@ -18,8 +18,8 @@ import (
 	polardbxv1 "github.com/alibaba/polardbx-operator/api/v1"
 	"github.com/alibaba/polardbx-operator/api/v1/xstore"
 
+	domain_xs "polardbx-ui-backend/pkg/api/domain/xstores"
 	api_monitor "polardbx-ui-backend/pkg/api/monitor"
-	api_xstore "polardbx-ui-backend/pkg/api/xstore"
 )
 
 func TestXStoreEndpoints(t *testing.T) {
@@ -58,12 +58,12 @@ func TestXStoreEndpoints(t *testing.T) {
 		c.Next()
 	})
 
-	// Register XStore routes
-	router.GET("/xstores", api_xstore.List)
-	router.POST("/xstores", api_xstore.Create)
-	router.GET("/xstores/:namespace/:name", api_xstore.Get)
-	router.PUT("/xstores/:namespace/:name", api_xstore.Update)
-	router.DELETE("/xstores/:namespace/:name", api_xstore.Delete)
+	// Register XStore routes (domain)
+	router.GET("/xstores", domain_xs.List)
+	router.POST("/xstores", domain_xs.Create)
+	router.GET("/xstores/:namespace/:name", domain_xs.Get)
+	router.PUT("/xstores/:namespace/:name", domain_xs.Update)
+	router.DELETE("/xstores/:namespace/:name", domain_xs.Delete)
 
 	// --- Test ListXStores ---
 	t.Run("ListXStores", func(t *testing.T) {

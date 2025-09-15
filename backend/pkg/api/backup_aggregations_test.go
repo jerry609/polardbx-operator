@@ -14,7 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	api_backup "polardbx-ui-backend/pkg/api/backup"
+	domain_pxc "polardbx-ui-backend/pkg/api/domain/polardbxclusters"
 )
 
 func TestGetClusterBackupState(t *testing.T) {
@@ -44,7 +44,7 @@ func TestGetClusterBackupState(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(cl, bOld, bNew, sch).Build()
 	r := gin.Default()
 	r.Use(func(c *gin.Context) { c.Set("k8sClient", fakeClient) })
-	r.GET("/api/v1/backups/cluster-state", api_backup.GetClusterBackupState)
+	r.GET("/api/v1/backups/cluster-state", domain_pxc.GetClusterBackupState)
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest(http.MethodGet, "/api/v1/backups/cluster-state?namespace="+ns, nil)

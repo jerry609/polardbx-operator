@@ -18,7 +18,7 @@ import (
 	polardbxv1 "github.com/alibaba/polardbx-operator/api/v1"
 	"github.com/alibaba/polardbx-operator/api/v1/polardbx"
 
-	api_backup "polardbx-ui-backend/pkg/api/backup"
+	domain_pxc "polardbx-ui-backend/pkg/api/domain/polardbxclusters"
 )
 
 func TestBackupScheduleEndpoints(t *testing.T) {
@@ -65,12 +65,12 @@ func TestBackupScheduleEndpoints(t *testing.T) {
 		c.Next()
 	})
 
-	// Register BackupSchedule routes (subpackages)
-	router.GET("/backup-schedules", api_backup.ListSchedules)
-	router.POST("/backup-schedules", api_backup.CreateSchedule)
-	router.GET("/backup-schedules/:namespace/:name", api_backup.GetSchedule)
-	router.PUT("/backup-schedules/:namespace/:name", api_backup.UpdateSchedule)
-	router.DELETE("/backup-schedules/:namespace/:name", api_backup.DeleteSchedule)
+	// Register BackupSchedule routes via domain handlers
+	router.GET("/backup-schedules", domain_pxc.ListSchedules)
+	router.POST("/backup-schedules", domain_pxc.CreateSchedule)
+	router.GET("/backup-schedules/:namespace/:name", domain_pxc.GetSchedule)
+	router.PUT("/backup-schedules/:namespace/:name", domain_pxc.UpdateSchedule)
+	router.DELETE("/backup-schedules/:namespace/:name", domain_pxc.DeleteSchedule)
 
 	// --- Test ListBackupSchedules ---
 	t.Run("ListBackupSchedules", func(t *testing.T) {
@@ -250,7 +250,7 @@ func TestBackupScheduleBusinessLogic(t *testing.T) {
 					c.Set("k8sClient", fakeClient)
 					c.Next()
 				})
-				router.POST("/backup-schedules", api_backup.CreateSchedule)
+				router.POST("/backup-schedules", domain_pxc.CreateSchedule)
 
 				schedule := &polardbxv1.PolarDBXBackupSchedule{
 					ObjectMeta: metav1.ObjectMeta{
@@ -305,7 +305,7 @@ func TestBackupScheduleBusinessLogic(t *testing.T) {
 					c.Set("k8sClient", fakeClient)
 					c.Next()
 				})
-				router.POST("/backup-schedules", api_backup.CreateSchedule)
+				router.POST("/backup-schedules", domain_pxc.CreateSchedule)
 
 				schedule := &polardbxv1.PolarDBXBackupSchedule{
 					ObjectMeta: metav1.ObjectMeta{

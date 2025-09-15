@@ -148,7 +148,7 @@ export interface RecoveryWizardDialogData {
                     <nz-form-label nzRequired>备份集</nz-form-label>
                     <nz-form-control [nzErrorTip]="getFieldError(sourceSelectionForm, 'backupSet')">
                       <nz-select formControlName="backupSet" nzPlaceHolder="选择备份集">
-                        <nz-option *ngFor="let backup of availableBackups" [nzValue]="backup.metadata.name">
+                        <nz-option *ngFor="let backup of availableBackups" [nzValue]="backup.metadata.name" [nzLabel]="backup.metadata.name" nzCustomContent>
                           <div>
                             <strong>{{ backup.metadata.name }}</strong>
                             <br />
