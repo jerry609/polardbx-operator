@@ -53,6 +53,48 @@ func Status(c *gin.Context) {
 		desiredLS = dep.Status.Replicas
 	}
 
+	// Pod-level CrashLoopBackOff detection
+	var fbPodName, fbReason string
+	var fbRestarts int32
+	if existsFB {
+		if pods, err := clientset.CoreV1().Pods(ns).List(c.Request.Context(), metav1.ListOptions{LabelSelector: "app=filebeat"}); err == nil {
+			for i := range pods.Items {
+				p := pods.Items[i]
+				for _, cs := range p.Status.ContainerStatuses {
+					if cs.State.Waiting != nil && cs.State.Waiting.Reason == "CrashLoopBackOff" {
+						fbPodName = p.Name
+						fbReason = cs.State.Waiting.Reason
+						fbRestarts = cs.RestartCount
+						break
+					}
+				}
+				if fbReason != "" {
+					break
+				}
+			}
+		}
+	}
+	var lsPodName, lsReason string
+	var lsRestarts int32
+	if existsLS {
+		if pods, err := clientset.CoreV1().Pods(ns).List(c.Request.Context(), metav1.ListOptions{LabelSelector: "app=logstash"}); err == nil {
+			for i := range pods.Items {
+				p := pods.Items[i]
+				for _, cs := range p.Status.ContainerStatuses {
+					if cs.State.Waiting != nil && cs.State.Waiting.Reason == "CrashLoopBackOff" {
+						lsPodName = p.Name
+						lsReason = cs.State.Waiting.Reason
+						lsRestarts = cs.RestartCount
+						break
+					}
+				}
+				if lsReason != "" {
+					break
+				}
+			}
+		}
+	}
+
 	state := "not_installed"
 	if existsFB || existsLS {
 		state = "degraded"
@@ -63,7 +105,9 @@ func Status(c *gin.Context) {
 
 	fbStatus := "not_found"
 	if existsFB {
-		if desiredFB > 0 && readyFB == desiredFB {
+		if fbReason == "CrashLoopBackOff" {
+			fbStatus = "crashloop"
+		} else if desiredFB > 0 && readyFB == desiredFB {
 			fbStatus = "running"
 		} else {
 			fbStatus = "error"
@@ -71,7 +115,9 @@ func Status(c *gin.Context) {
 	}
 	lsStatus := "not_found"
 	if existsLS {
-		if desiredLS > 0 && readyLS == desiredLS {
+		if lsReason == "CrashLoopBackOff" {
+			lsStatus = "crashloop"
+		} else if desiredLS > 0 && readyLS == desiredLS {
 			lsStatus = "running"
 		} else {
 			lsStatus = "error"
@@ -95,6 +141,12 @@ func Status(c *gin.Context) {
 		"pipelineConfigMapExists": cm != nil,
 		"state":                   state,
 		"status":                  state,
+	}
+	if fbStatus == "crashloop" {
+		resp["components"].(gin.H)["filebeat"].(gin.H)["pod"] = gin.H{"name": fbPodName, "reason": fbReason, "restarts": fbRestarts}
+	}
+	if lsStatus == "crashloop" {
+		resp["components"].(gin.H)["logstash"].(gin.H)["pod"] = gin.H{"name": lsPodName, "reason": lsReason, "restarts": lsRestarts}
 	}
 	if state == "not_installed" {
 		resp["installHint"] = "helm install polardbx-logcollector charts/polardbx-logcollector -n polardbx-logcollector --create-namespace"
