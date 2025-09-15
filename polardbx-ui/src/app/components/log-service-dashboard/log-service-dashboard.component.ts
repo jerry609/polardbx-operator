@@ -662,6 +662,7 @@ export class LogServiceDashboardComponent implements OnInit, OnDestroy {
   getComponentStatusColor(status?: string): string {
     switch (status) {
       case 'running': return 'green';
+      case 'crashloop': return 'orange';
       case 'error': return 'red';
       case 'not_found': return 'default';
       default: return 'default';
@@ -671,6 +672,7 @@ export class LogServiceDashboardComponent implements OnInit, OnDestroy {
   getComponentStatusText(status?: string): string {
     switch (status) {
       case 'running': return '运行中';
+      case 'crashloop': return '反复重启';
       case 'error': return '异常';
       case 'not_found': return '未找到';
       default: return '未知';
