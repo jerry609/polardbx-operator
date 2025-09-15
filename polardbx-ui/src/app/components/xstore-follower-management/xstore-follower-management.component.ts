@@ -92,6 +92,7 @@ export class XStoreFollowerManagementComponent implements OnInit {
     'progress', 
     'lastActivity', 
     'status',
+    'quick',
     'actions'
   ];
 
@@ -510,6 +511,69 @@ export class XStoreFollowerManagementComponent implements OnInit {
       message += '\n';
     });
     alert(message);
+  }
+
+  // ===== Quick actions =====
+  async viewProgress(row: XStoreFollowerWithStatus): Promise<void> {
+    try {
+      const ns = row.metadata.namespace;
+      const xname = row.spec.xStoreName;
+      const res = await this.apiService.getRebuildProgress(ns, xname, row.metadata.name).toPromise();
+      const lines = [
+        `Follower: ${res?.name || row.metadata.name}`,
+        `Phase: ${res?.phase || (row.status?.phase || 'Unknown')}`,
+        res?.message ? `Message: ${res.message}` : '',
+        res?.targetPod ? `TargetPod: ${res.targetPod}` : ''
+      ].filter(Boolean);
+      this.snackBar.open(lines.join('\n'), '关闭', { duration: 5000 });
+    } catch (e) {
+      this.snackBar.open('获取进度失败', '关闭', { duration: 3000 });
+    }
+  }
+
+  async viewPodLogs(row: XStoreFollowerWithStatus): Promise<void> {
+    try {
+      const ns = row.metadata.namespace;
+      const pod = ((row as any).status?.targetPod || (row as any).spec?.targetPodName || '').trim();
+      const podName = pod || 'unknown';
+      if (!podName || podName === 'unknown') { this.snackBar.open('未能确定目标 Pod', '关闭', { duration: 2500 }); return; }
+      const logs = await this.apiService.getPodLogs(ns, podName, '', 400).toPromise();
+      alert(`Pod ${podName} 日志（最后400行）：\n\n${logs || '(空)'}`);
+    } catch (e) {
+      this.snackBar.open('获取日志失败', '关闭', { duration: 3000 });
+    }
+  }
+
+  async describePod(row: XStoreFollowerWithStatus): Promise<void> {
+    try {
+      const ns = row.metadata.namespace;
+      const pod = ((row as any).status?.targetPod || (row as any).spec?.targetPodName || '').trim();
+      const podName = pod || 'unknown';
+      if (!podName || podName === 'unknown') { this.snackBar.open('未能确定目标 Pod', '关闭', { duration: 2500 }); return; }
+      const p = await this.apiService.getPod(ns, podName).toPromise();
+      const cond = (p as any)?.status?.conditions || [];
+      const lines: string[] = [];
+      lines.push(`Name: ${p?.metadata?.name}`);
+      lines.push(`Phase: ${(p as any)?.status?.phase}`);
+      lines.push(`Node: ${(p as any)?.spec?.nodeName}`);
+      cond.forEach((c: any) => lines.push(`${c.type}: ${c.status} (${c.reason || ''})`));
+      alert(lines.join('\n'));
+    } catch (e) {
+      this.snackBar.open('获取 Pod 详情失败', '关闭', { duration: 3000 });
+    }
+  }
+
+  showFailureAdvice(row: XStoreFollowerWithStatus): void {
+    const phase = row.status?.phase || '';
+    const msg = (row.status as any)?.message || '';
+    if (phase !== 'FollowerPhaseFailed') { this.snackBar.open('该任务未处于失败状态', '关闭', { duration: 2500 }); return; }
+    const advice: string[] = [];
+    advice.push(`失败原因：${msg || '未知'}`);
+    advice.push('建议动作：');
+    advice.push('- 检查备份：导航到 备份 → 全量/增量页');
+    advice.push('- 检查节点/Pod：导航到 运维 → 节点');
+    advice.push('- 查看事件：kubectl describe pod <targetPod>');
+    alert(advice.join('\n'));
   }
 
   async refreshFollowers(): Promise<void> { await this.loadFollowers(); }

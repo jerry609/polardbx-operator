@@ -1035,6 +1035,27 @@ export class ApiService {
     );
   }
 
+  // ----- Rebuild progress/status helpers -----
+  getRebuildProgress(namespace: string, xstoreName: string, followerName: string): Observable<{ name: string; phase?: string; message?: string; targetPod?: string } & any> {
+    const url = `${this.baseUrl}/xstores/${encodeURIComponent(namespace)}/${encodeURIComponent(xstoreName)}/rebuild/progress?follower=${encodeURIComponent(followerName)}`;
+    return this.handleRequest(
+      this.http.get<{ name: string; phase?: string; message?: string; targetPod?: string } & any>(url, { headers: this.getHeaders() }),
+      LoadingKeys.XSTORE_LIST,
+      `/xstores/${namespace}/${xstoreName}/rebuild/progress`,
+      'GET'
+    );
+  }
+
+  getRebuildStatus(namespace: string, xstoreName: string): Observable<{ namespace: string; xstore: string; active: Array<{ name: string; phase?: string; message?: string; targetPod?: string }> }> {
+    const url = `${this.baseUrl}/xstores/${encodeURIComponent(namespace)}/${encodeURIComponent(xstoreName)}/rebuild/status`;
+    return this.handleRequest(
+      this.http.get<{ namespace: string; xstore: string; active: Array<{ name: string; phase?: string; message?: string; targetPod?: string }> }>(url, { headers: this.getHeaders() }),
+      LoadingKeys.XSTORE_LIST,
+      `/xstores/${namespace}/${xstoreName}/rebuild/status`,
+      'GET'
+    );
+  }
+
   // ---- Rebuild wrappers (align with docs: follower / logger / learner / auto) ----
   rebuildFollower(namespace: string, request: CreateXStoreFollowerRequest): Observable<XStoreFollower> {
     return this.createXStoreFollower(namespace, request);

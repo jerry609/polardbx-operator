@@ -121,6 +121,27 @@
               </mat-cell>
             </ng-container>
 
+            <!-- Quick Column -->
+            <ng-container matColumnDef="quick">
+              <mat-header-cell *matHeaderCellDef>快捷</mat-header-cell>
+              <mat-cell *matCellDef="let follower">
+                <div class="action-buttons">
+                  <button mat-icon-button (click)="viewProgress(follower)" matTooltip="查看进度">
+                    <mat-icon>hourglass_top</mat-icon>
+                  </button>
+                  <button mat-icon-button (click)="viewPodLogs(follower)" matTooltip="Pod 日志">
+                    <mat-icon>article</mat-icon>
+                  </button>
+                  <button mat-icon-button (click)="describePod(follower)" matTooltip="Pod 描述">
+                    <mat-icon>description</mat-icon>
+                  </button>
+                  <button mat-icon-button color="warn" *ngIf="follower.status?.phase==='FollowerPhaseFailed'" (click)="showFailureAdvice(follower)" matTooltip="失败原因与建议">
+                    <mat-icon>report_problem</mat-icon>
+                  </button>
+                </div>
+              </mat-cell>
+            </ng-container>
+
             <!-- Actions Column -->
             <ng-container matColumnDef="actions">
               <mat-header-cell *matHeaderCellDef>操作</mat-header-cell>
