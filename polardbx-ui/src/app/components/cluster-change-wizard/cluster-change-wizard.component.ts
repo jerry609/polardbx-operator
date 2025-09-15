@@ -280,6 +280,9 @@ import { ApiService } from '../../services/api.service';
     .step-actions { margin-top: 16px; display: flex; gap: 8px; align-items: center; }
     .op-card { cursor: pointer; transition: all .2s; }
     .op-card.active { border-color: #1890ff; box-shadow: 0 0 0 2px rgba(24,144,255,.1); }
+    .op-card h3 { margin-bottom: 8px; }
+    .op-card p { margin: 0 0 8px 0; color: rgba(0,0,0,.65); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .op-card { height: 140px; display: flex; flex-direction: column; justify-content: space-between; }
     .impact-list { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
     .impact-item { padding: 8px; border: 1px solid #f0f0f0; border-radius: 6px; display: flex; gap: 8px; align-items: center; }
     .impact-id { font-weight: 500; }
