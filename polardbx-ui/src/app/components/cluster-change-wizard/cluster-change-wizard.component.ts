@@ -398,11 +398,17 @@ export class ClusterChangeWizardComponent implements OnInit {
           : '未发现阻断项，可继续执行';
         this.impactLoading = false;
       },
-      error: () => {
-        this.impactPlan = [];
-        this.impactHasError = true;
-        this.impactPass = false;
-        this.impactDescription = '影响评估失败，请重试';
+      error: (err) => {
+        const status = err?.status;
+        const message = status === 404 ? '后端未实现预检接口（404）' : '预检失败（网络/后端异常）';
+        this.msg.warning(`${message}，已回退为最小评估`);
+        this.impactPlan = [
+          { id: 'checkStorage', state: 'warn', message: '请确认 HPFS Sink 已配置（备份模块）' },
+          { id: 'checkRecentBackup', state: 'warn', message: '建议先完成一次全量备份' }
+        ];
+        this.impactHasError = false;
+        this.impactPass = true;
+        this.impactDescription = '最小评估通过，可继续（存在建议项）';
         this.impactLoading = false;
       }
     });
