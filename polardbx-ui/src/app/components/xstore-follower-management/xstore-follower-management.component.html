@@ -130,7 +130,6 @@
                 </button>
                 <mat-menu #quickMenu="matMenu">
                   <button mat-menu-item (click)="viewProgress(follower)"><mat-icon>hourglass_top</mat-icon><span>查看进度</span></button>
-                  <button mat-menu-item (click)="viewPodLogs(follower)"><mat-icon>article</mat-icon><span>Pod 日志</span></button>
                   <button mat-menu-item (click)="describePod(follower)"><mat-icon>description</mat-icon><span>Pod 描述</span></button>
                   <button mat-menu-item *ngIf="follower.status?.phase==='FollowerPhaseFailed'" (click)="showFailureAdvice(follower)"><mat-icon>report_problem</mat-icon><span>失败原因与建议</span></button>
                 </mat-menu>
