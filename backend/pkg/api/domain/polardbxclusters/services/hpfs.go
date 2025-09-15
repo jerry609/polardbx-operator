@@ -18,6 +18,19 @@ import (
 	"polardbx-ui-backend/pkg/api/util"
 )
 
+// normalizeSinkType maps aliases to canonical types for robustness.
+func normalizeSinkType(t string) string {
+	lt := strings.ToLower(strings.TrimSpace(t))
+	switch lt {
+	case "minio", "s3-compatible", "s3compat", "aws-s3":
+		return "s3"
+	case "aliyun-oss", "alibaba-oss", "alioss":
+		return "oss"
+	default:
+		return lt
+	}
+}
+
 // ListHpfsSinks returns sinks configured in HPFS ConfigMap
 func (s *BackupService) ListHpfsSinks(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
@@ -54,7 +67,7 @@ func (s *BackupService) ListHpfsSinks(c *gin.Context) {
 	for _, s := range cfg.Sinks {
 		dto := SinkDTO{
 			Name:             s.Name,
-			Type:             s.Type,
+			Type:             normalizeSinkType(s.Type),
 			Endpoint:         s.Endpoint,
 			Bucket:           s.Bucket,
 			BucketLookupType: s.MinioSink.BucketLookupType,
@@ -96,12 +109,12 @@ func (s *BackupService) ValidateHpfsSink(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to parse config.yaml", "details": err.Error()})
 		return
 	}
-	reqType := strings.ToLower(strings.TrimSpace(req.Type))
+	reqType := normalizeSinkType(req.Type)
 	reqName := strings.TrimSpace(req.Name)
 	status := "not_found"
 	message := "sink not found"
 	for _, s := range cfg.Sinks {
-		if s.Name == reqName && strings.EqualFold(s.Type, reqType) {
+		if s.Name == reqName && normalizeSinkType(s.Type) == reqType {
 			status = "ok"
 			message = "sink exists"
 			break
@@ -148,7 +161,7 @@ func (s *BackupService) evaluateStorageConnectivity(c *gin.Context) (string, str
 		return "error", "hpfs_config_parse_error"
 	}
 	for _, s := range cfg.Sinks {
-		kind := strings.ToLower(strings.TrimSpace(s.Type))
+		kind := normalizeSinkType(s.Type)
 		switch kind {
 		case "s3", "oss":
 			addr := parseHostPort(s.Endpoint)
