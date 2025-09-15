@@ -663,6 +663,7 @@ export class LogServiceDashboardComponent implements OnInit, OnDestroy {
     switch (status) {
       case 'running': return 'green';
       case 'crashloop': return 'orange';
+      case 'flapping': return 'blue';
       case 'error': return 'red';
       case 'not_found': return 'default';
       default: return 'default';
@@ -673,6 +674,7 @@ export class LogServiceDashboardComponent implements OnInit, OnDestroy {
     switch (status) {
       case 'running': return '运行中';
       case 'crashloop': return '反复重启';
+      case 'flapping': return '频繁重启';
       case 'error': return '异常';
       case 'not_found': return '未找到';
       default: return '未知';
