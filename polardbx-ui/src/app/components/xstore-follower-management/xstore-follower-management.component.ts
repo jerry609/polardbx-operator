@@ -18,6 +18,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
+import { MatMenuModule } from '@angular/material/menu';
 import { ApiService } from '../../services/api.service';
 import { LoadingService } from '../../services/loading.service';
 import { XStoreFollower, XStoreFollowerWithStatus, CreateXStoreFollowerRequest } from '../../models/xstore-follower.model';
@@ -54,7 +55,8 @@ export interface XStoreFollowerDialogData {
     MatTooltipModule,
     MatProgressBarModule,
     MatCheckboxModule,
-    MatSnackBarModule
+    MatSnackBarModule,
+    MatMenuModule
   ],
   templateUrl: './xstore-follower-management.component.html',
   styleUrls: ['./xstore-follower-management.component.scss', '../../styles/shared-management.scss']
