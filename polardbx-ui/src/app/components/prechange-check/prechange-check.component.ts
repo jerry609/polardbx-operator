@@ -99,11 +99,20 @@ import { NzStatisticModule } from 'ng-zorro-antd/statistic';
                 </nz-statistic>
               </div>
             </div>
+
+            <div class="filters">
+              <nz-tag nzMode="checkable" [nzChecked]="filterStatus==='all'" (click)="setFilter('all')">全部 {{ checklist.length }}</nz-tag>
+              <nz-tag nzMode="checkable" [nzChecked]="filterStatus==='ok'" (click)="setFilter('ok')">通过 {{ okCount }}</nz-tag>
+              <nz-tag nzMode="checkable" [nzChecked]="filterStatus==='warn'" (click)="setFilter('warn')">警告 {{ warnCount }}</nz-tag>
+              <nz-tag nzMode="checkable" [nzChecked]="filterStatus==='fail'" (click)="setFilter('fail')">失败 {{ failCount }}</nz-tag>
+              <span class="spacer"></span>
+              <input nz-input placeholder="按名称/描述搜索" [(ngModel)]="searchTerm" style="max-width: 260px;" />
+            </div>
           </nz-card>
 
           <nz-card class="details-card" nzTitle="详细检查项">
             <div class="check-items">
-              <div class="check-item" *ngFor="let c of checklist; trackBy: trackByIndex">
+              <div class="check-item" *ngFor="let c of filteredChecklist; trackBy: trackByIndex">
                 <div class="check-status">
                   <nz-tag [nzColor]="statusColor(c.status)" class="status-tag">
                     <i nz-icon [nzType]="getStatusIcon(c.status)"></i>
@@ -212,6 +221,13 @@ import { NzStatisticModule } from 'ng-zorro-antd/statistic';
     .statistics {
       padding: 16px 0;
     }
+    .filters {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 0 4px 0;
+    }
+    .filters .spacer { flex: 1; }
     
     .check-items {
       display: flex;
@@ -296,6 +312,8 @@ export class PrechangeCheckComponent implements OnInit {
   loading = false;
   hasExecuted = false;
   checklist: Array<{ name: string; status: string; message: string }> = [];
+  filterStatus: 'all' | 'ok' | 'warn' | 'fail' = 'all';
+  searchTerm = '';
 
   private api = inject(ApiService);
   private msg = inject(NzMessageService);
@@ -303,9 +321,26 @@ export class PrechangeCheckComponent implements OnInit {
 
   ngOnInit(): void {}
 
-  statusColor(s: string): string { return (s === 'ok') ? 'primary' : (s === 'warn' ? 'warn' : ''); }
+  statusColor(s: string): string {
+    if (s === 'ok') return 'success';
+    if (s === 'warn') return 'warning';
+    return 'error';
+  }
   get okCount(): number { return this.checklist.filter(i => i.status === 'ok').length; }
   get warnCount(): number { return this.checklist.filter(i => i.status !== 'ok').length; }
+  get failCount(): number { return this.checklist.filter(i => i.status !== 'ok' && i.status !== 'warn').length; }
+  get filteredChecklist() {
+    const term = (this.searchTerm || '').trim().toLowerCase();
+    return this.checklist.filter(c => {
+      const byStatus = this.filterStatus === 'all' ||
+        (this.filterStatus === 'ok' && c.status === 'ok') ||
+        (this.filterStatus === 'warn' && c.status === 'warn') ||
+        (this.filterStatus === 'fail' && c.status !== 'ok' && c.status !== 'warn');
+      const byTerm = !term || (c.name?.toLowerCase().includes(term) || c.message?.toLowerCase().includes(term));
+      return byStatus && byTerm;
+    });
+  }
+  setFilter(s: 'all'|'ok'|'warn'|'fail') { this.filterStatus = s; }
   
   getStatusIcon(status: string): string {
     switch (status) {
