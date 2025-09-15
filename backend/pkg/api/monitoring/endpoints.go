@@ -1,14 +1,14 @@
 package monitoring
 
 import (
-	"net/http"
-	"time"
 	"context"
 	"fmt"
 	"io"
 	"math/rand"
+	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"polardbx-ui-backend/pkg/api/util"
 
@@ -144,7 +144,7 @@ func runIOPSBench(ctx context.Context, cs kubernetes.Interface, ns string) map[s
 		ObjectMeta: metav1.ObjectMeta{Namespace: ns, Name: name},
 		Spec: corev1.PodSpec{
 			RestartPolicy: corev1.RestartPolicyNever,
-			Volumes: []corev1.Volume{{Name: "data", VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}}}},
+			Volumes:       []corev1.Volume{{Name: "data", VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}}}},
 			Containers: []corev1.Container{{
 				Name:         "bench",
 				Image:        "busybox:1.36",
@@ -178,7 +178,29 @@ func runIOPSBench(ctx context.Context, cs kubernetes.Interface, ns string) map[s
 	}
 	defer rc.Close()
 	b, _ := io.ReadAll(rc)
-	line := strings.TrimSpace(string(b))
+	raw := strings.TrimSpace(string(b))
+	// pick last non-empty line that looks like JSON, otherwise extract last {...}
+	line := ""
+	if raw != "" {
+		parts := strings.Split(raw, "\n")
+		for i := len(parts) - 1; i >= 0; i-- {
+			cand := strings.TrimSpace(parts[i])
+			if cand == "" {
+				continue
+			}
+			if strings.HasPrefix(cand, "{") && strings.Contains(cand, "\"iops\"") {
+				line = cand
+				break
+			}
+		}
+		if line == "" {
+			l := strings.LastIndex(raw, "{")
+			r := strings.LastIndex(raw, "}")
+			if l >= 0 && r > l {
+				line = strings.TrimSpace(raw[l : r+1])
+			}
+		}
+	}
 	// expected: {"write":{"bs":4096,"ops":50000,"seconds":1.23,"iops":40650}}
 	res := map[string]interface{}{"estimated": true, "ok": false, "message": "未能解析输出"}
 	if strings.HasPrefix(line, "{") {
@@ -191,25 +213,54 @@ func runIOPSBench(ctx context.Context, cs kubernetes.Interface, ns string) map[s
 		// parse by splitting (avoid bringing full json dep)
 		get := func(key string) string {
 			idx := strings.Index(line, key)
-			if idx < 0 { return "" }
+			if idx < 0 {
+				return ""
+			}
 			s := line[idx+len(key):]
 			s = strings.TrimLeft(s, ":")
 			s = strings.TrimLeft(s, " ")
 			i := strings.IndexAny(s, ",}")
-			if i < 0 { return s }
+			if i < 0 {
+				return s
+			}
 			return s[:i]
 		}
-		if v := get("\"iops\""); v != "" { if n, err := strconv.ParseInt(strings.Trim(v, " \""), 10, 64); err == nil { iops = n; ok = true } }
-		if v := get("\"seconds\""); v != "" { if f, err := strconv.ParseFloat(strings.Trim(v, " \""), 64); err == nil { seconds = f } }
-		if v := get("\"ops\""); v != "" { if n, err := strconv.ParseInt(strings.Trim(v, " \""), 10, 64); err == nil { ops = n } }
-		if v := get("\"bs\""); v != "" { if n, err := strconv.ParseInt(strings.Trim(v, " \""), 10, 64); err == nil { bs = n } }
+		if v := get("\"iops\""); v != "" {
+			if n, err := strconv.ParseInt(strings.Trim(v, " \""), 10, 64); err == nil {
+				iops = n
+				ok = true
+			}
+		}
+		if v := get("\"seconds\""); v != "" {
+			if f, err := strconv.ParseFloat(strings.Trim(v, " \""), 64); err == nil {
+				seconds = f
+			}
+		}
+		if v := get("\"ops\""); v != "" {
+			if n, err := strconv.ParseInt(strings.Trim(v, " \""), 10, 64); err == nil {
+				ops = n
+			}
+		}
+		if v := get("\"bs\""); v != "" {
+			if n, err := strconv.ParseInt(strings.Trim(v, " \""), 10, 64); err == nil {
+				bs = n
+			}
+		}
+		// fallback: derive iops if missing but ops/seconds present
+		if !ok && ops > 0 && seconds > 0 {
+			calc := int64(float64(ops) / seconds)
+			if calc > 0 {
+				iops = calc
+				ok = true
+			}
+		}
 		res = map[string]interface{}{
 			"estimated": ok,
-			"ok":       ok && iops > 0,
-			"iops":     iops,
-			"seconds":  seconds,
-			"ops":      ops,
-			"bs":       bs,
+			"ok":        ok && iops > 0,
+			"iops":      iops,
+			"seconds":   seconds,
+			"ops":       ops,
+			"bs":        bs,
 		}
 	}
 	return res
