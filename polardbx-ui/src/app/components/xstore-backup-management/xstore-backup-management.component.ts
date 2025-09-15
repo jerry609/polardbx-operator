@@ -288,7 +288,7 @@ export interface XStoreBackupDialogData {
                           <nz-form-label [nzRequired]="true">Sink 名称</nz-form-label>
                           <nz-form-control>
                             <nz-select formControlName="sinkName" nzPlaceHolder="选择 HPFS 中已配置的 sink 名称" nzShowSearch>
-                              <nz-option *ngFor="let s of hpfsSinks.filter(x => x.type?.toLowerCase() === (selectedStorageType||'').toLowerCase())"
+                              <nz-option *ngFor="let s of filteredHpfsSinks"
                                          [nzValue]="s.name" [nzLabel]="s.name">
                                 <i nz-icon [nzType]="getStorageIcon(s.type)"></i>
                                 {{ s.name }}
@@ -1454,6 +1454,12 @@ export class XStoreBackupManagementComponent implements OnInit, OnDestroy {
 
   get selectedStorageType(): string {
     return this.storageForm.get('storageType')?.value || 'oss';
+  }
+
+  get filteredHpfsSinks(): Array<{ name: string; type: string; endpoint?: string; bucket?: string; host?: string; port?: number; rootPath?: string; bucketLookupType?: string }> {
+    const type = (this.selectedStorageType || '').toLowerCase();
+    if (!type) return this.hpfsSinks;
+    return this.hpfsSinks.filter(s => (s.type || '').toLowerCase() === type);
   }
 
   getStorageIcon(type: string): string {
