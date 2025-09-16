@@ -137,7 +137,7 @@ export class NodesComponent implements OnInit {
         for (const p of pods) {
           const name = p.metadata?.name || '';
           const roleInfo = PodRoleDetector.detectRole(p);
-          const phase = p.status?.phase || 'Unknown';
+          const phase = p.status?.phase || '未知';
           const ip = p.status?.podIP || '';
           
           items.push({ 

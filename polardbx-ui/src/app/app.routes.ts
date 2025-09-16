@@ -117,11 +117,21 @@ export const routes: Routes = [
           {
             path: 'xstore-rebuild',
             children: [
-              { path: '', redirectTo: 'health-check', pathMatch: 'full' },
+              { path: '', redirectTo: 'rebuild', pathMatch: 'full' },
+              { 
+                path: 'rebuild',
+                children: [
+                  { path: '', redirectTo: 'tasks', pathMatch: 'full' },
+                  { path: 'new', loadComponent: () => import('./components/rebuild-center/rebuild-form.component').then(m => m.RebuildFormComponent) },
+                  { path: 'tasks', loadComponent: () => import('./components/rebuild-center/rebuild-task-list.component').then(m => m.RebuildTaskListComponent) },
+                  { path: 'tasks/:namespace/:name', loadComponent: () => import('./components/rebuild-center/rebuild-task-detail.component').then(m => m.RebuildTaskDetailComponent) }
+                ]
+              },
+              // Legacy routes for compatibility
               { path: 'health-check', loadComponent: () => import('./components/xstore-rebuild/xstore-rebuild-health-check.component').then(m => m.XStoreRebuildHealthCheckComponent) },
               { path: 'rebuild-follower', loadComponent: () => import('./components/xstore-rebuild/xstore-rebuild-follower.component').then(m => m.XStoreRebuildFollowerComponent) },
-              { path: 'rebuild-logger', loadComponent: () => import('./components/xstore-rebuild/xstore-rebuild-logger.component').then(m => m.XStoreRebuildLoggerComponent) },
-              { path: 'rebuild-learner', loadComponent: () => import('./components/xstore-rebuild/xstore-rebuild-learner.component').then(m => m.XStoreRebuildLearnerComponent) }
+              { path: 'rebuild-logger', redirectTo: 'rebuild/new?role=logger', pathMatch: 'full' },
+              { path: 'rebuild-learner', redirectTo: 'rebuild/new?role=learner', pathMatch: 'full' }
             ]
           }
         ]

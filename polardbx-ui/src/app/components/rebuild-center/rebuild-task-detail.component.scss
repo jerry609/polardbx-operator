@@ -1,0 +1,186 @@
+.rebuild-task-detail-container {
+  padding: 24px;
+  background: #f5f5f5;
+  min-height: calc(100vh - 64px);
+
+  .header-card {
+    margin-bottom: 16px;
+    
+    .task-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      
+      .header-left {
+        display: flex;
+        align-items: center;
+        
+        .back-button {
+          margin-right: 16px;
+          display: flex;
+          align-items: center;
+          color: #1890ff;
+          
+          &:hover {
+            color: #40a9ff;
+          }
+        }
+        
+        .task-title {
+          margin: 0;
+          display: flex;
+          align-items: center;
+          font-size: 20px;
+          font-weight: 500;
+          color: rgba(0, 0, 0, 0.85);
+          
+          .task-icon {
+            margin-right: 8px;
+            color: #1890ff;
+          }
+        }
+      }
+      
+      .header-right {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        
+        .status-tag, .role-tag {
+          font-size: 14px;
+          padding: 4px 12px;
+        }
+      }
+    }
+    
+    .progress-section {
+      margin-bottom: 8px;
+    }
+  }
+
+  .detail-card {
+    .overview-content {
+      .action-section {
+        margin-top: 24px;
+        padding-top: 16px;
+        border-top: 1px solid #f0f0f0;
+        display: flex;
+        gap: 8px;
+      }
+    }
+    
+    .steps-content {
+      padding: 16px 0;
+    }
+    
+    .logs-content, .events-content {
+      padding: 16px 0;
+      min-height: 200px;
+      
+      code {
+        background: #f6f8fa;
+        padding: 8px 12px;
+        border-radius: 4px;
+        display: block;
+        margin-top: 8px;
+        font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        font-size: 12px;
+        color: #24292e;
+        border: 1px solid #e1e4e8;
+      }
+      
+      ul {
+        text-align: left;
+        margin-top: 8px;
+        
+        li {
+          margin-bottom: 4px;
+        }
+      }
+    }
+  }
+  
+  .loading-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 400px;
+  }
+}
+
+// 响应式设计
+@media (max-width: 768px) {
+  .rebuild-task-detail-container {
+    padding: 16px;
+    
+    .header-card {
+      .task-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        
+        .header-left {
+          .task-title {
+            font-size: 18px;
+          }
+        }
+        
+        .header-right {
+          justify-content: center;
+        }
+      }
+    }
+    
+    .detail-card {
+      .overview-content {
+        .action-section {
+          flex-direction: column;
+          
+          button {
+            width: 100%;
+          }
+        }
+      }
+    }
+  }
+}
+
+// 步骤组件样式增强
+.ant-steps-vertical .ant-steps-item-description {
+  color: rgba(0, 0, 0, 0.65);
+  font-size: 12px;
+}
+
+// 描述列表样式
+.ant-descriptions-bordered .ant-descriptions-item-label {
+  background: #fafafa;
+  font-weight: 500;
+}
+
+// 标签样式
+.ant-tag {
+  border-radius: 4px;
+  
+  &.status-tag, &.role-tag {
+    font-weight: 500;
+  }
+}
+
+// 进度条样式
+.ant-progress-line {
+  .ant-progress-bg {
+    border-radius: 4px;
+  }
+}
+
+// 按钮样式
+.ant-btn {
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  
+  .anticon {
+    margin-right: 6px;
+  }
+}

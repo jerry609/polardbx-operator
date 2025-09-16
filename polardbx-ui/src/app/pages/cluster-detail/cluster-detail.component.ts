@@ -658,10 +658,10 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
     return {
       name: pod.metadata.name,
       type: roleInfo.role,
-      status: pod.status?.phase || 'Unknown',
+      status: pod.status?.phase || '未知',
       cpu: cpu,
       memory: memory,
-      ip: pod.status?.podIP || 'Unknown',
+      ip: pod.status?.podIP || '未知',
       resources: `${cpu}/${memory}`,
       readyContainers,
       totalContainers,
@@ -740,7 +740,7 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
             namespace: backup.metadata.namespace,
             completedTime: backup.status?.completionTime || backup.metadata.creationTimestamp,
             type: backup.spec.backupType || 'Snapshot',
-            status: backup.status?.phase || 'Unknown',
+            status: backup.status?.phase || '未知',
             phase: backup.status?.phase,
             message: backup.status?.message,
             backupObject: backup

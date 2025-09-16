@@ -1,0 +1,144 @@
+.rebuild-form-container {
+  padding: 24px;
+  background: #f5f5f5;
+  min-height: calc(100vh - 64px);
+
+  .form-card {
+    max-width: 800px;
+    margin: 0 auto;
+    
+    .form-content {
+      .form-section {
+        margin-bottom: 24px;
+        
+        .section-title {
+          display: flex;
+          align-items: center;
+          margin-bottom: 16px;
+          font-size: 16px;
+          font-weight: 500;
+          color: rgba(0, 0, 0, 0.85);
+          
+          i {
+            margin-right: 8px;
+            color: #1890ff;
+          }
+        }
+        
+        .role-hint {
+          margin-bottom: 8px;
+        }
+      }
+      
+      .role-option {
+        display: flex;
+        align-items: center;
+        
+        i {
+          margin-right: 8px;
+          color: #1890ff;
+        }
+      }
+      
+      .xstore-option {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        
+        .xstore-name {
+          flex: 1;
+        }
+        
+        .status-tag {
+          margin-left: 8px;
+        }
+      }
+      
+      .pod-option {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        
+        .pod-name {
+          flex: 1;
+        }
+        
+        .pod-info {
+          display: flex;
+          gap: 4px;
+          
+          .status-tag, .role-tag {
+            font-size: 12px;
+          }
+        }
+      }
+      
+      .switch-hint {
+        margin-left: 12px;
+        color: rgba(0, 0, 0, 0.45);
+        font-size: 12px;
+      }
+      
+      .submit-buttons {
+        margin-top: 32px;
+        border-top: 1px solid #f0f0f0;
+        padding-top: 24px;
+      }
+    }
+  }
+}
+
+// 响应式设计
+@media (max-width: 768px) {
+  .rebuild-form-container {
+    padding: 16px;
+    
+    .form-card {
+      .form-content {
+        .form-section {
+          .section-title {
+            font-size: 14px;
+          }
+        }
+        
+        ::ng-deep nz-form-item {
+          .ant-form-item-label {
+            flex: 0 0 100% !important;
+            max-width: 100% !important;
+          }
+          
+          .ant-form-item-control {
+            flex: 0 0 100% !important;
+            max-width: 100% !important;
+            margin-left: 0 !important;
+          }
+        }
+        
+        .submit-buttons {
+          ::ng-deep .ant-form-item-control {
+            flex: 0 0 100% !important;
+            max-width: 100% !important;
+            margin-left: 0 !important;
+          }
+        }
+      }
+    }
+  }
+}
+
+// 表单项样式增强
+nz-form-item {
+  margin-bottom: 16px;
+}
+
+nz-select, nz-input {
+  width: 100%;
+}
+
+// Icon 颜色增强
+.anticon {
+  &.anticon-question-circle {
+    color: rgba(0, 0, 0, 0.45);
+    cursor: help;
+  }
+}

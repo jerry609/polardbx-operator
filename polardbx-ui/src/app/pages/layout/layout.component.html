@@ -67,25 +67,21 @@
           </li>
           <li nz-submenu nzTitle="备库重搭" nzIcon="deployment-unit">
             <ul>
+              <li nz-menu-item routerLink="/storage/xstore-rebuild/rebuild/tasks" nzMatchRouter>
+                <nz-icon nzType="unordered-list"></nz-icon>
+                <span>重搭任务</span>
+              </li>
+              <li nz-menu-item routerLink="/storage/xstore-rebuild/rebuild/new" nzMatchRouter>
+                <nz-icon nzType="plus"></nz-icon>
+                <span>创建重搭任务</span>
+              </li>
               <li nz-menu-item routerLink="/storage/xstore-rebuild/health-check" nzMatchRouter>
                 <nz-icon nzType="profile"></nz-icon>
                 <span>健康检查</span>
               </li>
-              <li nz-submenu nzTitle="发起备库重搭" nzIcon="deployment-unit">
-                <ul>
-                  <li nz-menu-item routerLink="/storage/xstore-followers" nzMatchRouter>
-                    <nz-icon nzType="deployment-unit"></nz-icon>
-                    <span>重搭 follower 节点</span>
-                  </li>
-                  <li nz-menu-item routerLink="/storage/xstore-rebuild/rebuild-logger" nzMatchRouter>
-                    <nz-icon nzType="file-text"></nz-icon>
-                    <span>重搭 logger 节点</span>
-                  </li>
-                  <li nz-menu-item routerLink="/storage/xstore-rebuild/rebuild-learner" nzMatchRouter>
-                    <nz-icon nzType="history"></nz-icon>
-                    <span>重搭 learner 节点</span>
-                  </li>
-                </ul>
+              <li nz-menu-item routerLink="/storage/xstore-followers" nzMatchRouter>
+                <nz-icon nzType="deployment-unit"></nz-icon>
+                <span>Follower 管理</span>
               </li>
             </ul>
           </li>

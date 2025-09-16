@@ -341,9 +341,10 @@ export class XStoreFollowerManagementComponent implements OnInit {
 
   getPhaseTooltip(follower: any): string {
     const s = follower.status as any;
-    const phase = s?.phase || 'Unknown';
+    const phase = s?.phase || '';
+    const displayPhase = phase || '初始化中';
     const task = s?.currentJobTask ? `，任务：${s.currentJobTask}` : '';
-    return `阶段：${this.getDisplayStatus(phase)}（${phase}）${task}`;
+    return `阶段：${this.getDisplayStatus(phase)}${phase ? `（${phase}）` : ''}${task}`;
   }
 
   getStatusChipClass(phase?: string): string {
@@ -533,7 +534,7 @@ export class XStoreFollowerManagementComponent implements OnInit {
       const res = await this.apiService.getRebuildProgress(ns as string, xname as string, row.metadata.name as string).toPromise();
       const lines = [
         `Follower: ${res?.name || row.metadata.name}`,
-        `Phase: ${res?.phase || (row.status?.phase || 'Unknown')}`,
+        `Phase: ${res?.phase || (row.status?.phase || '初始化中')}`,
         res?.message ? `Message: ${res.message}` : '',
         res?.targetPod ? `TargetPod: ${res.targetPod}` : ''
       ].filter(Boolean);
@@ -685,6 +686,6 @@ export class XStoreFollowerManagementComponent implements OnInit {
       const readyStatus = (xstore.status as any)?.readyStatus; if (readyStatus && typeof readyStatus === 'string') { return `${readyStatus}`; }
       const detailedStatus = (xstore.status as any)?.detailedStatus; if (detailedStatus && detailedStatus.replicaStatus) { const ready = detailedStatus.replicaStatus.ready || detailedStatus.replicaStatus.available || 0; const total = detailedStatus.replicaStatus.total || 0; return `${ready}/${total} Ready`; }
       return 'Available';
-    } catch (error) { return 'Unknown'; }
+    } catch (error) { return '获取失败'; }
   }
 }
