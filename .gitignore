@@ -606,3 +606,4 @@ polardbx-ui/dist/
 polardbx-ui/.angular/
 polradbx-ui/node_modules/
 polardbx-operator
+backend/polardbx-ui-backend
