@@ -326,9 +326,9 @@ export class XStoreManagementComponent implements OnInit {
     
     // 如果有NodeSets配置，计算总副本数
     if (xstore.spec?.topology?.nodeSets && xstore.spec.topology.nodeSets.length > 0) {
-      const totalReplicas = xstore.spec.topology.nodeSets.reduce((sum, nodeSet) => {
-        return sum + (nodeSet.replicas || 0);
-      }, 0);
+      const totalReplicas = xstore.spec.topology.nodeSets.reduce((sum: number, nodeSet: any) => {
+        return sum + (nodeSet?.replicas || 0);
+      }, 0 as number);
       return `${totalReplicas}`;
     }
     

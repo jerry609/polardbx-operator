@@ -26,9 +26,7 @@ import { ApiService } from '../../services/api.service';
 import { LoadingService, LoadingKeys } from '../../services/loading.service';
 import { 
   PolarDBXBackupSchedule, 
-  PolarDBXBackupScheduleList,
   CreateBackupScheduleRequest,
-  UpdateBackupScheduleRequest,
   PREDEFINED_CRON_SCHEDULES,
   STORAGE_PROVIDER_OPTIONS,
   CLEAN_POLICY_OPTIONS,
@@ -700,8 +698,8 @@ export class BackupScheduleManagementComponent implements OnInit, OnDestroy {
   @ViewChild('detailsDialog') detailsDialogTpl!: TemplateRef<any>;
 
   getCronDescription(cronExpression: string): string {
-    const predefined = this.predefinedSchedules.find(s => s.value === cronExpression);
-    return predefined ? predefined.description : '自定义计划';
+    const predefined = this.predefinedSchedules.find((s: any) => s.value === cronExpression);
+    return predefined && predefined.description ? predefined.description : '自定义计划';
   }
 
   getStorageIcon(storage?: BackupStorage): string {
@@ -714,7 +712,7 @@ export class BackupScheduleManagementComponent implements OnInit, OnDestroy {
   }
 
   getStorageLabel(storage?: BackupStorage): string {
-    const option = this.storageProviders.find(p => p.value === storage);
+    const option = this.storageProviders.find((p: any) => p.value === storage);
     return option ? option.label : storage || '未指定';
   }
 

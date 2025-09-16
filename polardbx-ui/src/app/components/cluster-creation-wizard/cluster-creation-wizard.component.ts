@@ -107,18 +107,18 @@ import {
                   <mat-card-content>
                     <p>{{ template.description }}</p>
                     
-                    <div class="template-specs" *ngIf="template.config.topology">
+                    <div class="template-specs" *ngIf="template.config?.['topology']">
                       <div class="spec-item">
                         <mat-icon>computer</mat-icon>
-                        <span>CN: {{ template.config.topology.cn?.replicas || 0 }}</span>
+                        <span>CN: {{ template.config?.['topology']?.cn?.replicas || 0 }}</span>
                       </div>
                       <div class="spec-item">
                         <mat-icon>storage</mat-icon>
-                        <span>DN: {{ template.config.topology.dn?.replicas || 0 }}</span>
+                        <span>DN: {{ template.config?.['topology']?.dn?.replicas || 0 }}</span>
                       </div>
                       <div class="spec-item">
                         <mat-icon>hub</mat-icon>
-                        <span>GMS: {{ template.config.topology.gms?.replicas || 0 }}</span>
+                        <span>GMS: {{ template.config?.['topology']?.gms?.replicas || 0 }}</span>
                       </div>
                     </div>
                   </mat-card-content>
@@ -843,8 +843,8 @@ export class ClusterCreationWizardComponent implements OnInit, OnDestroy {
   }
 
   private applyTemplateConfig(config: Partial<ClusterCreationConfig>): void {
-    if (config.topology) {
-      const topology = config.topology;
+    if ((config as any)?.['topology']) {
+      const topology: any = (config as any)?.['topology'];
       this.topologyForm.patchValue({
         cn: topology.cn,
         dn: topology.dn,
@@ -854,17 +854,17 @@ export class ClusterCreationWizardComponent implements OnInit, OnDestroy {
       });
     }
     
-    if (config.storage) {
-      this.storageForm.patchValue(config.storage);
+    if ((config as any)?.['storage']) {
+      this.storageForm.patchValue((config as any)?.['storage']);
     }
     
-    if (config.network) {
-      this.networkForm.patchValue(config.network);
+    if ((config as any)?.['network']) {
+      this.networkForm.patchValue((config as any)?.['network']);
     }
     
-    if (config.security) {
+    if ((config as any)?.['security']) {
       this.networkForm.patchValue({
-        enableTLS: config.security.enableTLS || false
+        enableTLS: (config as any)?.['security']?.enableTLS || false
       });
     }
   }
@@ -902,7 +902,7 @@ export class ClusterCreationWizardComponent implements OnInit, OnDestroy {
     this.isCreating = true;
     const clusterConfig = this.buildClusterConfig();
 
-    this.apiService.createClusterFromConfig(clusterConfig.namespace, clusterConfig)
+    this.apiService.createClusterFromConfig(clusterConfig?.['namespace'], clusterConfig)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (cluster) => {
@@ -990,7 +990,7 @@ export class ClusterCreationWizardComponent implements OnInit, OnDestroy {
 
     // 如果启用CDC，添加CDC配置
     if (topologyValues.enableCdc) {
-      config.topology.cdc = topologyValues.cdc;
+      (config as any)['topology'].cdc = topologyValues.cdc;
     }
 
     return config;

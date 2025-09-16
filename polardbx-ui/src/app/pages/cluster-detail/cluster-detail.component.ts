@@ -621,8 +621,8 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
     const roleInfo = this.detectPodRole(pod);
     
     // Placeholder for resource requests
-    const cpu = pod.spec.containers?.[0]?.resources?.requests?.cpu || 'N/A';
-    const memory = pod.spec.containers?.[0]?.resources?.requests?.memory || 'N/A';
+    const cpu = pod.spec?.containers?.[0]?.resources?.requests?.cpu || 'N/A';
+    const memory = pod.spec?.containers?.[0]?.resources?.requests?.memory || 'N/A';
 
     // 解析容器状态
     const containerStatuses: ContainerStatus[] = [];
@@ -738,7 +738,7 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
             id: backup.metadata.name,
             name: backup.metadata.name,
             namespace: backup.metadata.namespace,
-            completedTime: backup.status?.completionTime || backup.metadata.creationTimestamp,
+            completedTime: backup.status?.completionTime || backup.metadata?.['creationTimestamp'],
             type: backup.spec.backupType || 'Snapshot',
             status: backup.status?.phase || 'Unknown',
             phase: backup.status?.phase,
@@ -1501,7 +1501,7 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
 
   deleteBackup(backup: BackupInfo): void {
     if (confirm(`确定要删除备份 ${backup.id} 吗？`)) {
-      this.apiService.deleteBackup(backup.namespace, backup.name)
+      this.apiService.deleteBackup(backup.namespace || this.clusterNamespace, backup.name)
         .subscribe({
           next: () => {
             console.log('备份删除成功:', backup.name);
@@ -1518,7 +1518,7 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
 
   forceDeleteBackup(backup: BackupInfo): void {
     if (confirm(`强制删除将直接移除 finalizers 并清理对象。确定对备份 ${backup.name} 执行吗？`)) {
-      this.apiService.forceDeleteBackup(backup.namespace, backup.name)
+      this.apiService.forceDeleteBackup(backup.namespace || this.clusterNamespace, backup.name)
         .subscribe({
           next: () => {
             this.messageService.success(`备份 ${backup.name} 强制删除成功`);
@@ -1534,15 +1534,11 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
 
   onPodSelectionChange(): void {
     const selectedPod = this.allPods.find(p => p.metadata.name === this.selectedPod);
-    if (selectedPod && selectedPod.spec.containers) {
-      this.selectedPodContainers = selectedPod.spec.containers;
-      const list = this.selectedPodContainers.map(c => c.name);
-      const ordered = this.getPreferredContainers(list);
-      this.selectedContainer = ordered[0] || (list[0] || '');
-    } else {
-      this.selectedPodContainers = [];
-      this.selectedContainer = '';
-    }
+    const containers = selectedPod?.spec?.containers || [];
+    this.selectedPodContainers = containers;
+    const list = containers.map(c => c.name);
+    const ordered = this.getPreferredContainers(list);
+    this.selectedContainer = ordered[0] || (list[0] || '');
   }
 
   fetchLogs(): void {

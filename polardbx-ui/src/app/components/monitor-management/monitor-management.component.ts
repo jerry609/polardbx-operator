@@ -27,8 +27,7 @@ import { ApiService } from '../../services/api.service';
 import { LoadingService, LoadingKeys } from '../../services/loading.service';
 import { 
   PolarDBXMonitor, 
-  CreateMonitorRequest,
-  MonitorStatus
+  CreateMonitorRequest
 } from '../../models/monitor.model';
 // Removed ConfirmationDialogComponent import - using native confirm() instead
 
@@ -124,7 +123,7 @@ import {
                             <div>超时: {{ monitor.spec.scrapeTimeout || '10s' }}</div>
                           </div>
                         </td>
-                        <td>{{ formatDate(monitor.metadata.creationTimestamp) }}</td>
+                        <td>{{ formatDate(monitor.metadata?.['creationTimestamp']) }}</td>
                         <td>
                           <a nz-dropdown [nzDropdownMenu]="menu">
                             <i nz-icon nzType="more" nzTheme="outline"></i>
@@ -429,7 +428,7 @@ export class MonitorManagementComponent implements OnInit, OnDestroy {
     };
 
     const operation = this.editingMonitor
-      ? this.apiService.updateMonitor(this.editingMonitor.metadata.namespace, this.editingMonitor)
+      ? this.apiService.updateMonitor(this.editingMonitor.metadata?.['namespace'] as string, this.editingMonitor)
       : this.apiService.createMonitor(monitorRequest.namespace!, monitorRequest);
 
     operation.pipe(
@@ -467,7 +466,7 @@ export class MonitorManagementComponent implements OnInit, OnDestroy {
 
   deleteMonitor(monitor: PolarDBXMonitor): void {
     if (confirm(`删除监控配置\n\n您确定要删除监控配置 "${monitor.metadata.name}" 吗？`)) {
-      this.apiService.deleteMonitor(monitor.metadata.namespace, monitor.metadata.name)
+      this.apiService.deleteMonitor(monitor.metadata?.['namespace'] as string, monitor.metadata.name)
         .pipe(
           takeUntil(this.destroy$),
           finalize(() => {})

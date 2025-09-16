@@ -6,6 +6,7 @@ import (
 	"io"
 	"math/rand"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -130,6 +131,7 @@ func runIOPSBench(ctx context.Context, cs kubernetes.Interface, ns string) map[s
 	name := fmt.Sprintf("iops-bench-%d", rand.Intn(1_000_000))
 	script := strings.Join([]string{
 		"set -e",
+		"export LC_ALL=C LANG=C",
 		"cd /data",
 		"COUNT=${COUNT:-50000}", // 50k ops @4k ≈ 200MB
 		"BS=${BS:-4096}",
@@ -261,6 +263,27 @@ func runIOPSBench(ctx context.Context, cs kubernetes.Interface, ns string) map[s
 			"seconds":   seconds,
 			"ops":       ops,
 			"bs":        bs,
+		}
+	} else if raw != "" {
+		// Fallback: parse seconds directly from dd output and estimate IOPS using defaults
+		re := regexp.MustCompile(`([0-9]+\.?[0-9]*)\s*s`)
+		matches := re.FindAllStringSubmatch(raw, -1)
+		if len(matches) > 0 {
+			secStr := matches[len(matches)-1][1]
+			if sec, err := strconv.ParseFloat(secStr, 64); err == nil && sec > 0 {
+				const defaultOps = 50000
+				const defaultBS = 4096
+				estIOPS := int64(float64(defaultOps) / sec)
+				res = map[string]interface{}{
+					"estimated": true,
+					"ok":        estIOPS > 0,
+					"iops":      estIOPS,
+					"seconds":   sec,
+					"ops":       defaultOps,
+					"bs":        defaultBS,
+					"message":   "根据 dd 输出估算 (fallback)",
+				}
+			}
 		}
 	}
 	return res

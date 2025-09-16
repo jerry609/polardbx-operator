@@ -297,7 +297,7 @@ export class XStoreFollowerManagementComponent implements OnInit {
   }
 
   private enrichFollowerWithStatus(follower: XStoreFollower): XStoreFollowerWithStatus {
-    const status = follower.status;
+    const status = follower.status as any;
     const phase = status?.phase || '';
     const isRecovering = ['FollowerPhaseCheck', 'FollowerPhaseBackupPrepare', 'FollowerPhaseBackupStart', 
                          'FollowerPhaseBackup', 'FollowerPhaseLoggerRebuild', 'FollowerPhaseMonitorBackup',
@@ -311,7 +311,7 @@ export class XStoreFollowerManagementComponent implements OnInit {
       isHealthy,
       hasFailures: hasFailed,
       displayStatus: this.getDisplayStatus(phase),
-      lastActivity: follower.metadata.creationTimestamp
+      lastActivity: follower.metadata?.['creationTimestamp']
     };
   }
 
@@ -338,7 +338,7 @@ export class XStoreFollowerManagementComponent implements OnInit {
     return statusMap[phase] || phase;
   }
 
-  getPhaseTooltip(follower: XStoreFollowerWithStatus): string {
+  getPhaseTooltip(follower: any): string {
     const s = follower.status as any;
     const phase = s?.phase || 'Unknown';
     const task = s?.currentJobTask ? `，任务：${s.currentJobTask}` : '';
@@ -439,15 +439,15 @@ export class XStoreFollowerManagementComponent implements OnInit {
         name: formValue.name,
         xStoreName: formValue.xStoreName,
         targetPodName: formValue.targetPodName && formValue.targetPodName.trim() !== '' ? formValue.targetPodName : undefined,
-        fromXStore: formValue.fromXStore && formValue.fromXStore.trim() !== '' ? formValue.fromXStore : undefined,
-        fromBackupSet: formValue.fromBackupSet && formValue.fromBackupSet.trim() !== '' ? formValue.fromBackupSet : undefined,
-        forceRecreate: formValue.forceRecreate,
-        priority: formValue.priority,
-        resources: resourceValue.enableResourceLimits ? {
+        ['fromXStore']: formValue.fromXStore && formValue.fromXStore.trim() !== '' ? formValue.fromXStore : undefined,
+        ['fromBackupSet']: formValue.fromBackupSet && formValue.fromBackupSet.trim() !== '' ? formValue.fromBackupSet : undefined,
+        ['forceRecreate']: formValue.forceRecreate,
+        ['priority']: formValue.priority,
+        ['resources']: resourceValue.enableResourceLimits ? {
           requests: { cpu: resourceValue.requestsCpu, memory: resourceValue.requestsMemory, storage: resourceValue.requestsStorage },
           limits: { cpu: resourceValue.limitsCpu, memory: resourceValue.limitsMemory, storage: resourceValue.limitsStorage }
         } : undefined,
-        nodeSelector: resourceValue.nodeSelector.enabled ? { [resourceValue.nodeSelector.key]: resourceValue.nodeSelector.value } : undefined
+        ['nodeSelector']: resourceValue.nodeSelector.enabled ? { [resourceValue.nodeSelector.key]: resourceValue.nodeSelector.value } : undefined
       };
       if (this.data.mode === 'create') {
         await this.apiService.createXStoreFollower(formValue.namespace, request).toPromise();
@@ -457,12 +457,12 @@ export class XStoreFollowerManagementComponent implements OnInit {
           spec: {
             ...this.data.follower.spec,
             xStoreName: request.xStoreName,
-            fromXStore: request.fromXStore,
-            fromBackupSet: request.fromBackupSet,
-            forceRecreate: request.forceRecreate,
-            priority: request.priority,
-            resources: request.resources,
-            nodeSelector: request.nodeSelector
+            fromXStore: (request as any)['fromXStore'],
+            fromBackupSet: (request as any)['fromBackupSet'],
+            forceRecreate: (request as any)['forceRecreate'],
+            priority: (request as any)['priority'],
+            resources: (request as any)['resources'],
+            nodeSelector: (request as any)['nodeSelector']
           }
         };
         await this.apiService.updateXStoreFollower(formValue.namespace, updatedFollower).toPromise();
@@ -480,32 +480,32 @@ export class XStoreFollowerManagementComponent implements OnInit {
     }
   }
 
-  async deleteFollower(follower: XStoreFollowerWithStatus): Promise<void> {
+  async deleteFollower(follower: any): Promise<void> {
     if (!confirm(`确定要删除 XStore Follower "${follower.metadata.name}" 吗？此操作不可撤销。`)) {
       return;
     }
     try {
-      await this.apiService.deleteXStoreFollower(follower.metadata.namespace, follower.metadata.name).toPromise();
+      await this.apiService.deleteXStoreFollower(follower.metadata.namespace || 'default', follower.metadata.name).toPromise();
       await this.loadFollowers();
     } catch (error) {
       console.error('Failed to delete XStore follower:', error);
     }
   }
 
-  editFollower(follower: XStoreFollowerWithStatus): void {
+  editFollower(follower: any): void {
     this.data.mode = 'edit';
     this.data.follower = follower;
     this.populateFormFromFollower(follower);
     this.selectedTab = 1;
   }
 
-  viewFollower(follower: XStoreFollowerWithStatus): void {
+  viewFollower(follower: any): void {
     const getSourceXStoreName = (fromPodName: string): string => {
       if (!fromPodName) return '未指定';
       const match = fromPodName.match(/^(.+?)-(single|candidate|follower)-\d+$/);
       return match ? match[1] : fromPodName;
     };
-    const details = { 基本信息: [ { label: '名称', value: follower.metadata.name }, { label: '命名空间', value: follower.metadata.namespace }, { label: '目标 XStore', value: follower.spec.xStoreName }, { label: '创建时间', value: follower.metadata.creationTimestamp } ] } as any;
+    const details = { 基本信息: [ { label: '名称', value: follower.metadata.name }, { label: '命名空间', value: follower.metadata.namespace }, { label: '目标 XStore', value: (follower.spec as any)?.xStoreName }, { label: '创建时间', value: follower.metadata?.['creationTimestamp'] } ] } as any;
     let message = '';
     Object.entries(details).forEach(([section, items]: any) => {
       message += `【${section}】\n`;
@@ -516,11 +516,11 @@ export class XStoreFollowerManagementComponent implements OnInit {
   }
 
   // ===== Quick actions =====
-  async viewProgress(row: XStoreFollowerWithStatus): Promise<void> {
+  async viewProgress(row: any): Promise<void> {
     try {
       const ns = row.metadata.namespace;
       const xname = row.spec.xStoreName;
-      const res = await this.apiService.getRebuildProgress(ns, xname, row.metadata.name).toPromise();
+      const res = await this.apiService.getRebuildProgress(ns as string, xname as string, row.metadata.name as string).toPromise();
       const lines = [
         `Follower: ${res?.name || row.metadata.name}`,
         `Phase: ${res?.phase || (row.status?.phase || 'Unknown')}`,
@@ -533,14 +533,14 @@ export class XStoreFollowerManagementComponent implements OnInit {
     }
   }
 
-  async viewPodLogs(row: XStoreFollowerWithStatus): Promise<void> {
+  async viewPodLogs(row: any): Promise<void> {
     try {
       const ns = row.metadata.namespace;
       const pod = ((row as any).status?.targetPod || (row as any).spec?.targetPodName || '').trim();
       const podName = pod || 'unknown';
       if (!podName || podName === 'unknown') { this.snackBar.open('未能确定目标 Pod', '关闭', { duration: 2500 }); return; }
       // 先探测容器列表
-      const podObj = await this.apiService.getPod(ns, podName).toPromise();
+      const podObj = await this.apiService.getPod(ns as string, podName as string).toPromise();
       const containers: string[] = (((podObj as any)?.spec?.containers) || []).map((c: any) => c?.name).filter(Boolean);
       let container = '';
       if (containers.length === 1) {
@@ -550,20 +550,20 @@ export class XStoreFollowerManagementComponent implements OnInit {
         if (!choice) { return; }
         container = choice.trim();
       }
-      const logs = await this.apiService.getPodLogs(ns, podName, container, 400).toPromise();
+      const logs = await this.apiService.getPodLogs(ns as string, podName as string, container as string, 400).toPromise();
       alert(`Pod ${podName}${container ? ' / ' + container : ''} 日志（最后400行）：\n\n${logs || '(空)'}`);
     } catch (e) {
       this.snackBar.open('获取日志失败', '关闭', { duration: 3000 });
     }
   }
 
-  async describePod(row: XStoreFollowerWithStatus): Promise<void> {
+  async describePod(row: any): Promise<void> {
     try {
       const ns = row.metadata.namespace;
       const pod = ((row as any).status?.targetPod || (row as any).spec?.targetPodName || '').trim();
       const podName = pod || 'unknown';
       if (!podName || podName === 'unknown') { this.snackBar.open('未能确定目标 Pod', '关闭', { duration: 2500 }); return; }
-      const p = await this.apiService.getPod(ns, podName).toPromise();
+      const p = await this.apiService.getPod(ns as string, podName as string).toPromise();
       const cond = (p as any)?.status?.conditions || [];
       const lines: string[] = [];
       lines.push(`Name: ${p?.metadata?.name}`);
@@ -578,7 +578,7 @@ export class XStoreFollowerManagementComponent implements OnInit {
     }
   }
 
-  showFailureAdvice(row: XStoreFollowerWithStatus): void {
+  showFailureAdvice(row: any): void {
     const phase = row.status?.phase || '';
     const msg = (row.status as any)?.message || '';
     if (phase !== 'FollowerPhaseFailed') { this.snackBar.open('该任务未处于失败状态', '关闭', { duration: 2500 }); return; }
@@ -619,7 +619,7 @@ export class XStoreFollowerManagementComponent implements OnInit {
     }
   }
 
-  getProgressPercentage(follower: XStoreFollowerWithStatus): number {
+  getProgressPercentage(follower: any): number {
     const phase = follower.status?.phase || '';
     const progressMap: { [key: string]: number } = { '': 0, 'FollowerPhaseCheck': 10, 'FollowerPhaseBackupPrepare': 20, 'FollowerPhaseBackupStart': 30, 'FollowerPhaseBackup': 50, 'FollowerPhaseLoggerRebuild': 60, 'FollowerPhaseMonitorBackup': 65, 'FollowerPhaseBeforeRestore': 70, 'FollowerPhaseRestore': 85, 'FollowerPhaseAfterRestore': 95, 'FollowerPhaseSuccess': 100, 'FollowerPhaseWaitSwitch': 90, 'FollowerPhaseFailed': 0, 'FollowerPhaseLoggerCreate': 40, 'FollowerCreateRemotePod': 25, 'FollowerPhaseDeleting': 50 };
     return progressMap[phase] || 0;

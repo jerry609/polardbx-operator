@@ -690,11 +690,11 @@ export class SystemTaskManagementComponent implements OnInit, OnDestroy {
     };
 
     const operation = this.editingTask
-      ? this.apiService.updateSystemTask(this.editingTask.metadata.namespace!, this.editingTask.metadata.name, {
+      ? this.apiService.updateSystemTask(this.editingTask.metadata?.['namespace']!, this.editingTask.metadata.name, {
           ...taskRequest,
-          resourceVersion: this.editingTask.metadata.resourceVersion
+          resourceVersion: this.editingTask.metadata?.['resourceVersion']
         } as UpdateSystemTaskRequest)
-      : this.apiService.createSystemTask((taskRequest as CreateSystemTaskRequest).namespace!, taskRequest as CreateSystemTaskRequest);
+      : this.apiService.createSystemTask((taskRequest as CreateSystemTaskRequest)?.['namespace']!, taskRequest as CreateSystemTaskRequest);
 
     operation.pipe(
       takeUntil(this.destroy$),
@@ -788,7 +788,7 @@ export class SystemTaskManagementComponent implements OnInit, OnDestroy {
   }
 
   getTaskTypeLabel(taskType?: string): string {
-    const option = this.taskTypeOptions.find(opt => opt.value === taskType);
+    const option = this.taskTypeOptions.find((opt: any) => opt.value === taskType);
     return option?.label || taskType || 'Unknown';
   }
 

@@ -206,7 +206,7 @@ interface ClusterLogConfig {
             </div>
             
             <div class="status-item">
-              <i nz-icon nzType="schedule" class="status-icon-info"></i>
+              <i nz-icon nzType="field-time" class="status-icon-info"></i>
               <div class="status-info">
                 <div class="status-label">最后更新</div>
                 <div class="status-value">{{lastUpdateTime}}</div>

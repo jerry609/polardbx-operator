@@ -251,7 +251,7 @@ import { NzDrawerModule } from 'ng-zorro-antd/drawer';
                             </nz-tag>
                           </td>
                           <td>
-                            <span class="date-text">{{ formatDate(backup.metadata.creationTimestamp) }}</span>
+                            <span class="date-text">{{ formatDate(backup.metadata?.['creationTimestamp']) }}</span>
                           </td>
                           <td nzRight>
                             <div class="action-buttons">
@@ -583,7 +583,7 @@ import { NzDrawerModule } from 'ng-zorro-antd/drawer';
                 {{ formatSize(selectedBackup) }}
               </nz-descriptions-item>
               <nz-descriptions-item nzTitle="创建时间">
-                {{ formatDate(selectedBackup.metadata.creationTimestamp) }}
+                {{ formatDate(selectedBackup.metadata?.['creationTimestamp']) }}
               </nz-descriptions-item>
             </nz-descriptions>
         </div>

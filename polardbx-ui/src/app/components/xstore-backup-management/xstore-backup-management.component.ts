@@ -258,7 +258,7 @@ export interface XStoreBackupDialogData {
                     </ng-template>
 
                     <ng-template #cronPrefixTemplate>
-                      <i nz-icon nzType="schedule"></i>
+                      <i nz-icon nzType="calendar"></i>
                     </ng-template>
 
                     <ng-template #cronSuffixTemplate>
@@ -1309,7 +1309,7 @@ export class XStoreBackupManagementComponent implements OnInit, OnDestroy {
 
     try {
       await this.apiService.deleteXStoreBackup(
-        backup.metadata.namespace, 
+        backup.metadata.namespace as string, 
         backup.metadata.name
       ).toPromise();
       
@@ -1325,7 +1325,7 @@ export class XStoreBackupManagementComponent implements OnInit, OnDestroy {
     }
     try {
       await this.apiService.forceDeleteXStoreBackup(
-        backup.metadata.namespace,
+        backup.metadata.namespace as string,
         backup.metadata.name
       ).toPromise();
       await this.loadBackups();
@@ -1465,7 +1465,7 @@ export class XStoreBackupManagementComponent implements OnInit, OnDestroy {
   getStorageIcon(type: string): string {
     switch (type) {
       case 'oss': return 'cloud';
-      case 's3': return 'amazon';
+      case 's3': return 'cloud';
       case 'sftp': return 'share-alt';
       default: return 'database';
     }
@@ -1474,8 +1474,8 @@ export class XStoreBackupManagementComponent implements OnInit, OnDestroy {
   getBackupTypeIcon(type: string): string {
     switch (type) {
       case 'full': return 'database';
-      case 'incremental': return 'diff';
-      default: return 'file-sync';
+      case 'incremental': return 'sync';
+      default: return 'file-text';
     }
   }
 

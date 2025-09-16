@@ -6,6 +6,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDividerModule } from '@angular/material/divider';
+import { ThemePalette } from '@angular/material/core';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { Router, NavigationEnd } from '@angular/router';
@@ -28,7 +30,8 @@ import { PerformanceMonitorComponent } from '../performance-monitor/performance-
     MatBadgeModule,
     MatTooltipModule,
     MatDialogModule,
-    MatSnackBarModule
+    MatSnackBarModule,
+    MatDividerModule
   ],
   template: `
     <mat-toolbar color="primary" class="enhanced-toolbar">
@@ -304,7 +307,7 @@ export class EnhancedToolbarComponent implements OnInit, OnDestroy {
     return this.getPerformanceScore() < 80;
   }
 
-  getPerformanceBadgeColor(): string {
+  getPerformanceBadgeColor(): ThemePalette {
     const score = this.getPerformanceScore();
     if (score >= 60) return 'accent';
     return 'warn';

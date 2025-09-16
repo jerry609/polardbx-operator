@@ -22,7 +22,7 @@ import { NzResultModule } from 'ng-zorro-antd/result';
 import { NzMessageService } from 'ng-zorro-antd/message';
 import { ApiService } from '../../services/api.service';
 import { LoadingService } from '../../services/loading.service';
-import { RestoreWizardData, RestoreStorageProvider } from '../../models/restore.model';
+import { RestoreJobWithStatus } from '../../models/restore.model';
 import { PolarDBXCluster } from '../../models/cluster.model';
 import { PolarDBXBackup } from '../../models/backup.model';
 import { Observable } from 'rxjs';
@@ -710,7 +710,7 @@ export class RecoveryWizardComponent implements OnInit {
   }
 
   // Get restoration summary
-  getRestoreSummary(): RestoreWizardData {
+  getRestoreSummary(): any {
     return {
       sourceCluster: this.sourceSelectionForm.get('sourceCluster')?.value,
       targetCluster: this.createNewCluster ? 
@@ -731,7 +731,7 @@ export class RecoveryWizardComponent implements OnInit {
     };
   }
 
-  private getStorageProvider(): RestoreStorageProvider | undefined {
+  private getStorageProvider(): any | undefined {
     if (!this.storageConfigForm.get('useCustomStorage')?.value) {
       return undefined;
     }

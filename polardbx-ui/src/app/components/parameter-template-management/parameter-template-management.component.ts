@@ -30,19 +30,11 @@ import { ApiService } from '../../services/api.service';
 import { LoadingService, LoadingKeys } from '../../services/loading.service';
 import { 
   PolarDBXParameterTemplate, 
-  PolarDBXParameterTemplateList,
   CreateParameterTemplateRequest,
   UpdateParameterTemplateRequest,
-  TemplateParams,
-  TemplateNode,
-  ParameterUnit,
-  ParameterMode,
   PARAMETER_UNIT_OPTIONS,
   PARAMETER_MODE_OPTIONS,
-  NODE_TYPE_OPTIONS,
-  PREDEFINED_TEMPLATE_OPTIONS,
-  validateParameterValue,
-  getParameterDescription
+  NODE_TYPE_OPTIONS
 } from '../../models/parameter-template.model';
 
 @Component({
@@ -127,7 +119,7 @@ import {
                       <td>
                         <span>{{ getParameterCount(template) }}</span>
                       </td>
-                      <td>{{ formatDate(template.metadata.creationTimestamp) }}</td>
+                      <td>{{ formatDate(template.metadata?.['creationTimestamp']) }}</td>
                       <td>
                         <button nz-button nzType="text" nz-dropdown [nzDropdownMenu]="tplMenu" [nzLoading]="isLoading('PARAMETER_TEMPLATE_UPDATE')">
                           <span>操作</span>
@@ -621,11 +613,11 @@ export class ParameterTemplateManagementComponent implements OnInit, OnDestroy {
     };
 
     const operation = this.editingTemplate
-      ? this.apiService.updateParameterTemplate(this.editingTemplate.metadata.namespace!, {
+      ? this.apiService.updateParameterTemplate(this.editingTemplate.metadata?.['namespace']!, {
           metadata: {
             name: this.editingTemplate.metadata.name,
             namespace: this.editingTemplate.metadata.namespace,
-            resourceVersion: this.editingTemplate.metadata.resourceVersion
+            resourceVersion: this.editingTemplate.metadata?.['resourceVersion']
           },
           spec: {
             name: formValue.name,

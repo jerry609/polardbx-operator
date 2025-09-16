@@ -641,10 +641,10 @@
                 <td>{{ backup.id }}</td>
                 <td>{{ backup.completedTime | date:'yyyy-MM-dd HH:mm:ss' }}</td>
                 <td>
-                  <nz-tag nzColor="blue">{{ backup.type }}</nz-tag>
+                  <nz-tag nzColor="blue">{{ backup?.['type'] || (backup?.['backupObject']?.spec?.['backupType'] || 'Snapshot') }}</nz-tag>
                 </td>
                 <td>
-                  <nz-tag [nzColor]="getBackupStatusColor(backup.status)">{{ backup.status }}</nz-tag>
+                  <nz-tag [nzColor]="getBackupStatusColor(backup.status || 'Unknown')">{{ backup.status || 'Unknown' }}</nz-tag>
                 </td>
                 <td nzAlign="center">
                   <nz-space nzSize="small">

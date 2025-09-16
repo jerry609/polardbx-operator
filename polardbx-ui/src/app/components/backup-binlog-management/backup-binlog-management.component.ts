@@ -133,7 +133,7 @@ import { takeUntil } from 'rxjs/operators';
                               {{ item.spec.pointInTimeRecover ? '已启用' : '未启用' }}
                             </nz-tag>
                     </td>
-                          <td>{{ formatDate(item.metadata.creationTimestamp) }}</td>
+                          <td>{{ formatDate(item.metadata?.['creationTimestamp']) }}</td>
                           <td>
                             <div class="action-buttons">
                               <button 

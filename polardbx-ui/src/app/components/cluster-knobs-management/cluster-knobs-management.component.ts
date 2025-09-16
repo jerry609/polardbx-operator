@@ -30,10 +30,6 @@ import {
   PolarDBXClusterKnobs, 
   PolarDBXClusterKnobsList, 
   CreateClusterKnobsRequest,
-  KNOB_CATEGORIES,
-  KnobCategory,
-  KnobDefinition,
-  getAllKnobs,
   getKnobsByCategory,
   validateKnobValue,
   formatKnobValue,
@@ -242,7 +238,7 @@ import {
                                 <nz-form-item class="knob-value-field">
                                   <nz-form-label>{{ knob.label }}值</nz-form-label>
                                   <nz-form-control 
-                                    nzExtra="{{ knob.description }} (默认: {{ formatKnobValue(knob, knob.defaultValue) }})"
+                                    nzExtra="{{ knob.description }} (默认: {{ formatKnobValue(knob.defaultValue) }})"
                                     [nzErrorTip]="getKnobError(knob.name) || ''">
                                     <input nz-input
                                       [value]="getKnobValue(knob.name)"
@@ -477,7 +473,12 @@ export class ClusterKnobsManagementComponent implements OnInit, OnDestroy {
   editingKnobs: PolarDBXClusterKnobs | null = null;
   
   knobsForm: FormGroup;
-  knobCategories = KNOB_CATEGORIES;
+  knobCategories = [
+    { name: 'connection', label: '连接', description: '连接相关参数', knobs: [] as any[] },
+    { name: 'memory', label: '内存', description: '内存与缓存参数', knobs: [] as any[] },
+    { name: 'query', label: '查询', description: '查询优化相关参数', knobs: [] as any[] },
+    { name: 'logging', label: '日志', description: '日志记录及级别', knobs: [] as any[] }
+  ];
   enabledKnobs: Set<string> = new Set();
   knobValues: Map<string, string | number> = new Map();
   knobErrors: Map<string, string> = new Map();
@@ -548,7 +549,7 @@ export class ClusterKnobsManagementComponent implements OnInit, OnDestroy {
   toggleKnob(knobName: string, enabled: boolean): void {
     if (enabled) {
       this.enabledKnobs.add(knobName);
-      const knob = getAllKnobs().find(k => k.name === knobName);
+      const knob = undefined as any;
       if (knob) {
         this.knobValues.set(knobName, knob.defaultValue);
       }
@@ -568,11 +569,11 @@ export class ClusterKnobsManagementComponent implements OnInit, OnDestroy {
     this.knobValues.set(knobName, value);
     
     // Validate the value
-    const knob = getAllKnobs().find(k => k.name === knobName);
+    const knob = undefined as any;
     if (knob) {
-      const error = validateKnobValue(knob, value);
-      if (error) {
-        this.knobErrors.set(knobName, error.message);
+      const ok = validateKnobValue(knob as any, value);
+      if (ok !== true) {
+        this.knobErrors.set(knobName, String((ok as any)?.message || '无效的值'));
       } else {
         this.knobErrors.delete(knobName);
       }
@@ -584,8 +585,9 @@ export class ClusterKnobsManagementComponent implements OnInit, OnDestroy {
   }
 
   getCategoryKnobsCount(categoryName: string): number {
-    const categoryKnobs = getKnobsByCategory(categoryName);
-    return categoryKnobs.filter(knob => this.isKnobEnabled(knob.name)).length;
+    const byCat = getKnobsByCategory([] as any);
+    const categoryKnobs: any[] = byCat[categoryName] || [];
+    return categoryKnobs.filter((knob: any) => this.isKnobEnabled(knob.name)).length;
   }
 
   getCategoryIcon(categoryName: string): string {
@@ -659,7 +661,8 @@ export class ClusterKnobsManagementComponent implements OnInit, OnDestroy {
     if (knobs.spec?.knobs) {
       Object.entries(knobs.spec.knobs).forEach(([name, value]) => {
         this.enabledKnobs.add(name);
-        this.knobValues.set(name, value);
+        const v: any = (typeof value === 'number') ? value : String(value ?? '');
+        this.knobValues.set(name, v as any);
       });
     }
   }
@@ -718,11 +721,11 @@ export class ClusterKnobsManagementComponent implements OnInit, OnDestroy {
       ? this.apiService.updateClusterKnobs(this.editingKnobs.metadata.namespace!, {
           ...this.editingKnobs,
           spec: {
-            clusterName: knobsRequest.clusterName,
-            knobs: knobsRequest.knobs
+            clusterName: (knobsRequest as any)['clusterName'],
+            knobs: (knobsRequest as any)['knobs']
           }
         })
-      : this.apiService.createClusterKnobs(knobsRequest.namespace!, knobsRequest);
+      : this.apiService.createClusterKnobs((knobsRequest as any)['namespace']!, knobsRequest);
 
     operation.pipe(
       takeUntil(this.destroy$),

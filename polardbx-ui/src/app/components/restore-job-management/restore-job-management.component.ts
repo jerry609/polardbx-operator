@@ -222,10 +222,10 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
             <div class="info-section">
               <h4 class="section-title"><mat-icon>info</mat-icon> 基本信息</h4>
               <div class="info-grid">
-                <div class="info-item"><span class="info-label">源集群</span><span class="info-value">{{ selectedJob?.sourceCluster || '-' }}</span></div>
+                <div class="info-item"><span class="info-label">源集群</span><span class="info-value">{{ selectedJob?.['sourceCluster'] || '-' }}</span></div>
                 <div class="info-item"><span class="info-label">命名空间</span><span class="info-value">{{ selectedJob?.namespace || '-' }}</span></div>
                 <div class="info-item"><span class="info-label">恢复类型</span><span class="info-value">{{ getRestoreType(selectedJob!) === 'pitr' ? 'PITR恢复' : '备份恢复' }}</span></div>
-                <div class="info-item"><span class="info-label">当前阶段</span><span class="info-value">{{ selectedJob?.stage || '-' }}</span></div>
+                <div class="info-item"><span class="info-label">当前阶段</span><span class="info-value">{{ selectedJob?.['stage'] || '-' }}</span></div>
                 <div class="info-item"><span class="info-label">开始时间</span><span class="info-value">{{ selectedJob?.creationTimestamp | date:'yyyy-MM-dd HH:mm:ss' }}</span></div>
                 <div class="info-item"><span class="info-label">可取消</span><span class="info-value">{{ selectedJob?.canCancel ? '是' : '否' }}</span></div>
               </div>
@@ -401,7 +401,7 @@ export class RestoreJobManagementComponent implements OnInit, AfterViewInit, OnD
       next: (jobs) => {
         const mapped = (jobs || []).map(j => ({
           ...j,
-          phase: this.mapPhaseToCN(j.phase)
+          phase: this.mapPhaseToCN((j as any)?.['phase'])
         } as RestoreJob));
         this.allJobs = mapped;
         this.computeCounts();
@@ -437,16 +437,16 @@ export class RestoreJobManagementComponent implements OnInit, AfterViewInit, OnD
 
   applyFilters(): void {
     let result = [...this.allJobs];
-    const term = this.searchTerm.trim().toLowerCase();
+    const term = (this.searchTerm || '').trim().toLowerCase();
     if (term) {
-      result = result.filter(j => (j.clusterName || '').toLowerCase().includes(term));
+      result = result.filter(j => ((j as any)?.['clusterName'] || '').toLowerCase().includes(term));
     }
     if (this.typeFilter !== 'all') {
       result = result.filter(j => this.typeFilter === 'pitr' ? this.getRestoreType(j) === 'pitr' : this.getRestoreType(j) !== 'pitr');
     }
     if (this.statusFilter !== 'all') {
       result = result.filter(j => {
-        const p = (j.phase || '');
+        const p = (j as any)?.['phase'] || '';
         if (this.statusFilter === 'ongoing') return p === '已提交' || p === '创建中';
         if (this.statusFilter === 'completed') return p === '已完成';
         if (this.statusFilter === 'failed') return p === '失败';
@@ -458,10 +458,10 @@ export class RestoreJobManagementComponent implements OnInit, AfterViewInit, OnD
   }
 
   computeCounts(): void {
-    const jobs = this.allJobs;
-    const ongoing = jobs.filter(j => (j.phase || '') === '已提交' || (j.phase || '') === '创建中').length;
-    const completed = jobs.filter(j => (j.phase || '') === '已完成').length;
-    const failed = jobs.filter(j => (j.phase || '') === '失败').length;
+    const jobs = this.allJobs as any[];
+    const ongoing = jobs.filter(j => ((j?.['phase'] || '') === '已提交') || ((j?.['phase'] || '') === '创建中')).length;
+    const completed = jobs.filter(j => (j?.['phase'] || '') === '已完成').length;
+    const failed = jobs.filter(j => (j?.['phase'] || '') === '失败').length;
     this.statusCounts = { all: jobs.length, ongoing, completed, failed };
   }
 
@@ -472,8 +472,8 @@ export class RestoreJobManagementComponent implements OnInit, AfterViewInit, OnD
   }
 
   cancelJob(job: RestoreJob): void {
-    if (!confirm(`确定取消恢复任务 (cluster=${job.clusterName}) 吗？`)) return;
-    this.apiService.cancelRestoreJob(job.namespace || 'default', job.clusterName).subscribe({
+    if (!confirm(`确定取消恢复任务 (cluster=${job?.['clusterName']}) 吗？`)) return;
+    this.apiService.cancelRestoreJob(job?.['namespace'] || 'default', job?.['clusterName']).subscribe({
       next: () => { this.snackBar.open('取消请求已提交', '关闭', { duration: 2000 }); this.loadJobs(); },
       error: () => { this.snackBar.open('取消失败', '关闭', { duration: 2500 }); }
     });
@@ -513,7 +513,7 @@ export class RestoreJobManagementComponent implements OnInit, AfterViewInit, OnD
   }
 
   getProgress(job?: RestoreJob): number {
-    const p = (job?.phase || '').toLowerCase();
+    const p = ((job as any)?.['phase'] || '').toLowerCase();
     switch (p) {
       case 'pending':
       case '已提交':
@@ -536,10 +536,10 @@ export class RestoreJobManagementComponent implements OnInit, AfterViewInit, OnD
 
   reloadSelected(): void {
     if (!this.selectedJob) return;
-    this.apiService.getRestoreJob(this.selectedJob.namespace || 'default', this.selectedJob.clusterName).subscribe({
+    this.apiService.getRestoreJob((this.selectedJob as any)?.['namespace'] || 'default', (this.selectedJob as any)?.['clusterName'] as string).subscribe({
       next: (full) => {
         this.selectedJob = full;
-        const idx = this.allJobs.findIndex(j => j.clusterName === full.clusterName && j.namespace === full.namespace);
+        const idx = this.allJobs.findIndex(j => j?.['clusterName'] === (full as any)?.['clusterName'] && j?.['namespace'] === (full as any)?.['namespace']);
         if (idx >= 0) {
           const clone = [...this.allJobs];
           clone[idx] = full as any;
@@ -556,7 +556,7 @@ export class RestoreJobManagementComponent implements OnInit, AfterViewInit, OnD
     this.stopPolling();
     if (!this.selectedJob) return;
     this.pollingSub = interval(5000).pipe(
-      switchMap(() => this.apiService.getRestoreJob(this.selectedJob!.namespace || 'default', this.selectedJob!.clusterName))
+      switchMap(() => this.apiService.getRestoreJob((this.selectedJob as any)?.['namespace'] || 'default', (this.selectedJob as any)?.['clusterName'] as string))
     ).subscribe({ next: (full) => {
       this.selectedJob = full;
       if (this.isTerminal(full)) this.stopPolling();
@@ -573,12 +573,12 @@ export class RestoreJobManagementComponent implements OnInit, AfterViewInit, OnD
   }
 
   isTerminal(job: RestoreJob): boolean {
-    const p = (job.phase || '').toLowerCase();
+    const p = ((job as any)?.['phase'] || '').toLowerCase();
     return p === 'failed' || p === 'completed' || p === '已完成' || p === '失败';
   }
 
   getProgressClass(job?: RestoreJob): string {
-    const p = (job?.phase || '').toLowerCase();
+    const p = ((job as any)?.['phase'] || '').toLowerCase();
     if (p === 'failed' || p === '失败') return 'phase-warn';
     if (p === 'completed' || p === '已完成' || p === 'running') return 'phase-primary';
     return 'phase-accent';
@@ -612,14 +612,14 @@ export class RestoreJobManagementComponent implements OnInit, AfterViewInit, OnD
   }
 
   isFailed(job?: RestoreJob): boolean {
-    const p = (job?.phase || '').toLowerCase();
+    const p = ((job as any)?.['phase'] || '').toLowerCase();
     return p === 'failed' || p === '失败';
   }
 
   diagnoseSelected(): void {
     if (!this.selectedJob) return;
-    const ns = this.selectedJob.namespace || 'default';
-    const cluster = this.selectedJob.clusterName;
+    const ns = (this.selectedJob as any)?.['namespace'] || 'default';
+    const cluster = (this.selectedJob as any)?.['clusterName'] || '';
     // 跳转到诊断页并自动触发，便于查看历史与下载
     const url = `/operations/diagnostics?namespace=${encodeURIComponent(ns)}&cluster=${encodeURIComponent(cluster)}&autoStart=1`;
     window.location.href = url;

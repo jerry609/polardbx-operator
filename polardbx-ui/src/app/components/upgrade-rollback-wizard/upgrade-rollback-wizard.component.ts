@@ -162,19 +162,19 @@ export class UpgradeRollbackWizardComponent implements OnInit {
     this.prechecking = true;
     const ns = this.clusterForm.value.namespace!;
     const name = this.clusterForm.value.clusterName!;
-    this.api.getPrechangeChecklist(ns, name).subscribe({
-      next: (res) => {
+    this.api.runPrecheck(ns, name, 'upgrade').subscribe({
+      next: (res: any) => {
         this.prechecking = false;
         this.precheckResult = res;
-        const c = res?.checks || {};
+        const c: any = res?.checks || {};
         this.precheckOK = !!c.hasRecentBackup && (c.storageConnectivity === 'configured') && (typeof c.rpoLagSeconds === 'number');
         this.precheckText = `最近全备：${c.hasRecentBackup?'是':'否'}；存储：${c.storageConnectivity||'未知'}；RPO滞后：${c.rpoLagSeconds ?? '-'}s`;
       },
-      error: (err) => {
+      error: (err: any) => {
         this.prechecking = false;
-        const c = err?.error?.checks || {};
+        const c: any = err?.error?.checks || {};
         this.precheckOK = false;
-        this.precheckText = `最近全备：${c.hasRecentBackup?'是':'否'}；存储：${c.storage||'未知'}；RPO滞后：${c.rpoLagSeconds ?? '-'}s`;
+        this.precheckText = `最近全备：${c.hasRecentBackup?'是':'否'}；存储：${c.storageConnectivity||c.storage||'未知'}；RPO滞后：${c.rpoLagSeconds ?? '-'}s`;
         this.precheckResult = c;
       }
     });
