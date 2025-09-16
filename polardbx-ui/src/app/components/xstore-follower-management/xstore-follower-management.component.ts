@@ -316,26 +316,27 @@ export class XStoreFollowerManagementComponent implements OnInit {
   }
 
   private getDisplayStatus(phase?: string): string {
-    if (!phase) return '已创建';
+    const p = phase || '';
     const statusMap: { [key: string]: string } = {
-      '': '已创建',
+      '': '初始化中',
+      'FollowerPhaseNew': '已创建',
       'FollowerPhaseCheck': '检查中',
       'FollowerPhaseBackupPrepare': '备份准备',
       'FollowerPhaseBackupStart': '开始备份',
       'FollowerPhaseBackup': '备份中',
+      'FollowerPhaseLoggerCreate': '创建日志器',
       'FollowerPhaseLoggerRebuild': '重建日志',
+      'FollowerCreateRemotePod': '创建远程Pod',
       'FollowerPhaseMonitorBackup': '监控备份',
       'FollowerPhaseBeforeRestore': '准备恢复',
       'FollowerPhaseRestore': '恢复中',
       'FollowerPhaseAfterRestore': '完成恢复',
-      'FollowerPhaseSuccess': '成功',
       'FollowerPhaseWaitSwitch': '等待切换',
+      'FollowerPhaseSuccess': '成功',
       'FollowerPhaseFailed': '失败',
-      'FollowerPhaseLoggerCreate': '创建日志器',
-      'FollowerCreateRemotePod': '创建远程Pod',
       'FollowerPhaseDeleting': '删除中'
     };
-    return statusMap[phase] || phase;
+    return statusMap[p] || '初始化中';
   }
 
   getPhaseTooltip(follower: any): string {
@@ -347,15 +348,24 @@ export class XStoreFollowerManagementComponent implements OnInit {
 
   getStatusChipClass(phase?: string): string {
     switch (phase) {
-      case 'FollowerPhaseReady':
-      case 'FollowerPhaseRestored':
+      case 'FollowerPhaseSuccess':
         return 'success';
       case 'FollowerPhaseFailed':
         return 'error';
       case 'FollowerPhaseRestore':
       case 'FollowerPhaseCheck':
       case 'FollowerPhaseMonitorBackup':
+      case 'FollowerPhaseLoggerRebuild':
+      case 'FollowerPhaseBeforeRestore':
+      case 'FollowerPhaseBackup':
+      case 'FollowerPhaseBackupStart':
+      case 'FollowerPhaseBackupPrepare':
+      case 'FollowerPhaseLoggerCreate':
+      case 'FollowerCreateRemotePod':
         return 'info';
+      case 'FollowerPhaseDeleting':
+      case 'FollowerPhaseWaitSwitch':
+        return 'warning';
       default:
         return 'pending';
     }
@@ -621,8 +631,26 @@ export class XStoreFollowerManagementComponent implements OnInit {
 
   getProgressPercentage(follower: any): number {
     const phase = follower.status?.phase || '';
-    const progressMap: { [key: string]: number } = { '': 0, 'FollowerPhaseCheck': 10, 'FollowerPhaseBackupPrepare': 20, 'FollowerPhaseBackupStart': 30, 'FollowerPhaseBackup': 50, 'FollowerPhaseLoggerRebuild': 60, 'FollowerPhaseMonitorBackup': 65, 'FollowerPhaseBeforeRestore': 70, 'FollowerPhaseRestore': 85, 'FollowerPhaseAfterRestore': 95, 'FollowerPhaseSuccess': 100, 'FollowerPhaseWaitSwitch': 90, 'FollowerPhaseFailed': 0, 'FollowerPhaseLoggerCreate': 40, 'FollowerCreateRemotePod': 25, 'FollowerPhaseDeleting': 50 };
-    return progressMap[phase] || 0;
+    const progressMap: { [key: string]: number } = {
+      '': 10,
+      'FollowerPhaseNew': 10,
+      'FollowerPhaseCheck': 15,
+      'FollowerPhaseBackupPrepare': 25,
+      'FollowerPhaseBackupStart': 35,
+      'FollowerPhaseBackup': 50,
+      'FollowerPhaseMonitorBackup': 60,
+      'FollowerPhaseLoggerCreate': 45,
+      'FollowerPhaseBeforeRestore': 65,
+      'FollowerCreateRemotePod': 30,
+      'FollowerPhaseRestore': 85,
+      'FollowerPhaseLoggerRebuild': 70,
+      'FollowerPhaseAfterRestore': 95,
+      'FollowerPhaseWaitSwitch': 90,
+      'FollowerPhaseDeleting': 50,
+      'FollowerPhaseSuccess': 100,
+      'FollowerPhaseFailed': 0
+    };
+    return progressMap[phase] ?? 10;
   }
 
   isFormValid(): boolean { return this.followerForm.valid && (!this.resourceForm.get('enableResourceLimits')?.value || this.resourceForm.valid); }

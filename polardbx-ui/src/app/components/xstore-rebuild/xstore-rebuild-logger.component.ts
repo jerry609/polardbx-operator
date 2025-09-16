@@ -67,17 +67,20 @@ export class XStoreRebuildLoggerComponent {
     return raw.length>63 ? raw.slice(0,63) : raw;
   }
 
-  submit(): void {
-    if (!this.isValid()) { this.snack.open('请完善必填项', '关闭', { duration: 2500 }); return; }
+  start(): void {
+    if (!this.xstore) { this.snack.open('请填写目标 XStore', '关闭', { duration: 2500 }); return; }
+    if (!this.targetPod) { this.snack.open('请选择目标 Pod', '关闭', { duration: 2500 }); return; }
+    if (!this.fromPod) { this.snack.open('建议选择源 Pod (fromPodName)，避免 from-pod not found', '关闭', { duration: 3500 }); }
     const req: any = {
-      name: this.name?.trim() || this.genName(this.xstore),
+      name: this.genName(this.xstore),
       xStoreName: this.xstore,
-      targetPodName: this.loggerPod?.trim() || undefined
+      targetPodName: this.targetPod,
+      fromPodName: this.fromPod || undefined
     };
     this.submitting = true;
     this.api.rebuildLogger(this.namespace || 'default', req).subscribe({
-      next: () => { this.snack.open('已提交 logger 重搭', '关闭', { duration: 3000 }); this.submitting = false; this.router.navigateByUrl('/storage/xstore-followers'); },
-      error: (e) => { this.snack.open('提交失败: '+(e?.error?.message||e?.message||'未知错误'), '关闭', { duration: 4000 }); this.submitting = false; }
+      next: () => { this.snack.open('日志节点重搭已触发', '关闭', { duration: 3000 }); this.submitting = false; this.router.navigateByUrl('/storage/xstore-followers'); },
+      error: (e) => { this.snack.open('触发失败: '+(e?.error?.message||e?.message||'未知错误'), '关闭', { duration: 4000 }); this.submitting = false; }
     });
   }
 

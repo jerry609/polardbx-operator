@@ -121,8 +121,7 @@ export const routes: Routes = [
               { path: 'health-check', loadComponent: () => import('./components/xstore-rebuild/xstore-rebuild-health-check.component').then(m => m.XStoreRebuildHealthCheckComponent) },
               { path: 'rebuild-follower', loadComponent: () => import('./components/xstore-rebuild/xstore-rebuild-follower.component').then(m => m.XStoreRebuildFollowerComponent) },
               { path: 'rebuild-logger', loadComponent: () => import('./components/xstore-rebuild/xstore-rebuild-logger.component').then(m => m.XStoreRebuildLoggerComponent) },
-              { path: 'rebuild-learner', loadComponent: () => import('./components/xstore-rebuild/xstore-rebuild-learner.component').then(m => m.XStoreRebuildLearnerComponent) },
-              { path: 'auto', loadComponent: () => import('./components/xstore-rebuild/xstore-rebuild-auto.component').then(m => m.XStoreRebuildAutoComponent) }
+              { path: 'rebuild-learner', loadComponent: () => import('./components/xstore-rebuild/xstore-rebuild-learner.component').then(m => m.XStoreRebuildLearnerComponent) }
             ]
           }
         ]

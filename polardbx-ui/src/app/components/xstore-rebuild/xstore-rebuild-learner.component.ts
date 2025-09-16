@@ -68,11 +68,12 @@ export class XStoreRebuildLearnerComponent {
   }
 
   submit(): void {
-    if (!this.isValid()) { this.snack.open('请完善必填项', '关闭', { duration: 2500 }); return; }
+    if (!this.isValid()) { this.snack.open('请完善必填项：命名空间 / XStore / Learner Pod', '关闭', { duration: 2500 }); return; }
     const req: any = {
       name: this.name?.trim() || this.genName(this.xstore),
       xStoreName: this.xstore,
-      targetPodName: this.learnerPod?.trim() || undefined
+      targetPodName: this.learnerPod?.trim() || undefined,
+      local: true
     };
     this.submitting = true;
     this.api.rebuildLearner(this.namespace || 'default', req).subscribe({
