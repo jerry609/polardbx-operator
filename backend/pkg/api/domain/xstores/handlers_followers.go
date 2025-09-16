@@ -19,3 +19,6 @@ func RebuildStatus(c *gin.Context)   { services.NewRebuildService().Status(c) }
 func RebuildWait(c *gin.Context)     { services.NewRebuildService().Wait(c) }
 func RebuildProgress(c *gin.Context) { services.NewRebuildService().Progress(c) }
 func RebuildCancel(c *gin.Context)   { services.NewRebuildService().Cancel(c) }
+
+func RetryFollower(c *gin.Context)  { services.NewFollowersService().Retry(c) }
+func CancelFollower(c *gin.Context) { services.NewFollowersService().Cancel(c) }

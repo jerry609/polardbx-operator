@@ -41,4 +41,8 @@ func RegisterRoutes(v1 *gin.RouterGroup) {
 	item.GET("/rebuild/wait", RebuildWait)
 	item.GET("/rebuild/progress", RebuildProgress)
 	item.DELETE("/rebuild/cancel", RebuildCancel)
+	
+	// XStoreFollower operations
+	g.POST("/followers/:namespace/:name/retry", RetryFollower)
+	g.DELETE("/followers/:namespace/:name/cancel", CancelFollower)
 }

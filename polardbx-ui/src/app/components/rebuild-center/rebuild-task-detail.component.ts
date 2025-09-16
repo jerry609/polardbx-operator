@@ -12,6 +12,7 @@ import { NzDescriptionsModule } from 'ng-zorro-antd/descriptions';
 import { NzStepsModule } from 'ng-zorro-antd/steps';
 import { NzEmptyModule } from 'ng-zorro-antd/empty';
 import { NzMessageService } from 'ng-zorro-antd/message';
+import { NzModalService } from 'ng-zorro-antd/modal';
 import { Subject, timer } from 'rxjs';
 import { takeUntil, switchMap } from 'rxjs/operators';
 
@@ -194,7 +195,8 @@ export class RebuildTaskDetailComponent implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private router: Router,
     private apiService: ApiService,
-    private message: NzMessageService
+    private message: NzMessageService,
+    private modal: NzModalService
   ) {}
 
   ngOnInit(): void {
@@ -441,17 +443,61 @@ export class RebuildTaskDetailComponent implements OnInit, OnDestroy {
   }
 
   stopTask(): void {
-    // TODO: 实现停止任务
-    this.message.info('停止任务功能开发中');
+    if (!this.task) return;
+    
+    // 使用确认对话框
+    const modal = this.modal.confirm({
+      nzTitle: '确认停止任务',
+      nzContent: `确定要停止重搭任务 "${this.task.metadata.name}" 吗？`,
+      nzOnOk: async () => {
+        if (!this.task) return;
+        try {
+          await this.apiService.cancelXStoreFollower(this.task.metadata.namespace, this.task.metadata.name).toPromise();
+          this.message.success('任务停止成功');
+          this.loadTask(); // 重新加载任务状态
+        } catch (error) {
+          this.message.error('停止任务失败: ' + (error as any)?.message || '未知错误');
+        }
+      }
+    });
   }
 
   retryTask(): void {
-    // TODO: 实现重试任务
-    this.message.info('重试任务功能开发中');
+    if (!this.task) return;
+    
+    const modal = this.modal.confirm({
+      nzTitle: '确认重试任务',
+      nzContent: `确定要重试重搭任务 "${this.task.metadata.name}" 吗？`,
+      nzOnOk: async () => {
+        if (!this.task) return;
+        try {
+          await this.apiService.retryXStoreFollower(this.task.metadata.namespace, this.task.metadata.name).toPromise();
+          this.message.success('任务重试成功');
+          this.loadTask(); // 重新加载任务状态
+        } catch (error) {
+          this.message.error('重试任务失败: ' + (error as any)?.message || '未知错误');
+        }
+      }
+    });
   }
 
   deleteTask(): void {
-    // TODO: 实现删除任务
-    this.message.info('删除任务功能开发中');
+    if (!this.task) return;
+    
+    const modal = this.modal.confirm({
+      nzTitle: '确认删除任务',
+      nzContent: `确定要删除重搭任务 "${this.task.metadata.name}" 吗？此操作不可撤销。`,
+      nzOkDanger: true,
+      nzOnOk: async () => {
+        if (!this.task) return;
+        try {
+          await this.apiService.deleteXStoreFollower(this.task.metadata.namespace, this.task.metadata.name).toPromise();
+          this.message.success('任务删除成功');
+          this.goBack(); // 返回任务列表
+        } catch (error) {
+          this.message.error('删除任务失败: ' + (error as any)?.message || '未知错误');
+        }
+      }
+    });
   }
 }

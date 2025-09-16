@@ -1035,6 +1035,28 @@ export class ApiService {
     );
   }
 
+  retryXStoreFollower(namespace: string, name: string): Observable<any> {
+    return this.handleRequest(
+      this.http.post(`${this.baseUrl}/xstores/followers/${namespace}/${name}/retry`, {}, {
+        headers: this.getHeaders()
+      }),
+      LoadingKeys.XSTORE_FOLLOWER_UPDATE,
+      `/xstores/followers/${namespace}/${name}/retry`,
+      'POST'
+    );
+  }
+
+  cancelXStoreFollower(namespace: string, name: string): Observable<any> {
+    return this.handleRequest(
+      this.http.delete(`${this.baseUrl}/xstores/followers/${namespace}/${name}/cancel`, {
+        headers: this.getHeaders()
+      }),
+      LoadingKeys.XSTORE_FOLLOWER_DELETE,
+      `/xstores/followers/${namespace}/${name}/cancel`,
+      'DELETE'
+    );
+  }
+
   // ----- Rebuild progress/status helpers -----
   getRebuildProgress(namespace: string, xstoreName: string, followerName: string): Observable<{ name: string; phase?: string; message?: string; targetPod?: string } & any> {
     const url = `${this.baseUrl}/xstores/${encodeURIComponent(namespace)}/${encodeURIComponent(xstoreName)}/rebuild/progress?follower=${encodeURIComponent(followerName)}`;

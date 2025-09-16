@@ -107,13 +107,51 @@ func (s *RebuildService) Progress(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"name": f.Name, "phase": string(f.Status.Phase), "message": f.Status.Message, "targetPod": f.Status.TargetPodName})
 }
 
-// Cancel: 暂时返回 202 表示接受取消请求，后续可接入控制器特性。
+// Cancel: 取消（删除）XStoreFollower 任务
 func (s *RebuildService) Cancel(c *gin.Context) {
-	_, ok := util.K8sClientFromContext(c)
+	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
 		return
 	}
-	c.JSON(http.StatusAccepted, gin.H{"message": "cancel requested", "status": "pending_implementation"})
+	ns := c.Param("namespace")
+	xstoreName := c.Param("name")
+	
+	// 查找该 XStore 相关的所有 Follower 任务
+	followers, err := s.repo.ListFollowers(c.Request.Context(), cli, ns)
+	if err != nil {
+		util.HandleK8sError(c, "failed to list followers", err)
+		return
+	}
+	
+	var targetFollower *polardbxv1.XStoreFollower
+	for _, f := range followers.Items {
+		if f.Spec.XStoreName == xstoreName {
+			// 找到非终态的任务
+			if f.Status.Phase != polardbxv1xstore.FollowerPhaseSuccess && 
+			   f.Status.Phase != polardbxv1xstore.FollowerPhaseFailed &&
+			   f.Status.Phase != polardbxv1xstore.FollowerPhaseDeleting {
+				targetFollower = &f
+				break
+			}
+		}
+	}
+	
+	if targetFollower == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "no active rebuild task found for xstore", "xstore": xstoreName})
+		return
+	}
+	
+	// 删除 XStoreFollower 任务
+	if err := s.repo.DeleteFollower(c.Request.Context(), cli, ns, targetFollower.Name); err != nil {
+		util.HandleK8sError(c, "failed to cancel rebuild task", err)
+		return
+	}
+	
+	c.JSON(http.StatusOK, gin.H{
+		"message": "rebuild task cancelled", 
+		"task": targetFollower.Name,
+		"xstore": xstoreName,
+	})
 }
 
 // 内部帮助方法：根据角色创建 XStoreFollower

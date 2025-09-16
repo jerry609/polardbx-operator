@@ -627,8 +627,8 @@ export class RebuildTaskListComponent implements OnInit, OnDestroy {
       nzContent: `确定要停止重搭任务 "${task.metadata.name}" 吗？`,
       nzOnOk: async () => {
         try {
-          // TODO: 实现停止任务的 API 调用
-          this.message.success('任务停止请求已发送');
+          await this.apiService.cancelXStoreFollower(task.metadata.namespace, task.metadata.name).toPromise();
+          this.message.success('任务停止成功');
           this.refreshTasks();
         } catch (error) {
           this.message.error('停止任务失败: ' + (error as any)?.message || '未知错误');
@@ -643,8 +643,8 @@ export class RebuildTaskListComponent implements OnInit, OnDestroy {
       nzContent: `确定要重试重搭任务 "${task.metadata.name}" 吗？`,
       nzOnOk: async () => {
         try {
-          // TODO: 实现重试任务的 API 调用
-          this.message.success('任务重试请求已发送');
+          await this.apiService.retryXStoreFollower(task.metadata.namespace, task.metadata.name).toPromise();
+          this.message.success('任务重试成功');
           this.refreshTasks();
         } catch (error) {
           this.message.error('重试任务失败: ' + (error as any)?.message || '未知错误');

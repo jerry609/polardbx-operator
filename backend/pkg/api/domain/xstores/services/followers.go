@@ -131,3 +131,97 @@ func (s *FollowersService) Delete(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "xstore follower deleted"})
 }
+
+// Retry: 重试失败的 XStoreFollower 任务（删除旧任务并创建新任务）
+func (s *FollowersService) Retry(c *gin.Context) {
+	cli, ok := util.K8sClientFromContext(c)
+	if !ok {
+		return
+	}
+	ns := c.Param("namespace")
+	name := c.Param("name")
+	
+	// 获取原任务
+	original, err := s.repo.GetFollower(c.Request.Context(), cli, ns, name)
+	if err != nil {
+		util.HandleK8sError(c, "failed to get original follower", err)
+		return
+	}
+	
+	// 检查是否可以重试（只有失败的任务才能重试）
+	if original.Status.Phase != polardbxv1xstore.FollowerPhaseFailed {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "only failed tasks can be retried", 
+			"current_phase": string(original.Status.Phase),
+		})
+		return
+	}
+	
+	// 删除原任务
+	if err := s.repo.DeleteFollower(c.Request.Context(), cli, ns, name); err != nil {
+		util.HandleK8sError(c, "failed to delete original follower", err)
+		return
+	}
+	
+	// 创建新任务（保持原有配置）
+	newFollower := &polardbxv1.XStoreFollower{
+		ObjectMeta: original.ObjectMeta,
+		Spec:       original.Spec,
+	}
+	// 重置状态和资源版本
+	newFollower.Status = polardbxv1.XStoreFollowerStatus{}
+	newFollower.ResourceVersion = ""
+	newFollower.Generation = 0
+	
+	created, err := s.repo.CreateFollower(c.Request.Context(), cli, ns, newFollower)
+	if err != nil {
+		util.HandleK8sError(c, "failed to create retry follower", err)
+		return
+	}
+	
+	c.JSON(http.StatusOK, gin.H{
+		"message": "task retried successfully",
+		"original_task": name,
+		"new_task": created.Name,
+	})
+}
+
+// Cancel: 取消指定的 XStoreFollower 任务
+func (s *FollowersService) Cancel(c *gin.Context) {
+	cli, ok := util.K8sClientFromContext(c)
+	if !ok {
+		return
+	}
+	ns := c.Param("namespace")
+	name := c.Param("name")
+	
+	// 获取任务信息
+	follower, err := s.repo.GetFollower(c.Request.Context(), cli, ns, name)
+	if err != nil {
+		util.HandleK8sError(c, "failed to get follower", err)
+		return
+	}
+	
+	// 检查是否可以取消（终态任务不能取消）
+	if follower.Status.Phase == polardbxv1xstore.FollowerPhaseSuccess ||
+	   follower.Status.Phase == polardbxv1xstore.FollowerPhaseFailed ||
+	   follower.Status.Phase == polardbxv1xstore.FollowerPhaseDeleting {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "cannot cancel completed or already deleting task",
+			"current_phase": string(follower.Status.Phase),
+		})
+		return
+	}
+	
+	// 删除任务
+	if err := s.repo.DeleteFollower(c.Request.Context(), cli, ns, name); err != nil {
+		util.HandleK8sError(c, "failed to cancel follower", err)
+		return
+	}
+	
+	c.JSON(http.StatusOK, gin.H{
+		"message": "task cancelled successfully",
+		"task": name,
+		"xstore": follower.Spec.XStoreName,
+	})
+}
