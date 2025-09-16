@@ -176,13 +176,12 @@ export function getReadinessPercentage(status: LogCollectorConfigStatus | undefi
 }
 
 export function getCollectorStatusColor(collector: PolarDBXLogCollector): string {
-  const status = collector.status?.configStatus;
-  if (!status) return 'default';
-  const readiness = getReadinessPercentage(status);
-  if (readiness >= 100) return 'green';
-  if (readiness >= 75) return 'blue';
-  if (readiness >= 50) return 'orange';
-  return 'red';
+  const readiness = getReadinessPercentage(collector.status?.configStatus);
+  
+  if (readiness >= 100) return 'success';
+  if (readiness >= 75) return 'info';
+  if (readiness >= 50) return 'warning';
+  return 'danger';
 }
 
 export function getCollectorStatusText(collector: PolarDBXLogCollector): string {
@@ -195,7 +194,7 @@ export function getCollectorStatusText(collector: PolarDBXLogCollector): string 
   const logStashText = status.logStashCount ? `${status.logStashReadyCount}/${status.logStashCount} LogStash` : '';
   
   const components = [fileBeatText, logStashText].filter(Boolean).join(', ');
-  return components ? `${components} (${readiness}% ready)` : 'Unknown';
+  return components ? `${components} (${readiness}% ready)` : 'No components';
 }
 
 export function generateComponentName(pattern: string, variables: Record<string, string>): string {

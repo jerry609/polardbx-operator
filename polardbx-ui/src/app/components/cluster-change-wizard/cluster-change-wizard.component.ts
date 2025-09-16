@@ -19,6 +19,24 @@ import { NzMessageService } from 'ng-zorro-antd/message';
 import { PrechangeCheckComponent } from '../prechange-check/prechange-check.component';
 import { ApiService } from '../../services/api.service';
 
+// Check → route mapping with applicable operation types
+type OperationType = 'upgrade' | 'create' | 'normal';
+const CheckRouteMap: Record<string, { route?: string; allow?: OperationType[]; note?: string }> = {
+  checkClusterReady:       { route: '/clusters/:namespace/:name',               allow: ['upgrade','create','normal'] },
+  checkControllersReady:   { route: '/operations/monitoring/health',            allow: ['upgrade','create','normal'] },
+  checkPodsReady:          { route: '/operations/nodes',                        allow: ['upgrade','create','normal'] },
+  checkStorage:            { route: '/backup/xstore-backups',                   allow: ['upgrade','create','normal'] },
+  checkRecentBackup:       { route: '/backup/manual-backups',                   allow: ['upgrade','create','normal'] },
+  checkRPO:                { route: '/backup/backup-binlogs',                   allow: ['upgrade','normal'] },
+  checkConflicts:          { route: '/operations/system-tasks',                 allow: ['upgrade','create','normal'] },
+  checkScheduling:         { route: '/operations/nodes',                        allow: ['upgrade','create','normal'] },
+  checkNodeDiskPressure:   { route: '/operations/monitoring/health',            allow: ['upgrade','create','normal'] },
+  checkResourceQuota:      { note: '暂无专页，请在命名空间配额中查看/调整',      allow: ['upgrade','create','normal'] },
+  checkBinlogAvailable:    { route: '/backup/backup-binlogs',                   allow: ['upgrade','normal'] },
+  checkRBAC:               { route: '/operations/monitoring/preflight',         allow: ['upgrade','create','normal'] },
+  checkVersionCompat:      { route: '/clusters/:namespace/:name/change',        allow: ['upgrade'] }
+};
+
 @Component({
   selector: 'app-cluster-change-wizard',
   standalone: true,
@@ -506,59 +524,21 @@ export class ClusterChangeWizardComponent implements OnInit {
 
   navigateSuggested(id: string): void {
     const lower = (id || '').toLowerCase();
-
-    // 备份与存储相关
-    if (lower.includes('backup') || lower.includes('recentbackup')) {
-      this.router.navigateByUrl('/backup/manual-backups');
+    const key = Object.keys(CheckRouteMap).find(k => lower.includes(k.replace('check','').toLowerCase()));
+    const op: OperationType = this.opType === 'upgrade' ? 'upgrade' : (this.opType === 'create' ? 'create' : 'normal');
+    if (!key) { this.msg.info('请前往相关页面处理'); return; }
+    const cfg = CheckRouteMap[key];
+    if (cfg.allow && !cfg.allow.includes(op)) {
+      this.msg.info(cfg.note || '当前操作下无需处理');
       return;
     }
-    if (lower.includes('binlog')) {
-      this.router.navigateByUrl('/backup/backup-binlogs');
+    let route = cfg.route || '';
+    if (!route) {
+      this.msg.info(cfg.note || '暂无对应页面');
       return;
     }
-    if (lower.includes('hpfs') || lower.includes('sink') || lower.includes('storage')) {
-      this.router.navigateByUrl('/backup/xstore-backups');
-      return;
-    }
-
-    // 集群/工作负载与 Pod 就绪
-    if (lower.includes('podsready') || lower.includes('controllersready')) {
-      this.router.navigate(['/clusters', this.namespace, this.name], { queryParams: { tab: 'nodes' } });
-      return;
-    }
-    if (lower.includes('clusterready')) {
-      this.router.navigate(['/clusters', this.namespace, this.name]);
-      return;
-    }
-
-    // 调度与节点健康
-    if (lower.includes('scheduling') || lower.includes('diskpressure') || lower.includes('node')) {
-      this.router.navigateByUrl('/operations/nodes');
-      return;
-    }
-
-    // 资源与权限
-    if (lower.includes('resourcequota') || lower.includes('rbac') || lower.includes('crd')) {
-      this.router.navigateByUrl('/operations/settings');
-      return;
-    }
-
-    // 监控/RPO/版本兼容
-    if (lower.includes('rpo')) {
-      this.router.navigateByUrl('/operations/monitoring/health');
-      return;
-    }
-    if (lower.includes('versioncompat') || lower.includes('version')) {
-      this.router.navigate(['/clusters', this.namespace, this.name, 'change']);
-      return;
-    }
-
-    // Pod/Workload 通用兜底
-    if (lower.includes('pod') || lower.includes('workload') || lower.includes('kube')) {
-      this.router.navigate(['/operations','nodes', this.namespace, this.name]);
-      return;
-    }
-    this.msg.info('请前往相关页面处理');
+    route = route.replace(':namespace', encodeURIComponent(this.namespace)).replace(':name', encodeURIComponent(this.name));
+    this.router.navigateByUrl(route);
   }
 
   navigateAfter(): void {
