@@ -67,15 +67,13 @@ export class XStoreRebuildLoggerComponent {
     return raw.length>63 ? raw.slice(0,63) : raw;
   }
 
-  start(): void {
+  submit(): void {
     if (!this.xstore) { this.snack.open('请填写目标 XStore', '关闭', { duration: 2500 }); return; }
-    if (!this.targetPod) { this.snack.open('请选择目标 Pod', '关闭', { duration: 2500 }); return; }
-    if (!this.fromPod) { this.snack.open('建议选择源 Pod (fromPodName)，避免 from-pod not found', '关闭', { duration: 3500 }); }
+    if (!this.loggerPod) { this.snack.open('请选择 Logger Pod', '关闭', { duration: 2500 }); return; }
     const req: any = {
-      name: this.genName(this.xstore),
+      name: this.name?.trim() || this.genName(this.xstore),
       xStoreName: this.xstore,
-      targetPodName: this.targetPod,
-      fromPodName: this.fromPod || undefined
+      targetPodName: this.loggerPod
     };
     this.submitting = true;
     this.api.rebuildLogger(this.namespace || 'default', req).subscribe({
