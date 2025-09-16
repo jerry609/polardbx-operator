@@ -44,7 +44,7 @@ export interface PodDetailDialogData {
           <div class="k">命名空间</div><div class="v">{{ data.namespace }}</div>
           <div class="k">Pod</div><div class="v">{{ data.pod.metadata.name }}</div>
           <div class="k">IP</div><div class="v">{{ data.pod.status?.podIP || '未知' }}</div>
-          <div class="k">节点</div><div class="v">{{ data.pod.spec?.nodeName || '未知' }}</div>
+          <div class="k">节点</div><div class="v">{{ data.pod.spec.nodeName || '未知' }}</div>
           <div class="k">Phase</div><div class="v">{{ data.pod.status?.phase }}</div>
           <div class="k">容器</div><div class="v">
             <span class="chip" *ngFor="let c of containers">{{ c }}</span>

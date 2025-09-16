@@ -54,8 +54,8 @@ import { NzProgressModule } from 'ng-zorro-antd/progress';
 import { NzAlertModule } from 'ng-zorro-antd/alert';
 import { NzBadgeModule } from 'ng-zorro-antd/badge';
 import { NzInputNumberModule } from 'ng-zorro-antd/input-number';
-import { PrechangeCheckComponent } from '../../components/prechange-check/prechange-check.component';
 import { ClusterChangeWizardComponent } from '../../components/cluster-change-wizard/cluster-change-wizard.component';
+import { PrechangeCheckComponent } from '../../components/prechange-check/prechange-check.component';
 import { Chart, registerables, ChartConfiguration, ChartType } from 'chart.js';
 import * as dagre from 'dagre';
 import { debounceTime } from 'rxjs/operators';
@@ -129,8 +129,8 @@ interface ContainerStatus {
     NzCheckboxModule,
     NzInputNumberModule,
     NzModalModule,
-    PrechangeCheckComponent,
-    ClusterChangeWizardComponent
+    ClusterChangeWizardComponent,
+    PrechangeCheckComponent
   ],
   providers: [
     {

@@ -675,4 +675,9 @@
       </div>
     </nz-tab>
   </nz-tabset>
+
+  <!-- 隐藏挂载：保持组件被使用以供按需展示或路由跳转复用 -->
+  <div style="display:none">
+    <app-prechange-check [embedded]="true" [initialNamespace]="clusterNamespace" [initialCluster]="clusterName"></app-prechange-check>
+  </div>
 </div>

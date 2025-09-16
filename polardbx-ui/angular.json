@@ -25,6 +25,12 @@
             ],
             "tsConfig": "tsconfig.app.json",
             "inlineStyleLanguage": "scss",
+            "allowedCommonJsDependencies": [
+              "dagre",
+              "xterm",
+              "@xterm/addon-fit",
+              "@xterm/addon-serialize"
+            ],
             "assets": [
               {
                 "glob": "**/*",

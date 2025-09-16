@@ -45,12 +45,12 @@ import { Pod } from '../../models/pod.model';
 
     <mat-tab-group animationDuration="0ms">
       <mat-tab label="Summary">
-        <div class="kv-grid" *ngIf="pod; else loading">
+        <div class="kv-grid" *ngIf="pod as p; else loading">
           <div class="k">命名空间</div><div class="v">{{ namespace }}</div>
-          <div class="k">Pod</div><div class="v">{{ pod?.metadata.name }}</div>
-          <div class="k">IP</div><div class="v">{{ pod?.status?.podIP || '未知' }}</div>
-          <div class="k">节点</div><div class="v">{{ pod?.spec?.nodeName || '未知' }}</div>
-          <div class="k">Phase</div><div class="v">{{ pod?.status?.phase }}</div>
+          <div class="k">Pod</div><div class="v">{{ p.metadata.name }}</div>
+          <div class="k">IP</div><div class="v">{{ p.status?.podIP || '未知' }}</div>
+          <div class="k">节点</div><div class="v">{{ p.spec.nodeName || '未知' }}</div>
+          <div class="k">Phase</div><div class="v">{{ p.status?.phase }}</div>
           <div class="k">容器</div><div class="v">
             <span class="chip" *ngFor="let c of containers">{{ c }}</span>
           </div>
