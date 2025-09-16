@@ -738,7 +738,7 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
             id: backup.metadata.name,
             name: backup.metadata.name,
             namespace: backup.metadata.namespace,
-            completedTime: backup.status?.completionTime || backup.metadata?.['creationTimestamp'],
+            completedTime: backup.status?.completionTime || backup.metadata.creationTimestamp,
             type: backup.spec.backupType || 'Snapshot',
             status: backup.status?.phase || 'Unknown',
             phase: backup.status?.phase,

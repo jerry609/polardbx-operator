@@ -123,7 +123,7 @@ import {
                             <div>超时: {{ monitor.spec.scrapeTimeout || '10s' }}</div>
                           </div>
                         </td>
-                        <td>{{ formatDate(monitor.metadata?.['creationTimestamp']) }}</td>
+                        <td>{{ formatDate(monitor.metadata.creationTimestamp) }}</td>
                         <td>
                           <a nz-dropdown [nzDropdownMenu]="menu">
                             <i nz-icon nzType="more" nzTheme="outline"></i>

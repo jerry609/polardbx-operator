@@ -119,7 +119,7 @@ import {
                       <td>
                         <span>{{ getParameterCount(template) }}</span>
                       </td>
-                      <td>{{ formatDate(template.metadata?.['creationTimestamp']) }}</td>
+                      <td>{{ formatDate(template.metadata.creationTimestamp) }}</td>
                       <td>
                         <button nz-button nzType="text" nz-dropdown [nzDropdownMenu]="tplMenu" [nzLoading]="isLoading('PARAMETER_TEMPLATE_UPDATE')">
                           <span>操作</span>

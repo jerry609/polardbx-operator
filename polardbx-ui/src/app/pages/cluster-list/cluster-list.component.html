@@ -167,8 +167,8 @@
               </nz-tag>
             </td>
             <td>
-              <span nz-tooltip [nzTooltipTitle]="cluster.metadata?.['creationTimestamp'] | date:'yyyy-MM-dd HH:mm:ss'">
-                {{ cluster.metadata?.['creationTimestamp'] | date:'MM-dd HH:mm' }}
+              <span nz-tooltip [nzTooltipTitle]="cluster.metadata.creationTimestamp | date:'yyyy-MM-dd HH:mm:ss'">
+                {{ cluster.metadata.creationTimestamp | date:'MM-dd HH:mm' }}
               </span>
             </td>
             <td nzAlign="center">

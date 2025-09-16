@@ -311,7 +311,7 @@ export class XStoreFollowerManagementComponent implements OnInit {
       isHealthy,
       hasFailures: hasFailed,
       displayStatus: this.getDisplayStatus(phase),
-      lastActivity: follower.metadata?.['creationTimestamp']
+      lastActivity: follower.metadata.creationTimestamp
     };
   }
 
@@ -505,7 +505,7 @@ export class XStoreFollowerManagementComponent implements OnInit {
       const match = fromPodName.match(/^(.+?)-(single|candidate|follower)-\d+$/);
       return match ? match[1] : fromPodName;
     };
-    const details = { 基本信息: [ { label: '名称', value: follower.metadata.name }, { label: '命名空间', value: follower.metadata.namespace }, { label: '目标 XStore', value: (follower.spec as any)?.xStoreName }, { label: '创建时间', value: follower.metadata?.['creationTimestamp'] } ] } as any;
+    const details = { 基本信息: [ { label: '名称', value: follower.metadata.name }, { label: '命名空间', value: follower.metadata.namespace }, { label: '目标 XStore', value: (follower.spec as any)?.xStoreName }, { label: '创建时间', value: follower.metadata.creationTimestamp } ] } as any;
     let message = '';
     Object.entries(details).forEach(([section, items]: any) => {
       message += `【${section}】\n`;
