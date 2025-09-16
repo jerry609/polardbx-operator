@@ -35,17 +35,17 @@ export interface PodDetailDialogData {
   template: `
   <h2 mat-dialog-title>
     <mat-icon>insights</mat-icon>
-    节点详情 - {{ data.pod?.metadata?.name }}
+    节点详情 - {{ data.pod.metadata.name }}
   </h2>
   <mat-dialog-content class="content">
     <mat-tab-group animationDuration="0ms">
       <mat-tab label="Summary">
         <div class="kv-grid">
           <div class="k">命名空间</div><div class="v">{{ data.namespace }}</div>
-          <div class="k">Pod</div><div class="v">{{ data.pod?.metadata?.name }}</div>
-          <div class="k">IP</div><div class="v">{{ data.pod?.status?.podIP || '未知' }}</div>
-          <div class="k">节点</div><div class="v">{{ data.pod?.spec?.nodeName || '未知' }}</div>
-          <div class="k">Phase</div><div class="v">{{ data.pod?.status?.phase }}</div>
+          <div class="k">Pod</div><div class="v">{{ data.pod.metadata.name }}</div>
+          <div class="k">IP</div><div class="v">{{ data.pod.status?.podIP || '未知' }}</div>
+          <div class="k">节点</div><div class="v">{{ data.pod.spec?.nodeName || '未知' }}</div>
+          <div class="k">Phase</div><div class="v">{{ data.pod.status?.phase }}</div>
           <div class="k">容器</div><div class="v">
             <span class="chip" *ngFor="let c of containers">{{ c }}</span>
           </div>
@@ -77,18 +77,18 @@ export interface PodDetailDialogData {
         <div class="cmds">
           <div class="cmd-row">
             <div class="label">Describe</div>
-            <div class="code">kubectl describe pod {{ data.pod?.metadata?.name }} -n {{ data.namespace }}</div>
-            <button mat-mini-button (click)="copy('kubectl describe pod ' + data.pod?.metadata?.name + ' -n ' + data.namespace)"><mat-icon>content_copy</mat-icon></button>
+            <div class="code">kubectl describe pod {{ data.pod.metadata.name }} -n {{ data.namespace }}</div>
+            <button mat-mini-button (click)="copy('kubectl describe pod ' + data.pod.metadata.name + ' -n ' + data.namespace)"><mat-icon>content_copy</mat-icon></button>
           </div>
           <div class="cmd-row">
             <div class="label">Logs</div>
-            <div class="code">kubectl logs {{ data.pod?.metadata?.name }} -n {{ data.namespace }} -c {{ selectedContainer || containers[0] }}</div>
-            <button mat-mini-button (click)="copy('kubectl logs ' + data.pod?.metadata?.name + ' -n ' + data.namespace + ' -c ' + (selectedContainer || containers[0]))"><mat-icon>content_copy</mat-icon></button>
+            <div class="code">kubectl logs {{ data.pod.metadata.name }} -n {{ data.namespace }} -c {{ selectedContainer || containers[0] }}</div>
+            <button mat-mini-button (click)="copy('kubectl logs ' + data.pod.metadata.name + ' -n ' + data.namespace + ' -c ' + (selectedContainer || containers[0]))"><mat-icon>content_copy</mat-icon></button>
           </div>
           <div class="cmd-row">
             <div class="label">Exec</div>
-            <div class="code">kubectl exec -it {{ data.pod?.metadata?.name }} -n {{ data.namespace }} -c {{ selectedContainer || containers[0] }} -- /bin/sh</div>
-            <button mat-mini-button (click)="copy('kubectl exec -it ' + data.pod?.metadata?.name + ' -n ' + data.namespace + ' -c ' + (selectedContainer || containers[0]) + ' -- /bin/sh')"><mat-icon>content_copy</mat-icon></button>
+            <div class="code">kubectl exec -it {{ data.pod.metadata.name }} -n {{ data.namespace }} -c {{ selectedContainer || containers[0] }} -- /bin/sh</div>
+            <button mat-mini-button (click)="copy('kubectl exec -it ' + data.pod.metadata.name + ' -n ' + data.namespace + ' -c ' + (selectedContainer || containers[0]) + ' -- /bin/sh')"><mat-icon>content_copy</mat-icon></button>
           </div>
         </div>
       </mat-tab>
@@ -139,7 +139,7 @@ export class PodDetailDialogComponent {
   inspectJson = '';
 
   constructor() {
-    this.containers = (this.data.pod?.spec?.containers || []).map(c => c.name);
+    this.containers = (this.data.pod.spec.containers || []).map(c => c.name);
     this.selectedContainer = this.containers[0] || '';
     this.inspectJson = JSON.stringify(this.data.pod || {}, null, 2);
   }

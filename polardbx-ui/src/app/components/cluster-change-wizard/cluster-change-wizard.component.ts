@@ -525,7 +525,7 @@ export class ClusterChangeWizardComponent implements OnInit {
   navigateSuggested(id: string): void {
     const lower = (id || '').toLowerCase();
     const key = Object.keys(CheckRouteMap).find(k => lower.includes(k.replace('check','').toLowerCase()));
-    const op: OperationType = this.opType === 'upgrade' ? 'upgrade' : (this.opType === 'create' ? 'create' : 'normal');
+    const op: OperationType = this.opType === 'upgrade' ? 'upgrade' : 'normal';
     if (!key) { this.msg.info('请前往相关页面处理'); return; }
     const cfg = CheckRouteMap[key];
     if (cfg.allow && !cfg.allow.includes(op)) {

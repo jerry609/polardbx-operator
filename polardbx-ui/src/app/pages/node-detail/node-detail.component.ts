@@ -47,9 +47,9 @@ import { Pod } from '../../models/pod.model';
       <mat-tab label="Summary">
         <div class="kv-grid" *ngIf="pod; else loading">
           <div class="k">命名空间</div><div class="v">{{ namespace }}</div>
-          <div class="k">Pod</div><div class="v">{{ pod?.metadata?.name }}</div>
+          <div class="k">Pod</div><div class="v">{{ pod?.metadata.name }}</div>
           <div class="k">IP</div><div class="v">{{ pod?.status?.podIP || '未知' }}</div>
-          <div class="k">节点</div><div class="v">{{ pod?.spec?.['nodeName'] || '未知' }}</div>
+          <div class="k">节点</div><div class="v">{{ pod?.spec?.nodeName || '未知' }}</div>
           <div class="k">Phase</div><div class="v">{{ pod?.status?.phase }}</div>
           <div class="k">容器</div><div class="v">
             <span class="chip" *ngFor="let c of containers">{{ c }}</span>
@@ -243,7 +243,7 @@ export class NodeDetailComponent implements OnInit {
     this.api.getPod(this.namespace, this.podName).subscribe({
       next: (pod) => {
         this.pod = pod;
-        this.containers = (pod?.spec?.containers || []).map(c => c.name);
+        this.containers = (pod.spec.containers || []).map(c => c.name);
         this.selectedContainer = this.pickBestContainerFromList(this.containers, this.selectedContainer);
         this.inspectJson = JSON.stringify(pod, null, 2);
         this.loadLogs();

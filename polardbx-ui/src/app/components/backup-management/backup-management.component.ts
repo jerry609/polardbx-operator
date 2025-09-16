@@ -223,7 +223,7 @@ import { NzDrawerModule } from 'ng-zorro-antd/drawer';
                       </div>
                           </td>
                           <td>
-                            <nz-tag nzColor="blue">{{ backup.spec?.cluster?.name || '-' }}</nz-tag>
+                            <nz-tag nzColor="blue">{{ backup.spec.cluster.name || '-' }}</nz-tag>
                           </td>
                           <td>
                             <nz-tag [nzColor]="getBackupStatusColor(backup)">
@@ -559,7 +559,7 @@ import { NzDrawerModule } from 'ng-zorro-antd/drawer';
                 <nz-tag nzColor="blue">{{ selectedBackup.metadata.namespace }}</nz-tag>
               </nz-descriptions-item>
               <nz-descriptions-item nzTitle="集群">
-                {{ selectedBackup.spec?.cluster?.name || '-' }}
+                {{ selectedBackup.spec.cluster.name || '-' }}
               </nz-descriptions-item>
               <nz-descriptions-item nzTitle="状态">
                 <nz-tag [nzColor]="getBackupStatusColor(selectedBackup)">

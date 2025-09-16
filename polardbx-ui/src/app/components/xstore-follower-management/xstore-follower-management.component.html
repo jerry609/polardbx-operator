@@ -223,7 +223,7 @@
                   <mat-select formControlName="targetPodName">
                     <mat-option value="">自动选择（优先非 leader 且 Running）</mat-option>
                     <mat-option *ngFor="let pod of filteredTargetPods" [value]="pod.metadata.name">
-                      {{pod.metadata.name}} <span class="xstore-status">({{pod.status?.phase}}, {{pod.metadata?.labels?.['xstore/role'] || 'unknown'}})</span>
+                      {{pod.metadata.name}} <span class="xstore-status">({{pod.status?.phase}}, {{pod.metadata.labels?.['xstore/role'] || 'unknown'}})</span>
                     </mat-option>
                     <mat-option *ngIf="filteredTargetPods.length === 0" disabled>
                       暂无可用的目标 Pod（请确认该 XStore 有非 leader 的 Running Pod）
