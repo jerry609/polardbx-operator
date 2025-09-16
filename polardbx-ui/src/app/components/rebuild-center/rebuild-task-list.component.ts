@@ -61,7 +61,7 @@ interface TaskListItem {
         <div class="toolbar-content">
           <div class="toolbar-left">
             <h3 class="page-title">
-              <i nz-icon nzType="unordered-list"></i>
+              <i nz-icon nzType="bars"></i>
               重搭任务列表
             </h3>
           </div>
@@ -245,7 +245,7 @@ interface TaskListItem {
                     nz-tooltip
                     [nzTooltipTitle]="item.task.status?.message"
                     class="message-text">
-                    {{ item.task.status?.message | slice:0:30 }}{{ item.task.status?.message && item.task.status.message.length > 30 ? '...' : '' }}
+                    {{ (item.task.status?.message || '') | slice:0:30 }}{{ (item.task.status?.message || '').length > 30 ? '...' : '' }}
                   </span>
                   <ng-template #noMessage>
                     <span class="no-data">-</span>
@@ -276,7 +276,7 @@ interface TaskListItem {
                       *ngIf="!item.isEndPhase"
                       (click)="stopTask(item.task)"
                       nz-tooltip="停止任务">
-                      <i nz-icon nzType="stop"></i>
+                      <i nz-icon nzType="pause"></i>
                     </button>
                     
                     <button 
@@ -391,10 +391,20 @@ export class RebuildTaskListComponent implements OnInit, OnDestroy {
   }
 
   private startPolling(): void {
-    // 立即加载一次，然后每3秒轮询
-    timer(0, 3000)
+    // 立即加载一次
+    this.loadTasks();
+    
+    // 然后每3秒轮询（只有当页面可见且有非终态任务时才轮询）
+    timer(3000, 3000)
       .pipe(
-        switchMap(() => this.loadTasks()),
+        switchMap(() => {
+          // 检查是否有非终态任务需要轮询
+          const hasActiveTasks = this.filteredTasks.some(item => !item.isEndPhase);
+          if (hasActiveTasks && document.visibilityState === 'visible') {
+            return this.loadTasks();
+          }
+          return Promise.resolve();
+        }),
         takeUntil(this.destroy$)
       )
       .subscribe();

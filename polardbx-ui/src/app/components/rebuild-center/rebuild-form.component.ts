@@ -281,7 +281,7 @@ interface RebuildFormData {
                   nzType="default" 
                   (click)="goToTaskList()"
                   style="margin-left: 8px;">
-                  <i nz-icon nzType="unordered-list"></i>
+                  <i nz-icon nzType="bars"></i>
                   <span>查看任务列表</span>
                 </button>
               </nz-form-control>

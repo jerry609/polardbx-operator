@@ -47,6 +47,8 @@
 
   .table-card {
     .table-container {
+      overflow-x: auto;
+      
       .tasks-table {
         .task-name {
           display: flex;
@@ -137,6 +139,22 @@
   }
 }
 
+@media (max-width: 1200px) {
+  .rebuild-task-list-container {
+    .table-card {
+      .table-container {
+        // 在中等屏幕上隐藏部分列
+        .tasks-table {
+          th:nth-child(7), th:nth-child(8),  // 隐藏目标节点、本机/跨机列
+          td:nth-child(7), td:nth-child(8) {
+            display: none;
+          }
+        }
+      }
+    }
+  }
+}
+
 @media (max-width: 768px) {
   .rebuild-task-list-container {
     padding: 16px;
@@ -150,11 +168,14 @@
           
           .filters {
             width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
             
             nz-select, nz-input {
               width: 100% !important;
               margin-right: 0 !important;
-              margin-bottom: 8px;
+              margin-bottom: 0;
             }
           }
           
@@ -167,15 +188,27 @@
     }
     
     .table-card {
-      .tasks-table {
-        // 在小屏幕上隐藏部分列
-        th:nth-child(n+6):nth-child(-n+8),
-        td:nth-child(n+6):nth-child(-n+8) {
-          display: none;
-        }
-        
-        .message-text {
-          max-width: 100px;
+      .table-container {
+        .tasks-table {
+          // 在小屏幕上隐藏更多列
+          th:nth-child(n+5):nth-child(-n+8),  // 隐藏源Pod、目标Pod、目标节点、本机/跨机
+          td:nth-child(n+5):nth-child(-n+8) {
+            display: none;
+          }
+          
+          .message-text {
+            max-width: 80px;
+          }
+          
+          .action-buttons {
+            flex-direction: column;
+            gap: 2px;
+            
+            button {
+              font-size: 12px;
+              padding: 2px 4px;
+            }
+          }
         }
       }
     }

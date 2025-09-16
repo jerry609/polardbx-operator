@@ -104,7 +104,7 @@ import { XStoreFollower } from '../../models/xstore-follower.model';
                     nzType="default" 
                     *ngIf="!isEndPhase()"
                     (click)="stopTask()">
-                    <i nz-icon nzType="stop"></i>
+                    <i nz-icon nzType="pause"></i>
                     停止任务
                   </button>
                   <button 
@@ -211,18 +211,21 @@ export class RebuildTaskDetailComponent implements OnInit, OnDestroy {
   }
 
   private startPolling(): void {
-    // 立即加载一次，然后每3秒轮询（如果不是终态）
-    timer(0, 3000)
+    // 立即加载一次
+    this.loadTask();
+    
+    // 然后每3秒轮询（只有非终态且页面可见时才轮询）
+    timer(3000, 3000)
       .pipe(
-        switchMap(() => this.loadTask()),
+        switchMap(() => {
+          if (!this.isEndPhase() && document.visibilityState === 'visible') {
+            return this.loadTask();
+          }
+          return Promise.resolve(null);
+        }),
         takeUntil(this.destroy$)
       )
-      .subscribe(task => {
-        if (task && this.isEndPhase()) {
-          // 如果是终态，停止轮询
-          this.destroy$.next();
-        }
-      });
+      .subscribe();
   }
 
   private async loadTask(): Promise<XStoreFollower | null> {
