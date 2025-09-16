@@ -11,10 +11,8 @@ import { NzFormModule } from 'ng-zorro-antd/form';
 import { NzSwitchModule } from 'ng-zorro-antd/switch';
 import { NzSpinModule } from 'ng-zorro-antd/spin';
 import { NzMessageService } from 'ng-zorro-antd/message';
-import { NzToolTipModule } from 'ng-zorro-antd/tooltip';
-import { NzAlertModule } from 'ng-zorro-antd/alert';
 import { NzDividerModule } from 'ng-zorro-antd/divider';
-import { NzTagModule } from 'ng-zorro-antd/tag';
+ 
 import { Subject } from 'rxjs';
 import { takeUntil, finalize } from 'rxjs/operators';
 
@@ -48,10 +46,8 @@ interface RebuildFormData {
     NzFormModule,
     NzSwitchModule,
     NzSpinModule,
-    NzToolTipModule,
-    NzAlertModule,
     NzDividerModule,
-    NzTagModule
+    
   ],
   template: `
     <div class="rebuild-form-container">
@@ -72,8 +68,7 @@ interface RebuildFormData {
                   <nz-select 
                     id="namespace" 
                     formControlName="namespace" 
-                    nzPlaceHolder="选择命名空间"
-                    (ngModelChange)="onNamespaceChange($event)">
+                    nzPlaceHolder="选择命名空间">
                     <nz-option *ngFor="let ns of namespaces" [nzValue]="ns" [nzLabel]="ns"></nz-option>
                   </nz-select>
                 </nz-form-control>
@@ -85,26 +80,10 @@ interface RebuildFormData {
                   <nz-select 
                     id="role" 
                     formControlName="role" 
-                    nzPlaceHolder="选择角色类型"
-                    (ngModelChange)="onRoleChange($event)">
-                    <nz-option nzValue="learner" nzLabel="Learner（学习者节点）">
-                      <div class="role-option">
-                        <i nz-icon nzType="experiment"></i>
-                        <span>Learner（学习者节点）</span>
-                      </div>
-                    </nz-option>
-                    <nz-option nzValue="logger" nzLabel="Logger（日志节点）">
-                      <div class="role-option">
-                        <i nz-icon nzType="file-text"></i>
-                        <span>Logger（日志节点）</span>
-                      </div>
-                    </nz-option>
-                    <nz-option nzValue="follower" nzLabel="Follower（从节点）">
-                      <div class="role-option">
-                        <i nz-icon nzType="share-alt"></i>
-                        <span>Follower（从节点）</span>
-                      </div>
-                    </nz-option>
+                    nzPlaceHolder="选择角色类型">
+                    <nz-option nzValue="learner" nzLabel="Learner（学习者）"></nz-option>
+                    <nz-option nzValue="logger" nzLabel="Logger（日志）"></nz-option>
+                    <nz-option nzValue="follower" nzLabel="Follower（从节点）"></nz-option>
                   </nz-select>
                 </nz-form-control>
               </nz-form-item>
@@ -116,16 +95,8 @@ interface RebuildFormData {
                     id="xStoreName" 
                     formControlName="xStoreName" 
                     nzPlaceHolder="选择 XStore"
-                    (ngModelChange)="onXStoreChange($event)"
                     [nzLoading]="isLoadingXStores">
-                    <nz-option *ngFor="let xstore of availableXStores" [nzValue]="xstore.metadata.name" [nzLabel]="xstore.metadata.name">
-                      <div class="xstore-option">
-                        <span class="xstore-name">{{ xstore.metadata.name }}</span>
-                        <nz-tag [nzColor]="getXStoreStatusColor(xstore)" class="status-tag">
-                          {{ getXStoreStatusText(xstore) }}
-                        </nz-tag>
-                      </div>
-                    </nz-option>
+                    <nz-option *ngFor="let xstore of availableXStores; trackBy: trackByXStoreName" [nzValue]="xstore.metadata.name" [nzLabel]="xstore.metadata.name"></nz-option>
                   </nz-select>
                 </nz-form-control>
               </nz-form-item>
@@ -156,44 +127,26 @@ interface RebuildFormData {
               </nz-form-item>
 
               <!-- 目标 Pod 选择 -->
-              <nz-form-item *ngIf="shouldShowTargetPod()">
-                <nz-form-label [nzSpan]="6" nzFor="targetPodName" [nzRequired]="isTargetPodRequired()">
+              <nz-form-item *ngIf="showTargetPod">
+                <nz-form-label [nzSpan]="6" nzFor="targetPodName" [nzRequired]="targetPodRequired">
                   目标 Pod
-                  <span nz-tooltip="选择要重搭的目标 Pod，建议选择非 Leader 且处于 Running 状态的 Pod">
-                    <i nz-icon nzType="question-circle"></i>
-                  </span>
                 </nz-form-label>
-                <nz-form-control [nzSpan]="18" [nzErrorTip]="getTargetPodErrorTip()">
+                <nz-form-control [nzSpan]="18" [nzErrorTip]="targetPodErrorTip">
                   <nz-select 
                     id="targetPodName" 
                     formControlName="targetPodName" 
                     nzPlaceHolder="选择目标 Pod"
                     [nzLoading]="isLoadingPods"
                     nzAllowClear>
-                    <nz-option *ngFor="let pod of filteredTargetPods" [nzValue]="pod.metadata.name" [nzLabel]="pod.metadata.name">
-                      <div class="pod-option">
-                        <span class="pod-name">{{ pod.metadata.name }}</span>
-                        <div class="pod-info">
-                          <nz-tag [nzColor]="getPodStatusColor(pod)" class="status-tag">
-                            {{ pod.status?.phase || '未知' }}
-                          </nz-tag>
-                          <nz-tag *ngIf="getPodRole(pod)" [nzColor]="getRoleColor(getPodRole(pod))" class="role-tag">
-                            {{ getPodRole(pod) }}
-                          </nz-tag>
-                        </div>
-                      </div>
-                    </nz-option>
+                    <nz-option *ngFor="let pod of filteredTargetPods; trackBy: trackByPodName" [nzValue]="pod.metadata.name" [nzLabel]="pod.metadata.name"></nz-option>
                   </nz-select>
                 </nz-form-control>
               </nz-form-item>
 
               <!-- 源 Pod 选择（Logger 重搭时显示） -->
-              <nz-form-item *ngIf="shouldShowFromPod()">
+              <nz-form-item *ngIf="showFromPod">
                 <nz-form-label [nzSpan]="6" nzFor="fromPodName">
                   源 Pod
-                  <span nz-tooltip="选择数据源 Pod，留空将使用系统默认策略（可能产生较重的数据传输）">
-                    <i nz-icon nzType="question-circle"></i>
-                  </span>
                 </nz-form-label>
                 <nz-form-control [nzSpan]="18">
                   <nz-select 
@@ -202,32 +155,20 @@ interface RebuildFormData {
                     nzPlaceHolder="选择源 Pod（可选）"
                     [nzLoading]="isLoadingPods"
                     nzAllowClear>
-                    <nz-option *ngFor="let pod of filteredSourcePods" [nzValue]="pod.metadata.name" [nzLabel]="pod.metadata.name">
-                      <div class="pod-option">
-                        <span class="pod-name">{{ pod.metadata.name }}</span>
-                        <div class="pod-info">
-                          <nz-tag [nzColor]="getPodStatusColor(pod)" class="status-tag">
-                            {{ pod.status?.phase || '未知' }}
-                          </nz-tag>
-                          <nz-tag *ngIf="getPodRole(pod)" [nzColor]="getRoleColor(getPodRole(pod))" class="role-tag">
-                            {{ getPodRole(pod) }}
-                          </nz-tag>
-                        </div>
-                      </div>
-                    </nz-option>
+                    <nz-option *ngFor="let pod of filteredSourcePods; trackBy: trackByPodName" [nzValue]="pod.metadata.name" [nzLabel]="pod.metadata.name"></nz-option>
                   </nz-select>
                 </nz-form-control>
               </nz-form-item>
 
               <!-- 节点选择（跨机构建时显示） -->
-              <nz-form-item *ngIf="shouldShowNodeName()">
+              <nz-form-item *ngIf="showNodeName">
                 <nz-form-label [nzSpan]="6" nzFor="nodeName">目标节点</nz-form-label>
                 <nz-form-control [nzSpan]="18">
-                  <nz-input 
+                  <input 
+                    nz-input
                     id="nodeName" 
                     formControlName="nodeName" 
-                    nzPlaceHolder="输入目标节点名称（可选）">
-                  </nz-input>
+                    placeholder="输入目标节点名称（可选）" />
                 </nz-form-control>
               </nz-form-item>
 
@@ -235,24 +176,18 @@ interface RebuildFormData {
               <nz-form-item>
                 <nz-form-label [nzSpan]="6" nzFor="description">备注</nz-form-label>
                 <nz-form-control [nzSpan]="18">
-                  <nz-input 
+                  <input 
+                    nz-input
                     id="description" 
                     formControlName="description" 
-                    nzPlaceHolder="可选的任务描述">
-                  </nz-input>
+                    placeholder="可选的任务描述" />
                 </nz-form-control>
               </nz-form-item>
             </div>
 
-            <!-- 提示信息 -->
-            <div class="form-section" *ngIf="getRoleHints().length > 0">
-              <nz-alert 
-                *ngFor="let hint of getRoleHints()" 
-                [nzType]="hint.type" 
-                [nzMessage]="hint.message" 
-                [nzShowIcon]="true"
-                class="role-hint">
-              </nz-alert>
+            <!-- 提示信息（简化） -->
+            <div class="form-section" *ngIf="roleHints.length > 0">
+              <div *ngFor="let hint of roleHints" class="role-hint-text">{{ hint }}</div>
             </div>
 
             <!-- 操作按钮 -->
@@ -307,6 +242,13 @@ export class RebuildFormComponent implements OnInit, OnDestroy {
   isLoadingXStores = false;
   isLoadingPods = false;
   isSubmitting = false;
+  showTargetPod = false;
+  showFromPod = false;
+  showNodeName = false;
+  targetPodRequired = false;
+  targetPodErrorTip = '';
+  localHint = '';
+  roleHints: string[] = [];
 
   constructor(
     private fb: FormBuilder,
@@ -322,6 +264,27 @@ export class RebuildFormComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadNamespaces();
     this.handleQueryParams();
+
+    this.rebuildForm.get('role')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(role => {
+        this.onRoleChange(role);
+        this.refreshDerivedStates();
+      });
+
+    this.rebuildForm.get('local')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.refreshDerivedStates());
+
+    this.rebuildForm.get('namespace')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(ns => this.onNamespaceChange(ns));
+
+    this.rebuildForm.get('xStoreName')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(name => this.onXStoreChange(name));
+
+    this.refreshDerivedStates();
   }
 
   ngOnDestroy(): void {
@@ -380,45 +343,54 @@ export class RebuildFormComponent implements OnInit, OnDestroy {
     }
   }
 
-  async onNamespaceChange(namespace: string): Promise<void> {
+  onNamespaceChange(namespace: string): void {
     if (!namespace) return;
     
     this.isLoadingXStores = true;
-    try {
-      const xstores = await this.apiService.getXStores(namespace).toPromise();
-      this.availableXStores = xstores || [];
-    } catch (error) {
-      console.error('Failed to load XStores:', error);
-      this.availableXStores = [];
-    } finally {
-      this.isLoadingXStores = false;
-    }
+    this.apiService.getXStores(namespace)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (xstores) => {
+          this.availableXStores = xstores || [];
+          this.isLoadingXStores = false;
+        },
+        error: (error) => {
+          console.error('Failed to load XStores:', error);
+          this.availableXStores = [];
+          this.isLoadingXStores = false;
+        }
+      });
   }
 
-  async onXStoreChange(xstoreName: string): Promise<void> {
+  onXStoreChange(xstoreName: string): void {
     if (!xstoreName) return;
     
     const namespace = this.rebuildForm.get('namespace')?.value;
     if (!namespace) return;
 
     this.isLoadingPods = true;
-    try {
-      const pods = await this.apiService.getXStorePods(namespace, xstoreName).toPromise();
-      this.targetPods = pods || [];
-      this.filterPods();
-    } catch (error) {
-      console.error('Failed to load XStore pods:', error);
-      this.targetPods = [];
-      this.filteredTargetPods = [];
-      this.filteredSourcePods = [];
-    } finally {
-      this.isLoadingPods = false;
-    }
+    this.apiService.getXStorePods(namespace, xstoreName)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (pods) => {
+          this.targetPods = pods || [];
+          this.filterPods();
+          this.isLoadingPods = false;
+        },
+        error: (error) => {
+          console.error('Failed to load XStore pods:', error);
+          this.targetPods = [];
+          this.filteredTargetPods = [];
+          this.filteredSourcePods = [];
+          this.isLoadingPods = false;
+        }
+      });
   }
 
   onRoleChange(role: string): void {
     this.updateFormValidators(role);
     this.filterPods();
+    this.refreshDerivedStates();
   }
 
   private updateFormValidators(role: string): void {
@@ -465,65 +437,14 @@ export class RebuildFormComponent implements OnInit, OnDestroy {
     return role === 'learner' || role === 'logger';
   }
 
-  shouldShowFromPod(): boolean {
-    return this.rebuildForm.get('role')?.value === 'logger';
-  }
-
-  shouldShowNodeName(): boolean {
-    return !this.rebuildForm.get('local')?.value;
-  }
-
-  isTargetPodRequired(): boolean {
-    return this.rebuildForm.get('role')?.value === 'learner';
-  }
-
-  getTargetPodErrorTip(): string {
-    const role = this.rebuildForm.get('role')?.value;
-    return role === 'learner' ? '请选择目标 Pod' : '';
-  }
-
-  getRoleHints(): Array<{type: 'success' | 'info' | 'warning' | 'error', message: string}> {
-    const role = this.rebuildForm.get('role')?.value;
-    const local = this.rebuildForm.get('local')?.value;
-    const hints = [];
-
-    switch (role) {
-      case 'learner':
-        hints.push({
-          type: 'info' as const,
-          message: 'Learner 重搭通常在本机进行，需要选择具体的目标 Pod。建议选择非 Leader 且处于 Running 状态的 Pod。'
-        });
-        break;
-      case 'logger':
-        hints.push({
-          type: 'warning' as const,
-          message: 'Logger 重搭如果不指定源 Pod，可能会触发较重的数据传输。建议选择就近的健康源 Pod。'
-        });
-        break;
-      case 'follower':
-        hints.push({
-          type: 'info' as const,
-          message: 'Follower 重搭可以跨机进行，系统将自动选择合适的配置。'
-        });
-        break;
-    }
-
-    if (!local) {
-      hints.push({
-        type: 'info' as const,
-        message: '跨机重搭将在其他节点创建新的 Pod，可以指定目标节点名称。'
-      });
-    }
-
-    return hints;
-  }
+  // 旧派生函数已移除（改为 refreshDerivedStates 计算好的属性）
 
   getPodRole(pod: any): string {
-    return pod.metadata?.labels?.['xstore/role'] || '';
+    return pod?.metadata?.labels?.['xstore/role'] || '';
   }
 
   getPodStatusColor(pod: any): string {
-    const phase = pod.status?.phase;
+    const phase = pod?.status?.phase;
     switch (phase) {
       case 'Running': return 'green';
       case 'Pending': return 'blue';
@@ -555,7 +476,28 @@ export class RebuildFormComponent implements OnInit, OnDestroy {
     return (xstore.status as any)?.phase || '未知';
   }
 
-  async onSubmit(): Promise<void> {
+  trackByPodName(_index: number, pod: any): string { return pod?.metadata?.name; }
+  trackByXStoreName(_index: number, xs: XStore): string { return xs?.metadata?.name; }
+
+  private refreshDerivedStates(): void {
+    const role = this.rebuildForm.get('role')?.value;
+    const local = this.rebuildForm.get('local')?.value;
+
+    this.showTargetPod = role === 'learner' || role === 'logger';
+    this.showFromPod = role === 'logger';
+    this.showNodeName = !local;
+    this.targetPodRequired = role === 'learner';
+    this.targetPodErrorTip = this.targetPodRequired ? '请选择目标 Pod' : '';
+    this.localHint = local ? '在当前节点进行重搭' : '跨节点或新建节点重搭';
+
+    const hints: string[] = [];
+    if (role === 'learner') hints.push('Learner 重搭建议选择 Running 的目标 Pod');
+    if (role === 'logger') hints.push('Logger 重搭可选源 Pod，不选将按系统策略自动选择');
+    if (!local) hints.push('跨机重搭会在其他节点新建 Pod，可指定目标节点');
+    this.roleHints = hints;
+  }
+
+  onSubmit(): void {
     if (!this.rebuildForm.valid) {
       Object.values(this.rebuildForm.controls).forEach(control => {
         if (control.invalid) {
@@ -569,33 +511,38 @@ export class RebuildFormComponent implements OnInit, OnDestroy {
     this.isSubmitting = true;
     const formValue = this.rebuildForm.value as RebuildFormData;
     
-    try {
-      const request: CreateXStoreFollowerRequest = {
-        xStoreName: formValue.xStoreName,
-        role: formValue.role,
-        local: formValue.local,
-        targetPodName: formValue.targetPodName,
-        fromPodName: formValue.fromPodName,
-        nodeName: formValue.nodeName
-      };
+    const request: CreateXStoreFollowerRequest = {
+      xStoreName: formValue.xStoreName,
+      role: formValue.role,
+      local: formValue.local,
+      targetPodName: formValue.targetPodName,
+      fromPodName: formValue.fromPodName,
+      nodeName: formValue.nodeName
+    };
 
-      const result = await this.apiService.createXStoreFollower(formValue.namespace, request).toPromise();
-      
-      this.message.success('重搭任务创建成功');
-      
-      // Navigate to task detail
-      if (result?.metadata?.name) {
-        this.router.navigate(['/storage/xstore-rebuild/rebuild/tasks', formValue.namespace, result.metadata.name]);
-      } else {
-        this.router.navigate(['/storage/xstore-rebuild/rebuild/tasks']);
-      }
-      
-    } catch (error) {
-      console.error('Failed to create rebuild task:', error);
-      this.message.error('创建重搭任务失败: ' + (error as any)?.message || '未知错误');
-    } finally {
-      this.isSubmitting = false;
-    }
+    this.apiService.createXStoreFollower(formValue.namespace, request)
+      .pipe(
+        takeUntil(this.destroy$),
+        finalize(() => {
+          this.isSubmitting = false;
+        })
+      )
+      .subscribe({
+        next: (result) => {
+          this.message.success('重搭任务创建成功');
+          
+          // Navigate to task detail
+          if (result?.metadata?.name) {
+            this.router.navigate(['/storage/xstore-rebuild/rebuild/tasks', formValue.namespace, result.metadata.name]);
+          } else {
+            this.router.navigate(['/storage/xstore-rebuild/rebuild/tasks']);
+          }
+        },
+        error: (error) => {
+          console.error('Failed to create rebuild task:', error);
+          this.message.error('创建重搭任务失败: ' + (error as any)?.message || '未知错误');
+        }
+      });
   }
 
   onCancel(): void {

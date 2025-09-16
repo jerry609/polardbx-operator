@@ -17,8 +17,8 @@ import { NzEmptyModule } from 'ng-zorro-antd/empty';
 import { NzDividerModule } from 'ng-zorro-antd/divider';
 import { NzDropDownModule } from 'ng-zorro-antd/dropdown';
 import { NzModalModule, NzModalService } from 'ng-zorro-antd/modal';
-import { Subject, timer } from 'rxjs';
-import { takeUntil, switchMap, startWith } from 'rxjs/operators';
+import { Subject, timer, forkJoin, of } from 'rxjs';
+import { takeUntil, switchMap, startWith, finalize, catchError, map } from 'rxjs/operators';
 
 import { ApiService } from '../../services/api.service';
 import { LoadingService } from '../../services/loading.service';
@@ -100,13 +100,12 @@ interface TaskListItem {
               </nz-select>
               
               <!-- XStore 筛选 -->
-              <nz-input 
+              <input 
+                nz-input
                 [(ngModel)]="xstoreFilter" 
                 (ngModelChange)="applyFilters()"
-                nzPlaceHolder="搜索 XStore" 
-                style="width: 140px; margin-right: 8px;">
-                <span nz-input-group-addon><i nz-icon nzType="search"></i></span>
-              </nz-input>
+                placeholder="搜索 XStore" 
+                style="width: 140px; margin-right: 8px;" />
             </div>
             
             <nz-divider nzType="vertical"></nz-divider>
@@ -394,51 +393,67 @@ export class RebuildTaskListComponent implements OnInit, OnDestroy {
     // 立即加载一次
     this.loadTasks();
     
-    // 然后每3秒轮询（只有当页面可见且有非终态任务时才轮询）
-    timer(3000, 3000)
-      .pipe(
-        switchMap(() => {
-          // 检查是否有非终态任务需要轮询
-          const hasActiveTasks = this.filteredTasks.some(item => !item.isEndPhase);
-          if (hasActiveTasks && document.visibilityState === 'visible') {
-            return this.loadTasks();
-          }
-          return Promise.resolve();
-        }),
-        takeUntil(this.destroy$)
-      )
-      .subscribe();
+    // 然后每5秒轮询（只有当页面可见且有非终态任务时才轮询）
+    timer(5000, 5000)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        const hasActiveTasks = this.tasks.some(task => {
+          const phase = task.status?.phase;
+          return phase && !['FollowerPhaseSuccess', 'FollowerPhaseFailed', 'FollowerPhaseDeleting'].includes(phase);
+        });
+        if (hasActiveTasks && document.visibilityState === 'visible') {
+          this.loadTasks();
+        }
+      });
   }
 
-  private async loadTasks(): Promise<void> {
+  private loadTasks(): void {
     if (this.isLoading) return;
-    
     this.isLoading = true;
-    try {
-      // 如果选择了特定命名空间，只加载该命名空间的任务
-      if (this.selectedNamespace) {
-        const tasks = await this.apiService.getXStoreFollowers(this.selectedNamespace).toPromise();
-        this.tasks = tasks || [];
-      } else {
-        // 加载所有命名空间的任务
-        const allTasks: XStoreFollower[] = [];
-        for (const ns of this.namespaces) {
-          try {
-            const tasks = await this.apiService.getXStoreFollowers(ns).toPromise();
-            allTasks.push(...(tasks || []));
-          } catch (error) {
-            console.warn(`Failed to load tasks from namespace ${ns}:`, error);
+
+    if (this.selectedNamespace) {
+      this.apiService.getXStoreFollowers(this.selectedNamespace)
+        .pipe(
+          takeUntil(this.destroy$),
+          finalize(() => { this.isLoading = false; })
+        )
+        .subscribe({
+          next: (tasks) => {
+            this.tasks = tasks || [];
+            this.applyFilters();
+          },
+          error: (error) => {
+            console.error('Failed to load rebuild tasks:', error);
           }
-        }
-        this.tasks = allTasks;
-      }
-      
-      this.applyFilters();
-    } catch (error) {
-      console.error('Failed to load rebuild tasks:', error);
-    } finally {
-      this.isLoading = false;
+        });
+      return;
     }
+
+    // 加载所有命名空间的任务
+    const requests = (this.namespaces && this.namespaces.length ? this.namespaces : ['default']).map(ns =>
+      this.apiService.getXStoreFollowers(ns).pipe(
+        catchError(error => {
+          console.warn(`Failed to load tasks from namespace ${ns}:`, error);
+          return of([] as XStoreFollower[]);
+        })
+      )
+    );
+
+    forkJoin(requests)
+      .pipe(
+        takeUntil(this.destroy$),
+        finalize(() => { this.isLoading = false; }),
+        map(results => results.flat())
+      )
+      .subscribe({
+        next: (allTasks) => {
+          this.tasks = allTasks || [];
+          this.applyFilters();
+        },
+        error: (error) => {
+          console.error('Failed to load rebuild tasks:', error);
+        }
+      });
   }
 
   onNamespaceChange(namespace: string): void {
@@ -625,14 +640,22 @@ export class RebuildTaskListComponent implements OnInit, OnDestroy {
     this.modal.confirm({
       nzTitle: '确认停止任务',
       nzContent: `确定要停止重搭任务 "${task.metadata.name}" 吗？`,
-      nzOnOk: async () => {
-        try {
-          await this.apiService.cancelXStoreFollower(task.metadata.namespace, task.metadata.name).toPromise();
-          this.message.success('任务停止成功');
-          this.refreshTasks();
-        } catch (error) {
-          this.message.error('停止任务失败: ' + (error as any)?.message || '未知错误');
-        }
+      nzOnOk: () => {
+        return new Promise((resolve, reject) => {
+          this.apiService.cancelXStoreFollower(task.metadata.namespace, task.metadata.name)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+              next: () => {
+                this.message.success('任务停止成功');
+                this.refreshTasks();
+                resolve(undefined);
+              },
+              error: (error) => {
+                this.message.error('停止任务失败: ' + (error as any)?.message || '未知错误');
+                reject(error);
+              }
+            });
+        });
       }
     });
   }
@@ -641,14 +664,22 @@ export class RebuildTaskListComponent implements OnInit, OnDestroy {
     this.modal.confirm({
       nzTitle: '确认重试任务',
       nzContent: `确定要重试重搭任务 "${task.metadata.name}" 吗？`,
-      nzOnOk: async () => {
-        try {
-          await this.apiService.retryXStoreFollower(task.metadata.namespace, task.metadata.name).toPromise();
-          this.message.success('任务重试成功');
-          this.refreshTasks();
-        } catch (error) {
-          this.message.error('重试任务失败: ' + (error as any)?.message || '未知错误');
-        }
+      nzOnOk: () => {
+        return new Promise((resolve, reject) => {
+          this.apiService.retryXStoreFollower(task.metadata.namespace, task.metadata.name)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+              next: () => {
+                this.message.success('任务重试成功');
+                this.refreshTasks();
+                resolve(undefined);
+              },
+              error: (error) => {
+                this.message.error('重试任务失败: ' + (error as any)?.message || '未知错误');
+                reject(error);
+              }
+            });
+        });
       }
     });
   }
@@ -658,14 +689,22 @@ export class RebuildTaskListComponent implements OnInit, OnDestroy {
       nzTitle: '确认删除任务',
       nzContent: `确定要删除重搭任务 "${task.metadata.name}" 吗？此操作不可撤销。`,
       nzOkDanger: true,
-      nzOnOk: async () => {
-        try {
-          await this.apiService.deleteXStoreFollower(task.metadata.namespace, task.metadata.name).toPromise();
-          this.message.success('任务删除成功');
-          this.refreshTasks();
-        } catch (error) {
-          this.message.error('删除任务失败: ' + (error as any)?.message || '未知错误');
-        }
+      nzOnOk: () => {
+        return new Promise((resolve, reject) => {
+          this.apiService.deleteXStoreFollower(task.metadata.namespace, task.metadata.name)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+              next: () => {
+                this.message.success('任务删除成功');
+                this.refreshTasks();
+                resolve(undefined);
+              },
+              error: (error) => {
+                this.message.error('删除任务失败: ' + (error as any)?.message || '未知错误');
+                reject(error);
+              }
+            });
+        });
       }
     });
   }

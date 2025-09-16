@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"polardbx-ui-backend/pkg/api/domain/xstores/k8srepo"
 	"polardbx-ui-backend/pkg/api/util"
 
 	polardbxv1 "github.com/alibaba/polardbx-operator/api/v1"
@@ -16,9 +17,11 @@ import (
 )
 
 // RebuildService：先迁移 Status，其他入口后续编排
-type RebuildService struct{}
+type RebuildService struct {
+	repo k8srepo.XStoreRepository
+}
 
-func NewRebuildService() *RebuildService { return &RebuildService{} }
+func NewRebuildService() *RebuildService { return &RebuildService{repo: k8srepo.NewXStoreRepository()} }
 
 // 兼容测试需求：根据路径参数与简化体创建 XStoreFollower CR
 // 请求体示例：{"name":"rebuild-logger-x1","xStoreName":"xstore1"}
@@ -115,42 +118,42 @@ func (s *RebuildService) Cancel(c *gin.Context) {
 	}
 	ns := c.Param("namespace")
 	xstoreName := c.Param("name")
-	
+
 	// 查找该 XStore 相关的所有 Follower 任务
 	followers, err := s.repo.ListFollowers(c.Request.Context(), cli, ns)
 	if err != nil {
 		util.HandleK8sError(c, "failed to list followers", err)
 		return
 	}
-	
+
 	var targetFollower *polardbxv1.XStoreFollower
-	for _, f := range followers.Items {
+	for _, f := range followers {
 		if f.Spec.XStoreName == xstoreName {
 			// 找到非终态的任务
-			if f.Status.Phase != polardbxv1xstore.FollowerPhaseSuccess && 
-			   f.Status.Phase != polardbxv1xstore.FollowerPhaseFailed &&
-			   f.Status.Phase != polardbxv1xstore.FollowerPhaseDeleting {
+			if f.Status.Phase != polardbxv1xstore.FollowerPhaseSuccess &&
+				f.Status.Phase != polardbxv1xstore.FollowerPhaseFailed &&
+				f.Status.Phase != polardbxv1xstore.FollowerPhaseDeleting {
 				targetFollower = &f
 				break
 			}
 		}
 	}
-	
+
 	if targetFollower == nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "no active rebuild task found for xstore", "xstore": xstoreName})
 		return
 	}
-	
+
 	// 删除 XStoreFollower 任务
 	if err := s.repo.DeleteFollower(c.Request.Context(), cli, ns, targetFollower.Name); err != nil {
 		util.HandleK8sError(c, "failed to cancel rebuild task", err)
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, gin.H{
-		"message": "rebuild task cancelled", 
-		"task": targetFollower.Name,
-		"xstore": xstoreName,
+		"message": "rebuild task cancelled",
+		"task":    targetFollower.Name,
+		"xstore":  xstoreName,
 	})
 }
 
