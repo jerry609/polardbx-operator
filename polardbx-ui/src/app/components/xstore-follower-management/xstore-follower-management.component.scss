@@ -88,6 +88,41 @@
   mat-cell {
     border-bottom: 1px solid #e0e0e0;
   }
+
+  // Fix widths and alignment for quick/actions columns to avoid overflow
+  .mat-mdc-header-cell.mat-column-quick,
+  .mat-mdc-cell.mat-column-quick,
+  .mat-mdc-header-cell.mat-column-actions,
+  .mat-mdc-cell.mat-column-actions {
+    width: 140px;
+    max-width: 140px;
+    padding: 0 8px;
+    box-sizing: border-box;
+    overflow: hidden;
+    text-align: center;
+  }
+
+  .mat-mdc-cell.mat-column-quick {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  .mat-mdc-header-cell.mat-column-quick,
+  .mat-mdc-header-cell.mat-column-actions {
+    text-align: center;
+  }
+  .mat-mdc-cell.mat-column-actions .action-buttons {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: nowrap;
+  }
+  .mat-mdc-cell.mat-column-actions .mat-icon-button,
+  .mat-mdc-cell.mat-column-quick .mat-icon-button {
+    width: 36px;
+    height: 36px;
+  }
 }
 
 .name-cell {
