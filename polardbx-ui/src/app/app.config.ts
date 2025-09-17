@@ -1,9 +1,10 @@
 import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
-import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
+import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideNzIcons } from 'ng-zorro-antd/icon';
 import { provideNzI18n, zh_CN } from 'ng-zorro-antd/i18n';
+import { provideNzConfig } from 'ng-zorro-antd/core/config';
 import { LOCALE_ID } from '@angular/core';
 import { registerLocaleData } from '@angular/common';
 import zh from '@angular/common/locales/zh';
@@ -106,9 +107,12 @@ export const appConfig: ApplicationConfig = {
         return next(req);
       }
     ])),
-    provideAnimationsAsync(),
+    provideNoopAnimations(),
     provideNzI18n(zh_CN),
     { provide: LOCALE_ID, useValue: 'zh-cn' },
+    provideNzConfig({
+      tabs: { nzAnimated: false }
+    }),
     provideNzIcons([
       MenuFoldOutline,
       MenuUnfoldOutline,
