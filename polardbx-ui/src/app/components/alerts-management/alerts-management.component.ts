@@ -49,6 +49,28 @@ import { ApiService } from '../../services/api.service';
             <tr mat-row *matRowDef="let row; columns: ['name','actions']"></tr>
           </table>
 
+          <h3 style="margin-top: 20px;">路由</h3>
+          <div class="routes-block">
+            <div class="routes-toolbar">
+              <button mat-raised-button color="primary" (click)="loadRoutes()">
+                <mat-icon>download</mat-icon> 加载
+              </button>
+              <button mat-raised-button color="accent" (click)="saveRoutes()" [disabled]="savingRoutes">
+                <mat-icon>save</mat-icon> 保存
+              </button>
+            </div>
+            <div class="routes-form">
+              <mat-form-field appearance="outline" class="full">
+                <mat-label>Alertmanager URL（可选，用于静默与测试直连）</mat-label>
+                <input matInput [(ngModel)]="routeAlertmanagerUrl" placeholder="http://alertmanager:9093">
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="full">
+                <mat-label>Route 配置（YAML）</mat-label>
+                <textarea matInput rows="10" [(ngModel)]="routeContent" placeholder="# routes: ..."></textarea>
+              </mat-form-field>
+            </div>
+          </div>
+
           <h3>静默</h3>
           <table mat-table [dataSource]="silences" class="mat-elevation-z1">
             <ng-container matColumnDef="id">
@@ -75,6 +97,10 @@ import { ApiService } from '../../services/api.service';
   styles: [`
     .alerts { display: grid; gap: 16px; }
     .toolbar { margin: 8px 0; display: flex; gap: 8px; }
+    .routes-block { margin: 8px 0 16px; display: grid; gap: 12px; }
+    .routes-toolbar { display: flex; gap: 8px; }
+    .routes-form { display: grid; gap: 12px; }
+    .full { width: 100%; }
   `]
 })
 export class AlertsManagementComponent {
@@ -82,11 +108,17 @@ export class AlertsManagementComponent {
   silences: any[] = [];
   silenceCols = ['id','matchers','actions'];
 
+  // Routes state
+  routeContent = '';
+  routeAlertmanagerUrl = '';
+  savingRoutes = false;
+
   constructor(private api: ApiService, private snack: MatSnackBar, private fb: FormBuilder) {}
 
   reload() {
     this.api.listAlertProfiles().subscribe(r => this.profiles = r?.names || []);
     this.api.listSilences().subscribe(r => this.silences = r || []);
+    this.loadRoutes();
   }
 
   createProfile() {
@@ -129,6 +161,28 @@ export class AlertsManagementComponent {
     this.api.deleteSilence(id).subscribe(() => {
       this.snack.open('已删除', '关闭', { duration: 2000 });
       this.reload();
+    });
+  }
+
+  // ===== Routes =====
+  loadRoutes(): void {
+    this.api.getAlertRoutes().subscribe({
+      next: r => {
+        this.routeContent = r?.content || '';
+        this.routeAlertmanagerUrl = r?.alertmanagerUrl || '';
+      },
+      error: _ => {
+        this.routeContent = '';
+      }
+    });
+  }
+
+  saveRoutes(): void {
+    this.savingRoutes = true;
+    this.api.putAlertRoutes({ content: this.routeContent || '', alertmanagerUrl: this.routeAlertmanagerUrl || undefined }).subscribe({
+      next: _ => this.snack.open('路由已保存', '关闭', { duration: 2000 }),
+      error: e => this.snack.open('保存失败: ' + (e?.error?.message || e?.message || '未知错误'), '关闭', { duration: 3000 }),
+      complete: () => this.savingRoutes = false
     });
   }
 }

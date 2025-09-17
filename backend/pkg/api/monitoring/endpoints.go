@@ -129,14 +129,15 @@ func Uninstall(c *gin.Context) {
 // runIOPSBench launches a short-lived pod to estimate write IOPS on node ephemeral storage.
 func runIOPSBench(ctx context.Context, cs kubernetes.Interface, ns string) map[string]interface{} {
 	name := fmt.Sprintf("iops-bench-%d", rand.Intn(1_000_000))
-	script := strings.Join([]string{
-		"set -e",
+    script := strings.Join([]string{
+        // 不使用 set -e，避免 dd/awk 在某些 busybox 变体返回非零直接终止
 		"export LC_ALL=C LANG=C",
 		"cd /data",
 		"COUNT=${COUNT:-50000}", // 50k ops @4k ≈ 200MB
 		"BS=${BS:-4096}",
 		"rm -f testfile || true",
-		"OUT=$(dd if=/dev/zero of=testfile bs=$BS count=$COUNT conv=fdatasync 2>&1 | tail -1)",
+        // 尝试使用更通用的 oflag=dsync；若失败则回退到 conv=fdatasync；最终回退裸 dd
+        "OUT=$( (dd if=/dev/zero of=testfile bs=$BS count=$COUNT oflag=dsync 2>&1 || dd if=/dev/zero of=testfile bs=$BS count=$COUNT conv=fdatasync 2>&1 || dd if=/dev/zero of=testfile bs=$BS count=$COUNT 2>&1) | tail -1)",
 		"SEC=$(echo \"$OUT\" | awk -F', ' '{print $(NF-1)}' | awk '{print $1}')",
 		"if [ -z \"$SEC\" ]; then SEC=0; fi",
 		"if [ \"$SEC\" = \"0\" ]; then IOPS=0; else IOPS=$(awk -v c=$COUNT -v s=$SEC 'BEGIN{printf(\"%d\", c/s)}'); fi",
