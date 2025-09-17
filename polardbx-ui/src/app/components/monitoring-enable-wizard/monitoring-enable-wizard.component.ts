@@ -317,6 +317,47 @@ interface PreflightCheck {
               </div>
             </div>
 
+            <div nz-result-content *ngIf="applyResult?.success && installJob">
+              <div class="apply-options">
+                <h4>安装任务已创建</h4>
+                <nz-descriptions nzBordered nzSize="small">
+                  <nz-descriptions-item nzTitle="Job 名称">{{ installJob.jobName }}</nz-descriptions-item>
+                  <nz-descriptions-item nzTitle="Job 命名空间">{{ installJob.namespace }}</nz-descriptions-item>
+                  <nz-descriptions-item nzTitle="目标命名空间">{{ installJob.targetNs || 'polardbx-monitor' }}</nz-descriptions-item>
+                </nz-descriptions>
+
+                <div class="kubectl-command">
+                  <h5>查看安装日志</h5>
+                  <div class="command-block">
+                    <pre>{{ getJobLogsCommand() }}</pre>
+                    <button 
+                      nz-button 
+                      nzType="dashed" 
+                      nzSize="small"
+                      (click)="copyJobLogsCommand()">
+                      <i nz-icon nzType="copy"></i>
+                      复制命令
+                    </button>
+                  </div>
+                </div>
+
+                <div class="kubectl-command" style="margin-top: 12px;">
+                  <h5>检查组件状态</h5>
+                  <div class="command-block">
+                    <pre>{{ getPodsCheckCommand() }}</pre>
+                    <button 
+                      nz-button 
+                      nzType="dashed" 
+                      nzSize="small"
+                      (click)="copyPodsCheckCommand()">
+                      <i nz-icon nzType="copy"></i>
+                      复制命令
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div nz-result-extra *ngIf="applyResult?.success">
               <button nz-button nzType="primary" (click)="goToMonitoring()">
                 <i nz-icon nzType="dashboard"></i>
@@ -595,6 +636,7 @@ export class MonitoringEnableWizardComponent implements OnInit {
 
   // 应用结果
   applyResult: { success: boolean; message: string } | null = null;
+  installJob: { jobName: string; namespace: string; targetNs?: string; instructions?: string } | null = null;
 
   wizardSteps: WizardStep[] = [];
 
@@ -1038,17 +1080,27 @@ spec:
 
   private doApplyConfiguration(): void {
     this.stepLoading = true;
-    
-    // 模拟应用过程
-    setTimeout(() => {
-      this.applyResult = {
-        success: true,
-        message: '监控配置已成功应用'
-      };
-      this.stepLoading = false;
-      this.message.success('监控配置应用成功！');
-      this.cdr.markForCheck();
-    }, 2000);
+    this.installJob = null;
+    this.applyResult = null;
+
+    this.api.monitoringBootstrap({ mode: 'managed', dryRun: false }).subscribe({
+      next: (res: any) => {
+        const jobName = res?.jobName || 'polardbx-monitor-bootstrap';
+        const ns = res?.namespace || 'polardbx-operator-system';
+        this.installJob = { jobName, namespace: ns, targetNs: res?.targetNs, instructions: res?.instructions };
+        this.applyResult = { success: true, message: '安装任务已创建，请查看 Job 日志以跟踪进度' };
+        this.stepLoading = false;
+        this.message.success('已启动监控安装任务');
+        this.cdr.markForCheck();
+      },
+      error: (error: any) => {
+        const msg = error?.error?.error || error?.error?.message || error?.message || '安装触发失败';
+        this.applyResult = { success: false, message: msg };
+        this.stepLoading = false;
+        this.message.error('监控安装失败: ' + msg);
+        this.cdr.markForCheck();
+      }
+    });
   }
 
   retryApply(): void {
@@ -1068,6 +1120,26 @@ spec:
       return '选择应用方式以启用监控配置';
     }
     return this.applyResult.message;
+  }
+
+  getJobLogsCommand(): string {
+    const ns = this.installJob?.namespace || 'polardbx-operator-system';
+    const name = this.installJob?.jobName || 'polardbx-monitor-bootstrap';
+    return `kubectl logs -n ${ns} job/${name}`;
+  }
+
+  copyJobLogsCommand(): void {
+    const cmd = this.getJobLogsCommand();
+    navigator.clipboard.writeText(cmd).then(() => this.message.success('命令已复制到剪贴板'));
+  }
+
+  getPodsCheckCommand(): string {
+    return 'kubectl get pods -n polardbx-monitor';
+  }
+
+  copyPodsCheckCommand(): void {
+    const cmd = this.getPodsCheckCommand();
+    navigator.clipboard.writeText(cmd).then(() => this.message.success('命令已复制到剪贴板'));
   }
 
   goToMonitoring(): void {
