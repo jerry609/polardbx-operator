@@ -1,29 +1,30 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
-import { MatButtonModule } from '@angular/material/button';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { MatCardModule } from '@angular/material/card';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatIconModule } from '@angular/material/icon';
-import { MatTableModule } from '@angular/material/table';
-import { MatPaginatorModule } from '@angular/material/paginator';
-import { MatSortModule } from '@angular/material/sort';
-import { MatTabsModule } from '@angular/material/tabs';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
-import { MatMenuModule } from '@angular/material/menu';
+import { Router } from '@angular/router';
+import { NzCardModule } from 'ng-zorro-antd/card';
+import { NzButtonModule } from 'ng-zorro-antd/button';
+import { NzFormModule } from 'ng-zorro-antd/form';
+import { NzInputModule } from 'ng-zorro-antd/input';
+import { NzSelectModule } from 'ng-zorro-antd/select';
+import { NzSpinModule } from 'ng-zorro-antd/spin';
+import { NzIconModule } from 'ng-zorro-antd/icon';
+import { NzTableModule } from 'ng-zorro-antd/table';
+import { NzPaginationModule } from 'ng-zorro-antd/pagination';
+import { NzTabsModule } from 'ng-zorro-antd/tabs';
+import { NzTagModule } from 'ng-zorro-antd/tag';
+import { NzToolTipModule } from 'ng-zorro-antd/tooltip';
+import { NzProgressModule } from 'ng-zorro-antd/progress';
+import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
+import { NzMessageService, NzMessageModule } from 'ng-zorro-antd/message';
+import { NzDropDownModule } from 'ng-zorro-antd/dropdown';
+import { NzDividerModule } from 'ng-zorro-antd/divider';
+import { NzEmptyModule } from 'ng-zorro-antd/empty';
+import { NzModalService, NzModalModule } from 'ng-zorro-antd/modal';
 import { ApiService } from '../../services/api.service';
 import { LoadingService } from '../../services/loading.service';
 import { XStoreFollower, XStoreFollowerWithStatus, CreateXStoreFollowerRequest } from '../../models/xstore-follower.model';
 import { XStore } from '../../models/xstore.model';
-import { MatTableDataSource } from '@angular/material/table';
 import { Observable } from 'rxjs';
 import { Pod } from '../../models/pod.model';
 
@@ -39,40 +40,42 @@ export interface XStoreFollowerDialogData {
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    MatDialogModule,
-    MatButtonModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
-    MatCardModule,
-    MatProgressSpinnerModule,
-    MatIconModule,
-    MatTableModule,
-    MatPaginatorModule,
-    MatSortModule,
-    MatTabsModule,
-    MatChipsModule,
-    MatTooltipModule,
-    MatProgressBarModule,
-    MatCheckboxModule,
-    MatSnackBarModule,
-    MatMenuModule
+    NzCardModule,
+    NzButtonModule,
+    NzFormModule,
+    NzInputModule,
+    NzSelectModule,
+    NzSpinModule,
+    NzIconModule,
+    NzTableModule,
+    NzPaginationModule,
+    NzTabsModule,
+    NzTagModule,
+    NzToolTipModule,
+    NzProgressModule,
+    NzCheckboxModule,
+    NzDropDownModule,
+    NzDividerModule,
+    NzEmptyModule,
+    NzModalModule,
+    NzMessageModule
   ],
   templateUrl: './xstore-follower-management.component.html',
-  styleUrls: ['./xstore-follower-management.component.scss', '../../styles/shared-management.scss']
+  styleUrls: ['./xstore-follower-management.component.scss']
 })
 export class XStoreFollowerManagementComponent implements OnInit {
   private fb = inject(FormBuilder);
   private apiService = inject(ApiService);
   private loadingService = inject(LoadingService);
-  private snackBar = inject(MatSnackBar);
+  private message = inject(NzMessageService);
+  private modal = inject(NzModalService);
+  private router = inject(Router);
   
   // Component state
   isLoading = false;
   isProcessing = false;
   selectedTab = 0;
-  dialogRef = inject<MatDialogRef<XStoreFollowerManagementComponent>>(MatDialogRef, { optional: true });
-  data = inject<XStoreFollowerDialogData>(MAT_DIALOG_DATA, { optional: true }) || {} as XStoreFollowerDialogData;
+  data: XStoreFollowerDialogData = { mode: 'create' };
 
   // Forms
   followerForm!: FormGroup;
@@ -84,7 +87,6 @@ export class XStoreFollowerManagementComponent implements OnInit {
   targetPods: Pod[] = [];
   filteredTargetPods: Pod[] = [];
   followers: XStoreFollowerWithStatus[] = [];
-  dataSource = new MatTableDataSource<XStoreFollowerWithStatus>();
   
   // Table configuration
   displayedColumns: string[] = [
@@ -237,7 +239,6 @@ export class XStoreFollowerManagementComponent implements OnInit {
       const ns = this.followerForm?.get('namespace')?.value || this.data.namespace || 'default';
       const followers = await this.apiService.getXStoreFollowers(ns).toPromise() || [];
       this.followers = followers.map((follower: XStoreFollower) => this.enrichFollowerWithStatus(follower));
-      this.dataSource.data = this.followers;
     } catch (error) {
       console.error('Failed to load XStore followers:', error);
     }
@@ -389,13 +390,13 @@ export class XStoreFollowerManagementComponent implements OnInit {
       };
       this.apiService.createXStoreFollower('default', request).subscribe({
         next: (result) => {
-          this.snackBar.open('XStore Follower 创建成功', '关闭', { duration: 3000 });
+          this.message.success('XStore Follower 创建成功');
           this.isLoading = false;
           this.refreshFollowers();
           this.selectedTab = 0;
         },
         error: (error) => {
-          this.snackBar.open('创建失败: ' + error.message, '关闭', { duration: 5000 });
+          this.message.error('创建失败: ' + error.message);
           this.isLoading = false;
         }
       });
@@ -479,11 +480,10 @@ export class XStoreFollowerManagementComponent implements OnInit {
         await this.apiService.updateXStoreFollower(formValue.namespace, updatedFollower).toPromise();
       }
       const action = this.data.mode === 'create' ? '创建' : '更新';
-      this.snackBar.open(`XStore Follower ${action}成功！`, '关闭', { duration: 3000, horizontalPosition: 'center', verticalPosition: 'top' });
+      this.message.success(`XStore Follower ${action}成功！`);
       if (this.selectedTab === 0) {
         await this.loadFollowers();
       }
-      this.dialogRef?.close(true);
     } catch (error) {
       console.error('Failed to save XStore follower:', error);
     } finally {
@@ -492,15 +492,20 @@ export class XStoreFollowerManagementComponent implements OnInit {
   }
 
   async deleteFollower(follower: any): Promise<void> {
-    if (!confirm(`确定要删除 XStore Follower "${follower.metadata.name}" 吗？此操作不可撤销。`)) {
-      return;
-    }
-    try {
-      await this.apiService.deleteXStoreFollower(follower.metadata.namespace || 'default', follower.metadata.name).toPromise();
-      await this.loadFollowers();
-    } catch (error) {
-      console.error('Failed to delete XStore follower:', error);
-    }
+    this.modal.confirm({
+      nzTitle: '确认删除',
+      nzContent: `确定要删除 XStore Follower "${follower.metadata.name}" 吗？此操作不可撤销。`,
+      nzOnOk: async () => {
+        try {
+          await this.apiService.deleteXStoreFollower(follower.metadata.namespace || 'default', follower.metadata.name).toPromise();
+          this.message.success('删除成功');
+          await this.loadFollowers();
+        } catch (error) {
+          console.error('Failed to delete XStore follower:', error);
+          this.message.error('删除失败');
+        }
+      }
+    });
   }
 
   editFollower(follower: any): void {
@@ -538,9 +543,9 @@ export class XStoreFollowerManagementComponent implements OnInit {
         res?.message ? `Message: ${res.message}` : '',
         res?.targetPod ? `TargetPod: ${res.targetPod}` : ''
       ].filter(Boolean);
-      this.snackBar.open(lines.join('\n'), '关闭', { duration: 5000 });
+      this.message.info(lines.join('\n'));
     } catch (e) {
-      this.snackBar.open('获取进度失败', '关闭', { duration: 3000 });
+      this.message.error('获取进度失败');
     }
   }
 
@@ -549,7 +554,7 @@ export class XStoreFollowerManagementComponent implements OnInit {
       const ns = row.metadata.namespace;
       const pod = ((row as any).status?.targetPod || (row as any).spec?.targetPodName || '').trim();
       const podName = pod || 'unknown';
-      if (!podName || podName === 'unknown') { this.snackBar.open('未能确定目标 Pod', '关闭', { duration: 2500 }); return; }
+      if (!podName || podName === 'unknown') { this.message.warning('未能确定目标 Pod'); return; }
       // 先探测容器列表
       const podObj = await this.apiService.getPod(ns as string, podName as string).toPromise();
       const containers: string[] = (((podObj as any)?.spec?.containers) || []).map((c: any) => c?.name).filter(Boolean);
@@ -564,7 +569,7 @@ export class XStoreFollowerManagementComponent implements OnInit {
       const logs = await this.apiService.getPodLogs(ns as string, podName as string, container as string, 400).toPromise();
       alert(`Pod ${podName}${container ? ' / ' + container : ''} 日志（最后400行）：\n\n${logs || '(空)'}`);
     } catch (e) {
-      this.snackBar.open('获取日志失败', '关闭', { duration: 3000 });
+      this.message.error('获取日志失败');
     }
   }
 
@@ -573,7 +578,7 @@ export class XStoreFollowerManagementComponent implements OnInit {
       const ns = row.metadata.namespace;
       const pod = ((row as any).status?.targetPod || (row as any).spec?.targetPodName || '').trim();
       const podName = pod || 'unknown';
-      if (!podName || podName === 'unknown') { this.snackBar.open('未能确定目标 Pod', '关闭', { duration: 2500 }); return; }
+      if (!podName || podName === 'unknown') { this.message.warning('未能确定目标 Pod'); return; }
       const p = await this.apiService.getPod(ns as string, podName as string).toPromise();
       const cond = (p as any)?.status?.conditions || [];
       const lines: string[] = [];
@@ -585,14 +590,14 @@ export class XStoreFollowerManagementComponent implements OnInit {
       cond.forEach((c: any) => lines.push(`${c.type}: ${c.status} (${c.reason || ''})`));
       alert(lines.join('\n'));
     } catch (e) {
-      this.snackBar.open('获取 Pod 详情失败', '关闭', { duration: 3000 });
+      this.message.error('获取 Pod 详情失败');
     }
   }
 
   showFailureAdvice(row: any): void {
     const phase = row.status?.phase || '';
     const msg = (row.status as any)?.message || '';
-    if (phase !== 'FollowerPhaseFailed') { this.snackBar.open('该任务未处于失败状态', '关闭', { duration: 2500 }); return; }
+    if (phase !== 'FollowerPhaseFailed') { this.message.warning('该任务未处于失败状态'); return; }
     const advice: string[] = [];
     advice.push(`失败原因：${msg || '未知'}`);
     advice.push('建议动作：');
@@ -609,10 +614,10 @@ export class XStoreFollowerManagementComponent implements OnInit {
       const ns = this.followerForm?.get('namespace')?.value || this.data.namespace || 'default';
       this.availableXStores = await this.apiService.getXStores(ns).toPromise() || [];
       await this.filterValidSourceXStores();
-      this.snackBar.open('XStore 列表已刷新', '关闭', { duration: 2000, horizontalPosition: 'center', verticalPosition: 'top' });
+      this.message.success('XStore 列表已刷新');
     } catch (error) {
       console.error('Failed to refresh XStores:', error);
-      this.snackBar.open('刷新 XStore 列表失败', '关闭', { duration: 3000, horizontalPosition: 'center', verticalPosition: 'top' });
+      this.message.error('刷新 XStore 列表失败');
     }
   }
 
@@ -656,7 +661,7 @@ export class XStoreFollowerManagementComponent implements OnInit {
 
   isFormValid(): boolean { return this.followerForm.valid && (!this.resourceForm.get('enableResourceLimits')?.value || this.resourceForm.valid); }
 
-  cancel(): void { if (this.dialogRef) { this.dialogRef.close(); } else { this.selectedTab = 0; } }
+  cancel(): void { this.selectedTab = 0; }
 
   getFieldError(formGroup: FormGroup, fieldName: string): string {
     const field = formGroup.get(fieldName);
@@ -687,5 +692,47 @@ export class XStoreFollowerManagementComponent implements OnInit {
       const detailedStatus = (xstore.status as any)?.detailedStatus; if (detailedStatus && detailedStatus.replicaStatus) { const ready = detailedStatus.replicaStatus.ready || detailedStatus.replicaStatus.available || 0; const total = detailedStatus.replicaStatus.total || 0; return `${ready}/${total} Ready`; }
       return 'Available';
     } catch (error) { return '获取失败'; }
+  }
+
+  getStatusTagColor(phase?: string): string {
+    switch (phase) {
+      case 'FollowerPhaseSuccess':
+        return 'success';
+      case 'FollowerPhaseFailed':
+        return 'error';
+      case 'FollowerPhaseRestore':
+      case 'FollowerPhaseCheck':
+      case 'FollowerPhaseMonitorBackup':
+      case 'FollowerPhaseLoggerRebuild':
+      case 'FollowerPhaseBeforeRestore':
+      case 'FollowerPhaseBackup':
+      case 'FollowerPhaseBackupStart':
+      case 'FollowerPhaseBackupPrepare':
+      case 'FollowerPhaseLoggerCreate':
+      case 'FollowerCreateRemotePod':
+        return 'processing';
+      case 'FollowerPhaseDeleting':
+      case 'FollowerPhaseWaitSwitch':
+        return 'warning';
+      default:
+        return 'default';
+    }
+  }
+
+  getXStoreStatusColor(xstore: XStore): string {
+    const phase = xstore.status?.phase;
+    switch (phase) {
+      case 'Running':
+        return 'success';
+      case 'Creating':
+      case 'Updating':
+        return 'processing';
+      case 'Failed':
+        return 'error';
+      case 'Deleting':
+        return 'warning';
+      default:
+        return 'default';
+    }
   }
 }

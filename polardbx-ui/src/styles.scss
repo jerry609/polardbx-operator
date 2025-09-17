@@ -5,6 +5,7 @@
 // 导入通知样式和共享样式
 @use './styles/notifications.scss' as *;
 @use './app/styles/shared' as *;
+@use './app/styles/neutral-theme.scss' as *;
 
 // 自定义主题采用 CSS 变量 + 现有 _shared.scss 配色，不再引入预构建主题
 

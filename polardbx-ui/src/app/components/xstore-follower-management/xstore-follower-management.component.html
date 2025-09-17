@@ -1,278 +1,341 @@
-<div class="management-container">
-  <mat-card class="header-card">
-    <mat-card-header>
-      <mat-card-title>
-        <mat-icon>device_hub</mat-icon>
-        备库重搭管理
-      </mat-card-title>
-      <mat-card-subtitle>XStore Follower 任务管理与监控</mat-card-subtitle>
-    </mat-card-header>
-  </mat-card>
-
-  <div class="tab-container">
-    <mat-tab-group [(selectedIndex)]="selectedTab" class="management-tabs">
-    
-    <!-- Tab 1: Followers List -->
-    <mat-tab label="Follower 列表">
-      <div class="data-table-wrapper">
-        <div class="table-header">
-          <div class="title">XStore Follower 列表</div>
-          <div class="controls">
-            <button mat-raised-button color="primary" (click)="createNew()">
-              <mat-icon>add</mat-icon>
-              创建 Follower
-            </button>
-            <button mat-button (click)="refreshFollowers()">
-              <mat-icon>refresh</mat-icon>
-              刷新
-            </button>
-          </div>
+<div class="management-container neutral-theme">
+  <!-- Header Card -->
+  <nz-card class="header-card" nzSize="small">
+    <div class="header-content">
+      <div class="title-section">
+        <i nz-icon nzType="deployment-unit" class="header-icon"></i>
+        <div class="title-text">
+          <h1>XStore Follower 管理</h1>
+          <p>备库重搭任务管理与监控</p>
         </div>
-        <mat-table [dataSource]="dataSource" class="followers-table">
-            
-            <!-- Name Column -->
-            <ng-container matColumnDef="name">
-              <mat-header-cell *matHeaderCellDef>名称</mat-header-cell>
-              <mat-cell *matCellDef="let follower">
-                <div class="name-cell">
-                  <strong>{{follower.metadata.name}}</strong>
-                  <span class="namespace">{{follower.metadata.namespace}}</span>
-                </div>
-              </mat-cell>
-            </ng-container>
-
-            <!-- XStore Name Column -->
-            <ng-container matColumnDef="xStoreName">
-              <mat-header-cell *matHeaderCellDef>目标 XStore</mat-header-cell>
-              <mat-cell *matCellDef="let follower">
-                <div class="xstore-info">
-                  <span class="xstore-name">{{follower.spec.xStoreName}}</span>
-                  <span *ngIf="follower.spec.fromXStore" class="from-xstore">
-                    从: {{follower.spec.fromXStore}}
-                  </span>
-                </div>
-              </mat-cell>
-            </ng-container>
-
-            <!-- Phase Column -->
-            <ng-container matColumnDef="phase">
-              <mat-header-cell *matHeaderCellDef>状态</mat-header-cell>
-              <mat-cell *matCellDef="let follower">
-                <mat-chip-listbox>
-                  <mat-chip-option 
-                    [selected]="true"
-                    [ngClass]="'status-chip ' + getStatusChipClass(follower.status?.phase)"
-                    [matTooltip]="getPhaseTooltip(follower)">
-                    {{follower.displayStatus}}
-                  </mat-chip-option>
-                </mat-chip-listbox>
-              </mat-cell>
-            </ng-container>
-
-            <!-- Progress Column -->
-            <ng-container matColumnDef="progress">
-              <mat-header-cell *matHeaderCellDef>进度</mat-header-cell>
-              <mat-cell *matCellDef="let follower">
-                <div class="progress-cell" *ngIf="follower.isRecovering">
-                  <mat-progress-bar 
-                    mode="determinate" 
-                    [value]="getProgressPercentage(follower)">
-                  </mat-progress-bar>
-                  <span class="progress-text">{{getProgressPercentage(follower)}}%</span>
-                </div>
-                <span *ngIf="!follower.isRecovering" class="no-progress">-</span>
-              </mat-cell>
-            </ng-container>
-
-            <!-- Last Activity Column -->
-            <ng-container matColumnDef="lastActivity">
-              <mat-header-cell *matHeaderCellDef>最后活动</mat-header-cell>
-              <mat-cell *matCellDef="let follower">
-                <span class="last-activity">
-                  {{follower.lastActivity | date:'medium'}}
-                </span>
-              </mat-cell>
-            </ng-container>
-
-            <!-- Status Indicators Column -->
-            <ng-container matColumnDef="status">
-              <mat-header-cell *matHeaderCellDef>指标</mat-header-cell>
-              <mat-cell *matCellDef="let follower">
-                <div class="status-indicators">
-                  <mat-icon 
-                    *ngIf="follower.isHealthy" 
-                    class="status-icon healthy"
-                    matTooltip="健康">
-                    check_circle
-                  </mat-icon>
-                  <mat-icon 
-                    *ngIf="follower.isRecovering" 
-                    class="status-icon recovering"
-                    matTooltip="恢复中">
-                    sync
-                  </mat-icon>
-                  <mat-icon 
-                    *ngIf="follower.hasFailures" 
-                    class="status-icon failed"
-                    matTooltip="有失败记录">
-                    error
-                  </mat-icon>
-                </div>
-              </mat-cell>
-            </ng-container>
-
-            <!-- Quick Column -->
-            <ng-container matColumnDef="quick">
-              <mat-header-cell *matHeaderCellDef>快捷</mat-header-cell>
-              <mat-cell *matCellDef="let follower">
-                <button mat-icon-button [matMenuTriggerFor]="quickMenu" aria-label="快捷操作">
-                  <mat-icon>more_horiz</mat-icon>
-                </button>
-                <mat-menu #quickMenu="matMenu">
-                  <button mat-menu-item (click)="viewProgress(follower)"><mat-icon>hourglass_top</mat-icon><span>查看进度</span></button>
-                  <button mat-menu-item (click)="describePod(follower)"><mat-icon>description</mat-icon><span>Pod 描述</span></button>
-                  <button mat-menu-item *ngIf="follower.status?.phase==='FollowerPhaseFailed'" (click)="showFailureAdvice(follower)"><mat-icon>report_problem</mat-icon><span>失败原因与建议</span></button>
-                </mat-menu>
-              </mat-cell>
-            </ng-container>
-
-            <!-- Actions Column -->
-            <ng-container matColumnDef="actions">
-              <mat-header-cell *matHeaderCellDef>操作</mat-header-cell>
-              <mat-cell *matCellDef="let follower">
-                <div class="action-buttons">
-                  <button mat-icon-button 
-                          (click)="viewFollower(follower)"
-                          matTooltip="查看详情">
-                    <mat-icon>visibility</mat-icon>
-                  </button>
-                  <button mat-icon-button 
-                          (click)="editFollower(follower)"
-                          matTooltip="编辑">
-                    <mat-icon>edit</mat-icon>
-                  </button>
-                  <button mat-icon-button 
-                          color="warn"
-                          (click)="deleteFollower(follower)"
-                          matTooltip="删除">
-                    <mat-icon>delete</mat-icon>
-                  </button>
-                </div>
-              </mat-cell>
-            </ng-container>
-
-            <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
-            <mat-row *matRowDef="let row; columns: displayedColumns;"></mat-row>
-          </mat-table>
-
-          <div *ngIf="followers.length === 0" class="no-data" style="text-align: center; padding: 40px;">
-            <mat-icon style="font-size: 48px; width: 48px; height: 48px; color: #9ca3af; margin-bottom: 16px;">inbox</mat-icon>
-            <p style="color: #6b7280; margin: 0 0 16px 0;">暂无 XStore Follower</p>
-            <button mat-raised-button color="primary" (click)="createNew()">
-              创建第一个 Follower
-            </button>
-          </div>
       </div>
-    </mat-tab>
+    </div>
+  </nz-card>
 
-    <!-- Tab 2: Create/Edit Form -->
-    <mat-tab [label]="data.mode === 'edit' ? '编辑 Follower' : '创建 Follower'">
-      <div class="management-card">
-        <div class="card-header">
-          <div class="header-content">
-            <div class="title-section">
-              <mat-icon>{{data.mode === 'edit' ? 'edit' : 'add'}}</mat-icon>
-              <h2 class="title">{{getTitle()}}</h2>
+  <!-- Main Content -->
+  <div class="content-wrapper">
+    <nz-tabset [(nzSelectedIndex)]="selectedTab" nzType="card" class="management-tabs">
+      
+      <!-- Tab 1: Followers List -->
+      <nz-tab nzTitle="Follower 列表">
+        <div class="table-wrapper">
+          <!-- Table Header -->
+          <div class="table-header">
+            <div class="header-left">
+              <h2>Follower 列表</h2>
+              <span class="count-badge">共 {{followers.length}} 项</span>
+            </div>
+            <div class="header-actions">
+              <button nz-button nzType="default" (click)="refreshFollowers()" [nzLoading]="isLoading">
+                <i nz-icon nzType="reload"></i>
+                <span>刷新</span>
+              </button>
+              <button nz-button nzType="primary" (click)="createNew()">
+                <i nz-icon nzType="plus"></i>
+                <span>创建 Follower</span>
+              </button>
             </div>
           </div>
+
+          <!-- Data Table -->
+          <nz-table 
+            #basicTable 
+            [nzData]="followers" 
+            [nzLoading]="isLoading"
+            nzSize="middle"
+            nzBordered
+            [nzShowPagination]="followers.length > 10"
+            [nzPageSize]="10">
+            
+            <thead>
+              <tr>
+                <th nzWidth="180px">名称</th>
+                <th nzWidth="150px">目标 XStore</th>
+                <th nzWidth="120px">状态</th>
+                <th nzWidth="140px">进度</th>
+                <th nzWidth="160px">最后活动</th>
+                <th nzWidth="80px">指标</th>
+                <th nzWidth="80px">快捷</th>
+                <th nzWidth="120px">操作</th>
+              </tr>
+            </thead>
+            
+            <tbody>
+              <tr *ngFor="let follower of basicTable.data">
+                <!-- Name Column -->
+                <td>
+                  <div class="name-cell">
+                    <div class="name">{{follower.metadata.name}}</div>
+                    <nz-tag nzColor="blue" class="namespace-tag">{{follower.metadata.namespace}}</nz-tag>
+                  </div>
+                </td>
+
+                <!-- XStore Name Column -->
+                <td>
+                  <div class="xstore-info">
+                    <div class="xstore-name">{{follower.spec.xStoreName}}</div>
+                    <div *ngIf="follower.spec.fromXStore" class="from-xstore">
+                      <i nz-icon nzType="arrow-right" class="arrow-icon"></i>
+                      <span>{{follower.spec.fromXStore}}</span>
+                    </div>
+                  </div>
+                </td>
+
+                <!-- Phase Column -->
+                <td>
+                  <nz-tag 
+                    [nzColor]="getStatusTagColor(follower.status?.phase)"
+                    [nz-tooltip]="getPhaseTooltip(follower)">
+                    {{follower.displayStatus}}
+                  </nz-tag>
+                </td>
+
+                <!-- Progress Column -->
+                <td>
+                  <div class="progress-cell" *ngIf="follower.isRecovering; else noProgress">
+                    <nz-progress 
+                      [nzPercent]="getProgressPercentage(follower)"
+                      nzStatus="active"
+                      nzSize="small"
+                      [nzShowInfo]="false">
+                    </nz-progress>
+                    <span class="progress-text">{{getProgressPercentage(follower)}}%</span>
+                  </div>
+                  <ng-template #noProgress>
+                    <span class="no-progress">-</span>
+                  </ng-template>
+                </td>
+
+                <!-- Last Activity Column -->
+                <td>
+                  <span class="last-activity">{{follower.lastActivity | date:'MM-dd HH:mm'}}</span>
+                </td>
+
+                <!-- Status Indicators Column -->
+                <td>
+                  <div class="status-indicators">
+                    <i *ngIf="follower.isHealthy" 
+                       nz-icon 
+                       nzType="check-circle" 
+                       nzTheme="fill"
+                       class="status-icon healthy"
+                       nz-tooltip="健康">
+                    </i>
+                    <i *ngIf="follower.isRecovering" 
+                       nz-icon 
+                       nzType="sync" 
+                       nzSpin
+                       class="status-icon recovering"
+                       nz-tooltip="恢复中">
+                    </i>
+                    <i *ngIf="follower.hasFailures" 
+                       nz-icon 
+                       nzType="exclamation-circle" 
+                       nzTheme="fill"
+                       class="status-icon failed"
+                       nz-tooltip="有失败记录">
+                    </i>
+                  </div>
+                </td>
+
+                <!-- Quick Actions Column -->
+                <td>
+                  <button nz-button 
+                          nzType="text" 
+                          nz-dropdown 
+                          [nzDropdownMenu]="quickMenu" 
+                          nzPlacement="bottomLeft">
+                    <i nz-icon nzType="more"></i>
+                  </button>
+                  <nz-dropdown-menu #quickMenu="nzDropdownMenu">
+                    <ul nz-menu>
+                      <li nz-menu-item (click)="viewProgress(follower)">
+                        <i nz-icon nzType="hourglass"></i>
+                        <span>查看进度</span>
+                      </li>
+                      <li nz-menu-item (click)="describePod(follower)">
+                        <i nz-icon nzType="file-text"></i>
+                        <span>Pod 描述</span>
+                      </li>
+                      <li nz-menu-item 
+                          *ngIf="follower.status?.phase==='FollowerPhaseFailed'" 
+                          (click)="showFailureAdvice(follower)">
+                        <i nz-icon nzType="question-circle"></i>
+                        <span>失败分析</span>
+                      </li>
+                    </ul>
+                  </nz-dropdown-menu>
+                </td>
+
+                <!-- Actions Column -->
+                <td>
+                  <nz-button-group nzSize="small">
+                    <button nz-button 
+                            nzType="default" 
+                            (click)="viewFollower(follower)"
+                            nz-tooltip="查看详情">
+                      <i nz-icon nzType="eye"></i>
+                    </button>
+                    <button nz-button 
+                            nzType="default" 
+                            (click)="editFollower(follower)"
+                            nz-tooltip="编辑">
+                      <i nz-icon nzType="edit"></i>
+                    </button>
+                    <button nz-button 
+                            nzType="default" 
+                            nzDanger
+                            (click)="deleteFollower(follower)"
+                            nz-tooltip="删除">
+                      <i nz-icon nzType="delete"></i>
+                    </button>
+                  </nz-button-group>
+                </td>
+              </tr>
+            </tbody>
+          </nz-table>
+
+          <!-- Empty State -->
+          <nz-empty 
+            *ngIf="followers.length === 0 && !isLoading"
+            nzNotFoundImage="simple"
+            nzNotFoundContent="暂无 XStore Follower">
+            <div nz-empty-footer>
+              <button nz-button nzType="primary" (click)="createNew()">
+                创建第一个 Follower
+              </button>
+            </div>
+          </nz-empty>
         </div>
-        <div class="card-content">
-          <!-- Basic Configuration -->
-          <div style="margin-bottom: 24px;">
-            <h3 style="margin: 0 0 16px 0; color: #374151; font-size: 1.1rem;">基本配置</h3>
-            <form [formGroup]="followerForm">
-              <div class="form-grid two-column">
-                <mat-form-field appearance="outline">
-                  <mat-label>名称</mat-label>
-                  <input matInput formControlName="name" 
-                            placeholder="xstore-follower-name"
-                            [disabled]="data.mode === 'edit'">
-                  <mat-hint>只能包含小写字母、数字和连字符</mat-hint>
-                  <mat-error>{{getFieldError(followerForm, 'name')}}</mat-error>
-                </mat-form-field>
+      </nz-tab>
 
-                <mat-form-field appearance="outline">
-                  <mat-label>命名空间</mat-label>
-                  <input matInput formControlName="namespace"
-                            [disabled]="data.mode === 'edit'">
-                  <mat-error>{{getFieldError(followerForm, 'namespace')}}</mat-error>
-                </mat-form-field>
+      <!-- Tab 2: Create/Edit Form -->
+      <nz-tab [nzTitle]="data.mode === 'edit' ? '编辑 Follower' : '创建 Follower'">
+        <div class="form-wrapper">
+          <nz-card nzTitle="基本信息" nzSize="default">
+            <form nz-form [formGroup]="followerForm" nzLayout="horizontal">
+              <div class="form-grid">
+                
+                <!-- Name -->
+                <nz-form-item>
+                  <nz-form-label [nzSpan]="6" nzRequired>名称</nz-form-label>
+                  <nz-form-control [nzSpan]="18" nzErrorTip="{{getFieldError(followerForm, 'name')}}">
+                    <input nz-input 
+                           formControlName="name" 
+                           placeholder="xstore-follower-name"
+                           [disabled]="data.mode === 'edit'">
+                    <div class="form-hint">只能包含小写字母、数字和连字符</div>
+                  </nz-form-control>
+                </nz-form-item>
 
-                <mat-form-field appearance="outline">
-                  <mat-label>目标 XStore</mat-label>
-                  <mat-select formControlName="xStoreName">
-                    <mat-option *ngFor="let xstore of availableXStores" [value]="xstore.metadata.name">
-                      {{xstore.metadata.name}}
-                    </mat-option>
-                  </mat-select>
-                  <mat-error>{{getFieldError(followerForm, 'xStoreName')}}</mat-error>
-                </mat-form-field>
+                <!-- Namespace -->
+                <nz-form-item>
+                  <nz-form-label [nzSpan]="6" nzRequired>命名空间</nz-form-label>
+                  <nz-form-control [nzSpan]="18" nzErrorTip="{{getFieldError(followerForm, 'namespace')}}">
+                    <input nz-input 
+                           formControlName="namespace"
+                           [disabled]="data.mode === 'edit'">
+                  </nz-form-control>
+                </nz-form-item>
 
-                <mat-form-field appearance="outline">
-                  <mat-label>目标 Pod</mat-label>
-                  <mat-select formControlName="targetPodName">
-                    <mat-option value="">自动选择（优先非 leader 且 Running）</mat-option>
-                    <mat-option *ngFor="let pod of filteredTargetPods" [value]="pod.metadata.name">
-                      {{pod.metadata.name}} <span class="xstore-status">({{pod.status?.phase}}, {{pod.metadata.labels?.['xstore/role'] || 'unknown'}})</span>
-                    </mat-option>
-                    <mat-option *ngIf="filteredTargetPods.length === 0" disabled>
-                      暂无可用的目标 Pod（请确认该 XStore 有非 leader 的 Running Pod）
-                    </mat-option>
-                  </mat-select>
-                </mat-form-field>
+                <!-- Target XStore -->
+                <nz-form-item>
+                  <nz-form-label [nzSpan]="6" nzRequired>目标 XStore</nz-form-label>
+                  <nz-form-control [nzSpan]="18" nzErrorTip="{{getFieldError(followerForm, 'xStoreName')}}">
+                    <nz-select formControlName="xStoreName" nzPlaceHolder="选择目标 XStore">
+                      <nz-option *ngFor="let xstore of availableXStores" 
+                                 [nzValue]="xstore.metadata.name" 
+                                 [nzLabel]="xstore.metadata.name">
+                      </nz-option>
+                    </nz-select>
+                  </nz-form-control>
+                </nz-form-item>
 
-                <mat-form-field appearance="outline" class="full-width">
-                  <mat-label>源 XStore (可选)</mat-label>
-                  <mat-select formControlName="fromXStore">
-                    <mat-option value="">自动选择（不指定具体源）</mat-option>
-                    <mat-option *ngFor="let xstore of validSourceXStores" [value]="xstore.metadata.name">
-                      {{xstore.metadata.name}} 
-                      <span class="xstore-status">({{xstore.status?.phase}}, {{getXStoreReadyStatus(xstore)}})</span>
-                    </mat-option>
-                  </mat-select>
-                  <mat-hint>指定数据源XStore，留空则让Operator自动选择</mat-hint>
-                </mat-form-field>
+                <!-- Target Pod -->
+                <nz-form-item>
+                  <nz-form-label [nzSpan]="6">目标 Pod</nz-form-label>
+                  <nz-form-control [nzSpan]="18">
+                    <nz-select formControlName="targetPodName" 
+                               nzPlaceHolder="自动选择（优先非 leader 且 Running）"
+                               nzAllowClear>
+                      <nz-option value="" nzLabel="自动选择（优先非 leader 且 Running）"></nz-option>
+                      <nz-option *ngFor="let pod of filteredTargetPods" 
+                                 [nzValue]="pod.metadata.name">
+                        <span>{{pod.metadata.name}}</span>
+                        <nz-tag nzSize="small" class="pod-status-tag">
+                          {{pod.status?.phase}}
+                        </nz-tag>
+                        <nz-tag nzSize="small" nzColor="blue" class="pod-role-tag">
+                          {{pod.metadata.labels?.['xstore/role'] || 'unknown'}}
+                        </nz-tag>
+                      </nz-option>
+                      <nz-option *ngIf="filteredTargetPods.length === 0" 
+                                 nzDisabled 
+                                 nzLabel="暂无可用的目标 Pod">
+                      </nz-option>
+                    </nz-select>
+                  </nz-form-control>
+                </nz-form-item>
+
+                <!-- Source XStore -->
+                <nz-form-item class="full-width">
+                  <nz-form-label [nzSpan]="6">源 XStore (可选)</nz-form-label>
+                  <nz-form-control [nzSpan]="18">
+                    <nz-select formControlName="fromXStore" 
+                               nzPlaceHolder="自动选择（不指定具体源）"
+                               nzAllowClear>
+                      <nz-option value="" nzLabel="自动选择（不指定具体源）"></nz-option>
+                      <nz-option *ngFor="let xstore of validSourceXStores" 
+                                 [nzValue]="xstore.metadata.name">
+                        <span>{{xstore.metadata.name}}</span>
+                        <nz-tag nzSize="small" [nzColor]="getXStoreStatusColor(xstore)">
+                          {{xstore.status?.phase}}
+                        </nz-tag>
+                        <span class="ready-status">{{getXStoreReadyStatus(xstore)}}</span>
+                      </nz-option>
+                    </nz-select>
+                    <div class="form-hint">指定数据源XStore，留空则让Operator自动选择</div>
+                  </nz-form-control>
+                </nz-form-item>
+
               </div>
 
-              <div class="action-bar">
-                <button mat-raised-button 
-                        color="primary" 
-                        type="submit"
-                        [disabled]="followerForm.invalid || isLoading"
-                        (click)="save()">
-                  <mat-icon>{{data.mode === 'edit' ? 'save' : 'add'}}</mat-icon>
-                  {{data.mode === 'edit' ? '保存修改' : '创建 Follower'}}
-                </button>
-                <button mat-button type="button" (click)="cancel()">
-                  <mat-icon>cancel</mat-icon>
-                  取消
-                </button>
-                <div class="spacer"></div>
-                <button mat-button 
-                        type="button" 
-                        color="accent"
-                        (click)="resetForm()"
-                        [disabled]="isLoading">
-                  <mat-icon>refresh</mat-icon>
-                  重置表单
-                </button>
-              </div>
+              <!-- Action Buttons -->
+              <nz-form-item class="form-actions">
+                <nz-form-control [nzOffset]="6" [nzSpan]="18">
+                  <button nz-button 
+                          nzType="primary" 
+                          [nzLoading]="isProcessing"
+                          [disabled]="followerForm.invalid"
+                          (click)="saveFollower()">
+                    <i nz-icon nzType="{{data.mode === 'edit' ? 'save' : 'plus'}}"></i>
+                    <span>{{data.mode === 'edit' ? '保存修改' : '创建 Follower'}}</span>
+                  </button>
+                  
+                  <button nz-button 
+                          nzType="default" 
+                          (click)="cancel()"
+                          style="margin-left: 8px;">
+                    <i nz-icon nzType="rollback"></i>
+                    <span>取消</span>
+                  </button>
+                  
+                  <button nz-button 
+                          nzType="default" 
+                          (click)="resetForm()"
+                          [disabled]="isProcessing"
+                          style="margin-left: 8px;">
+                    <i nz-icon nzType="reload"></i>
+                    <span>重置表单</span>
+                  </button>
+                </nz-form-control>
+              </nz-form-item>
+
             </form>
-          </div>
+          </nz-card>
         </div>
-      </div>
-    </mat-tab>
-    
-    </mat-tab-group>
+      </nz-tab>
+      
+    </nz-tabset>
   </div>
 </div>

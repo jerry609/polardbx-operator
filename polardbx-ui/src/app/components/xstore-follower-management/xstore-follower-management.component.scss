@@ -1,561 +1,420 @@
-.xstore-follower-management {
-  min-height: 600px;
-  max-height: 80vh;
-  overflow-y: auto;
-  background: linear-gradient(135deg, #f5f7fa 0%, #f0f2f5 100%);
-  border-radius: 12px;
-  padding: 8px;
-}
+// XStore Follower Management Component Styles
+// 采用中性、低饱和度的设计风格
 
-.management-tabs {
-  .mat-mdc-tab-body-wrapper {
-    padding: 0;
-  }
-}
+.management-container {
+  padding: 16px;
+  background: #fafafa;
+  min-height: calc(100vh - 64px);
 
-.tab-content {
-  padding: 24px;
-  
-  &.form-content {
-    max-height: calc(80vh - 120px);
-    overflow-y: auto;
-  }
-}
-
-// List Tab Styles
-.list-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-  
-  h3 {
-    margin: 0;
-    color: rgba(0, 0, 0, 0.87);
-    font-weight: 500;
-  }
-  
-  .header-actions {
-    display: flex;
-    gap: 8px;
-    
-    button {
-      border-radius: 8px;
-      font-weight: 500;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-      transition: all 0.3s ease;
-      
-      &:hover {
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-        transform: translateY(-1px);
-      }
-      
-      &.mat-primary {
-        background: linear-gradient(135deg, #1976d2, #42a5f5);
-      }
-      
-      &.mat-accent {
-        background: linear-gradient(135deg, #f57c00, #ffb74d);
-      }
-    }
-  }
-}
-
-.followers-table-card {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  overflow: hidden;
-  transition: box-shadow 0.3s ease;
-  
-  &:hover {
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-  }
-  
-  .mat-mdc-card-content {
-    padding: 0;
-  }
-}
-
-.followers-table {
-  width: 100%;
-  
-  mat-header-cell {
-    font-weight: 500;
-    color: rgba(0, 0, 0, 0.87);
-  }
-  
-  mat-cell {
-    border-bottom: 1px solid #e0e0e0;
-  }
-
-  // Fix widths and alignment for quick/actions columns to avoid overflow
-  .mat-mdc-header-cell.mat-column-quick,
-  .mat-mdc-cell.mat-column-quick,
-  .mat-mdc-header-cell.mat-column-actions,
-  .mat-mdc-cell.mat-column-actions {
-    width: 140px;
-    max-width: 140px;
-    padding: 0 8px;
-    box-sizing: border-box;
-    overflow: hidden;
-    text-align: center;
-  }
-
-  .mat-mdc-cell.mat-column-quick {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-  .mat-mdc-header-cell.mat-column-quick,
-  .mat-mdc-header-cell.mat-column-actions {
-    text-align: center;
-  }
-  .mat-mdc-cell.mat-column-actions .action-buttons {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 6px;
-    flex-wrap: nowrap;
-  }
-  .mat-mdc-cell.mat-column-actions .mat-icon-button,
-  .mat-mdc-cell.mat-column-quick .mat-icon-button {
-    width: 36px;
-    height: 36px;
-  }
-}
-
-.name-cell {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  
-  strong {
-    color: rgba(0, 0, 0, 0.87);
-  }
-  
-  .namespace {
-    font-size: 12px;
-    color: rgba(0, 0, 0, 0.6);
-  }
-}
-
-.xstore-info {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  
-  .xstore-name {
-    color: rgba(0, 0, 0, 0.87);
-    font-weight: 500;
-  }
-  
-  .from-xstore {
-    font-size: 12px;
-    color: rgba(0, 0, 0, 0.6);
-  }
-}
-
-.progress-cell {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 100px;
-  
-  mat-progress-bar {
-    height: 8px;
-    border-radius: 4px;
-  }
-  
-  .progress-text {
-    font-size: 12px;
-    color: rgba(0, 0, 0, 0.6);
-    text-align: center;
-  }
-}
-
-.no-progress {
-  color: rgba(0, 0, 0, 0.6);
-}
-
-.last-activity {
-  font-size: 14px;
-  color: rgba(0, 0, 0, 0.6);
-}
-
-.status-indicators {
-  display: flex;
-  gap: 4px;
-  
-  .status-icon {
-    font-size: 18px;
-    width: 18px;
-    height: 18px;
-    
-    &.healthy {
-      color: #4caf50;
-    }
-    
-    &.recovering {
-      color: #ff9800;
-      animation: spin 2s linear infinite;
-    }
-    
-    &.failed {
-      color: #f44336;
-    }
-  }
-}
-
-.action-buttons {
-  display: flex;
-  gap: 4px;
-}
-
-.no-data {
-  text-align: center;
-  padding: 48px 24px;
-}
-
-// XStore selection styles
-.xstore-status {
-  font-size: 11px;
-  color: rgba(0, 0, 0, 0.6);
-  font-weight: 500;
-  background: rgba(25, 118, 210, 0.08);
-  padding: 2px 6px;
-  border-radius: 12px;
-  margin-left: 8px;
-  display: inline-block;
-}
-
-.refresh-xstores-btn {
-  min-width: auto !important;
-  width: 40px !important;
-  height: 40px !important;
-  padding: 0 !important;
-  border-radius: 8px;
-  transition: all 0.2s ease;
-  
-  .mat-icon {
-    font-size: 18px;
-    width: 18px;
-    height: 18px;
-  }
-  
-  &:hover {
-    background-color: rgba(25, 118, 210, 0.08);
-    transform: rotate(180deg);
-  }
-}
-
-// Enhanced status chip styles
-mat-chip, mat-chip-option {
-  font-size: 12px !important;
-  min-height: 28px !important;
-  font-weight: 500 !important;
-  border-radius: 14px !important;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
-  transition: all 0.2s ease !important;
-  
-  &:hover {
-    transform: translateY(-1px) !important;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
-  }
-  
-  &.mat-primary {
-    background: linear-gradient(135deg, #e3f2fd, #bbdefb) !important;
-    color: #1976d2 !important;
-    border: 1px solid rgba(25, 118, 210, 0.2) !important;
-  }
-  
-  &.mat-accent {
-    background: linear-gradient(135deg, #fff3e0, #ffe0b2) !important;
-    color: #f57c00 !important;
-    border: 1px solid rgba(245, 124, 0, 0.2) !important;
-  }
-  
-  &.mat-warn {
-    background: linear-gradient(135deg, #ffebee, #ffcdd2) !important;
-    color: #d32f2f !important;
-    border: 1px solid rgba(211, 47, 47, 0.2) !important;
-  }
-}
-
-.source-xstore-section {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-bottom: 8px;
-  
-  .form-field-with-button {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    
-    mat-form-field {
-      flex: 1;
-      margin-bottom: 0; // 移除默认底边距
-    }
-    
-    .refresh-xstores-btn {
-      margin-top: 8px; // 对齐到form field的输入框高度
-      flex-shrink: 0;
-    }
-  }
-  
-  .refresh-hint {
-    font-size: 12px;
-    color: rgba(0, 0, 0, 0.6);
-    line-height: 1.3;
-    margin: -8px 0 0 0; // 减少与上方元素的间距
-    padding: 8px 12px;
-    background: rgba(25, 118, 210, 0.04);
-    border-radius: 6px;
-    border-left: 3px solid rgba(25, 118, 210, 0.3);
-  }
-}
-
-.empty-state {
-  text-align: center;
-  padding: 32px;
-  color: rgba(0, 0, 0, 0.6);
-  
-  mat-icon {
-    font-size: 48px;
-    width: 48px;
-    height: 48px;
+  .header-card {
     margin-bottom: 16px;
-    opacity: 0.5;
-  }
-  
-  p {
-    margin: 0 0 24px 0;
-    font-size: 16px;
-  }
-}
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 
-// Form Tab Styles
-.form-content {
-  h3 {
-    margin: 0 0 24px 0;
-    color: rgba(0, 0, 0, 0.87);
-    font-weight: 500;
-  }
-}
+    .header-content {
+      .title-section {
+        display: flex;
+        align-items: center;
+        gap: 12px;
 
-.form-row {
-  margin-bottom: 20px;
-  
-  &:last-child {
-    margin-bottom: 0;
+        .header-icon {
+          font-size: 24px;
+          color: #595959;
+        }
+
+        .title-text {
+          h1 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 500;
+            color: #262626;
+            line-height: 1.3;
+          }
+
+          p {
+            margin: 4px 0 0 0;
+            font-size: 14px;
+            color: #8c8c8c;
+            line-height: 1.3;
+          }
+        }
+      }
+    }
   }
-  
-  mat-form-field {
-    width: 100%;
-    
-    &:not(:last-child) {
+
+  .content-wrapper {
+    .management-tabs {
+      background: white;
+      border-radius: 6px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+      ::ng-deep {
+        .ant-tabs-nav {
+          margin: 0;
+          padding: 0 16px;
+          background: #f8f9fa;
+          border-radius: 6px 6px 0 0;
+
+          .ant-tabs-tab {
+            margin: 0 8px 0 0;
+            padding: 12px 16px;
+            border: none;
+            border-radius: 4px 4px 0 0;
+            background: transparent;
+            font-weight: 500;
+
+            &.ant-tabs-tab-active {
+              background: white;
+              color: #595959;
+            }
+
+            &:hover:not(.ant-tabs-tab-active) {
+              background: rgba(0, 0, 0, 0.04);
+              color: #595959;
+            }
+          }
+        }
+
+        .ant-tabs-content-holder {
+          padding: 16px;
+        }
+      }
+    }
+  }
+
+  // Table Styles
+  .table-wrapper {
+    .table-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #f0f0f0;
+
+      .header-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+
+        h2 {
+          margin: 0;
+          font-size: 16px;
+          font-weight: 500;
+          color: #262626;
+        }
+
+        .count-badge {
+          padding: 2px 8px;
+          background: #f5f5f5;
+          border-radius: 12px;
+          font-size: 12px;
+          color: #595959;
+        }
+      }
+
+      .header-actions {
+        display: flex;
+        gap: 8px;
+      }
+    }
+
+    ::ng-deep {
+      .ant-table {
+        .ant-table-thead > tr > th {
+          background: #fafafa;
+          border-bottom: 1px solid #f0f0f0;
+          font-weight: 500;
+          color: #595959;
+          font-size: 13px;
+        }
+
+        .ant-table-tbody > tr > td {
+          border-bottom: 1px solid #f5f5f5;
+          vertical-align: middle;
+        }
+
+        .ant-table-tbody > tr:hover > td {
+          background: #f8f9fa;
+        }
+      }
+    }
+
+    // Table Cell Styles
+    .name-cell {
+      .name {
+        font-weight: 500;
+        color: #262626;
+        margin-bottom: 4px;
+      }
+
+      .namespace-tag {
+        font-size: 11px;
+      }
+    }
+
+    .xstore-info {
+      .xstore-name {
+        font-weight: 500;
+        color: #262626;
+        margin-bottom: 2px;
+      }
+
+      .from-xstore {
+        font-size: 12px;
+        color: #8c8c8c;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+
+        .arrow-icon {
+          font-size: 10px;
+        }
+      }
+    }
+
+    .progress-cell {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .progress-text {
+        font-size: 12px;
+        color: #595959;
+        min-width: 32px;
+      }
+
+      ::ng-deep .ant-progress-line {
+        width: 80px;
+      }
+    }
+
+    .no-progress {
+      color: #bfbfbf;
+      font-size: 14px;
+    }
+
+    .last-activity {
+      font-size: 12px;
+      color: #8c8c8c;
+    }
+
+    .status-indicators {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+
+      .status-icon {
+        font-size: 16px;
+
+        &.healthy {
+          color: #52c41a;
+        }
+
+        &.recovering {
+          color: #1890ff;
+        }
+
+        &.failed {
+          color: #ff4d4f;
+        }
+      }
+    }
+  }
+
+  // Form Styles
+  .form-wrapper {
+    max-width: 800px;
+
+    .form-grid {
+      // Form items will use ng-zorro horizontal layout
       margin-bottom: 16px;
     }
-  }
-  
-  // 专门为source-xstore-section调整间距
-  .source-xstore-section {
-    margin-bottom: 0;
-  }
-}
 
-.config-section {
-  margin-bottom: 24px;
-  
-  .mat-mdc-card-title {
-    font-size: 16px;
-    font-weight: 500;
-    color: rgba(0, 0, 0, 0.87);
-  }
-  
-  .mat-mdc-card-content {
-    padding-top: 16px;
-  }
-}
-
-.form-row {
-  display: flex;
-  gap: 16px;
-  margin-bottom: 16px;
-  
-  mat-form-field {
-    flex: 1;
-    
-    &.full-width {
-      width: 100%;
-    }
-  }
-}
-
-.force-recreate-option,
-.enable-resources-option,
-.node-selector-option {
-  margin: 16px 0;
-  
-  .mat-mdc-checkbox-label {
-    font-weight: 500;
-  }
-}
-
-.resource-config {
-  margin-top: 24px;
-  padding-top: 24px;
-  border-top: 1px solid #e0e0e0;
-  
-  h4 {
-    margin: 0 0 16px 0;
-    color: rgba(0, 0, 0, 0.87);
-    font-weight: 500;
-    font-size: 14px;
-  }
-}
-
-.node-selector-config {
-  margin-top: 24px;
-  padding-top: 24px;
-  border-top: 1px solid #e0e0e0;
-}
-
-.form-actions {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-  padding: 24px 0 0 0;
-  border-top: 1px solid #e0e0e0;
-  margin-top: 24px;
-}
-
-// Dialog Actions
-.dialog-actions {
-  padding: 16px 24px;
-  border-top: 1px solid #e0e0e0;
-  margin: 0;
-}
-
-// Spinner Animation
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.spinner {
-  animation: spin 1s linear infinite;
-  margin-right: 8px;
-}
-
-// Chip styling
-mat-chip-listbox {
-  mat-chip-option {
-    &[aria-selected="true"] {
-      &[color="primary"] {
-        background-color: #1976d2;
-        color: white;
-      }
-      
-      &[color="accent"] {
-        background-color: #ff9800;
-        color: white;
-      }
-      
-      &[color="warn"] {
-        background-color: #f44336;
-        color: white;
-      }
-    }
-  }
-}
-
-// Material Design Overrides
-.mat-mdc-tab-group {
-  .mat-mdc-tab-header {
-    border-bottom: 1px solid #e0e0e0;
-  }
-}
-
-.mat-mdc-table {
-  .mat-mdc-header-row {
-    background-color: #fafafa;
-  }
-  
-  .mat-mdc-row:hover {
-    background-color: #f5f5f5;
-  }
-}
-
-// Responsive Design
-@media (max-width: 768px) {
-  .form-row {
-    flex-direction: column;
-    gap: 8px;
-  }
-  
-  .list-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 16px;
-    
-    .header-actions {
-      width: 100%;
-      justify-content: flex-start;
-    }
-  }
-  
-  .followers-table {
-    .mat-mdc-cell,
-    .mat-mdc-header-cell {
-      padding: 8px 4px;
+    .form-hint {
       font-size: 12px;
+      color: #8c8c8c;
+      margin-top: 4px;
+    }
+
+    .form-actions {
+      margin-top: 24px;
+      padding-top: 16px;
+      border-top: 1px solid #f0f0f0;
+      display: flex;
+      gap: 8px;
+    }
+
+    .pod-status-tag,
+    .pod-role-tag {
+      margin-left: 8px;
+    }
+
+    .ready-status {
+      margin-left: 8px;
+      font-size: 12px;
+      color: #8c8c8c;
+    }
+
+    // Form field enhancements
+    ::ng-deep {
+      .ant-form-item-label > label {
+        color: #595959;
+        font-weight: 500;
+      }
+
+      .ant-select-selection-placeholder,
+      .ant-input::placeholder {
+        color: #bfbfbf;
+      }
+
+      .ant-form-item-explain-error {
+        font-size: 12px;
+      }
     }
   }
-  
-  .action-buttons {
-    flex-direction: column;
-    
-    button {
-      min-width: unset;
-      width: 32px;
-      height: 32px;
+
+  // Button styles with neutral colors
+  ::ng-deep {
+    .ant-btn-primary {
+      background: #595959;
+      border-color: #595959;
+
+      &:hover,
+      &:focus {
+        background: #434343;
+        border-color: #434343;
+      }
+    }
+
+    .ant-btn-default {
+      color: #595959;
+      border-color: #d9d9d9;
+
+      &:hover,
+      &:focus {
+        color: #434343;
+        border-color: #434343;
+      }
+    }
+
+    .ant-btn-dangerous {
+      color: #ff7875;
+      border-color: #ff7875;
+
+      &:hover,
+      &:focus {
+        color: #ff4d4f;
+        border-color: #ff4d4f;
+      }
     }
   }
-  
-  .tab-content {
-    padding: 16px;
+}
+
+// Responsive design
+@media (max-width: 1200px) {
+  .management-container {
+    .form-wrapper {
+      ::ng-deep {
+        .ant-form-item-label {
+          flex: 0 0 100% !important;
+          max-width: 100% !important;
+        }
+        
+        .ant-form-item-control {
+          flex: 0 0 100% !important;
+          max-width: 100% !important;
+          margin-left: 0 !important;
+        }
+      }
+    }
   }
 }
 
-// Accessibility
-.mat-mdc-icon-button:focus {
-  background-color: rgba(0, 0, 0, 0.04);
-}
+@media (max-width: 768px) {
+  .management-container {
+    padding: 12px;
 
-.mat-mdc-checkbox:focus .mdc-checkbox__focus-ring {
-  border-color: #1976d2;
-}
+    .table-wrapper .table-header {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 12px;
 
-// Loading states
-.mat-mdc-progress-bar {
-  .mdc-linear-progress__buffer {
-    background-color: #e0e0e0;
+      .header-left {
+        justify-content: center;
+      }
+
+      .header-actions {
+        justify-content: center;
+      }
+    }
+
+    // Hide some columns on mobile
+    ::ng-deep .ant-table {
+      .ant-table-thead > tr > th:nth-child(n+6),
+      .ant-table-tbody > tr > td:nth-child(n+6) {
+        display: none;
+      }
+    }
   }
-  
-  .mdc-linear-progress__bar-inner {
-    border-color: #1976d2;
+}
+
+// Accessibility improvements
+.management-container {
+  ::ng-deep {
+    // Focus styles
+    .ant-btn:focus,
+    .ant-input:focus,
+    .ant-select-focused .ant-select-selector {
+      border-color: #595959;
+      box-shadow: 0 0 0 2px rgba(89, 89, 89, 0.2);
+    }
+
+    // Loading states
+    .ant-spin-spinning {
+      .ant-spin-dot-item {
+        background-color: #595959;
+      }
+    }
   }
 }
 
-// Form validation
-mat-error {
-  font-size: 12px;
-  margin-top: 4px;
+// High contrast mode support
+@media (prefers-contrast: high) {
+  .management-container {
+    background: white;
+
+    .header-card {
+      border: 2px solid #000;
+    }
+
+    ::ng-deep {
+      .ant-table-thead > tr > th {
+        background: #f0f0f0;
+        border: 1px solid #000;
+      }
+
+      .ant-table-tbody > tr > td {
+        border: 1px solid #000;
+      }
+    }
+  }
 }
 
-.mat-mdc-form-field-error {
-  color: #f44336;
+// Print styles
+@media print {
+  .management-container {
+    .header-actions,
+    .form-actions,
+    .status-indicators,
+    .ant-dropdown-trigger {
+      display: none !important;
+    }
+
+    .table-wrapper {
+      ::ng-deep .ant-table {
+        font-size: 12px;
+      }
+    }
+  }
 }

@@ -50,7 +50,7 @@ interface RebuildFormData {
     
   ],
   template: `
-    <div class="rebuild-form-container">
+    <div class="rebuild-form-container neutral-theme">
       <nz-card class="form-card" nzTitle="创建重搭任务">
         <div class="form-content">
           <form nz-form [formGroup]="rebuildForm" (ngSubmit)="onSubmit()">
