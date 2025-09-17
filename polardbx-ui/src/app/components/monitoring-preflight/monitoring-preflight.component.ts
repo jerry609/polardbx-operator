@@ -21,7 +21,7 @@ import { ApiService } from '../../services/api.service';
             <i nz-icon nzType="safety" class="page-icon"></i>
             监控安装前健康体检
           </h1>
-          <p class="page-description">检查时钟同步、可用区分布与 IOPS 性能，确保监控组件安装前环境就绪</p>
+          <p class="page-description">刷新前提示：可用区分布与 IOPS 性能、时钟同步等信息一览</p>
         </div>
       </div>
 
@@ -37,7 +37,9 @@ import { ApiService } from '../../services/api.service';
         </nz-card>
 
         <div *ngIf="loading" class="loading-container">
-          <nz-spin nzSize="large" nzTip="正在检查环境..."></nz-spin>
+          <nz-spin nzSize="large">
+            <div class="loading-tip">正在检查环境...</div>
+          </nz-spin>
         </div>
 
         <div class="check-sections" *ngIf="!loading">
@@ -162,6 +164,12 @@ import { ApiService } from '../../services/api.service';
       justify-content: center;
       align-items: center;
       padding: 80px 0;
+    }
+    .loading-tip {
+      margin-top: 12px;
+      text-align: center;
+      color: rgba(0,0,0,0.65);
+      letter-spacing: 0.5px;
     }
     
     .check-sections {
