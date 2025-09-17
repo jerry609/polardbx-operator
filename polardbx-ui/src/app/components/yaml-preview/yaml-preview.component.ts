@@ -193,7 +193,7 @@ export class YamlPreviewComponent implements OnInit {
   errorMessage = '';
   validationResult: { success: boolean; message: string } | null = null;
 
-  editorOptions = {
+  editorOptions: any = {
     theme: 'vs',
     language: 'yaml',
     readOnly: false,

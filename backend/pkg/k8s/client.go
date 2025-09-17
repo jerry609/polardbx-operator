@@ -10,6 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/clientcmd"
@@ -68,6 +69,32 @@ func NewClientsFromKubeconfig(kubeconfig []byte) (client.Client, kubernetes.Inte
 	}
 
 	return c, clientset, nil
+}
+
+// NewAllClientsFromKubeconfig creates a controller-runtime client, standard clientset, and dynamic client
+// from the given kubeconfig bytes.
+func NewAllClientsFromKubeconfig(kubeconfig []byte) (client.Client, kubernetes.Interface, dynamic.Interface, error) {
+	restConfig, err := clientcmd.RESTConfigFromKubeConfig(kubeconfig)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("failed to create rest config from kubeconfig: %w", err)
+	}
+
+	c, err := client.New(restConfig, client.Options{Scheme: kubescheme})
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("failed to create new client: %w", err)
+	}
+
+	clientset, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("failed to create new clientset: %w", err)
+	}
+
+	dynClient, err := dynamic.NewForConfig(restConfig)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("failed to create new dynamic client: %w", err)
+	}
+
+	return c, clientset, dynClient, nil
 }
 
 // GetPodLogsWithContext retrieves logs from a specified pod with context.

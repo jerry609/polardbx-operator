@@ -471,7 +471,7 @@ export class PrometheusRuleViewerComponent implements OnInit {
   customRuleYaml = '';
   validationResult: any = null;
 
-  editorOptions = {
+  editorOptions: any = {
     theme: 'vs',
     language: 'yaml',
     readOnly: false,
@@ -504,23 +504,27 @@ export class PrometheusRuleViewerComponent implements OnInit {
 
   private loadSystemRuleInfo(): void {
     this.loading = true;
-    
+
     // 尝试获取系统规则信息
     this.api.getPrometheusRules('polardbx-monitor').subscribe({
       next: (rules: PrometheusRule[]) => {
-        const polardbxRules = rules.find(rule => 
-          rule.metadata.name === 'polardbx-alert-rules'
-        );
-        
-        if (polardbxRules) {
-          this.systemRuleInfo = {
-            name: polardbxRules.metadata.name,
-            namespace: polardbxRules.metadata.namespace,
-            creationTime: new Date(polardbxRules.metadata.creationTimestamp),
-            groupCount: polardbxRules.spec.groups.length,
-            alertRuleCount: this.countAlertRules(polardbxRules),
-            recordRuleCount: this.countRecordRules(polardbxRules)
-          };
+        if (rules && Array.isArray(rules)) {
+          const polardbxRules = rules.find(rule =>
+            rule.metadata.name === 'polardbx-alert-rules'
+          );
+
+          if (polardbxRules) {
+            this.systemRuleInfo = {
+              name: polardbxRules.metadata.name,
+              namespace: polardbxRules.metadata.namespace,
+              creationTime: new Date(polardbxRules.metadata.creationTimestamp),
+              groupCount: polardbxRules.spec.groups.length,
+              alertRuleCount: this.countAlertRules(polardbxRules),
+              recordRuleCount: this.countRecordRules(polardbxRules)
+            };
+          } else {
+            this.systemRuleInfo = null;
+          }
         } else {
           this.systemRuleInfo = null;
         }

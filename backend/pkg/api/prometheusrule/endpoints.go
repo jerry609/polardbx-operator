@@ -51,9 +51,9 @@ type PrometheusRule struct {
 
 // List returns PrometheusRule resources in the specified namespace
 func List(c *gin.Context) {
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "kubernetes client not available"})
+	var cli dynamic.Interface
+	var ok bool
+	if cli, ok = util.DynamicClientFromContext(c); !ok {
 		return
 	}
 
@@ -170,9 +170,9 @@ func List(c *gin.Context) {
 
 // GetYAML returns the YAML representation of a specific PrometheusRule
 func GetYAML(c *gin.Context) {
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "kubernetes client not available"})
+	var cli dynamic.Interface
+	var ok bool
+	if cli, ok = util.DynamicClientFromContext(c); !ok {
 		return
 	}
 

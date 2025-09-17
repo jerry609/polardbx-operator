@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -46,6 +47,21 @@ func ClientsetFromContext(c *gin.Context) (kubernetes.Interface, bool) {
 		return nil, false
 	}
 	return cs, true
+}
+
+// DynamicClientFromContext returns dynamic client from gin context.
+func DynamicClientFromContext(c *gin.Context) (dynamic.Interface, bool) {
+	v, ok := c.Get("dynamic-client")
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "kubernetes dynamic client not available"})
+		return nil, false
+	}
+	dynClient, ok := v.(dynamic.Interface)
+	if !ok || dynClient == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid dynamic client in context"})
+		return nil, false
+	}
+	return dynClient, true
 }
 
 // DefaultNamespace returns query namespace or the middleware-injected default.
@@ -134,12 +150,13 @@ func InitClientsFromKubeconfigB64(c *gin.Context, kubeconfigB64 string) (client.
 	if err != nil {
 		return nil, nil, err
 	}
-	ctrlClient, clientset, err := k8s.NewClientsFromKubeconfig(cfgBytes)
+	ctrlClient, clientset, dynClient, err := k8s.NewAllClientsFromKubeconfig(cfgBytes)
 	if err != nil {
 		return nil, nil, err
 	}
 	c.Set("k8sClient", ctrlClient)
 	c.Set("clientset", clientset)
+	c.Set("dynamic-client", dynClient)
 	if loaded, e := clientcmd.Load(cfgBytes); e == nil && loaded != nil {
 		ctxName := loaded.CurrentContext
 		user := ctxName

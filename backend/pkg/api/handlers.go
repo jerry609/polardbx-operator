@@ -44,7 +44,7 @@ func KubeconfigAuthMiddleware() gin.HandlerFunc {
 		}
 
 		// Create Kubernetes clients
-		ctrlClient, clientset, err := k8s.NewClientsFromKubeconfig(kubeconfig)
+		ctrlClient, clientset, dynClient, err := k8s.NewAllClientsFromKubeconfig(kubeconfig)
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "failed to create kubernetes clients", "details": err.Error()})
 			c.Abort()
@@ -53,6 +53,7 @@ func KubeconfigAuthMiddleware() gin.HandlerFunc {
 
 		c.Set("k8sClient", ctrlClient)
 		c.Set("clientset", clientset)
+		c.Set("dynamic-client", dynClient)
 
 		// Extract identity for audit (best-effort)
 		if cfg, err := clientcmd.Load(kubeconfig); err == nil && cfg != nil {

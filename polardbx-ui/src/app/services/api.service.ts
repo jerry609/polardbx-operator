@@ -1877,10 +1877,23 @@ export class ApiService {
 
   // Namespace Methods
   getNamespaces(): Observable<string[]> {
+    const req = this.http.get<any>(`${this.baseUrl}/namespaces`, { headers: this.getHeaders() })
+      .pipe(
+        map((res: any) => {
+          if (Array.isArray(res)) return res as string[];
+          if (Array.isArray(res?.items)) {
+            // items 可能是字符串数组或对象数组
+            if (res.items.length > 0 && typeof res.items[0] === 'object') {
+              return (res.items as any[]).map((it: any) => it?.name || it?.metadata?.name).filter(Boolean);
+            }
+            return res.items as string[];
+          }
+          if (Array.isArray(res?.names)) return res.names as string[];
+          return [] as string[];
+        })
+      );
     return this.handleRequest(
-      this.http.get<string[]>(`${this.baseUrl}/namespaces`, {
-        headers: this.getHeaders()
-      }),
+      req,
       LoadingKeys.SYSTEM,
       '/namespaces',
       'GET'
@@ -1888,10 +1901,10 @@ export class ApiService {
   }
 
   getLogStrategyApplyRecords(): Observable<any[]> {
+    const req = this.http.get<any>(`${this.baseUrl}/log-strategies/apply-records`, { headers: this.getHeaders() })
+      .pipe(map((res: any) => Array.isArray(res) ? res : (res?.items || [])));
     return this.handleRequest(
-      this.http.get<any[]>(`${this.baseUrl}/log-strategies/apply-records`, {
-        headers: this.getHeaders()
-      }),
+      req,
       LoadingKeys.LOG_STRATEGY,
       '/log-strategies/apply-records',
       'GET'

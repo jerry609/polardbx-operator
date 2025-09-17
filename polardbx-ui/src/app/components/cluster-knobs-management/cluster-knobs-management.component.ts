@@ -593,11 +593,11 @@ export class ClusterKnobsManagementComponent implements OnInit, OnDestroy {
   getCategoryIcon(categoryName: string): string {
     const icons: Record<string, string> = {
       connection: 'link',
-      memory: 'memory',
+      memory: 'database',
       query: 'search',
-      logging: 'description'
+      logging: 'file-text'
     };
-    return icons[categoryName] || 'settings';
+    return icons[categoryName] || 'setting';
   }
 
   // Custom knobs management

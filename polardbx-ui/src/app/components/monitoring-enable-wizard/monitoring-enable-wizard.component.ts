@@ -82,8 +82,7 @@ interface PreflightCheck {
                   <nz-form-control [nzSpan]="18">
                     <nz-select 
                       formControlName="monitoringType" 
-                      nzPlaceholder="选择监控类型"
-                      (ngModelChange)="onMonitoringTypeChange($event)">
+                      nzPlaceholder="选择监控类型">
                       <nz-option nzValue="enterprise" nzLabel="企业版 (PolarDBXMonitor)"></nz-option>
                       <nz-option nzValue="standard" nzLabel="标准版 (ServiceMonitor)"></nz-option>
                     </nz-select>

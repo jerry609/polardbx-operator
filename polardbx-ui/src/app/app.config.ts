@@ -89,7 +89,7 @@ import {
   DesktopOutline,
   ControlOutline
 } from '@ant-design/icons-angular/icons';
-import { PauseOutline, ExperimentOutline } from '@ant-design/icons-angular/icons';
+import { PauseOutline, ExperimentOutline, LineChartOutline, BarChartOutline, FileAddOutline } from '@ant-design/icons-angular/icons';
 
 import { routes } from './app.routes';
 
@@ -189,7 +189,10 @@ export const appConfig: ApplicationConfig = {
       DesktopOutline,
       ControlOutline,
       PauseOutline,
-      ExperimentOutline
+      ExperimentOutline,
+      LineChartOutline,
+      BarChartOutline,
+      FileAddOutline
     ])
   ]
 };
