@@ -40,6 +40,47 @@ func Bootstrap(c *gin.Context) {
 	if r.NS == "" {
 		r.NS = "polardbx-operator-system"
 	}
+
+	// Check for existing ongoing bootstrap jobs (idempotent)
+	if !r.Dry {
+		existingJobs := &batchv1.JobList{}
+		labelSelector := client.MatchingLabels{
+			"app":       "polardbx-monitor-bootstrap",
+			"createdBy": "dashboard",
+		}
+		if err := cli.List(c.Request.Context(), existingJobs, client.InNamespace(r.NS), labelSelector); err == nil {
+			// Look for non-completed jobs
+			for _, job := range existingJobs.Items {
+				isComplete := false
+				isFailed := false
+				for _, condition := range job.Status.Conditions {
+					if condition.Type == batchv1.JobComplete && condition.Status == corev1.ConditionTrue {
+						isComplete = true
+						break
+					}
+					if condition.Type == batchv1.JobFailed && condition.Status == corev1.ConditionTrue {
+						isFailed = true
+						break
+					}
+				}
+				// If job is still running, return existing job info
+				if !isComplete && !isFailed {
+					c.JSON(http.StatusAccepted, gin.H{
+						"message":      "monitoring bootstrap already in progress",
+						"namespace":    r.NS,
+						"targetNs":     "polardbx-monitor",
+						"mode":         r.Mode,
+						"releaseName":  r.Name,
+						"jobName":      job.Name,
+						"instructions": "Use kubectl logs -n " + r.NS + " job/" + job.Name + " to see progress",
+						"existing":     true,
+					})
+					return
+				}
+			}
+		}
+	}
+
 	// Persist plan (idempotent)
 	cm := corev1.ConfigMap{}
 	key := client.ObjectKey{Namespace: r.NS, Name: "polardbx-monitoring-plan"}
@@ -71,6 +112,7 @@ func Bootstrap(c *gin.Context) {
 	// Create a short-lived Job to run helm install inside cluster
 	// Note: requires the Job's ServiceAccount to have sufficient RBAC to install chart resources
 	jobName := fmt.Sprintf("polardbx-monitor-bootstrap-%d", time.Now().Unix())
+	correlationId := fmt.Sprintf("monitor-%d", time.Now().UnixNano())
 	command := strings.Join([]string{
 		"set -e",
 		"helm version || (echo 'helm not found in image' && exit 1)",
@@ -82,7 +124,15 @@ func Bootstrap(c *gin.Context) {
 	backoff := int32(0)
 	ttl := int32(600)
 	job := &batchv1.Job{
-		ObjectMeta: metav1.ObjectMeta{Namespace: r.NS, Name: jobName},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: r.NS,
+			Name:      jobName,
+			Labels: map[string]string{
+				"app":           "polardbx-monitor-bootstrap",
+				"createdBy":     "dashboard",
+				"correlationId": correlationId,
+			},
+		},
 		Spec: batchv1.JobSpec{
 			BackoffLimit:            &backoff,
 			TTLSecondsAfterFinished: &ttl,
@@ -106,13 +156,14 @@ func Bootstrap(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusAccepted, gin.H{
-		"message":      "monitoring bootstrap started",
-		"namespace":    r.NS,
-		"targetNs":     "polardbx-monitor",
-		"mode":         r.Mode,
-		"releaseName":  r.Name,
-		"jobName":      jobName,
-		"instructions": "Use kubectl logs -n " + r.NS + " job/" + jobName + " to see progress",
+		"message":       "monitoring bootstrap started",
+		"namespace":     r.NS,
+		"targetNs":      "polardbx-monitor",
+		"mode":          r.Mode,
+		"releaseName":   r.Name,
+		"jobName":       jobName,
+		"correlationId": correlationId,
+		"instructions":  "Use kubectl logs -n " + r.NS + " job/" + jobName + " to see progress",
 	})
 }
 
@@ -122,7 +173,8 @@ func Status(c *gin.Context) {
 	if !ok {
 		return
 	}
-	ns := util.DefaultNamespace(c, "polardbx-operator-system")
+    // 监控组件默认部署在 polardbx-monitor，可通过 ?namespace= 覆盖
+    ns := util.DefaultNamespace(c, "polardbx-monitor")
 
 	checkDeploy := func(name string) (ready, desired int32, ok bool) {
 		dep := appsv1.Deployment{}
@@ -404,5 +456,153 @@ func Preflight(c *gin.Context) {
 			"message":        "未校验集群节点时钟漂移（占位）",
 		},
 		"iops": iops,
+	})
+}
+
+// BootstrapStatus returns the status of a monitoring bootstrap job
+func BootstrapStatus(c *gin.Context) {
+	cli, ok := util.K8sClientFromContext(c)
+	if !ok {
+		return
+	}
+
+	jobName := c.Query("jobName")
+    // 安装 Job 位于安装器命名空间，默认 polardbx-operator-system
+    namespace := util.DefaultNamespace(c, "polardbx-operator-system")
+
+	if jobName == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "jobName parameter is required"})
+		return
+	}
+
+	// Get the job
+	job := &batchv1.Job{}
+	key := client.ObjectKey{Namespace: namespace, Name: jobName}
+	if err := cli.Get(c.Request.Context(), key, job); err != nil {
+		if apierrors.IsNotFound(err) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "job not found", "jobName": jobName, "namespace": namespace})
+			return
+		}
+		util.HandleK8sError(c, "failed to get job", err)
+		return
+	}
+
+	// Determine job phase
+	phase := "Running"
+	var completionTime *metav1.Time
+	var failureReason string
+
+	for _, condition := range job.Status.Conditions {
+		if condition.Type == batchv1.JobComplete && condition.Status == corev1.ConditionTrue {
+			phase = "Succeeded"
+			completionTime = &condition.LastTransitionTime
+			break
+		}
+		if condition.Type == batchv1.JobFailed && condition.Status == corev1.ConditionTrue {
+			phase = "Failed"
+			failureReason = condition.Message
+			completionTime = &condition.LastTransitionTime
+			break
+		}
+	}
+
+	// Check if job is still running by looking at active pods
+	if phase == "Running" && job.Status.Active == 0 && job.Status.Succeeded == 0 && job.Status.Failed == 0 {
+		phase = "Pending"
+	}
+
+	response := gin.H{
+		"jobName":   jobName,
+		"namespace": namespace,
+		"phase":     phase,
+		"startTime": job.Status.StartTime,
+		"active":    job.Status.Active,
+		"succeeded": job.Status.Succeeded,
+		"failed":    job.Status.Failed,
+	}
+
+	if completionTime != nil {
+		response["completionTime"] = completionTime
+	}
+
+	if failureReason != "" {
+		response["failureReason"] = failureReason
+	}
+
+	// Add conditions for detailed status
+	response["conditions"] = job.Status.Conditions
+
+	c.JSON(http.StatusOK, response)
+}
+
+// BootstrapLogs returns the logs of a monitoring bootstrap job
+func BootstrapLogs(c *gin.Context) {
+	cs, ok := util.ClientsetFromContext(c)
+	if !ok {
+		return
+	}
+
+	jobName := c.Query("jobName")
+    // 安装 Job 位于安装器命名空间，默认 polardbx-operator-system
+    namespace := util.DefaultNamespace(c, "polardbx-operator-system")
+	tailLines := int64(100) // Default to last 100 lines
+
+	if jobName == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "jobName parameter is required"})
+		return
+	}
+
+	if tailParam := c.Query("tailLines"); tailParam != "" {
+		if parsed, err := strconv.ParseInt(tailParam, 10, 64); err == nil && parsed > 0 {
+			tailLines = parsed
+		}
+	}
+
+	// List pods created by this job
+	pods, err := cs.CoreV1().Pods(namespace).List(c.Request.Context(), metav1.ListOptions{
+		LabelSelector: fmt.Sprintf("job-name=%s", jobName),
+	})
+	if err != nil {
+		util.HandleK8sError(c, "failed to list job pods", err)
+		return
+	}
+
+	if len(pods.Items) == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "no pods found for job", "jobName": jobName})
+		return
+	}
+
+	// Get logs from the first pod (usually there's only one for our jobs)
+	pod := pods.Items[0]
+
+	logOptions := &corev1.PodLogOptions{
+		TailLines: &tailLines,
+	}
+
+	// If pod has multiple containers, get logs from the first one
+	if len(pod.Spec.Containers) > 0 {
+		logOptions.Container = pod.Spec.Containers[0].Name
+	}
+
+	logReq := cs.CoreV1().Pods(namespace).GetLogs(pod.Name, logOptions)
+	rc, err := logReq.Stream(c.Request.Context())
+	if err != nil {
+		util.HandleK8sError(c, "failed to get pod logs", err)
+		return
+	}
+	defer rc.Close()
+
+	logs, err := io.ReadAll(rc)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to read logs", "details": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"jobName":   jobName,
+		"namespace": namespace,
+		"podName":   pod.Name,
+		"logs":      string(logs),
+		"tailLines": tailLines,
 	})
 }
