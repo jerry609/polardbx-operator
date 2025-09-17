@@ -217,19 +217,16 @@
 
   .loading-container {
     display: flex;
-    flex-direction: column;
-    align-items: center;
     justify-content: center;
-    padding: 48px;
-    
-    mat-progress-spinner {
-      margin-bottom: 16px;
-    }
-    
-    p {
-      color: rgba(0, 0, 0, 0.6);
-      font-size: 14px;
-    }
+    align-items: center;
+    padding: 80px 0;
+  }
+
+  .loading-tip {
+    margin-top: 12px;
+    text-align: center;
+    color: rgba(0,0,0,0.65);
+    letter-spacing: 0.5px;
   }
 
   // Menu styles

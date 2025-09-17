@@ -502,10 +502,9 @@ import {
 
     <!-- 加载模板 -->
     <ng-template #loadingTemplate>
-      <div class="loading-container">
-        <nz-spin nzSimple></nz-spin>
-        <p>正在加载日志采集器...</p>
-      </div>
+      <nz-spin [nzSpinning]="true">
+        <div class="loading-tip">正在加载日志采集器...</div>
+      </nz-spin>
     </ng-template>
 
     <!-- 详情对话框模板 -->

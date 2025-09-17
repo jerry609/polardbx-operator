@@ -78,7 +78,9 @@ import { forkJoin, of } from 'rxjs';
         </nz-card>
 
         <div *ngIf="loading" class="loading-container">
-          <nz-spin nzSize="large" nzTip="正在执行检查..."></nz-spin>
+          <nz-spin nzSize="large">
+            <div class="loading-tip">正在执行检查...</div>
+          </nz-spin>
         </div>
 
         <div *ngIf="!loading && checklist.length" class="results-section">
@@ -203,7 +205,14 @@ import { forkJoin, of } from 'rxjs';
       display: flex;
       justify-content: center;
       align-items: center;
-      padding: 40px 0;
+      padding: 80px 0;
+    }
+
+    .loading-tip {
+      margin-top: 12px;
+      text-align: center;
+      color: rgba(0,0,0,0.65);
+      letter-spacing: 0.5px;
     }
     
     .results-section {

@@ -79,12 +79,13 @@ import { Router } from '@angular/router';
           </ng-template>
 
           <div class="check-section">
-            <nz-spin [nzSpinning]="checking" nzTip="正在检查环境...">
+            <nz-spin [nzSpinning]="checking">
+              <div class="loading-tip" *ngIf="checking">正在检查环境...</div>
               <div class="check-items">
                 <div class="check-item" *ngFor="let check of environmentChecks">
                   <div class="check-info">
                     <span class="check-status">
-                      <i nz-icon [nzType]="check.status === 'success' ? 'check-circle' : check.status === 'error' ? 'close-circle' : 'clock-circle'" 
+                      <i nz-icon [nzType]="check.status === 'success' ? 'check-circle' : check.status === 'error' ? 'close-circle' : 'clock-circle'"
                          [style.color]="check.status === 'success' ? '#52c41a' : check.status === 'error' ? '#ff4d4f' : '#faad14'"></i>
                     </span>
                     <span class="check-name">{{ check.name }}</span>
@@ -434,6 +435,14 @@ import { Router } from '@angular/router';
 
     .check-section {
       padding: 16px 0;
+    }
+
+    .loading-tip {
+      text-align: center;
+      color: rgba(0,0,0,0.65);
+      letter-spacing: 0.5px;
+      padding: 20px 0;
+      font-size: 14px;
     }
 
     .check-items {

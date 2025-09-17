@@ -35,7 +35,9 @@ import { ApiService } from '../../services/api.service';
         </nz-card>
 
         <div *ngIf="loading" class="loading-container">
-          <nz-spin nzSize="large" nzTip="正在检查组件状态..."></nz-spin>
+          <nz-spin nzSize="large">
+            <div class="loading-tip">正在检查组件状态...</div>
+          </nz-spin>
         </div>
 
         <nz-card class="table-card" nzTitle="组件状态" *ngIf="!loading">
@@ -131,6 +133,13 @@ import { ApiService } from '../../services/api.service';
       justify-content: center;
       align-items: center;
       padding: 80px 0;
+    }
+
+    .loading-tip {
+      margin-top: 12px;
+      text-align: center;
+      color: rgba(0,0,0,0.65);
+      letter-spacing: 0.5px;
     }
     
     .detail-text {

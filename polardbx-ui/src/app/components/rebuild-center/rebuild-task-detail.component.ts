@@ -64,8 +64,8 @@ import { XStoreFollower } from '../../models/xstore-follower.model';
 
       <!-- 加载状态（仅在未拿到task前显示） -->
       <div class="loading-wrapper" *ngIf="loading && !task">
-        <nz-spin nzSize="large" nzTip="正在加载任务详情...">
-          <div class="loading-content"></div>
+        <nz-spin nzSize="large">
+          <div class="loading-tip">正在加载任务详情...</div>
         </nz-spin>
       </div>
 

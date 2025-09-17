@@ -14,10 +14,10 @@ import (
 	"polardbx-ui-backend/pkg/api/util"
 
 	"github.com/gin-gonic/gin"
-    batchv1 "k8s.io/api/batch/v1"
 	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
-    apierrors "k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -40,80 +40,80 @@ func Bootstrap(c *gin.Context) {
 	if r.NS == "" {
 		r.NS = "polardbx-operator-system"
 	}
-    // Persist plan (idempotent)
-    cm := corev1.ConfigMap{}
-    key := client.ObjectKey{Namespace: r.NS, Name: "polardbx-monitoring-plan"}
-    if err := cli.Get(c.Request.Context(), key, &cm); err != nil {
-        cm = corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: r.NS, Name: "polardbx-monitoring-plan"}, Data: map[string]string{}}
-        _ = cli.Create(c.Request.Context(), &cm)
-    }
-    if cm.Data == nil {
-        cm.Data = map[string]string{}
-    }
-    cm.Data["mode"] = r.Mode
-    cm.Data["releaseName"] = r.Name
-    cm.Data["dryRun"] = map[bool]string{true: "true", false: "false"}[r.Dry]
-    _ = cli.Update(c.Request.Context(), &cm)
+	// Persist plan (idempotent)
+	cm := corev1.ConfigMap{}
+	key := client.ObjectKey{Namespace: r.NS, Name: "polardbx-monitoring-plan"}
+	if err := cli.Get(c.Request.Context(), key, &cm); err != nil {
+		cm = corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: r.NS, Name: "polardbx-monitoring-plan"}, Data: map[string]string{}}
+		_ = cli.Create(c.Request.Context(), &cm)
+	}
+	if cm.Data == nil {
+		cm.Data = map[string]string{}
+	}
+	cm.Data["mode"] = r.Mode
+	cm.Data["releaseName"] = r.Name
+	cm.Data["dryRun"] = map[bool]string{true: "true", false: "false"}[r.Dry]
+	_ = cli.Update(c.Request.Context(), &cm)
 
-    // If dry-run, just accept
-    if r.Dry {
-        c.JSON(http.StatusAccepted, gin.H{"message": "monitoring bootstrap accepted (dry-run)", "namespace": r.NS, "mode": r.Mode, "releaseName": r.Name, "dryRun": r.Dry})
-        return
-    }
+	// If dry-run, just accept
+	if r.Dry {
+		c.JSON(http.StatusAccepted, gin.H{"message": "monitoring bootstrap accepted (dry-run)", "namespace": r.NS, "mode": r.Mode, "releaseName": r.Name, "dryRun": r.Dry})
+		return
+	}
 
-    // Ensure target monitoring namespace exists
-    monitorNS := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "polardbx-monitor"}}
-    if err := cli.Create(c.Request.Context(), monitorNS); err != nil && !apierrors.IsAlreadyExists(err) {
-        c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create namespace polardbx-monitor", "details": err.Error()})
-        return
-    }
+	// Ensure target monitoring namespace exists
+	monitorNS := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "polardbx-monitor"}}
+	if err := cli.Create(c.Request.Context(), monitorNS); err != nil && !apierrors.IsAlreadyExists(err) {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create namespace polardbx-monitor", "details": err.Error()})
+		return
+	}
 
-    // Create a short-lived Job to run helm install inside cluster
-    // Note: requires the Job's ServiceAccount to have sufficient RBAC to install chart resources
-    jobName := fmt.Sprintf("polardbx-monitor-bootstrap-%d", time.Now().Unix())
-    command := strings.Join([]string{
-        "set -e",
-        "helm version || (echo 'helm not found in image' && exit 1)",
-        "helm repo add polardbx https://polardbx-charts.oss-cn-beijing.aliyuncs.com || true",
-        "helm repo update",
-        "helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace polardbx-monitor --create-namespace",
-    }, " && ")
+	// Create a short-lived Job to run helm install inside cluster
+	// Note: requires the Job's ServiceAccount to have sufficient RBAC to install chart resources
+	jobName := fmt.Sprintf("polardbx-monitor-bootstrap-%d", time.Now().Unix())
+	command := strings.Join([]string{
+		"set -e",
+		"helm version || (echo 'helm not found in image' && exit 1)",
+		"helm repo add polardbx https://polardbx-charts.oss-cn-beijing.aliyuncs.com || true",
+		"helm repo update",
+		"helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace polardbx-monitor --create-namespace",
+	}, " && ")
 
-    backoff := int32(0)
-    ttl := int32(600)
-    job := &batchv1.Job{
-        ObjectMeta: metav1.ObjectMeta{Namespace: r.NS, Name: jobName},
-        Spec: batchv1.JobSpec{
-            BackoffLimit:            &backoff,
-            TTLSecondsAfterFinished: &ttl,
-            Template: corev1.PodTemplateSpec{
-                Spec: corev1.PodSpec{
-                    RestartPolicy:                 corev1.RestartPolicyNever,
-                    AutomountServiceAccountToken:  func(b bool) *bool { return &b }(true),
-                    Containers: []corev1.Container{{
-                        Name:            "helm",
-                        Image:           "alpine/helm:3.12.3",
-                        ImagePullPolicy: corev1.PullIfNotPresent,
-                        Command:         []string{"sh", "-c", command},
-                    }},
-                },
-            },
-        },
-    }
-    if err := cli.Create(c.Request.Context(), job); err != nil {
-        c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create helm install job", "details": err.Error()})
-        return
-    }
+	backoff := int32(0)
+	ttl := int32(600)
+	job := &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{Namespace: r.NS, Name: jobName},
+		Spec: batchv1.JobSpec{
+			BackoffLimit:            &backoff,
+			TTLSecondsAfterFinished: &ttl,
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					RestartPolicy:                corev1.RestartPolicyNever,
+					AutomountServiceAccountToken: func(b bool) *bool { return &b }(true),
+					Containers: []corev1.Container{{
+						Name:            "helm",
+						Image:           "alpine/helm:3.12.3",
+						ImagePullPolicy: corev1.PullIfNotPresent,
+						Command:         []string{"sh", "-c", command},
+					}},
+				},
+			},
+		},
+	}
+	if err := cli.Create(c.Request.Context(), job); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create helm install job", "details": err.Error()})
+		return
+	}
 
-    c.JSON(http.StatusAccepted, gin.H{
-        "message":      "monitoring bootstrap started",
-        "namespace":    r.NS,
-        "targetNs":     "polardbx-monitor",
-        "mode":         r.Mode,
-        "releaseName":  r.Name,
-        "jobName":      jobName,
-        "instructions": "Use kubectl logs -n " + r.NS + " job/" + jobName + " to see progress",
-    })
+	c.JSON(http.StatusAccepted, gin.H{
+		"message":      "monitoring bootstrap started",
+		"namespace":    r.NS,
+		"targetNs":     "polardbx-monitor",
+		"mode":         r.Mode,
+		"releaseName":  r.Name,
+		"jobName":      jobName,
+		"instructions": "Use kubectl logs -n " + r.NS + " job/" + jobName + " to see progress",
+	})
 }
 
 // Status summarizes discovered components readiness.

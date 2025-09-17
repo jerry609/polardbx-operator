@@ -330,7 +330,9 @@ import {
     <!-- 加载模板 -->
     <ng-template #loadingTemplate>
       <div class="loading-container">
-        <nz-spin nzSize="large" nzTip="正在加载监控配置..."></nz-spin>
+        <nz-spin nzSize="large">
+          <div class="loading-tip">正在加载监控配置...</div>
+        </nz-spin>
       </div>
     </ng-template>
   `,

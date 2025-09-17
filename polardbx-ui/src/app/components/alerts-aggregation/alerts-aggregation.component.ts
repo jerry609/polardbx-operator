@@ -109,7 +109,9 @@ import { ApiService } from '../../services/api.service';
           </ng-template>
 
           <div *ngIf="loading" class="loading-container">
-            <nz-spin nzSize="large" nzTip="正在查询告警信息..."></nz-spin>
+            <nz-spin nzSize="large">
+              <div class="loading-tip">正在查询告警信息...</div>
+            </nz-spin>
           </div>
 
           <nz-table #alertsTable [nzData]="items" nzSize="middle" [nzShowPagination]="true" [nzPageSize]="20" 
@@ -270,6 +272,13 @@ import { ApiService } from '../../services/api.service';
       justify-content: center;
       align-items: center;
       padding: 80px 0;
+    }
+
+    .loading-tip {
+      margin-top: 12px;
+      text-align: center;
+      color: rgba(0,0,0,0.65);
+      letter-spacing: 0.5px;
     }
     
     .timestamp {

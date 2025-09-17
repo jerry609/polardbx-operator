@@ -10,10 +10,10 @@ import (
 	"polardbx-ui-backend/pkg/api/util"
 
 	"github.com/gin-gonic/gin"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-    apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/dynamic"
 	"sigs.k8s.io/yaml"
 )
@@ -67,16 +67,16 @@ func List(c *gin.Context) {
 	defer cancel()
 
 	// List PrometheusRule resources
-    list, err := cli.Resource(prometheusRuleGVR).Namespace(namespace).List(ctx, metav1.ListOptions{})
-    if err != nil {
-        // 当命名空间不存在或资源未安装时，返回空列表 200
-        if apierrors.IsNotFound(err) {
-            c.JSON(http.StatusOK, []PrometheusRule{})
-            return
-        }
-        util.HandleK8sError(c, "failed to list PrometheusRules", err)
-        return
-    }
+	list, err := cli.Resource(prometheusRuleGVR).Namespace(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		// 当命名空间不存在或资源未安装时，返回空列表 200
+		if apierrors.IsNotFound(err) {
+			c.JSON(http.StatusOK, []PrometheusRule{})
+			return
+		}
+		util.HandleK8sError(c, "failed to list PrometheusRules", err)
+		return
+	}
 
 	var rules []PrometheusRule
 	for _, item := range list.Items {
@@ -194,15 +194,15 @@ func GetYAML(c *gin.Context) {
 	defer cancel()
 
 	// Get the specific PrometheusRule
-    obj, err := cli.Resource(prometheusRuleGVR).Namespace(namespace).Get(ctx, name, metav1.GetOptions{})
-    if err != nil {
-        if apierrors.IsNotFound(err) {
-            c.JSON(http.StatusNotFound, gin.H{"error": "PrometheusRule not found", "namespace": namespace, "name": name})
-            return
-        }
-        util.HandleK8sError(c, "failed to get PrometheusRule", err)
-        return
-    }
+	obj, err := cli.Resource(prometheusRuleGVR).Namespace(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "PrometheusRule not found", "namespace": namespace, "name": name})
+			return
+		}
+		util.HandleK8sError(c, "failed to get PrometheusRule", err)
+		return
+	}
 
 	// Convert to YAML
 	yamlBytes, err := yaml.Marshal(obj.Object)

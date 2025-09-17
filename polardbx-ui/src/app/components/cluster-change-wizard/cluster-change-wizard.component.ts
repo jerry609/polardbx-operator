@@ -225,7 +225,8 @@ const CheckRouteMap: Record<string, { route?: string; allow?: OperationType[]; n
         </div>
 
         <div class="step-body" *ngIf="currentStep === 3">
-          <nz-spin [nzSpinning]="impactLoading" nzTip="正在评估影响...">
+          <nz-spin [nzSpinning]="impactLoading">
+            <div class="loading-tip" *ngIf="impactLoading">正在评估影响...</div>
             <nz-alert [nzType]="impactPass ? 'success' : (impactHasError ? 'error' : 'warning')" nzShowIcon
               [nzMessage]="impactPass ? '评估通过' : (impactHasError ? '存在阻断项' : '存在警告项')"
               [nzDescription]="impactDescription">
@@ -255,7 +256,8 @@ const CheckRouteMap: Record<string, { route?: string; allow?: OperationType[]; n
         </div>
 
         <div class="step-body" *ngIf="currentStep === 4">
-          <nz-spin [nzSpinning]="executing" nzTip="正在执行变更...">
+          <nz-spin [nzSpinning]="executing">
+            <div class="loading-tip" *ngIf="executing">正在执行变更...</div>
             <div class="execute" *ngIf="!executed">
               <button nz-button nzType="primary" (click)="startExecute()" [disabled]="!opType">
                 <i nz-icon nzType="play-circle"></i>
@@ -307,6 +309,7 @@ const CheckRouteMap: Record<string, { route?: string; allow?: OperationType[]; n
     .impact-msg { color: rgba(0,0,0,.65); }
     .logs pre { background: #0b1021; color: #e6e6e6; padding: 12px; border-radius: 6px; min-height: 140px; }
     .ack { margin-left: auto; color: #faad14; }
+    .loading-tip { text-align: center; color: rgba(0,0,0,0.65); letter-spacing: 0.5px; padding: 20px 0; font-size: 14px; }
   `]
 })
 export class ClusterChangeWizardComponent implements OnInit {

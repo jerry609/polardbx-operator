@@ -162,13 +162,14 @@ interface PreflightCheck {
           </nz-alert>
 
           <div class="preflight-section">
-            <nz-spin [nzSpinning]="runningPreflight" nzTip="正在检查环境...">
+            <nz-spin [nzSpinning]="runningPreflight">
+              <div class="loading-tip" *ngIf="runningPreflight">正在检查环境...</div>
               <div class="check-items">
                 <div class="check-item" *ngFor="let check of preflightChecks">
                   <div class="check-info">
                     <span class="check-status">
-                      <i nz-icon 
-                        [nzType]="getCheckIcon(check.status)" 
+                      <i nz-icon
+                        [nzType]="getCheckIcon(check.status)"
                         [style.color]="getCheckColor(check.status)">
                       </i>
                     </span>
@@ -452,6 +453,14 @@ interface PreflightCheck {
 
     .preflight-section {
       padding: 16px 0;
+    }
+
+    .loading-tip {
+      text-align: center;
+      color: rgba(0,0,0,0.65);
+      letter-spacing: 0.5px;
+      padding: 20px 0;
+      font-size: 14px;
     }
 
     .check-items {
