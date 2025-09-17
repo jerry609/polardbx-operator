@@ -1,6 +1,7 @@
-import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, ViewChild, TemplateRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef, ViewChild, TemplateRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { NzFormModule } from 'ng-zorro-antd/form';
 import { NzInputModule } from 'ng-zorro-antd/input';
@@ -18,6 +19,7 @@ import { NzModalModule, NzModalService } from 'ng-zorro-antd/modal';
 import { WizardShellComponent, WizardStep, WizardAction } from '../wizard-shell/wizard-shell.component';
 import { YamlPreviewComponent } from '../yaml-preview/yaml-preview.component';
 import { ApiService } from '../../services/api.service';
+import { GlobalInstallProgressService } from '../../services/global-install-progress.service';
 
 interface PreflightCheck {
   name: string;
@@ -27,12 +29,29 @@ interface PreflightCheck {
   command?: string;
 }
 
+interface WizardState {
+  version: number;
+  currentStep: number;
+  formValues: any;
+  preflightChecks?: PreflightCheck[];
+  generatedYaml?: string;
+  applyResult?: { success: boolean; message: string; failureReason?: string } | null;
+  installJob?: { jobName: string; namespace: string; targetNs?: string; instructions?: string } | null;
+  timestamp: number;
+  lastUpdated: number;
+}
+
+const STORAGE_KEY = 'polardbx.monitoring.enableWizard.state';
+const STATE_VERSION = 1;
+const MAX_STATE_AGE_HOURS = 24;
+
 @Component({
   selector: 'app-monitoring-enable-wizard',
   standalone: true,
   imports: [
     CommonModule,
     ReactiveFormsModule,
+    FormsModule,
     NzFormModule,
     NzInputModule,
     NzSelectModule,
@@ -78,6 +97,19 @@ interface PreflightCheck {
             <nz-row [nzGutter]="16">
               <nz-col [nzSpan]="12">
                 <nz-form-item>
+                  <nz-form-label [nzSpan]="6" nzRequired>安装模式</nz-form-label>
+                  <nz-form-control [nzSpan]="18">
+                    <nz-select 
+                      formControlName="installMode"
+                      nzPlaceholder="选择安装模式">
+                      <nz-option nzValue="stack" nzLabel="仅安装监控组件 (Prometheus/Grafana)"></nz-option>
+                      <nz-option nzValue="target" nzLabel="安装并为目标启用采集 (生成CRD)"></nz-option>
+                    </nz-select>
+                  </nz-form-control>
+                </nz-form-item>
+              </nz-col>
+              <nz-col [nzSpan]="12">
+                <nz-form-item>
                   <nz-form-label [nzSpan]="6" nzRequired>监控类型</nz-form-label>
                   <nz-form-control [nzSpan]="18">
                     <nz-select 
@@ -109,7 +141,7 @@ interface PreflightCheck {
               </nz-col>
             </nz-row>
 
-            <nz-row [nzGutter]="16" *ngIf="form.value.monitoringType">
+            <nz-row [nzGutter]="16" *ngIf="form.value.monitoringType && form.value.installMode === 'target'">
               <nz-col [nzSpan]="12">
                 <nz-form-item>
                   <nz-form-label [nzSpan]="6" nzRequired>{{ getTargetLabel() }}</nz-form-label>
@@ -340,6 +372,16 @@ interface PreflightCheck {
                       复制命令
                     </button>
                   </div>
+              <div style="margin-top:8px; display:flex; align-items:center; gap:8px;">
+                <span style="color: rgba(0,0,0,0.65);">Tail 行数:</span>
+                <nz-select
+                  [ngModel]="tailLines"
+                  (ngModelChange)="tailLines = $event"
+                  nzSize="small"
+                  style="width: 100px;">
+                  <nz-option *ngFor="let n of tailOptions" [nzValue]="n" [nzLabel]="n"></nz-option>
+                </nz-select>
+              </div>
                 </div>
 
                 <div class="kubectl-command" style="margin-top: 12px;">
@@ -377,7 +419,15 @@ interface PreflightCheck {
             <div nz-result-extra *ngIf="applyResult && !applyResult.success">
               <button nz-button nzType="primary" (click)="retryApply()">
                 <i nz-icon nzType="reload"></i>
-                重试
+                重试安装
+              </button>
+              <button
+                nz-button
+                nzType="default"
+                (click)="viewInstallLogs()"
+                *ngIf="installJob?.jobName">
+                <i nz-icon nzType="file-text"></i>
+                查看日志
               </button>
               <button nz-button nzType="default" (click)="goToPrevStep()">
                 <i nz-icon nzType="left"></i>
@@ -619,7 +669,7 @@ interface PreflightCheck {
     }
   `]
 })
-export class MonitoringEnableWizardComponent implements OnInit {
+export class MonitoringEnableWizardComponent implements OnInit, OnDestroy {
   @ViewChild('step1Template', { read: TemplateRef }) step1Template!: TemplateRef<any>;
   @ViewChild('step2Template', { read: TemplateRef }) step2Template!: TemplateRef<any>;
   @ViewChild('step3Template', { read: TemplateRef }) step3Template!: TemplateRef<any>;
@@ -644,7 +694,7 @@ export class MonitoringEnableWizardComponent implements OnInit {
   generatedYaml = '';
 
   // 应用结果
-  applyResult: { success: boolean; message: string } | null = null;
+  applyResult: { success: boolean; message: string; failureReason?: string } | null = null;
   installJob: { jobName: string; namespace: string; targetNs?: string; instructions?: string } | null = null;
 
   wizardSteps: WizardStep[] = [];
@@ -655,9 +705,11 @@ export class MonitoringEnableWizardComponent implements OnInit {
     private message: NzMessageService,
     private modal: NzModalService,
     private router: Router,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private globalProgress: GlobalInstallProgressService
   ) {
     this.form = this.fb.group({
+      installMode: ['stack', Validators.required],
       monitoringType: ['enterprise', Validators.required],
       namespace: ['polardbx-monitor', Validators.required],
       targetName: ['', Validators.required],
@@ -668,10 +720,15 @@ export class MonitoringEnableWizardComponent implements OnInit {
     });
   }
 
+  // 日志 tail 行数设置（默认 200）
+  tailLines = 200;
+  readonly tailOptions = [100, 200, 500];
+
   ngOnInit(): void {
     this.initializeWizardSteps();
     this.loadNamespaces();
     this.setupFormWatchers();
+    this.tryRestoreState();
   }
 
   private initializeWizardSteps(): void {
@@ -699,6 +756,19 @@ export class MonitoringEnableWizardComponent implements OnInit {
     // 监听监控类型变化
     this.form.get('monitoringType')?.valueChanges.subscribe(() => {
       this.loadTargets();
+    });
+
+    // 监听安装模式变化，动态控制 targetName 校验
+    this.form.get('installMode')?.valueChanges.subscribe((mode) => {
+      const targetCtrl = this.form.get('targetName');
+      if (mode === 'target') {
+        targetCtrl?.addValidators(Validators.required);
+      } else {
+        targetCtrl?.clearValidators();
+        this.form.patchValue({ targetName: '', monitorName: '', selectorLabels: '' });
+      }
+      targetCtrl?.updateValueAndValidity({ emitEvent: false });
+      this.cdr.markForCheck();
     });
 
     // 监听命名空间变化
@@ -835,7 +905,7 @@ export class MonitoringEnableWizardComponent implements OnInit {
           text: '下一步：环境检测',
           type: 'primary',
           icon: 'right',
-          disabled: !this.form.valid,
+          disabled: !this.isStep1Valid(),
           handler: () => this.nextStep()
         });
         break;
@@ -876,7 +946,7 @@ export class MonitoringEnableWizardComponent implements OnInit {
           text: '下一步：应用配置',
           type: 'primary',
           icon: 'right',
-          disabled: !this.generatedYaml,
+          disabled: this.form.value.installMode === 'target' ? !this.generatedYaml : false,
           handler: () => this.nextStep()
         });
         break;
@@ -902,10 +972,19 @@ export class MonitoringEnableWizardComponent implements OnInit {
     return actions;
   }
 
+  private isStep1Valid(): boolean {
+    const v = this.form.value;
+    if (!v.namespace || !v.monitoringType) return false;
+    if (v.installMode === 'target') {
+      return !!v.targetName;
+    }
+    return true;
+  }
+
   nextStep(): void {
     if (this.currentStep < this.wizardSteps.length - 1) {
       this.currentStep++;
-      
+
       // 进入特定步骤时的自动操作
       switch (this.currentStep) {
         case 1: // 进入前置检测
@@ -915,7 +994,8 @@ export class MonitoringEnableWizardComponent implements OnInit {
           this.generateYaml();
           break;
       }
-      
+
+      this.saveState(); // 保存状态
       this.cdr.markForCheck();
     }
   }
@@ -1020,6 +1100,16 @@ export class MonitoringEnableWizardComponent implements OnInit {
     const config = this.form.value;
     let yaml = '';
     
+    if (config.installMode !== 'target') {
+      // 仅安装监控组件时不生成 CRD YAML
+      setTimeout(() => {
+        this.generatedYaml = '';
+        this.generatingYaml = false;
+        this.cdr.markForCheck();
+      }, 300);
+      return;
+    }
+
     if (config.monitoringType === 'enterprise') {
       yaml = `apiVersion: polardbx.aliyun.com/v1
 kind: PolarDBXMonitor
@@ -1096,10 +1186,18 @@ spec:
       next: (res: any) => {
         const jobName = res?.jobName || 'polardbx-monitor-bootstrap';
         const ns = res?.namespace || 'polardbx-operator-system';
-        this.installJob = { jobName, namespace: ns, targetNs: res?.targetNs, instructions: res?.instructions };
+        const targetNs = res?.targetNs;
+        this.installJob = { jobName, namespace: ns, targetNs, instructions: res?.instructions };
         this.applyResult = { success: true, message: '安装任务已创建，请查看 Job 日志以跟踪进度' };
         this.stepLoading = false;
         this.message.success('已启动监控安装任务');
+
+        // 报告到全局进度服务
+        this.globalProgress.reportMonitoringInstall(jobName, ns, targetNs);
+
+        // 启动状态轮询
+        this.startJobStatusPolling();
+        this.saveState(); // 保存状态
         this.cdr.markForCheck();
       },
       error: (error: any) => {
@@ -1107,6 +1205,7 @@ spec:
         this.applyResult = { success: false, message: msg };
         this.stepLoading = false;
         this.message.error('监控安装失败: ' + msg);
+        this.saveState(); // 即使失败也保存状态
         this.cdr.markForCheck();
       }
     });
@@ -1138,7 +1237,7 @@ spec:
   }
 
   copyJobLogsCommand(): void {
-    const cmd = this.getJobLogsCommand();
+    const cmd = `${this.getJobLogsCommand()} --tail=${this.tailLines}`;
     navigator.clipboard.writeText(cmd).then(() => this.message.success('命令已复制到剪贴板'));
   }
 
@@ -1149,6 +1248,73 @@ spec:
   copyPodsCheckCommand(): void {
     const cmd = this.getPodsCheckCommand();
     navigator.clipboard.writeText(cmd).then(() => this.message.success('命令已复制到剪贴板'));
+  }
+
+  viewInstallLogs(): void {
+    if (!this.installJob?.jobName) return;
+
+    // 创建一个简单的内联日志查看器
+    const logViewer = `
+      <div style="padding: 16px;">
+        <nz-alert
+          nzType="info"
+          nzMessage="查看安装日志"
+          nzDescription="使用以下命令查看详细的安装日志"
+          nzShowIcon
+          style="margin-bottom: 16px;">
+        </nz-alert>
+
+        <div style="background: #f6f8fa; border: 1px solid #e1e4e8; border-radius: 6px; padding: 12px; margin-bottom: 16px;">
+          <div style="font-family: monospace; font-size: 13px; word-break: break-all;">
+            kubectl logs -n ${this.installJob.namespace} job/${this.installJob.jobName} --follow
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 8px;">
+          <button nz-button nzType="primary" id="copy-logs-cmd">
+            <i nz-icon nzType="copy"></i> 复制命令
+          </button>
+          <button nz-button nzType="default" id="refresh-status">
+            <i nz-icon nzType="sync"></i> 刷新状态
+          </button>
+        </div>
+      </div>
+    `;
+
+    const modal = this.modal.create({
+      nzTitle: '安装日志',
+      nzContent: logViewer,
+      nzWidth: 600,
+      nzFooter: [
+        {
+          label: '关闭',
+          type: 'default',
+          onClick: () => modal.destroy()
+        }
+      ]
+    });
+
+    // 绑定按钮事件
+    modal.afterOpen.subscribe(() => {
+      const copyBtn = document.getElementById('copy-logs-cmd');
+      const refreshBtn = document.getElementById('refresh-status');
+
+      if (copyBtn) {
+        copyBtn.onclick = () => {
+          const cmd = `kubectl logs -n ${this.installJob?.namespace} job/${this.installJob?.jobName} --follow --tail=${this.tailLines}`;
+          navigator.clipboard.writeText(cmd).then(() => {
+            this.message.success('命令已复制到剪贴板');
+          });
+        };
+      }
+
+      if (refreshBtn) {
+        refreshBtn.onclick = () => {
+          this.checkJobStatus();
+          this.message.info('正在刷新状态...');
+        };
+      }
+    });
   }
 
   goToMonitoring(): void {
@@ -1164,6 +1330,239 @@ spec:
   }
 
   finish(): void {
+    this.clearSavedState();
     this.router.navigate(['/operations/monitoring']);
+  }
+
+  // ==================== localStorage 持久化功能 ====================
+
+  private saveState(): void {
+    try {
+      // 裁剪冗余字段以减小存储体积
+      const compactFormValues = {
+        monitoringType: this.form.value.monitoringType,
+        namespace: this.form.value.namespace,
+        targetName: this.form.value.targetName,
+        monitorName: this.form.value.monitorName,
+        scrapeInterval: this.form.value.scrapeInterval,
+        scrapeTimeout: this.form.value.scrapeTimeout
+      };
+
+      const state: WizardState = {
+        version: STATE_VERSION,
+        currentStep: this.currentStep,
+        formValues: compactFormValues,
+        preflightChecks: this.preflightChecks,
+        generatedYaml: this.generatedYaml,
+        applyResult: this.applyResult,
+        installJob: this.installJob,
+        timestamp: Date.now(),
+        lastUpdated: Date.now()
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch (error) {
+      console.warn('保存向导状态失败:', error);
+    }
+  }
+
+  private tryRestoreState(): void {
+    try {
+      const savedData = localStorage.getItem(STORAGE_KEY);
+      if (!savedData) return;
+
+      const state: WizardState = JSON.parse(savedData);
+
+      // 版本校验
+      if (!state.version || state.version !== STATE_VERSION) {
+        console.log('状态版本不匹配，清除旧状态');
+        this.clearSavedState();
+        return;
+      }
+
+      // 检查状态是否太旧
+      const hoursOld = (Date.now() - (state.lastUpdated || state.timestamp)) / (1000 * 60 * 60);
+      if (hoursOld > MAX_STATE_AGE_HOURS) {
+        console.log(`状态已过期 (${Math.round(hoursOld)}小时)，清除旧状态`);
+        this.clearSavedState();
+        return;
+      }
+
+      // 确认是否恢复状态
+      if (state.currentStep > 0 || state.installJob) {
+        this.confirmStateRestore(state);
+      }
+    } catch (error) {
+      console.warn('恢复向导状态失败:', error);
+      this.clearSavedState();
+    }
+  }
+
+  private confirmStateRestore(state: WizardState): void {
+    const hoursOld = (Date.now() - (state.lastUpdated || state.timestamp)) / (1000 * 60 * 60);
+    const timeInfo = hoursOld < 1
+      ? `${Math.round(hoursOld * 60)}分钟前`
+      : `${Math.round(hoursOld)}小时前`;
+
+    const message = state.installJob
+      ? `检测到 ${timeInfo} 的监控安装任务 (${state.installJob.jobName})，是否继续跟踪安装进度？`
+      : `检测到 ${timeInfo} 未完成的监控配置向导，是否从第 ${state.currentStep + 1} 步继续？`;
+
+    this.modal.confirm({
+      nzTitle: '恢复向导状态',
+      nzContent: message,
+      nzOkText: '继续',
+      nzCancelText: '重新开始',
+      nzOkType: 'primary',
+      nzOnOk: () => this.restoreState(state),
+      nzOnCancel: () => {
+        this.modal.confirm({
+          nzTitle: '确认清理状态',
+          nzContent: '这将永久删除保存的向导状态，确定要重新开始吗？',
+          nzOkText: '确定',
+          nzCancelText: '取消',
+          nzOkType: 'primary',
+          nzOkDanger: true,
+          nzOnOk: () => this.clearSavedState()
+        });
+      }
+    });
+  }
+
+  private restoreState(state: WizardState): void {
+    try {
+      // 恢复表单值
+      this.form.patchValue(state.formValues);
+
+      // 恢复步骤
+      this.currentStep = state.currentStep;
+
+      // 恢复其他状态
+      if (state.preflightChecks) {
+        this.preflightChecks = state.preflightChecks;
+      }
+      if (state.generatedYaml) {
+        this.generatedYaml = state.generatedYaml;
+      }
+      if (state.applyResult) {
+        this.applyResult = state.applyResult;
+      }
+      if (state.installJob) {
+        this.installJob = state.installJob;
+        // 如果有安装任务，启动状态轮询
+        this.startJobStatusPolling();
+      }
+
+      // 重新加载数据
+      this.loadTargets();
+
+      this.message.success('已恢复向导状态');
+      this.cdr.markForCheck();
+    } catch (error) {
+      console.error('状态恢复失败:', error);
+      this.message.error('状态恢复失败，请重新开始');
+      this.clearSavedState();
+    }
+  }
+
+  private clearSavedState(): void {
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch (error) {
+      console.warn('清除保存状态失败:', error);
+    }
+  }
+
+  // ==================== Job 状态轮询 ====================
+
+  private pollingInterval: any;
+  private pollingRetryCount = 0;
+  private basePollingInterval = 5000; // 5秒基础间隔
+  private maxPollingInterval = 60000; // 最大60秒间隔
+
+  private startJobStatusPolling(): void {
+    if (!this.installJob?.jobName) return;
+
+    this.stopJobStatusPolling();
+    this.pollingRetryCount = 0;
+
+    const pollWithBackoff = () => {
+      this.checkJobStatus();
+      const currentInterval = Math.min(
+        this.basePollingInterval * Math.pow(2, this.pollingRetryCount),
+        this.maxPollingInterval
+      );
+      this.pollingInterval = setTimeout(pollWithBackoff, currentInterval);
+    };
+
+    // 立即检查一次
+    pollWithBackoff();
+  }
+
+  private stopJobStatusPolling(): void {
+    if (this.pollingInterval) {
+      clearTimeout(this.pollingInterval);
+      this.pollingInterval = null;
+    }
+    this.pollingRetryCount = 0;
+  }
+
+  private checkJobStatus(): void {
+    if (!this.installJob?.jobName) return;
+
+    this.api.monitoringBootstrapStatus(this.installJob.jobName, this.installJob.namespace).subscribe({
+      next: (status: any) => {
+        this.pollingRetryCount = 0; // 重置重试计数
+        const phase = status?.phase;
+
+        if (phase === 'Succeeded') {
+          this.applyResult = { success: true, message: '监控安装已完成！' };
+          this.stopJobStatusPolling();
+          this.message.success('监控安装已完成');
+          // 成功后清理本地保存的向导状态
+          this.clearSavedState();
+        } else if (phase === 'Failed') {
+          const reason = status?.failureReason || '未知错误';
+          this.applyResult = {
+            success: false,
+            message: `安装失败: ${reason}`,
+            failureReason: reason
+          } as any;
+          this.stopJobStatusPolling();
+          this.message.error('监控安装失败');
+        }
+        // 运行中的任务继续轮询
+        this.saveState(); // 保存最新状态
+        this.cdr.markForCheck();
+      },
+      error: (error: any) => {
+        this.pollingRetryCount++;
+
+        // 404 表示 Job 不存在或已被清理
+        if (error?.status === 404) {
+          this.applyResult = {
+            success: false,
+            message: '安装任务已被清理或不存在，请重新启动安装',
+            failureReason: 'Job not found (possibly TTL cleaned)'
+          };
+          this.stopJobStatusPolling();
+          this.message.warning('安装任务不存在，可能已被系统清理');
+          this.saveState();
+          this.cdr.markForCheck();
+          return;
+        }
+
+        console.warn(`检查任务状态失败 (重试${this.pollingRetryCount}次):`, error);
+
+        // 达到最大重试次数后停止轮询
+        if (this.pollingRetryCount >= 5) {
+          this.stopJobStatusPolling();
+          this.message.warning('无法获取安装状态，请手动检查任务进度');
+        }
+      }
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.stopJobStatusPolling();
   }
 }

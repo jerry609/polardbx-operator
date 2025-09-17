@@ -27,7 +27,9 @@ func List(c *gin.Context) {
 	// from alertmanager
 	if alertmanagerURL != "" {
 		type amAlert struct {
-			Labels map[string]string `json:"labels"`
+			Labels      map[string]string `json:"labels"`
+			Annotations map[string]string `json:"annotations"`
+			StartsAt    string            `json:"startsAt"`
 		}
 		var alerts []amAlert
 		if resp, err := http.Get(alertmanagerURL + "/api/v2/alerts"); err == nil && resp.StatusCode == 200 {
@@ -35,10 +37,19 @@ func List(c *gin.Context) {
 			if err := json.NewDecoder(resp.Body).Decode(&alerts); err == nil {
 				for _, a := range alerts {
 					if (namespace == "" || a.Labels["namespace"] == namespace) && (cluster == "" || a.Labels["cluster"] == cluster) {
+						msg := a.Annotations["summary"]
+						if msg == "" {
+							msg = a.Annotations["description"]
+						}
+						if msg == "" {
+							msg = a.Labels["alertname"]
+						}
 						items = append(items, map[string]any{
-							"source":   "alertmanager",
-							"severity": a.Labels["severity"],
-							"labels":   a.Labels,
+							"source":    "alertmanager",
+							"severity":  a.Labels["severity"],
+							"labels":    a.Labels,
+							"message":   msg,
+							"timestamp": a.StartsAt,
 						})
 					}
 				}
@@ -62,16 +73,18 @@ func List(c *gin.Context) {
 				sev = "warning"
 			}
 			labels := map[string]string{
-				"namespace": ev.Namespace,
-				"cluster":   cluster,
-				"reason":    ev.Reason,
+				"namespace":      ev.Namespace,
+				"cluster":        cluster,
+				"reason":         ev.Reason,
+				"involvedObject": ev.InvolvedObject.Name,
 			}
 			items = append(items, map[string]any{
-				"source":   "k8s-event",
-				"severity": sev,
-				"message":  ev.Message,
-				"labels":   labels,
-				"time":     ev.LastTimestamp.Time.Format(time.RFC3339),
+				"source":    "k8s-event",
+				"severity":  sev,
+				"message":   ev.Message,
+				"labels":    labels,
+				"time":      ev.LastTimestamp.Time.Format(time.RFC3339),
+				"timestamp": ev.LastTimestamp.Time.Format(time.RFC3339),
 			})
 		}
 	}

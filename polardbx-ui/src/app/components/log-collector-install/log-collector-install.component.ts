@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, TemplateRef, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -19,8 +19,26 @@ import { NzStatisticModule } from 'ng-zorro-antd/statistic';
 import { NzResultModule } from 'ng-zorro-antd/result';
 import { NzDescriptionsModule } from 'ng-zorro-antd/descriptions';
 import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
-import { NzMessageService } from 'ng-zorro-antd/message';
+import { NzMessageService, NzMessageModule } from 'ng-zorro-antd/message';
+import { NzModalService, NzModalModule } from 'ng-zorro-antd/modal';
 import { ApiService } from '../../services/api.service';
+import { GlobalInstallProgressService } from '../../services/global-install-progress.service';
+import { WizardShellComponent, WizardStep, WizardAction } from '../wizard-shell/wizard-shell.component';
+
+interface LogCollectorWizardState {
+  version: number;
+  currentStep: number;
+  formValues: any;
+  environmentChecks?: any[];
+  installResult?: { success: boolean; message: string; failureReason?: string } | null;
+  installJob?: { jobName: string; namespace: string; targetNs?: string; instructions?: string } | null;
+  timestamp: number;
+  lastUpdated: number;
+}
+
+const STORAGE_KEY = 'polardbx.logs.collectorInstall.state';
+const STATE_VERSION = 1;
+const MAX_STATE_AGE_HOURS = 24;
 
 @Component({
   selector: 'app-log-collector-install',
@@ -45,30 +63,24 @@ import { ApiService } from '../../services/api.service';
     NzStatisticModule,
     NzResultModule,
     NzDescriptionsModule,
-    NzCheckboxModule
+    NzCheckboxModule,
+    NzMessageModule,
+    NzModalModule,
+    WizardShellComponent
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="wizard">
-      <div class="page-header">
-        <div class="header-content">
-          <h1 class="page-title">
-            <i nz-icon nzType="cluster" class="page-icon"></i>
-            日志采集安装向导
-          </h1>
-          <p class="page-description">一站式安装和配置 PolarDB-X LogCollector 日志采集堆栈</p>
-        </div>
-      </div>
+    <app-wizard-shell
+      title="日志采集安装向导"
+      subtitle="一站式安装和配置 PolarDB-X LogCollector 日志采集堆栈"
+      titleIcon="cluster"
+      [steps]="wizardSteps"
+      [currentStepIndex]="currentStep"
+      [actions]="getStepActions()">
 
-      <div class="page-content">
-        <nz-steps [nzCurrent]="currentStep" class="wizard-steps" nzSize="small">
-          <nz-step nzTitle="环境检查" nzDescription="检测系统环境和依赖"></nz-step>
-          <nz-step nzTitle="配置选择" nzDescription="选择安装方案和参数"></nz-step>
-          <nz-step nzTitle="安装执行" nzDescription="执行安装并监控进度"></nz-step>
-          <nz-step nzTitle="验证完成" nzDescription="验证安装结果"></nz-step>
-        </nz-steps>
-
-        <!-- 步骤1：环境检查 -->
-        <nz-card *ngIf="currentStep === 0" class="step-card" nzTitle="环境检查" [nzExtra]="checkExtra">
+      <!-- 步骤1：环境检查 -->
+      <ng-template #step1Template>
+        <nz-card class="step-card" nzTitle="环境检查" [nzExtra]="checkExtra">
           <ng-template #checkExtra>
             <button nz-button nzType="primary" nzSize="small" (click)="runEnvironmentCheck()" [nzLoading]="checking">
               <i nz-icon nzType="sync"></i>
@@ -96,19 +108,12 @@ import { ApiService } from '../../services/api.service';
               </div>
             </nz-spin>
           </div>
-
-          <div class="step-actions">
-            <button nz-button nzType="primary" 
-                    [disabled]="!allChecksPassed" 
-                    (click)="nextStep()">
-              下一步：配置选择
-              <i nz-icon nzType="right"></i>
-            </button>
-          </div>
         </nz-card>
+      </ng-template>
 
-        <!-- 步骤2：配置选择 -->
-        <nz-card *ngIf="currentStep === 1" class="step-card" nzTitle="配置选择">
+      <!-- 步骤2：配置选择 -->
+      <ng-template #step2Template>
+        <nz-card class="step-card" nzTitle="配置选择">
           <form [formGroup]="form" class="config-form">
             <div class="config-section">
               <h4>基本配置</h4>
@@ -192,21 +197,12 @@ import { ApiService } from '../../services/api.service';
               </div>
             </div>
           </form>
-
-          <div class="step-actions">
-            <button nz-button nzType="default" (click)="prevStep()">
-              <i nz-icon nzType="left"></i>
-              上一步
-            </button>
-            <button nz-button nzType="primary" (click)="nextStep()" [disabled]="!form.valid">
-              下一步：开始安装
-              <i nz-icon nzType="right"></i>
-            </button>
-          </div>
         </nz-card>
+      </ng-template>
 
-        <!-- 步骤3：安装执行 -->
-        <nz-card *ngIf="currentStep === 2" class="step-card" nzTitle="安装执行">
+      <!-- 步骤3：安装执行 -->
+      <ng-template #step3Template>
+        <nz-card class="step-card" nzTitle="安装执行">
           <div class="install-section">
             <nz-alert nzType="info" nzMessage="安装进行中" nzDescription="请勿关闭页面，安装过程可能需要几分钟时间" nzShowIcon class="install-alert"></nz-alert>
             
@@ -230,22 +226,12 @@ import { ApiService } from '../../services/api.service';
               </div>
             </div>
           </div>
-
-          <div class="step-actions">
-            <button nz-button nzType="default" (click)="cancelInstall()" [disabled]="installing">
-              取消安装
-            </button>
-            <button nz-button nzType="primary" 
-                    *ngIf="installCompleted"
-                    (click)="nextStep()">
-              下一步：验证结果
-              <i nz-icon nzType="right"></i>
-            </button>
-          </div>
         </nz-card>
+      </ng-template>
 
-        <!-- 步骤4：验证完成 -->
-        <nz-card *ngIf="currentStep === 3" class="step-card" nzTitle="验证完成">
+      <!-- 步骤4：验证完成 -->
+      <ng-template #step4Template>
+        <nz-card class="step-card" nzTitle="验证完成">
           <div class="verification-section">
             <nz-result 
               [nzStatus]="installSuccess ? 'success' : 'error'"
@@ -295,8 +281,8 @@ import { ApiService } from '../../services/api.service';
             </div>
           </div>
         </nz-card>
-      </div>
-    </div>
+      </ng-template>
+    </app-wizard-shell>
   `,
   styles: [`
     .wizard {
@@ -557,9 +543,15 @@ import { ApiService } from '../../services/api.service';
     }
   `]
 })
-export class LogCollectorInstallComponent implements OnInit {
+export class LogCollectorInstallComponent implements OnInit, OnDestroy {
+  @ViewChild('step1Template', { read: TemplateRef }) step1Template!: TemplateRef<any>;
+  @ViewChild('step2Template', { read: TemplateRef }) step2Template!: TemplateRef<any>;
+  @ViewChild('step3Template', { read: TemplateRef }) step3Template!: TemplateRef<any>;
+  @ViewChild('step4Template', { read: TemplateRef }) step4Template!: TemplateRef<any>;
+
   form: FormGroup;
   currentStep = 0;
+  wizardSteps: WizardStep[] = [];
   
   // 环境检查
   checking = false;
@@ -577,6 +569,7 @@ export class LogCollectorInstallComponent implements OnInit {
   verifyAttempts = 0;
   verifyMaxAttempts = 10;
   private verifyTimer?: any;
+  installJob: { jobName: string; namespace: string; targetNs?: string; instructions?: string } | null = null;
   
   private installStartTime?: Date;
 
@@ -609,10 +602,12 @@ export class LogCollectorInstallComponent implements OnInit {
   };
 
   constructor(
-    private fb: FormBuilder, 
-    private api: ApiService, 
+    private fb: FormBuilder,
+    private api: ApiService,
     private message: NzMessageService,
-    private router: Router
+    private modal: NzModalService,
+    private router: Router,
+    private globalProgress: GlobalInstallProgressService
   ) {
     this.form = this.fb.group({
       deploymentType: ['default'],
@@ -624,7 +619,30 @@ export class LogCollectorInstallComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.initializeWizardSteps();
+    this.tryRestoreState(); // 先尝试恢复状态
     this.runEnvironmentCheck();
+  }
+
+  private initializeWizardSteps(): void {
+    this.wizardSteps = [
+      { id: 'precheck', title: '环境检查', description: '检测系统环境和依赖' },
+      { id: 'config', title: '配置选择', description: '选择安装方案和参数' },
+      { id: 'install', title: '安装执行', description: '执行安装并监控进度' },
+      { id: 'verify', title: '验证完成', description: '验证安装结果' }
+    ];
+  }
+
+  ngAfterViewInit(): void {
+    // 挂载模板
+    this.wizardSteps[0].template = this.step1Template;
+    this.wizardSteps[1].template = this.step2Template;
+    this.wizardSteps[2].template = this.step3Template;
+    this.wizardSteps[3].template = this.step4Template;
+  }
+
+  ngOnDestroy(): void {
+    this.stopJobStatusPolling();
   }
 
   runEnvironmentCheck(): void {
@@ -710,9 +728,13 @@ export class LogCollectorInstallComponent implements OnInit {
     if (this.currentStep === 2) {
       this.currentStep++;
       this.startVerification();
+      this.saveState(); // 保存状态
       return;
     }
-    if (this.currentStep < 3) this.currentStep++;
+    if (this.currentStep < 3) {
+      this.currentStep++;
+      this.saveState(); // 保存状态
+    }
   }
 
   prevStep(): void {
@@ -728,21 +750,48 @@ export class LogCollectorInstallComponent implements OnInit {
     this.installStartTime = new Date();
     this.addLog('info', '开始安装 PolarDB-X LogCollector...');
 
-    // 快速方案：创建 PolarDBXLogCollector CR 作为安装入口
+    // 使用真实的日志收集安装 API
     const ns = this.form.value.namespace || 'polardbx-logcollector';
-    const release = 'polardbx-logcollector';
-    const spec = this.form.value.deploymentType;
-    const fileBeatName = 'filebeat-main';
-    const logStashName = 'logstash-main';
-    this.api.createLogCollector(ns, { name: release, namespace: ns, fileBeatName, logStashName }).subscribe({
-      next: () => {
-        this.addLog('success', `已创建 LogCollector CR: ${release}`);
-        // 展示进度动画并完成
+    const deployment = this.form.value.deploymentType || 'default';
+
+    const requestBody = {
+      mode: 'managed' as 'managed',
+      dryRun: false,
+      enableFilebeat: this.form.value.enableFilebeat || true,
+      enableLogstash: this.form.value.enableLogstash || true,
+      deploymentType: deployment
+    };
+
+    this.api.logsBootstrap(requestBody).subscribe({
+      next: (res: any) => {
+        const jobName = res?.jobName || 'polardbx-logs-bootstrap';
+        const jobNamespace = res?.namespace || 'polardbx-operator-system';
+        const targetNs = res?.targetNs || ns;
+
+        this.installJob = {
+          jobName,
+          namespace: jobNamespace,
+          targetNs,
+          instructions: res?.instructions
+        };
+
+        this.addLog('success', `已创建日志收集安装 Job: ${jobName}`);
+
+        // 报告到全局进度服务
+        this.globalProgress.reportLogsInstall(jobName, jobNamespace, targetNs);
+
+        // 启动状态轮询
+        this.startJobStatusPolling();
+
+        // 展示进度动画
         this.simulateInstallation();
+        this.saveState(); // 保存状态
       },
-      error: () => {
-        this.addLog('error', '创建 LogCollector 资源失败');
+      error: (error: any) => {
+        const msg = error?.error?.error || error?.error?.message || error?.message || '安装触发失败';
+        this.addLog('error', `启动安装失败: ${msg}`);
         this.completeInstallation(false);
+        this.saveState(); // 即使失败也保存状态
       }
     });
   }
@@ -778,7 +827,7 @@ export class LogCollectorInstallComponent implements OnInit {
     this.installing = false;
     this.installCompleted = true;
     this.installSuccess = success;
-    
+
     if (this.installStartTime) {
       const duration = Date.now() - this.installStartTime.getTime();
       this.installDuration = Math.round(duration / 1000) + ' 秒';
@@ -791,6 +840,8 @@ export class LogCollectorInstallComponent implements OnInit {
       this.addLog('error', '安装失败，请检查错误信息');
       this.message.error('安装过程中出现错误');
     }
+
+    this.saveState(); // 保存状态
   }
 
   private addLog(level: string, message: string): void {
@@ -815,14 +866,7 @@ export class LogCollectorInstallComponent implements OnInit {
     this.installLogs = [];
   }
 
-  restart(): void {
-    this.currentStep = 0;
-    this.installing = false;
-    this.installCompleted = false;
-    this.installSuccess = false;
-    this.installLogs = [];
-    this.runEnvironmentCheck();
-  }
+  // 注意：restart 已在文件末尾实现，这里避免重复实现
 
   goToLogsDashboard(): void {
     this.router.navigate(['/operations/logs/dashboard']);
@@ -871,6 +915,234 @@ export class LogCollectorInstallComponent implements OnInit {
         }
       });
     }, 3000);
+  }
+
+  // ==================== localStorage 持久化功能 ====================
+
+  private saveState(): void {
+    try {
+      const compactFormValues = {
+        deploymentType: this.form.value.deploymentType,
+        namespace: this.form.value.namespace,
+        enableFilebeat: this.form.value.enableFilebeat,
+        enableLogstash: this.form.value.enableLogstash,
+        enableElasticsearch: this.form.value.enableElasticsearch
+      };
+
+      const state: LogCollectorWizardState = {
+        version: STATE_VERSION,
+        currentStep: this.currentStep,
+        formValues: compactFormValues,
+        environmentChecks: this.environmentChecks,
+        installResult: {
+          success: this.installSuccess,
+          message: this.installSuccess ? '安装完成' : '安装失败'
+        },
+        installJob: this.installJob,
+        timestamp: Date.now(),
+        lastUpdated: Date.now()
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch (error) {
+      console.warn('保存日志安装向导状态失败:', error);
+    }
+  }
+
+  private tryRestoreState(): void {
+    try {
+      const savedData = localStorage.getItem(STORAGE_KEY);
+      if (!savedData) return;
+
+      const state: LogCollectorWizardState = JSON.parse(savedData);
+
+      // 版本校验
+      if (!state.version || state.version !== STATE_VERSION) {
+        console.log('状态版本不匹配，清除旧状态');
+        this.clearSavedState();
+        return;
+      }
+
+      // 检查状态是否太旧
+      const hoursOld = (Date.now() - (state.lastUpdated || state.timestamp)) / (1000 * 60 * 60);
+      if (hoursOld > MAX_STATE_AGE_HOURS) {
+        console.log(`状态已过期 (${Math.round(hoursOld)}小时)，清除旧状态`);
+        this.clearSavedState();
+        return;
+      }
+
+      // 确认是否恢复状态
+      if (state.currentStep > 0 || state.installJob) {
+        this.confirmStateRestore(state);
+      }
+    } catch (error) {
+      console.warn('恢复日志安装向导状态失败:', error);
+      this.clearSavedState();
+    }
+  }
+
+  private confirmStateRestore(state: LogCollectorWizardState): void {
+    const hoursOld = (Date.now() - (state.lastUpdated || state.timestamp)) / (1000 * 60 * 60);
+    const timeInfo = hoursOld < 1
+      ? `${Math.round(hoursOld * 60)}分钟前`
+      : `${Math.round(hoursOld)}小时前`;
+
+    const message = state.installJob
+      ? `检测到 ${timeInfo} 的日志收集安装任务 (${state.installJob.jobName})，是否继续跟踪安装进度？`
+      : `检测到 ${timeInfo} 未完成的日志收集安装向导，是否从第 ${state.currentStep + 1} 步继续？`;
+
+    this.modal.confirm({
+      nzTitle: '恢复向导状态',
+      nzContent: message,
+      nzOkText: '继续',
+      nzCancelText: '重新开始',
+      nzOkType: 'primary',
+      nzOnOk: () => this.restoreState(state),
+      nzOnCancel: () => {
+        this.modal.confirm({
+          nzTitle: '确认清理状态',
+          nzContent: '这将永久删除保存的向导状态，确定要重新开始吗？',
+          nzOkText: '确定',
+          nzCancelText: '取消',
+          nzOkType: 'primary',
+          nzOkDanger: true,
+          nzOnOk: () => this.clearSavedState()
+        });
+      }
+    });
+  }
+
+  private restoreState(state: LogCollectorWizardState): void {
+    try {
+      // 恢复表单值
+      this.form.patchValue(state.formValues);
+
+      // 恢复步骤
+      this.currentStep = state.currentStep;
+
+      // 恢复其他状态
+      if (state.environmentChecks) {
+        this.environmentChecks = state.environmentChecks;
+        this.allChecksPassed = state.environmentChecks.every(c => c.status !== 'error');
+      }
+      if (state.installResult) {
+        this.installSuccess = state.installResult.success;
+        this.installCompleted = true;
+      }
+      if (state.installJob) {
+        this.installJob = state.installJob;
+        // 如果有安装任务，启动状态轮询
+        this.startJobStatusPolling();
+      }
+
+      this.message.success('已恢复向导状态');
+    } catch (error) {
+      console.error('状态恢复失败:', error);
+      this.message.error('状态恢复失败，请重新开始');
+      this.clearSavedState();
+    }
+  }
+
+  private clearSavedState(): void {
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch (error) {
+      console.warn('清除保存状态失败:', error);
+    }
+  }
+
+  // ==================== Job 状态轮询 ====================
+
+  private pollingInterval: any;
+  private pollingRetryCount = 0;
+  private basePollingInterval = 5000; // 5秒基础间隔
+  private maxPollingInterval = 60000; // 最大60秒间隔
+
+  private startJobStatusPolling(): void {
+    if (!this.installJob?.jobName) return;
+
+    this.stopJobStatusPolling();
+    this.pollingRetryCount = 0;
+
+    const pollWithBackoff = () => {
+      this.checkJobStatus();
+      const currentInterval = Math.min(
+        this.basePollingInterval * Math.pow(2, this.pollingRetryCount),
+        this.maxPollingInterval
+      );
+      this.pollingInterval = setTimeout(pollWithBackoff, currentInterval);
+    };
+
+    // 立即检查一次
+    pollWithBackoff();
+  }
+
+  private stopJobStatusPolling(): void {
+    if (this.pollingInterval) {
+      clearTimeout(this.pollingInterval);
+      this.pollingInterval = null;
+    }
+    this.pollingRetryCount = 0;
+  }
+
+  private checkJobStatus(): void {
+    if (!this.installJob?.jobName) return;
+
+    this.api.logsBootstrapStatus(this.installJob.jobName, this.installJob.namespace).subscribe({
+      next: (status: any) => {
+        this.pollingRetryCount = 0; // 重置重试计数
+        const phase = status?.phase;
+
+        if (phase === 'Succeeded') {
+          this.completeInstallation(true);
+          this.stopJobStatusPolling();
+          this.message.success('日志收集安装已完成');
+          // 成功后清理本地保存的向导状态
+          this.clearSavedState();
+        } else if (phase === 'Failed') {
+          const reason = status?.failureReason || '未知错误';
+          this.installSuccess = false;
+          this.installCompleted = true;
+          this.addLog('error', `安装失败: ${reason}`);
+          this.stopJobStatusPolling();
+          this.message.error('日志收集安装失败');
+          this.saveState(); // 保存失败状态
+        }
+        // 运行中的任务继续轮询
+      },
+      error: (error: any) => {
+        this.pollingRetryCount++;
+
+        // 404 表示 Job 不存在或已被清理
+        if (error?.status === 404) {
+          this.installSuccess = false;
+          this.installCompleted = true;
+          this.addLog('warning', '安装任务已被清理或不存在，请重新启动安装');
+          this.stopJobStatusPolling();
+          this.message.warning('安装任务不存在，可能已被系统清理');
+          this.saveState();
+          return;
+        }
+
+        console.warn(`检查任务状态失败 (重试${this.pollingRetryCount}次):`, error);
+
+        // 达到最大重试次数后停止轮询
+        if (this.pollingRetryCount >= 5) {
+          this.stopJobStatusPolling();
+          this.message.warning('无法获取安装状态，请手动检查任务进度');
+        }
+      }
+    });
+  }
+
+  restart(): void {
+    this.clearSavedState(); // 清理保存的状态
+    this.currentStep = 0;
+    this.installing = false;
+    this.installCompleted = false;
+    this.installSuccess = false;
+    this.installLogs = [];
+    this.installJob = null;
+    this.runEnvironmentCheck();
   }
 }
 

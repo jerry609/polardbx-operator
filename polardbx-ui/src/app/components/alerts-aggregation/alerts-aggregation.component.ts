@@ -14,6 +14,7 @@ import { NzGridModule } from 'ng-zorro-antd/grid';
 import { NzEmptyModule } from 'ng-zorro-antd/empty';
 import { NzAlertModule } from 'ng-zorro-antd/alert';
 import { ApiService } from '../../services/api.service';
+import { GlobalInstallProgressComponent } from '../global-install-progress/global-install-progress.component';
 
 @Component({
   selector: 'app-alerts-aggregation',
@@ -32,10 +33,12 @@ import { ApiService } from '../../services/api.service';
     NzToolTipModule,
     NzGridModule,
     NzEmptyModule,
-    NzAlertModule
+    NzAlertModule,
+    GlobalInstallProgressComponent
   ],
   template: `
     <div class="alerts-aggregation">
+      <app-global-install-progress></app-global-install-progress>
       <div class="page-header">
         <div class="header-content">
           <h1 class="page-title">
@@ -382,7 +385,7 @@ export class AlertsAggregationComponent implements OnInit {
           severity: a.severity,
           labels: a.labels || {},
           message: a.message,
-          timestamp: a.timestamp ? new Date(a.timestamp) : undefined
+          timestamp: a.timestamp ? new Date(a.timestamp) : (a.time ? new Date(a.time) : undefined)
         }));
         this.loading = false;
       },

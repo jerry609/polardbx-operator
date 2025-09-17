@@ -12,6 +12,8 @@ func RegisterRoutes(v1 *gin.RouterGroup) {
 	p.GET("/system/namespaces", ListNamespaces)
 	// Monitoring
 	p.POST("/monitoring/bootstrap", MonitoringBootstrap)
+	p.GET("/monitoring/bootstrap/status", MonitoringBootstrapStatus)
+	p.GET("/monitoring/bootstrap/logs", MonitoringBootstrapLogs)
 	p.GET("/monitoring/status", MonitoringStatus)
 	p.GET("/monitoring/preflight", MonitoringPreflight)
 	p.DELETE("/monitoring/uninstall", MonitoringUninstall)
@@ -26,6 +28,10 @@ func RegisterRoutes(v1 *gin.RouterGroup) {
 	p.POST("/logs/query", LogsQuery)
 	p.GET("/logs/presets", LogsPresets)
 	p.GET("/logs/presets/:pattern", LogsPresetByPattern)
+	// Log collection bootstrap
+	p.POST("/logs/bootstrap", LogsBootstrap)
+	p.GET("/logs/bootstrap/status", LogsBootstrapStatus)
+	p.GET("/logs/bootstrap/logs", LogsBootstrapLogs)
 	// Log service / strategy
 	p.GET("/log-service/status", LogServiceStatus)
 	p.GET("/log-strategies", LogStrategyList)

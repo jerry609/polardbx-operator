@@ -21,3 +21,7 @@ func LogStrategyGet(c *gin.Context)      { api_logstrategy.Get(c) }
 func LogStrategyUpdate(c *gin.Context)   { api_logstrategy.Update(c) }
 func LogStrategyDelete(c *gin.Context)   { api_logstrategy.Delete(c) }
 func LogStrategyApply(c *gin.Context)    { api_logstrategy.Apply(c) }
+
+func LogsBootstrap(c *gin.Context)      { api_logs.Bootstrap(c) }
+func LogsBootstrapStatus(c *gin.Context) { api_logs.BootstrapStatus(c) }
+func LogsBootstrapLogs(c *gin.Context)   { api_logs.BootstrapLogs(c) }

@@ -173,8 +173,8 @@ func Status(c *gin.Context) {
 	if !ok {
 		return
 	}
-    // 监控组件默认部署在 polardbx-monitor，可通过 ?namespace= 覆盖
-    ns := util.DefaultNamespace(c, "polardbx-monitor")
+	// 监控组件默认部署在 polardbx-monitor，可通过 ?namespace= 覆盖
+	ns := util.DefaultNamespace(c, "polardbx-monitor")
 
 	checkDeploy := func(name string) (ready, desired int32, ok bool) {
 		dep := appsv1.Deployment{}
@@ -467,8 +467,8 @@ func BootstrapStatus(c *gin.Context) {
 	}
 
 	jobName := c.Query("jobName")
-    // 安装 Job 位于安装器命名空间，默认 polardbx-operator-system
-    namespace := util.DefaultNamespace(c, "polardbx-operator-system")
+	// 安装 Job 位于安装器命名空间，默认 polardbx-operator-system
+	namespace := util.DefaultNamespace(c, "polardbx-operator-system")
 
 	if jobName == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "jobName parameter is required"})
@@ -543,8 +543,8 @@ func BootstrapLogs(c *gin.Context) {
 	}
 
 	jobName := c.Query("jobName")
-    // 安装 Job 位于安装器命名空间，默认 polardbx-operator-system
-    namespace := util.DefaultNamespace(c, "polardbx-operator-system")
+	// 安装 Job 位于安装器命名空间，默认 polardbx-operator-system
+	namespace := util.DefaultNamespace(c, "polardbx-operator-system")
 	tailLines := int64(100) // Default to last 100 lines
 
 	if jobName == "" {

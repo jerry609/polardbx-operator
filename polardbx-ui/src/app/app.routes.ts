@@ -146,7 +146,7 @@ export const routes: Routes = [
             path: 'logs',
             loadComponent: () => import('./components/logs-hub/logs-hub.component').then(m => m.LogsHubComponent),
             children: [
-              { path: '', redirectTo: 'install', pathMatch: 'full' },
+              { path: '', redirectTo: 'enable-wizard', pathMatch: 'full' },
               { path: 'overview', loadComponent: () => import('./components/logs-overview/logs-overview.component').then(m => m.LogsOverviewComponent) },
               { path: 'dashboard', loadComponent: () => import('./components/log-service-dashboard/log-service-dashboard.component').then(m => m.LogServiceDashboardComponent) },
               { path: 'collectors', loadComponent: () => import('./components/log-collector-management/log-collector-management.component').then(m => m.LogCollectorManagementComponent) },
@@ -163,7 +163,8 @@ export const routes: Routes = [
               { path: '', redirectTo: 'install', pathMatch: 'full' },
               { path: 'overview', loadComponent: () => import('./components/monitoring-overview/monitoring-overview.component').then(m => m.MonitoringOverviewComponent) },
               { path: 'config', loadComponent: () => import('./components/monitor-management/monitor-management.component').then(m => m.MonitorManagementComponent) },
-              { path: 'install', loadComponent: () => import('./components/monitoring-install-wizard/monitoring-install-wizard.component').then(m => m.MonitoringInstallWizardComponent) },
+              // 旧的安装向导（模拟版）重定向到新的 enable-wizard
+              { path: 'install', redirectTo: 'enable-wizard', pathMatch: 'full' },
               { path: 'enable-wizard', loadComponent: () => import('./components/monitoring-enable-wizard/monitoring-enable-wizard.component').then(m => m.MonitoringEnableWizardComponent) },
               { path: 'health', loadComponent: () => import('./components/monitoring-health/monitoring-health.component').then(m => m.MonitoringHealthComponent) },
               { path: 'preflight', loadComponent: () => import('./components/monitoring-preflight/monitoring-preflight.component').then(m => m.MonitoringPreflightComponent) },

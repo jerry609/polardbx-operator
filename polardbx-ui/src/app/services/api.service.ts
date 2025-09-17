@@ -1467,6 +1467,75 @@ export class ApiService {
     );
   }
 
+  monitoringBootstrapStatus(jobName: string, namespace?: string): Observable<any> {
+    const url = `${this.baseUrl}/monitoring/bootstrap/status`;
+    const params = new HttpParams()
+      .set('jobName', jobName)
+      .set('namespace', namespace || 'polardbx-operator-system');
+    return this.handleRequest(
+      this.http.get(url, { headers: this.getHeaders(), params }),
+      LoadingKeys.MONITOR_LIST,
+      '/monitoring/bootstrap/status',
+      'GET'
+    );
+  }
+
+  monitoringBootstrapLogs(jobName: string, namespace?: string, tailLines?: number): Observable<any> {
+    const url = `${this.baseUrl}/monitoring/bootstrap/logs`;
+    let params = new HttpParams()
+      .set('jobName', jobName)
+      .set('namespace', namespace || 'polardbx-operator-system');
+    if (tailLines) {
+      params = params.set('tailLines', tailLines.toString());
+    }
+    return this.handleRequest(
+      this.http.get(url, { headers: this.getHeaders(), params }),
+      LoadingKeys.MONITOR_LIST,
+      '/monitoring/bootstrap/logs',
+      'GET'
+    );
+  }
+
+  // 日志收集相关接口
+  logsBootstrap(req: { mode: 'managed'|'assisted'|'byo'; namespace?: string; releaseName?: string; dryRun?: boolean; enableFilebeat?: boolean; enableLogstash?: boolean; esHost?: string; esUser?: string; esPassword?: string; esIndex?: string; deploymentType?: string }): Observable<any> {
+    const url = `${this.baseUrl}/logs/bootstrap`;
+    return this.handleRequest(
+      this.http.post(url, req || {}, { headers: this.getHeaders() }),
+      LoadingKeys.MONITOR_CREATE,
+      '/logs/bootstrap',
+      'POST'
+    );
+  }
+
+  logsBootstrapStatus(jobName: string, namespace?: string): Observable<any> {
+    const url = `${this.baseUrl}/logs/bootstrap/status`;
+    const params = new HttpParams()
+      .set('jobName', jobName)
+      .set('namespace', namespace || 'polardbx-operator-system');
+    return this.handleRequest(
+      this.http.get(url, { headers: this.getHeaders(), params }),
+      LoadingKeys.MONITOR_LIST,
+      '/logs/bootstrap/status',
+      'GET'
+    );
+  }
+
+  logsBootstrapLogs(jobName: string, namespace?: string, tailLines?: number): Observable<any> {
+    const url = `${this.baseUrl}/logs/bootstrap/logs`;
+    let params = new HttpParams()
+      .set('jobName', jobName)
+      .set('namespace', namespace || 'polardbx-operator-system');
+    if (tailLines) {
+      params = params.set('tailLines', tailLines.toString());
+    }
+    return this.handleRequest(
+      this.http.get(url, { headers: this.getHeaders(), params }),
+      LoadingKeys.MONITOR_LIST,
+      '/logs/bootstrap/logs',
+      'GET'
+    );
+  }
+
   monitoringUninstall(namespace?: string): Observable<any> {
     const url = `${this.baseUrl}/monitoring/uninstall`;
     return this.handleRequest(
