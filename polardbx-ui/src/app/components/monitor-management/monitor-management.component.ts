@@ -150,7 +150,7 @@ import {
                   </nz-table>
 
                   <app-empty-state *ngIf="monitors.length === 0"
-                                   icon="monitor_heart"
+                                   icon="dashboard"
                                    title="未找到监控配置"
                                    hint='点击"创建监控"开始使用'></app-empty-state>
                 </div>

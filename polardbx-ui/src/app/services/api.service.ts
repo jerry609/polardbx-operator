@@ -67,10 +67,12 @@ export class ApiService {
   }
 
   // 获取集群列表
-  getClusters(): Observable<PolarDBXCluster[]> {
+  getClusters(namespace?: string): Observable<PolarDBXCluster[]> {
+    const params = namespace ? new HttpParams().set('namespace', namespace) : this.withNs();
     return this.handleRequest(
       this.http.get<PolarDBXCluster[]>(`${this.baseUrl}/clusters`, {
-        headers: this.getHeaders()
+        headers: this.getHeaders(),
+        params
       }),
       LoadingKeys.CLUSTERS_LIST,
       '/clusters',
@@ -1833,4 +1835,90 @@ export class ApiService {
       }
     };
   }
+
+  // PrometheusRule Management Methods
+  getPrometheusRules(namespace?: string): Observable<any[]> {
+    const params = namespace ? new HttpParams().set('namespace', namespace) : this.withNs();
+    return this.handleRequest(
+      this.http.get<any[]>(`${this.baseUrl}/prometheus-rules`, {
+        headers: this.getHeaders(),
+        params
+      }),
+      LoadingKeys.MONITORING,
+      '/prometheus-rules',
+      'GET'
+    );
+  }
+
+  getPrometheusRuleYaml(namespace: string, name: string): Observable<string> {
+    return this.handleRequest(
+      this.http.get(`${this.baseUrl}/prometheus-rules/${namespace}/${name}/yaml`, {
+        headers: this.getHeaders(),
+        responseType: 'text'
+      }),
+      LoadingKeys.MONITORING,
+      `/prometheus-rules/${namespace}/${name}/yaml`,
+      'GET'
+    );
+  }
+
+  validatePrometheusRule(yamlContent: string): Observable<any> {
+    return this.handleRequest(
+      this.http.post<any>(`${this.baseUrl}/prometheus-rules/validate`, {
+        yaml: yamlContent
+      }, {
+        headers: this.getHeaders()
+      }),
+      LoadingKeys.MONITORING,
+      '/prometheus-rules/validate',
+      'POST'
+    );
+  }
+
+  // Namespace Methods
+  getNamespaces(): Observable<string[]> {
+    return this.handleRequest(
+      this.http.get<string[]>(`${this.baseUrl}/namespaces`, {
+        headers: this.getHeaders()
+      }),
+      LoadingKeys.SYSTEM,
+      '/namespaces',
+      'GET'
+    );
+  }
+
+  getLogStrategyApplyRecords(): Observable<any[]> {
+    return this.handleRequest(
+      this.http.get<any[]>(`${this.baseUrl}/log-strategies/apply-records`, {
+        headers: this.getHeaders()
+      }),
+      LoadingKeys.LOG_STRATEGY,
+      '/log-strategies/apply-records',
+      'GET'
+    );
+  }
+
+
+  precheckLogStrategy(strategy: any): Observable<any> {
+    return this.handleRequest(
+      this.http.post<any>(`${this.baseUrl}/log-strategies/precheck`, strategy, {
+        headers: this.getHeaders()
+      }),
+      LoadingKeys.LOG_STRATEGY,
+      '/log-strategies/precheck',
+      'POST'
+    );
+  }
+
+  applyLogStrategy(id: string): Observable<any> {
+    return this.handleRequest(
+      this.http.post<any>(`${this.baseUrl}/log-strategies/${id}/apply`, {}, {
+        headers: this.getHeaders()
+      }),
+      LoadingKeys.LOG_STRATEGY,
+      `/log-strategies/${id}/apply`,
+      'POST'
+    );
+  }
+
 }

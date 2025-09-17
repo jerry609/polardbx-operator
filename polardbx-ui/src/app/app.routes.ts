@@ -150,6 +150,7 @@ export const routes: Routes = [
               { path: 'overview', loadComponent: () => import('./components/logs-overview/logs-overview.component').then(m => m.LogsOverviewComponent) },
               { path: 'dashboard', loadComponent: () => import('./components/log-service-dashboard/log-service-dashboard.component').then(m => m.LogServiceDashboardComponent) },
               { path: 'collectors', loadComponent: () => import('./components/log-collector-management/log-collector-management.component').then(m => m.LogCollectorManagementComponent) },
+              { path: 'strategies', loadComponent: () => import('./components/log-strategy-management/log-strategy-management.component').then(m => m.LogStrategyManagementComponent) },
               { path: 'ilm', loadComponent: () => import('./components/log-collector-ilm/log-collector-ilm.component').then(m => m.LogCollectorIlmComponent) },
               { path: 'search', loadComponent: () => import('./components/logs-query/logs-query.component').then(m => m.LogsQueryComponent) },
               { path: 'install', loadComponent: () => import('./components/log-collector-install/log-collector-install.component').then(m => m.LogCollectorInstallComponent) }
@@ -163,11 +164,14 @@ export const routes: Routes = [
               { path: 'overview', loadComponent: () => import('./components/monitoring-overview/monitoring-overview.component').then(m => m.MonitoringOverviewComponent) },
               { path: 'config', loadComponent: () => import('./components/monitor-management/monitor-management.component').then(m => m.MonitorManagementComponent) },
               { path: 'install', loadComponent: () => import('./components/monitoring-install-wizard/monitoring-install-wizard.component').then(m => m.MonitoringInstallWizardComponent) },
+              { path: 'enable-wizard', loadComponent: () => import('./components/monitoring-enable-wizard/monitoring-enable-wizard.component').then(m => m.MonitoringEnableWizardComponent) },
               { path: 'health', loadComponent: () => import('./components/monitoring-health/monitoring-health.component').then(m => m.MonitoringHealthComponent) },
               { path: 'preflight', loadComponent: () => import('./components/monitoring-preflight/monitoring-preflight.component').then(m => m.MonitoringPreflightComponent) },
               { path: 'grafana', loadComponent: () => import('./components/grafana-embed/grafana-embed.component').then(m => m.GrafanaEmbedComponent) },
               { path: 'alerts', loadComponent: () => import('./components/alerts-aggregation/alerts-aggregation.component').then(m => m.AlertsAggregationComponent) },
-              { path: 'alerts-mgr', loadComponent: () => import('./components/alerts-management/alerts-management.component').then(m => m.AlertsManagementComponent) }
+              { path: 'alerts-mgr', loadComponent: () => import('./components/alerts-management/alerts-management.component').then(m => m.AlertsManagementComponent) },
+              { path: 'prometheus-rules', loadComponent: () => import('./components/prometheus-rule-viewer/prometheus-rule-viewer.component').then(m => m.PrometheusRuleViewerComponent) },
+              { path: 'alert-receivers', loadComponent: () => import('./components/alert-receiver-wizard/alert-receiver-wizard.component').then(m => m.AlertReceiverWizardComponent) }
             ]
           },
           { path: 'nodes', loadComponent: () => import('./pages/nodes/nodes.component').then(m => m.NodesComponent) },

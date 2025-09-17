@@ -79,7 +79,7 @@ import { ApiService } from '../../services/api.service';
                     查询
                   </button>
                   <button nz-button nzType="default" (click)="clearFilters()">
-                    <i nz-icon nzType="clear"></i>
+                    <i nz-icon nzType="close"></i>
                     清空
                   </button>
                 </div>

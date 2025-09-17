@@ -32,12 +32,6 @@ import { filter } from 'rxjs/operators';
               <span>安装向导</span>
             </ng-template>
           </nz-tab>
-          <nz-tab nzTitle="总览">
-            <ng-template #nzTabHeading>
-              <i nz-icon nzType="appstore"></i>
-              <span>总览</span>
-            </ng-template>
-          </nz-tab>
           <nz-tab nzTitle="服务仪表盘">
             <ng-template #nzTabHeading>
               <i nz-icon nzType="dashboard"></i>
@@ -48,6 +42,12 @@ import { filter } from 'rxjs/operators';
             <ng-template #nzTabHeading>
               <i nz-icon nzType="cluster"></i>
               <span>采集器管理</span>
+            </ng-template>
+          </nz-tab>
+          <nz-tab nzTitle="策略管理">
+            <ng-template #nzTabHeading>
+              <i nz-icon nzType="setting"></i>
+              <span>策略管理</span>
             </ng-template>
           </nz-tab>
           <nz-tab nzTitle="ILM 策略">
@@ -150,7 +150,7 @@ export class LogsHubComponent implements OnInit {
   selectedIndex = 0;
   totalCollectors = 0;
   activePolicies = 0;
-  private paths = ['install', 'overview', 'dashboard', 'collectors', 'ilm', 'search'];
+  private paths = ['install', 'dashboard', 'collectors', 'strategies', 'ilm', 'search'];
 
   constructor(private router: Router, private route: ActivatedRoute) {}
 

@@ -15,6 +15,7 @@ import (
 	api_monitor "polardbx-ui-backend/pkg/api/monitor"
 	api_monitoring "polardbx-ui-backend/pkg/api/monitoring"
 	api_pod "polardbx-ui-backend/pkg/api/pod"
+	api_prometheusrule "polardbx-ui-backend/pkg/api/prometheusrule"
 	api_restore "polardbx-ui-backend/pkg/api/restore"
 	api_router "polardbx-ui-backend/pkg/api/router"
 	api_settings "polardbx-ui-backend/pkg/api/settings"
@@ -136,6 +137,12 @@ func main() {
 		v1.GET("/system/context", api_system.ContextInfo)
 		v1.GET("/system/namespaces", api_system.ListNamespaces)
 
+		// Direct routes for frontend compatibility
+		v1.GET("/namespaces", api_system.ListNamespaces) // Maps to /platform/system/namespaces
+		v1.GET("/prometheus-rules", api_prometheusrule.List) // PrometheusRule resources
+		v1.GET("/prometheus-rules/:namespace/:name/yaml", api_prometheusrule.GetYAML) // Get YAML
+		v1.POST("/prometheus-rules/validate", api_prometheusrule.ValidateRule) // Validate YAML
+
 		// Pre-change safety checklist
 		v1.GET("/clusters/:namespace/:name/prechange-check", domain_pxc.GetPrechangeChecklist)
 		v1.POST("/clusters/:namespace/:name/precheck", domain_pxc.Precheck)
@@ -204,6 +211,7 @@ func main() {
 		v1.GET("/log-strategies", api_logstrategy.List)
 		v1.POST("/log-strategies", api_logstrategy.Create)
 		v1.POST("/log-strategies/precheck", api_logstrategy.Precheck)
+		v1.GET("/log-strategies/apply-records", api_logstrategy.ListApplyRecords) // New endpoint
 		v1.GET("/log-strategies/:name", api_logstrategy.Get)
 		v1.PUT("/log-strategies/:name", api_logstrategy.Update)
 		v1.DELETE("/log-strategies/:name", api_logstrategy.Delete)

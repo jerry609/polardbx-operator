@@ -513,6 +513,10 @@ func Apply(c *gin.Context) {
 		// not fatal, report warning
 	}
 
+	// Record the successful application
+	targets := []string{ns + "/" + s.ClusterName}
+	addApplyRecord(c, s.Name, "success", "Strategy applied successfully", targets)
+
 	c.JSON(http.StatusOK, gin.H{"applied": true, "namespace": ns, "cluster": s.ClusterName, "logstash": gin.H{"restarted": dep != nil}, "pipelineKey": pipelineKey})
 }
 
@@ -560,4 +564,117 @@ func TestConnection(c *gin.Context) {
 		}
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+// ApplyRecord represents a log strategy application record
+type ApplyRecord struct {
+	ID           string    `json:"id"`
+	StrategyID   string    `json:"strategyId"`
+	StrategyName string    `json:"strategyName"`
+	AppliedAt    time.Time `json:"appliedAt"`
+	Status       string    `json:"status"` // success, failed
+	Message      string    `json:"message,omitempty"`
+	Targets      []string  `json:"targets,omitempty"`
+}
+
+const (
+	recordsCMName = "log-strategy-apply-records"
+	recordsKey    = "records.json"
+)
+
+// ListApplyRecords returns the application history of log strategies
+func ListApplyRecords(c *gin.Context) {
+	cs, ok := util.ClientsetFromContext(c)
+	if !ok {
+		c.JSON(http.StatusOK, gin.H{"total": 0, "items": []ApplyRecord{}})
+		return
+	}
+
+	// Try to get the records ConfigMap
+	cm, err := cs.CoreV1().ConfigMaps(cmNamespace).Get(c.Request.Context(), recordsCMName, metav1.GetOptions{})
+	if err != nil {
+		// If ConfigMap doesn't exist, return empty list
+		c.JSON(http.StatusOK, gin.H{"total": 0, "items": []ApplyRecord{}})
+		return
+	}
+
+	var records []ApplyRecord
+	if cm.Data != nil && cm.Data[recordsKey] != "" {
+		_ = json.Unmarshal([]byte(cm.Data[recordsKey]), &records)
+	}
+
+	// Sort by appliedAt descending (newest first)
+	sort.Slice(records, func(i, j int) bool {
+		return records[i].AppliedAt.After(records[j].AppliedAt)
+	})
+
+	c.JSON(http.StatusOK, gin.H{"total": len(records), "items": records})
+}
+
+// Helper function to add an apply record (called from Apply function)
+func addApplyRecord(c *gin.Context, strategyName string, status string, message string, targets []string) {
+	cs, ok := util.ClientsetFromContext(c)
+	if !ok {
+		return // Best effort, don't fail the main operation
+	}
+
+	record := ApplyRecord{
+		ID:           generateRecordID(),
+		StrategyID:   strategyName, // Using name as ID for simplicity
+		StrategyName: strategyName,
+		AppliedAt:    time.Now(),
+		Status:       status,
+		Message:      message,
+		Targets:      targets,
+	}
+
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
+	defer cancel()
+
+	// Get or create the records ConfigMap
+	cm, err := cs.CoreV1().ConfigMaps(cmNamespace).Get(ctx, recordsCMName, metav1.GetOptions{})
+	if err != nil {
+		// Create new ConfigMap
+		newCM := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      recordsCMName,
+				Namespace: cmNamespace,
+			},
+			Data: map[string]string{
+				recordsKey: "[]",
+			},
+		}
+		cm, err = cs.CoreV1().ConfigMaps(cmNamespace).Create(ctx, newCM, metav1.CreateOptions{})
+		if err != nil {
+			return // Best effort
+		}
+	}
+
+	// Load existing records
+	var records []ApplyRecord
+	if cm.Data != nil && cm.Data[recordsKey] != "" {
+		_ = json.Unmarshal([]byte(cm.Data[recordsKey]), &records)
+	}
+
+	// Add new record
+	records = append(records, record)
+
+	// Keep only the last 100 records to prevent ConfigMap from growing too large
+	if len(records) > 100 {
+		records = records[len(records)-100:]
+	}
+
+	// Save back to ConfigMap
+	if cm.Data == nil {
+		cm.Data = make(map[string]string)
+	}
+	recordsJSON, _ := json.Marshal(records)
+	cm.Data[recordsKey] = string(recordsJSON)
+
+	_, _ = cs.CoreV1().ConfigMaps(cmNamespace).Update(ctx, cm, metav1.UpdateOptions{})
+}
+
+// Generate a simple record ID based on timestamp
+func generateRecordID() string {
+	return time.Now().Format("20060102-150405-") + time.Now().Format("000")
 }

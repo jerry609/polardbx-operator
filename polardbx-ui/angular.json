@@ -29,12 +29,18 @@
               "dagre",
               "xterm",
               "@xterm/addon-fit",
-              "@xterm/addon-serialize"
+              "@xterm/addon-serialize",
+              "monaco-editor"
             ],
             "assets": [
               {
                 "glob": "**/*",
                 "input": "public"
+              },
+              {
+                "glob": "**/*",
+                "input": "node_modules/monaco-editor/min/vs",
+                "output": "assets/vs"
               }
             ],
             "styles": [

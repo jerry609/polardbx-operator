@@ -15,13 +15,15 @@ import { filter } from 'rxjs/operators';
                  [nzSelectedIndex]="selectedIndex"
                  (nzSelectedIndexChange)="onTabChange($event)">
         <nz-tab nzTitle="安装向导"></nz-tab>
-        <nz-tab nzTitle="总览"></nz-tab>
         <nz-tab nzTitle="配置"></nz-tab>
+        <nz-tab nzTitle="监控开启向导"></nz-tab>
         <nz-tab nzTitle="健康检查"></nz-tab>
         <nz-tab nzTitle="预检查"></nz-tab>
         <nz-tab nzTitle="Grafana"></nz-tab>
         <nz-tab nzTitle="告警聚合"></nz-tab>
         <nz-tab nzTitle="告警管理"></nz-tab>
+        <nz-tab nzTitle="PrometheusRule"></nz-tab>
+        <nz-tab nzTitle="告警接收器"></nz-tab>
       </nz-tabset>
 
       <div class="outlet">
@@ -37,7 +39,7 @@ import { filter } from 'rxjs/operators';
 })
 export class MonitoringHubComponent implements OnInit {
   selectedIndex = 0;
-  private paths = ['install','overview','config', 'health', 'preflight', 'grafana', 'alerts', 'alerts-mgr'];
+  private paths = ['install','config', 'enable-wizard', 'health', 'preflight', 'grafana', 'alerts', 'alerts-mgr', 'prometheus-rules', 'alert-receivers'];
 
   constructor(private router: Router, private route: ActivatedRoute) {}
 

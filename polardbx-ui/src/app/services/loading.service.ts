@@ -290,6 +290,12 @@ export const LoadingKeys = {
   CLUSTER_KNOBS_DETAIL: 'cluster-knobs-detail',
   CLUSTER_KNOBS_UPDATE: 'cluster-knobs-update',
   CLUSTER_KNOBS_DELETE: 'cluster-knobs-delete',
+
+  // Monitoring and Alerting
+  MONITORING: 'monitoring',
+  CLUSTER_LIST: 'cluster-list',
+  SYSTEM: 'system',
+  LOG_STRATEGY: 'log-strategy',
   
   CONNECT: 'connect',
   GLOBAL: 'global'
