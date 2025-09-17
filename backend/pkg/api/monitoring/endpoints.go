@@ -322,9 +322,9 @@ func Preflight(c *gin.Context) {
 
 	now := time.Now().UTC().Format(time.RFC3339)
 
-    // IOPS benchmark: switched to placeholder per product decision
-    // If later needed, re-enable runIOPSBench and replace the placeholder below.
-    iops := gin.H{"estimated": false, "ok": false, "message": "占位：请在监控系统查看磁盘 IOPS"}
+	// IOPS benchmark: switched to placeholder per product decision
+	// If later needed, re-enable runIOPSBench and replace the placeholder below.
+	iops := gin.H{"estimated": false, "ok": false, "message": "占位：请在监控系统查看磁盘 IOPS"}
 
 	c.JSON(http.StatusOK, gin.H{
 		"timestamp": now,

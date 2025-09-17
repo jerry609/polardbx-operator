@@ -17,8 +17,14 @@
   background: rgba(255, 255, 255, 0.3);
   text-align: center;
   border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  white-space: nowrap;
   
-  h1 { color: #1890ff; font-size: 20px; line-height: 32px; margin: 0; font-weight: 600; }
+  .logo-full { color: #1890ff; font-size: 20px; line-height: 32px; font-weight: 600; }
+  .logo-mini { color: #1890ff; font-size: 18px; line-height: 32px; font-weight: 700; letter-spacing: .5px; display: none; }
 }
 
 .sider-menu { height: calc(100vh - 64px); border-right: 0; }
@@ -94,8 +100,19 @@
 }
 
 /* 全局布局样式 */
-::host ::ng-deep .ant-layout { background: #ffffff; }
+:host ::ng-deep .ant-layout { background: #ffffff; }
 :host ::ng-deep .ant-layout-sider-children { display: flex; flex-direction: column; }
+
+/* 折叠时防止 Logo 文本被压缩；保持等宽并裁剪 */
+:host ::ng-deep .ant-layout-sider-collapsed .logo { padding: 16px 8px; }
+:host ::ng-deep .ant-layout-sider-collapsed .logo h1 {
+  font-size: 16px;
+  letter-spacing: .5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
+  transform: none;
+}
 
 /* 菜单样式优化 */
 :host ::ng-deep .ant-menu-light { background: transparent; }
@@ -142,6 +159,10 @@
 .mat-toolbar.main-toolbar {
   display: none;
 }
+
+/* 折叠时显示简写 Logo，避免文字被裁剪看不到 X */
+:host ::ng-deep .ant-layout-sider-collapsed .logo .logo-full { display: none; }
+:host ::ng-deep .ant-layout-sider-collapsed .logo .logo-mini { display: inline-block; }
 
 :host ::ng-deep .ant-menu .ant-menu-item,
 :host ::ng-deep .ant-menu .ant-menu-submenu-title {
