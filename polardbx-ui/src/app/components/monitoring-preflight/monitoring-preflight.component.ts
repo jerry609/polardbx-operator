@@ -83,14 +83,12 @@ import { ApiService } from '../../services/api.service';
               <i nz-icon nzType="dashboard" class="section-icon"></i>
             </ng-template>
             <nz-descriptions nzBordered [nzColumn]="2">
-              <nz-descriptions-item nzTitle="性能估算">{{ data?.iops?.estimated ? '已完成' : '未完成' }}</nz-descriptions-item>
+              <nz-descriptions-item nzTitle="性能估算">占位</nz-descriptions-item>
               <nz-descriptions-item nzTitle="IOPS 状态">
-                <nz-tag [nzColor]="data?.iops?.ok ? 'success' : 'warning'">
-                  {{ data?.iops?.ok ? '满足要求' : '未知/不足' }}
-                </nz-tag>
+                <nz-tag nzColor="default">占位</nz-tag>
               </nz-descriptions-item>
               <nz-descriptions-item nzTitle="详细说明" [nzSpan]="2">
-                {{ data?.iops?.message || '暂无详细信息' }}
+                占位：请在监控系统查看磁盘 IOPS
               </nz-descriptions-item>
             </nz-descriptions>
           </nz-card>

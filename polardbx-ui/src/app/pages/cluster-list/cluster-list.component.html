@@ -122,8 +122,9 @@
 
     <!-- 加载状态 -->
     <nz-card *ngIf="isLoading$ | async" class="loading-card">
-      <div class="loading-container">
-        <nz-spin nzSize="large" nzTip="正在加载集群列表，请稍候..."></nz-spin>
+      <div class="loading-container horizontal">
+        <nz-spin nzSize="large"></nz-spin>
+        <div class="loading-text">正在加载集群列表，请稍候...</div>
       </div>
     </nz-card>
 

@@ -55,7 +55,8 @@ import { ApiService } from '../../services/api.service';
           </ng-template>
 
           <div *ngIf="loading" class="loading-container">
-            <nz-spin nzSize="large" nzTip="正在加载备份统计数据..."></nz-spin>
+            <nz-spin nzSize="large"></nz-spin>
+            <div class="loading-text">正在加载备份统计数据...</div>
           </div>
 
           <div *ngIf="!loading" class="statistics-container">
@@ -223,12 +224,8 @@ import { ApiService } from '../../services/api.service';
       align-items: center;
     }
     
-    .loading-container {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 80px 0;
-    }
+    .loading-container { display: flex; justify-content: center; align-items: center; padding: 80px 0; gap: 12px; }
+    .loading-text { color: rgba(0,0,0,0.65); letter-spacing: 0.5px; }
     
     .statistics-container {
       margin-bottom: 16px;

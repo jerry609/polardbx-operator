@@ -322,15 +322,9 @@ func Preflight(c *gin.Context) {
 
 	now := time.Now().UTC().Format(time.RFC3339)
 
-	// Run a short IOPS benchmark via a dedicated pod (best-effort)
-	iops := gin.H{"estimated": false, "ok": false, "message": "IOPS 测试未执行"}
-	if cs, ok2 := util.ClientsetFromContext(c); ok2 {
-		ctx, cancel := context.WithTimeout(c.Request.Context(), 2*time.Minute)
-		defer cancel()
-		ns := util.DefaultNamespace(c, "polardbx-operator-system")
-		res := runIOPSBench(ctx, cs, ns)
-		iops = gin.H(res)
-	}
+    // IOPS benchmark: switched to placeholder per product decision
+    // If later needed, re-enable runIOPSBench and replace the placeholder below.
+    iops := gin.H{"estimated": false, "ok": false, "message": "占位：请在监控系统查看磁盘 IOPS"}
 
 	c.JSON(http.StatusOK, gin.H{
 		"timestamp": now,
