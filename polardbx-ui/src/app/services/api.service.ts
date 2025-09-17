@@ -427,6 +427,10 @@ export class ApiService {
   }
 
   private handleRequest<T>(request: Observable<T>, loadingKey: string, endpoint = '', method = 'GET'): Observable<T> {
+    // 仅对关键操作设置全局遮罩（GLOBAL），普通 detail/list 请求只记录性能不遮挡页面
+    const shouldShowGlobal = (loadingKey as any) === LoadingKeys.CONNECT;
+    // 防御：只在 CONNECT 时设置全局遮罩
+    if (shouldShowGlobal) this.loadingService.setLoading(LoadingKeys.GLOBAL, true);
     this.loadingService.setLoading(loadingKey, true);
     const startTime = performance.now();
     
@@ -446,6 +450,7 @@ export class ApiService {
       }),
       finalize(() => {
         this.loadingService.setLoading(loadingKey, false);
+        if (shouldShowGlobal) this.loadingService.setLoading(LoadingKeys.GLOBAL, false);
       })
     );
   }

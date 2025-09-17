@@ -17,8 +17,8 @@ import { NzEmptyModule } from 'ng-zorro-antd/empty';
 import { NzDividerModule } from 'ng-zorro-antd/divider';
 import { NzDropDownModule } from 'ng-zorro-antd/dropdown';
 import { NzModalModule, NzModalService } from 'ng-zorro-antd/modal';
-import { Subject, timer, forkJoin, of } from 'rxjs';
-import { takeUntil, switchMap, startWith, finalize, catchError, map } from 'rxjs/operators';
+import { Subject, timer, forkJoin, of, BehaviorSubject } from 'rxjs';
+import { takeUntil, finalize, catchError, map } from 'rxjs/operators';
 
 import { ApiService } from '../../services/api.service';
 import { LoadingService } from '../../services/loading.service';
@@ -133,11 +133,12 @@ interface TaskListItem {
 
       <!-- 任务表格 -->
       <nz-card class="table-card">
-        <div class="table-container" *ngIf="!isLoading; else loadingTemplate">
+        <div class="table-container">
           <nz-table 
             [nzData]="filteredTasks" 
             [nzPageSize]="pageSize"
             [nzShowPagination]="filteredTasks.length > pageSize"
+            [nzLoading]="isLoading"
             class="tasks-table">
             <thead>
               <tr>
@@ -313,13 +314,6 @@ interface TaskListItem {
             </div>
           </nz-empty>
         </div>
-        
-        <!-- 加载模板 -->
-        <ng-template #loadingTemplate>
-          <div class="loading-container">
-            <nz-spin nzSize="large" nzTip="加载任务列表中..."></nz-spin>
-          </div>
-        </ng-template>
       </nz-card>
     </div>
   `,
@@ -330,6 +324,7 @@ export class RebuildTaskListComponent implements OnInit, OnDestroy {
   
   tasks: XStoreFollower[] = [];
   filteredTasks: TaskListItem[] = [];
+  private itemsMap = new Map<string, TaskListItem>();
   namespaces: string[] = [];
   isLoading = false;
   pageSize = 20;
@@ -390,37 +385,31 @@ export class RebuildTaskListComponent implements OnInit, OnDestroy {
   }
 
   private startPolling(): void {
-    // 立即加载一次
     this.loadTasks();
-    
-    // 然后每5秒轮询（只有当页面可见且有非终态任务时才轮询）
     timer(5000, 5000)
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => {
-        const hasActiveTasks = this.tasks.some(task => {
-          const phase = task.status?.phase;
-          return phase && !['FollowerPhaseSuccess', 'FollowerPhaseFailed', 'FollowerPhaseDeleting'].includes(phase);
-        });
-        if (hasActiveTasks && document.visibilityState === 'visible') {
-          this.loadTasks();
+        if (document.visibilityState !== 'visible') return;
+        const hasActive = this.filteredTasks.some(i => !i.isEndPhase);
+        if (hasActive) {
+          this.loadTasks(true /*silent*/);
         }
       });
   }
 
-  private loadTasks(): void {
-    if (this.isLoading) return;
-    this.isLoading = true;
+  private loadTasks(silent = false): void {
+    if (this.isLoading && !silent) return;
+    if (!silent) this.isLoading = true;
 
     if (this.selectedNamespace) {
       this.apiService.getXStoreFollowers(this.selectedNamespace)
         .pipe(
           takeUntil(this.destroy$),
-          finalize(() => { this.isLoading = false; })
+          finalize(() => { if (!silent) this.isLoading = false; })
         )
         .subscribe({
           next: (tasks) => {
-            this.tasks = tasks || [];
-            this.applyFilters();
+            this.mergeTasks(tasks || []);
           },
           error: (error) => {
             console.error('Failed to load rebuild tasks:', error);
@@ -442,18 +431,51 @@ export class RebuildTaskListComponent implements OnInit, OnDestroy {
     forkJoin(requests)
       .pipe(
         takeUntil(this.destroy$),
-        finalize(() => { this.isLoading = false; }),
+        finalize(() => { if (!silent) this.isLoading = false; }),
         map(results => results.flat())
       )
       .subscribe({
         next: (allTasks) => {
-          this.tasks = allTasks || [];
-          this.applyFilters();
+          this.mergeTasks(allTasks || []);
         },
         error: (error) => {
           console.error('Failed to load rebuild tasks:', error);
         }
       });
+  }
+
+  // 将新数据与现有列表做“静默合并”，仅更新变更行，避免闪动
+  private mergeTasks(newTasks: XStoreFollower[]): void {
+    this.tasks = newTasks;
+    const nextMap = new Map<string, TaskListItem>();
+    const nextList: TaskListItem[] = [];
+    for (const t of newTasks) {
+      const key = t.metadata?.name || Math.random().toString();
+      const prev = this.itemsMap.get(key);
+      // 仅当 phase 或关键信息变化时重建项，否则复用对象避免 DOM 重渲染
+      const phase = t.status?.phase || '';
+      const changed = !prev || prev.task.status?.phase !== phase || prev.task.spec !== t.spec || prev.task.status !== t.status;
+      const item = changed ? this.convertToListItem(t) : { ...prev!, task: t };
+      nextMap.set(key, item);
+      nextList.push(item);
+    }
+    this.itemsMap = nextMap;
+    this.applyFiltersFromItems(nextList);
+  }
+
+  private applyFiltersFromItems(items: TaskListItem[]): void {
+    let list = items;
+    if (this.selectedRole) {
+      list = list.filter(it => it.task.spec.role === this.selectedRole);
+    }
+    if (this.selectedPhase) {
+      list = list.filter(it => it.task.status?.phase === this.selectedPhase);
+    }
+    if (this.xstoreFilter) {
+      const kw = this.xstoreFilter.toLowerCase();
+      list = list.filter(it => (it.task.spec.xStoreName || '').toLowerCase().includes(kw));
+    }
+    this.filteredTasks = list;
   }
 
   onNamespaceChange(namespace: string): void {
@@ -462,28 +484,9 @@ export class RebuildTaskListComponent implements OnInit, OnDestroy {
   }
 
   applyFilters(): void {
-    let filtered = this.tasks;
-    
-    // 角色筛选
-    if (this.selectedRole) {
-      filtered = filtered.filter(task => task.spec.role === this.selectedRole);
-    }
-    
-    // 状态筛选
-    if (this.selectedPhase) {
-      filtered = filtered.filter(task => task.status?.phase === this.selectedPhase);
-    }
-    
-    // XStore 筛选
-    if (this.xstoreFilter) {
-      const filter = this.xstoreFilter.toLowerCase();
-      filtered = filtered.filter(task => 
-        task.spec.xStoreName.toLowerCase().includes(filter)
-      );
-    }
-    
-    // 转换为列表项
-    this.filteredTasks = filtered.map(task => this.convertToListItem(task));
+    // 从 itemsMap 做过滤，尽量复用现有行对象
+    const items = Array.from(this.itemsMap.values());
+    this.applyFiltersFromItems(items);
   }
 
   private convertToListItem(task: XStoreFollower): TaskListItem {

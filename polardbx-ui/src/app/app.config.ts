@@ -14,6 +14,7 @@ import {
   MenuUnfoldOutline,
   AppstoreOutline,
   ArrowRightOutline,
+  ArrowLeftOutline,
   CloudUploadOutline,
   CloudFill,
   UndoOutline,
@@ -88,6 +89,7 @@ import {
   DesktopOutline,
   ControlOutline
 } from '@ant-design/icons-angular/icons';
+import { PauseOutline, ExperimentOutline } from '@ant-design/icons-angular/icons';
 
 import { routes } from './app.routes';
 
@@ -112,6 +114,7 @@ export const appConfig: ApplicationConfig = {
       MenuUnfoldOutline,
       AppstoreOutline,
       ArrowRightOutline,
+      ArrowLeftOutline,
       CloudUploadOutline,
       CloudFill,
       UndoOutline,
@@ -184,7 +187,9 @@ export const appConfig: ApplicationConfig = {
       ThunderboltOutline,
       CodeOutline,
       DesktopOutline,
-      ControlOutline
+      ControlOutline,
+      PauseOutline,
+      ExperimentOutline
     ])
   ]
 };

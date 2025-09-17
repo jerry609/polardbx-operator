@@ -41,9 +41,49 @@
 .spacer { flex: 1 1 auto; }
 
 /* 命名空间下拉在头部的对齐与紧凑样式 */
-.header-actions { display: flex; align-items: center; gap: 12px; }
-.header-actions .label { color: rgba(0,0,0,.65); margin-right: 6px; }
-.login-btn { display: inline-flex; align-items: center; gap: 6px; }
+.header-actions { 
+  display: flex; 
+  align-items: center; 
+  gap: 12px; 
+}
+
+.header-actions .label { 
+  color: rgba(0,0,0,.65); 
+  margin-right: 6px; 
+}
+
+/* 登录/登出按钮样式 */
+.login-btn, .reconnect-btn, .logout-btn { 
+  display: inline-flex; 
+  align-items: center; 
+  gap: 6px;
+  transition: all 0.3s ease;
+  font-weight: 500;
+}
+
+.login-btn {
+  &:hover {
+    color: #1890ff;
+    border-color: #1890ff;
+  }
+}
+
+.reconnect-btn {
+  margin-right: 8px;
+  
+  &:hover {
+    color: #52c41a;
+    border-color: #52c41a;
+  }
+}
+
+.logout-btn {
+  &:hover {
+    background-color: #ff4d4f;
+    border-color: #ff4d4f;
+    color: white;
+  }
+}
 
 .inner-content {
   margin: 24px 16px 0;

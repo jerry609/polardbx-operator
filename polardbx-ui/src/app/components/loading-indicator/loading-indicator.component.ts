@@ -9,7 +9,8 @@ import { LoadingService, LoadingKeys } from '../../services/loading.service';
   standalone: true,
   imports: [CommonModule, MatProgressSpinnerModule],
   template: `
-    <div class="loading-overlay" *ngIf="isLoading$ | async">
+    <!-- 点击穿透以允许导航/侧栏仍可操作 -->
+    <div class="loading-overlay" *ngIf="showOverlay" (click)="$event.stopPropagation()">
       <div class="loading-container">
         <mat-spinner diameter="40"></mat-spinner>
         <div class="loading-text">{{ loadingText }}</div>
@@ -29,6 +30,7 @@ import { LoadingService, LoadingKeys } from '../../services/loading.service';
       align-items: center;
       z-index: 10000;
       backdrop-filter: blur(4px);
+      pointer-events: none; /* 允许页面交互穿透 */
     }
 
     .loading-container {
@@ -36,6 +38,7 @@ import { LoadingService, LoadingKeys } from '../../services/loading.service';
       flex-direction: column;
       align-items: center;
       gap: 20px;
+      pointer-events: auto; /* 仅中间容器可拦截，保证点击穿透其余区域 */
     }
 
     .loading-text {
@@ -52,6 +55,7 @@ export class LoadingIndicatorComponent implements OnInit, OnDestroy {
   isLoading$: Observable<boolean>;
   loadingText = '加载中...';
   private subscription?: Subscription;
+  showOverlay = false; // 仅在特定关键操作时显示全局遮罩
 
   constructor() {
     this.isLoading$ = this.loadingService.getGlobalLoadingState();
@@ -60,6 +64,12 @@ export class LoadingIndicatorComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.subscription = this.loadingService.activeLoadingKeys$.subscribe(keys => {
       this.updateLoadingText(keys);
+      // 仅当存在“关键操作”时才显示全局遮罩，避免普通请求遮挡页面
+      const overlayKeys = new Set([
+        LoadingKeys.GLOBAL,
+        LoadingKeys.CONNECT
+      ]);
+      this.showOverlay = keys.some(k => overlayKeys.has(k as any));
     });
   }
 

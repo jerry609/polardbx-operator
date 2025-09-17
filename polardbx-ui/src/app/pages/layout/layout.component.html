@@ -149,10 +149,26 @@
       <span class="header-title">可视化运维平台</span>
       <span class="spacer"></span>
       <div class="header-actions">
-        <button nz-button nzType="default" nzShape="round" (click)="openLogin()" class="login-btn">
-          <i nz-icon nzType="login"></i>
-          <span>登录</span>
-        </button>
+        <!-- 未认证状态：显示登录按钮 -->
+        <ng-container *ngIf="!isAuthenticated">
+          <button nz-button nzType="default" nzShape="round" (click)="openLogin()" class="login-btn">
+            <i nz-icon nzType="login"></i>
+            <span>登录</span>
+          </button>
+        </ng-container>
+        
+        <!-- 已认证状态：显示用户操作按钮 -->
+        <ng-container *ngIf="isAuthenticated">
+          <button nz-button nzType="default" nzShape="round" (click)="reconnect()" class="reconnect-btn" nzGhost>
+            <i nz-icon nzType="reload"></i>
+            <span>重新连接</span>
+          </button>
+          <button nz-button nzType="primary" nzShape="round" (click)="logout()" class="logout-btn" nzDanger>
+            <i nz-icon nzType="logout"></i>
+            <span>登出</span>
+          </button>
+        </ng-container>
+        
         <nz-divider nzType="vertical"></nz-divider>
         <div class="ns-select">
           <span class="label">命名空间</span>

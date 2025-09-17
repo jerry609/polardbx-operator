@@ -125,10 +125,34 @@ export class ConnectComponent {
     }
   }
 
+  copyToClipboard(): void {
+    if (this.kubeconfig) {
+      navigator.clipboard.writeText(this.kubeconfig).then(() => {
+        this.snackBar.open('已复制到剪贴板', '关闭', {
+          duration: 2000
+        });
+      }).catch(err => {
+        console.error('复制失败:', err);
+        this.snackBar.open('复制失败', '关闭', {
+          duration: 2000
+        });
+      });
+    }
+  }
+
   onConnect() {
     if (!this.kubeconfig.trim()) {
       this.snackBar.open('请输入 kubeconfig 内容', '关闭', {
-        duration: 3000
+        duration: 3000,
+        panelClass: ['error-snackbar']
+      });
+      return;
+    }
+
+    if (!this.validateKubeconfig()) {
+      this.snackBar.open('kubeconfig 格式不正确，请检查配置', '关闭', {
+        duration: 4000,
+        panelClass: ['error-snackbar']
       });
       return;
     }
@@ -140,8 +164,9 @@ export class ConnectComponent {
         // 保存 kubeconfig 到 localStorage
         this.authService.saveKubeconfig(this.kubeconfig);
         console.log('kubeconfig已保存，认证状态:', this.authService.isAuthenticated());
-        this.snackBar.open('连接成功！', '关闭', {
-          duration: 3000
+        this.snackBar.open('🎉 连接成功！正在跳转到集群管理页面...', '关闭', {
+          duration: 3000,
+          panelClass: ['success-snackbar']
         });
         // 跳转到集群列表页
         console.log('准备跳转到 /clusters');
@@ -151,8 +176,15 @@ export class ConnectComponent {
       },
       error: (error) => {
         console.error('连接失败:', error);
-        this.snackBar.open('连接失败，请检查 kubeconfig 配置', '关闭', {
-          duration: 5000
+        let errorMessage = '连接失败，请检查 kubeconfig 配置';
+        if (error.status === 401) {
+          errorMessage = '认证失败，请检查 kubeconfig 中的凭据信息';
+        } else if (error.status === 0) {
+          errorMessage = '无法连接到 Kubernetes API 服务器，请检查网络和配置';
+        }
+        this.snackBar.open(errorMessage, '关闭', {
+          duration: 6000,
+          panelClass: ['error-snackbar']
         });
       },
       complete: () => {

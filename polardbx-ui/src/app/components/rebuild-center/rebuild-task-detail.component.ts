@@ -1,20 +1,18 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef, ChangeDetectionStrategy, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { NzCardModule } from 'ng-zorro-antd/card';
-import { NzTabsModule } from 'ng-zorro-antd/tabs';
 import { NzButtonModule } from 'ng-zorro-antd/button';
 import { NzIconModule } from 'ng-zorro-antd/icon';
 import { NzTagModule } from 'ng-zorro-antd/tag';
 import { NzSpinModule } from 'ng-zorro-antd/spin';
 import { NzProgressModule } from 'ng-zorro-antd/progress';
 import { NzDescriptionsModule } from 'ng-zorro-antd/descriptions';
-import { NzStepsModule } from 'ng-zorro-antd/steps';
 import { NzEmptyModule } from 'ng-zorro-antd/empty';
 import { NzMessageService } from 'ng-zorro-antd/message';
-import { NzModalService } from 'ng-zorro-antd/modal';
-import { Subject, timer } from 'rxjs';
-import { takeUntil, switchMap } from 'rxjs/operators';
+import { NzModalService, NzModalModule } from 'ng-zorro-antd/modal';
+import { NzResultModule } from 'ng-zorro-antd/result';
+import { interval, Subscription } from 'rxjs';
 
 import { ApiService } from '../../services/api.service';
 import { XStoreFollower } from '../../models/xstore-follower.model';
@@ -25,228 +23,329 @@ import { XStoreFollower } from '../../models/xstore-follower.model';
   imports: [
     CommonModule,
     NzCardModule,
-    NzTabsModule,
     NzButtonModule,
     NzIconModule,
     NzTagModule,
     NzSpinModule,
     NzProgressModule,
     NzDescriptionsModule,
-    NzStepsModule,
-    NzEmptyModule
+    NzEmptyModule,
+    NzModalModule,
+    NzResultModule
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="rebuild-task-detail-container">
-      <div *ngIf="!isLoading && task; else loadingTemplate">
-        <!-- 头部信息 -->
-        <nz-card class="header-card">
+      <div class="page-header">
+        <button nz-button nzType="text" (click)="goBack()" class="back-button">
+          <i nz-icon nzType="arrow-left"></i>
+          返回任务列表
+        </button>
+        <h1 class="page-title">重搭任务详情</h1>
+      </div>
+
+      <!-- 调试信息 -->
+      <nz-card class="debug-card" *ngIf="showDebugInfo">
+        <h3>调试信息</h3>
+        <p><strong>命名空间:</strong> {{ namespace || '未设置' }}</p>
+        <p><strong>任务名:</strong> {{ taskName || '未设置' }}</p>
+        <p><strong>加载状态:</strong> {{ loading ? '加载中' : '已完成' }}</p>
+        <p><strong>任务数据:</strong> {{ task ? '已加载' : '未加载' }}</p>
+        <p><strong>错误信息:</strong> {{ errorMessage || '无' }}</p>
+        <p><strong>API调用次数:</strong> {{ apiCallCount }}</p>
+        <p><strong>模板判断:</strong> 
+          loading={{ loading }}, 
+          task={{ !!task }}, 
+          errorMessage={{ !!errorMessage }}
+        </p>
+        <button nz-button nzType="default" (click)="manualRefresh()">手动刷新</button>
+        <button nz-button nzType="default" (click)="forceUpdate()">强制更新</button>
+      </nz-card>
+
+      <!-- 加载状态（仅在未拿到task前显示） -->
+      <div class="loading-wrapper" *ngIf="loading && !task">
+        <nz-spin nzSize="large" nzTip="正在加载任务详情...">
+          <div class="loading-content"></div>
+        </nz-spin>
+      </div>
+
+      <!-- 错误状态 -->
+      <nz-result 
+        *ngIf="!loading && errorMessage && !task"
+        nzStatus="error"
+        nzTitle="加载失败"
+        [nzSubTitle]="errorMessage">
+        <div nz-result-extra>
+          <button nz-button nzType="primary" (click)="manualRefresh()">重新加载</button>
+          <button nz-button nzType="default" (click)="goBack()">返回列表</button>
+        </div>
+      </nz-result>
+
+      <!-- 任务详情内容（极简无动画设计） -->
+      <div class="task-content" *ngIf="!loading && task">
+        <nz-card class="task-header-card">
           <div class="task-header">
-            <div class="header-left">
-              <button nz-button nzType="text" (click)="goBack()" class="back-button">
-                <i nz-icon nzType="arrow-left"></i>
-                返回任务列表
-              </button>
+            <div class="task-info">
               <h2 class="task-title">
-                <i nz-icon [nzType]="getTaskIcon()" class="task-icon"></i>
+                <i nz-icon [nzType]="getTaskIcon()"></i>
                 {{ task.metadata.name }}
               </h2>
+              <div class="task-meta">
+                <nz-tag [nzColor]="getStatusColor()">{{ getDisplayStatus() }}</nz-tag>
+                <nz-tag [nzColor]="getRoleColor()">{{ getRoleDisplayName() }}</nz-tag>
+              </div>
             </div>
-            <div class="header-right">
-              <nz-tag [nzColor]="getStatusColor()" class="status-tag">
-                {{ getDisplayStatus() }}
-              </nz-tag>
-              <nz-tag [nzColor]="getRoleColor()" class="role-tag">
-                {{ getRoleDisplayName() }}
-              </nz-tag>
+            <div class="task-actions">
+              <button nz-button nzType="default" (click)="manualRefresh()">
+                <i nz-icon nzType="reload"></i>
+                刷新
+              </button>
+              <button nz-button nzType="default" (click)="toggleAutoRefresh()">
+                <i nz-icon [nzType]="autoRefresh ? 'pause' : 'play-circle'"></i>
+                {{ autoRefresh ? '停止自动刷新' : '开启自动刷新' }}
+              </button>
             </div>
           </div>
-          
-          <!-- 进度条 -->
           <div class="progress-section" *ngIf="!isEndPhase()">
-            <nz-progress 
-              [nzPercent]="getProgressPercent()" 
-              [nzStatus]="getProgressStatus()"
-              [nzStrokeWidth]="8">
-            </nz-progress>
+            <nz-progress [nzPercent]="getProgressPercent()" [nzStatus]="getProgressStatus()" [nzStrokeWidth]="8"></nz-progress>
+            <p class="progress-text">{{ getDisplayStatus() }}</p>
           </div>
         </nz-card>
 
-        <!-- 详情标签页 -->
-        <nz-card class="detail-card">
-          <nz-tabset nzType="card">
-            <!-- 概览 -->
-            <nz-tab nzTitle="概览">
-              <div class="overview-content">
-                <nz-descriptions nzTitle="基本信息" nzBordered [nzColumn]="2">
-                  <nz-descriptions-item nzTitle="任务名">{{ task.metadata.name }}</nz-descriptions-item>
-                  <nz-descriptions-item nzTitle="命名空间">{{ task.metadata.namespace }}</nz-descriptions-item>
-                  <nz-descriptions-item nzTitle="角色类型">{{ getRoleDisplayName() }}</nz-descriptions-item>
-                  <nz-descriptions-item nzTitle="XStore">{{ task.spec.xStoreName }}</nz-descriptions-item>
-                  <nz-descriptions-item nzTitle="构建方式">
-                    <nz-tag [nzColor]="task.spec.local ? 'blue' : 'orange'">
-                      {{ task.spec.local ? '本机构建' : '跨机构建' }}
-                    </nz-tag>
-                  </nz-descriptions-item>
-                  <nz-descriptions-item nzTitle="创建时间">{{ formatTime(task.metadata.creationTimestamp) }}</nz-descriptions-item>
-                  <nz-descriptions-item nzTitle="源 Pod" *ngIf="task.spec.fromPodName">{{ task.spec.fromPodName }}</nz-descriptions-item>
-                  <nz-descriptions-item nzTitle="目标 Pod" *ngIf="getTargetPodName()">{{ getTargetPodName() }}</nz-descriptions-item>
-                  <nz-descriptions-item nzTitle="目标节点" *ngIf="getTargetNodeName()">{{ getTargetNodeName() }}</nz-descriptions-item>
-                  <nz-descriptions-item nzTitle="当前状态">
-                    <nz-tag [nzColor]="getStatusColor()">{{ getDisplayStatus() }}</nz-tag>
-                  </nz-descriptions-item>
-                  <nz-descriptions-item nzTitle="状态消息" *ngIf="task.status?.message">{{ task.status?.message }}</nz-descriptions-item>
-                  <nz-descriptions-item nzTitle="当前任务" *ngIf="task.status?.currentJobName">{{ task.status?.currentJobName }}</nz-descriptions-item>
-                </nz-descriptions>
+        <nz-card class="detail-tabs-card">
+          <div class="tab-content">
+            <nz-descriptions nzTitle="任务详情" nzBordered [nzColumn]="3" nzSize="middle">
+              <nz-descriptions-item nzTitle="任务名称">{{ task.metadata.name }}</nz-descriptions-item>
+              <nz-descriptions-item nzTitle="命名空间">{{ task.metadata.namespace }}</nz-descriptions-item>
+              <nz-descriptions-item nzTitle="角色类型">{{ getRoleDisplayName() }}</nz-descriptions-item>
+              <nz-descriptions-item nzTitle="目标 XStore">{{ task.spec.xStoreName }}</nz-descriptions-item>
+              <nz-descriptions-item nzTitle="构建方式">
+                <nz-tag [nzColor]="task.spec.local ? 'blue' : 'orange'">{{ task.spec.local ? '本机构建' : '跨机构建' }}</nz-tag>
+              </nz-descriptions-item>
+              <nz-descriptions-item nzTitle="创建时间">{{ formatTime(task.metadata.creationTimestamp) }}</nz-descriptions-item>
+              <nz-descriptions-item nzTitle="源 Pod" *ngIf="task.spec.fromPodName">{{ task.spec.fromPodName }}</nz-descriptions-item>
+              <nz-descriptions-item nzTitle="目标 Pod" *ngIf="getTargetPodName()">{{ getTargetPodName() }}</nz-descriptions-item>
+              <nz-descriptions-item nzTitle="目标节点" *ngIf="getTargetNodeName()">{{ getTargetNodeName() }}</nz-descriptions-item>
+              <nz-descriptions-item nzTitle="当前状态"><nz-tag [nzColor]="getStatusColor()">{{ getDisplayStatus() }}</nz-tag></nz-descriptions-item>
+              <nz-descriptions-item nzTitle="状态消息" *ngIf="task.status?.message" nzSpan="2">{{ task.status?.message }}</nz-descriptions-item>
+              <nz-descriptions-item nzTitle="当前任务" *ngIf="task.status?.currentJobName" nzSpan="2">{{ task.status?.currentJobName }}</nz-descriptions-item>
+            </nz-descriptions>
 
-                <!-- 操作按钮 -->
-                <div class="action-section">
-                  <button 
-                    nz-button 
-                    nzType="default" 
-                    *ngIf="!isEndPhase()"
-                    (click)="stopTask()">
-                    <i nz-icon nzType="pause"></i>
-                    停止任务
-                  </button>
-                  <button 
-                    nz-button 
-                    nzType="primary" 
-                    *ngIf="canRetry()"
-                    (click)="retryTask()">
-                    <i nz-icon nzType="redo"></i>
-                    重试任务
-                  </button>
-                  <button 
-                    nz-button 
-                    nzDanger
-                    *ngIf="isEndPhase()"
-                    (click)="deleteTask()">
-                    <i nz-icon nzType="delete"></i>
-                    删除任务
-                  </button>
-                </div>
-              </div>
-            </nz-tab>
+            <div class="action-buttons">
+              <button nz-button nzType="default" *ngIf="!isEndPhase()" (click)="stopTask()"><i nz-icon nzType="pause"></i>停止任务</button>
+              <button nz-button nzType="primary" *ngIf="canRetry()" (click)="retryTask()"><i nz-icon nzType="redo"></i>重试任务</button>
+              <button nz-button nzDanger *ngIf="isEndPhase()" (click)="deleteTask()"><i nz-icon nzType="delete"></i>删除任务</button>
+              <button nz-button nzType="default" (click)="toggleRaw()"><i nz-icon nzType="file-text"></i>{{ showRaw ? '隐藏原始数据' : '显示原始数据' }}</button>
+            </div>
 
-            <!-- 步骤 -->
-            <nz-tab nzTitle="执行步骤">
-              <div class="steps-content">
-                <nz-steps [nzCurrent]="getCurrentStepIndex()" nzDirection="vertical">
-                  <nz-step 
-                    *ngFor="let step of getSteps()" 
-                    [nzTitle]="step.title"
-                    [nzDescription]="step.description"
-                    [nzStatus]="step.status">
-                  </nz-step>
-                </nz-steps>
-              </div>
-            </nz-tab>
+            <div *ngIf="showRaw" style="margin-top: 12px;">
+              <pre class="json-display">{{ taskJson }}</pre>
+            </div>
 
-            <!-- 日志 -->
-            <nz-tab nzTitle="任务日志">
-              <div class="logs-content">
-                <nz-empty nzNotFoundContent="日志功能开发中，请通过 kubectl 查看相关 Pod 日志">
-                  <div nz-empty-footer>
-                    <p>当前任务相关信息：</p>
-                    <ul>
-                      <li *ngIf="task.status?.currentJobName">当前任务: {{ task.status?.currentJobName }}</li>
-                      <li *ngIf="task.status?.currentJobTask">当前子任务: {{ task.status?.currentJobTask }}</li>
-                      <li *ngIf="task.status?.rebuildPodName">重建 Pod: {{ task.status?.rebuildPodName }}</li>
-                    </ul>
-                  </div>
-                </nz-empty>
-              </div>
-            </nz-tab>
-
-            <!-- 事件 -->
-            <nz-tab nzTitle="事件">
-              <div class="events-content">
-                <nz-empty nzNotFoundContent="事件功能开发中">
-                  <div nz-empty-footer>
-                    <p>可通过以下命令查看相关事件：</p>
-                    <code>kubectl get events -n {{ task.metadata.namespace }} --field-selector involvedObject.name={{ task.metadata.name }}</code>
-                  </div>
-                </nz-empty>
-              </div>
-            </nz-tab>
-          </nz-tabset>
+            <div style="margin-top: 16px;">
+              <h4>执行步骤</h4>
+              <ul>
+                <li *ngFor="let step of getSteps()" [style.color]="step.status === 'error' ? '#ff4d4f' : step.status === 'finish' ? '#52c41a' : '#1890ff'">
+                  <strong>{{ step.title }}</strong> - {{ step.description }}
+                </li>
+              </ul>
+            </div>
+          </div>
         </nz-card>
       </div>
 
-      <!-- 加载模板 -->
-      <ng-template #loadingTemplate>
-        <div class="loading-container">
-          <nz-spin nzSize="large" nzTip="加载任务详情中..."></nz-spin>
+      <!-- 无数据状态 -->
+      <nz-result 
+        *ngIf="!loading && !task && !errorMessage"
+        nzStatus="404"
+        nzTitle="任务不存在"
+        nzSubTitle="未找到指定的重搭任务">
+        <div nz-result-extra>
+          <button nz-button nzType="primary" (click)="goBack()">返回任务列表</button>
         </div>
-      </ng-template>
+      </nz-result>
     </div>
   `,
   styleUrls: ['./rebuild-task-detail.component.scss']
 })
 export class RebuildTaskDetailComponent implements OnInit, OnDestroy {
-  private destroy$ = new Subject<void>();
-  
+  // 基础状态
   task: XStoreFollower | null = null;
-  isLoading = false;
+  loading = true;
+  errorMessage = '';
   namespace = '';
   taskName = '';
+  taskJson = '';
+  
+  // 调试相关
+  showDebugInfo = true; // 开发时显示调试信息
+  apiCallCount = 0;
+  
+  // 轮询相关
+  private pollingSubscription: Subscription | null = null;
+  private readonly POLLING_INTERVAL = 5000; // 5秒轮询一次
+  private inFlight = 0; // 当前进行中的请求计数，避免重复阻塞
+  autoRefresh = true;
+  showRaw = false;
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private apiService: ApiService,
     private message: NzMessageService,
-    private modal: NzModalService
+    private modal: NzModalService,
+    private cdr: ChangeDetectorRef,
+    private zone: NgZone
   ) {}
 
   ngOnInit(): void {
-    this.route.params.pipe(takeUntil(this.destroy$)).subscribe(params => {
+    console.log('🚀 RebuildTaskDetailComponent 初始化');
+    
+    // 获取路由参数
+    this.route.params.subscribe(params => {
       this.namespace = params['namespace'];
       this.taskName = params['name'];
+      
+      console.log('📍 路由参数:', { namespace: this.namespace, taskName: this.taskName });
+      
+      if (!this.namespace || !this.taskName) {
+        this.errorMessage = '缺少必要的路由参数：namespace 或 name';
+        this.loading = false;
+        return;
+      }
+      
+      // 开始加载数据
+      this.loadTaskData();
       this.startPolling();
     });
   }
 
   ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
+    console.log('💀 RebuildTaskDetailComponent 销毁');
+    this.stopPolling();
   }
 
-  private startPolling(): void {
-    // 立即加载一次
-    this.loadTask();
+  /**
+   * 加载任务数据
+   */
+  loadTaskData(): void {
+    console.log('🔄 开始加载任务数据...', { namespace: this.namespace, taskName: this.taskName });
     
-    // 然后每3秒轮询（只有非终态且页面可见时才轮询）
-    timer(3000, 3000)
-      .pipe(
-        switchMap(() => {
-          if (!this.isEndPhase() && document.visibilityState === 'visible') {
-            return this.loadTask();
-          }
-          return Promise.resolve(null);
-        }),
-        takeUntil(this.destroy$)
-      )
-      .subscribe();
+    this.loading = true;
+    this.errorMessage = '';
+    this.apiCallCount++;
+    
+    this.inFlight++;
+    this.apiService.getXStoreFollower(this.namespace, this.taskName).subscribe({
+      next: (data) => {
+        console.log('✅ 任务数据加载成功:', data);
+        this.task = data;
+        // 预渲染 JSON 字符串，避免模板反复 stringify 带来的主线程开销
+        this.taskJson = JSON.stringify(this.task, null, 2);
+        this.loading = false;
+        this.errorMessage = '';
+        
+        // 标记变更（OnPush）
+        this.cdr.markForCheck();
+        console.log('🔄 变更检测已触发，loading状态:', this.loading);
+      },
+      error: (error) => {
+        console.error('❌ 任务数据加载失败:', error);
+        this.loading = false;
+        this.task = null;
+        this.taskJson = '';
+        
+        if (error.status === 404) {
+          this.errorMessage = '任务不存在或已被删除';
+        } else if (error.status === 0) {
+          this.errorMessage = '网络连接失败，请检查网络状态';
+        } else {
+          this.errorMessage = `加载失败: ${error.message || '未知错误'}`;
+        }
+        
+        // 标记变更（OnPush）
+        this.cdr.markForCheck();
+        console.log('🔄 错误处理后变更检测已触发，loading状态:', this.loading);
+      },
+      complete: () => {
+        this.inFlight = Math.max(this.inFlight - 1, 0);
+      }
+    });
   }
 
-  private async loadTask(): Promise<XStoreFollower | null> {
-    if (this.isLoading) return null;
+  /**
+   * 手动刷新
+   */
+  manualRefresh(): void {
+    console.log('🔄 手动刷新任务数据');
+    console.log('🔍 刷新前状态:', { loading: this.loading, task: !!this.task, errorMessage: this.errorMessage });
+    this.loadTaskData();
+  }
+
+  /**
+   * 开始轮询
+   */
+  startPolling(): void {
+    console.log('⏰ 开始轮询任务状态');
     
-    this.isLoading = true;
-    try {
-      const task = await this.apiService.getXStoreFollower(this.namespace, this.taskName).toPromise();
-      this.task = task || null;
-      return task || null;
-    } catch (error) {
-      console.error('Failed to load task detail:', error);
-      this.message.error('加载任务详情失败');
-      return null;
-    } finally {
-      this.isLoading = false;
+    // 在 Angular 之外启动计时器，降低变更检测频率
+    this.zone.runOutsideAngular(() => {
+      this.pollingSubscription = interval(this.POLLING_INTERVAL).subscribe(() => {
+        if (document.visibilityState !== 'visible') return;
+        // 只有在有任务且未到终态且当前不在显式加载时才轮询
+        if (this.task && !this.isEndPhase() && !this.loading) {
+          this.zone.run(() => {
+            this.loadTaskDataSilently();
+          });
+        }
+      });
+    });
+  }
+
+  /**
+   * 停止轮询
+   */
+  stopPolling(): void {
+    if (this.pollingSubscription) {
+      console.log('⏹️ 停止轮询');
+      this.pollingSubscription.unsubscribe();
+      this.pollingSubscription = null;
     }
   }
 
+  /**
+   * 静默加载数据（不显示loading状态）
+   */
+  private loadTaskDataSilently(): void {
+    if (this.inFlight > 0) return; // 避免并发叠加
+    this.inFlight++;
+    this.apiService.getXStoreFollower(this.namespace, this.taskName).subscribe({
+      next: (data) => {
+        console.log('🔄 静默更新任务数据成功');
+        this.task = data;
+        this.taskJson = JSON.stringify(this.task, null, 2);
+        // 标记变更（OnPush）
+        this.cdr.markForCheck();
+      },
+      error: (error) => {
+        console.warn('⚠️ 静默更新失败:', error);
+      },
+      complete: () => {
+        this.inFlight = Math.max(this.inFlight - 1, 0);
+      }
+    });
+  }
+
+  /**
+   * 返回任务列表
+   */
+  goBack(): void {
+    this.router.navigate(['/storage/xstore-rebuild/rebuild/tasks']);
+  }
+
+  /**
+   * 获取任务图标
+   */
   getTaskIcon(): string {
     if (!this.task) return 'setting';
     switch (this.task.spec.role) {
@@ -257,6 +356,9 @@ export class RebuildTaskDetailComponent implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * 获取角色颜色
+   */
   getRoleColor(): string {
     if (!this.task) return 'default';
     switch (this.task.spec.role) {
@@ -267,6 +369,9 @@ export class RebuildTaskDetailComponent implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * 获取角色显示名称
+   */
   getRoleDisplayName(): string {
     if (!this.task) return '';
     switch (this.task.spec.role) {
@@ -277,13 +382,16 @@ export class RebuildTaskDetailComponent implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * 获取状态显示文本
+   */
   getDisplayStatus(): string {
     if (!this.task) return '';
     const phase = this.task.status?.phase || '';
     const statusMap: { [key: string]: string } = {
       '': '初始化中',
       'FollowerPhaseNew': '已创建',
-      'FollowerPhaseCheck': '检查中',
+      'FollowerPhaseCheck': '环境检查',
       'FollowerPhaseBackupPrepare': '备份准备',
       'FollowerPhaseBackupStart': '开始备份',
       'FollowerPhaseBackup': '备份中',
@@ -299,9 +407,12 @@ export class RebuildTaskDetailComponent implements OnInit, OnDestroy {
       'FollowerPhaseFailed': '失败',
       'FollowerPhaseDeleting': '删除中'
     };
-    return statusMap[phase] || '初始化中';
+    return statusMap[phase] || phase || '未知状态';
   }
 
+  /**
+   * 获取状态颜色
+   */
   getStatusColor(): string {
     if (!this.task) return 'default';
     const phase = this.task.status?.phase || '';
@@ -314,6 +425,9 @@ export class RebuildTaskDetailComponent implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * 获取进度百分比
+   */
   getProgressPercent(): number {
     if (!this.task) return 0;
     const phase = this.task.status?.phase || '';
@@ -339,6 +453,9 @@ export class RebuildTaskDetailComponent implements OnInit, OnDestroy {
     return progressMap[phase] || 0;
   }
 
+  /**
+   * 获取进度状态
+   */
   getProgressStatus(): 'success' | 'exception' | 'active' | 'normal' {
     if (!this.task) return 'active';
     const phase = this.task.status?.phase || '';
@@ -347,26 +464,41 @@ export class RebuildTaskDetailComponent implements OnInit, OnDestroy {
     return 'active';
   }
 
+  /**
+   * 是否为结束阶段
+   */
   isEndPhase(): boolean {
     if (!this.task) return false;
     const phase = this.task.status?.phase || '';
     return ['FollowerPhaseSuccess', 'FollowerPhaseFailed', 'FollowerPhaseDeleting'].includes(phase);
   }
 
+  /**
+   * 是否可以重试
+   */
   canRetry(): boolean {
     return this.task?.status?.phase === 'FollowerPhaseFailed';
   }
 
+  /**
+   * 获取目标Pod名称
+   */
   getTargetPodName(): string {
     if (!this.task) return '';
     return this.task.status?.targetPodName || this.task.spec.targetPodName || '';
   }
 
+  /**
+   * 获取目标节点名称
+   */
   getTargetNodeName(): string {
     if (!this.task) return '';
     return this.task.status?.rebuildNodeName || this.task.spec.nodeName || '';
   }
 
+  /**
+   * 格式化时间
+   */
   formatTime(timestamp?: string): string {
     if (!timestamp) return '-';
     return new Date(timestamp).toLocaleString('zh-CN', {
@@ -379,6 +511,17 @@ export class RebuildTaskDetailComponent implements OnInit, OnDestroy {
     });
   }
 
+  /**
+   * 格式化任务JSON数据
+   */
+  formatTaskJson(): string {
+    if (!this.task) return '';
+    return JSON.stringify(this.task, null, 2);
+  }
+
+  /**
+   * 获取执行步骤
+   */
   getSteps(): Array<{title: string, description: string, status: string}> {
     if (!this.task) return [];
     
@@ -416,13 +559,19 @@ export class RebuildTaskDetailComponent implements OnInit, OnDestroy {
     });
   }
 
+  /**
+   * 获取当前步骤索引
+   */
   getCurrentStepIndex(): number {
     if (!this.task) return 0;
     const steps = this.getSteps();
-    const currentPhase = this.task.status?.phase || '';
-    return steps.findIndex(step => step.status === 'process');
+    const processIndex = steps.findIndex(step => step.status === 'process');
+    return processIndex >= 0 ? processIndex : 0;
   }
 
+  /**
+   * 判断阶段是否已到达
+   */
   private isPhaseReached(targetPhase: string, currentPhase: string): boolean {
     const phaseOrder = [
       'FollowerPhaseNew', 'FollowerPhaseCheck', 'FollowerPhaseBackupPrepare',
@@ -438,66 +587,108 @@ export class RebuildTaskDetailComponent implements OnInit, OnDestroy {
     return targetIndex < currentIndex;
   }
 
-  goBack(): void {
-    this.router.navigate(['/storage/xstore-rebuild/rebuild/tasks']);
-  }
-
+  /**
+   * 停止任务
+   */
   stopTask(): void {
     if (!this.task) return;
     
-    // 使用确认对话框
-    const modal = this.modal.confirm({
+    this.modal.confirm({
       nzTitle: '确认停止任务',
       nzContent: `确定要停止重搭任务 "${this.task.metadata.name}" 吗？`,
-      nzOnOk: async () => {
-        if (!this.task) return;
-        try {
-          await this.apiService.cancelXStoreFollower(this.task.metadata.namespace, this.task.metadata.name).toPromise();
-          this.message.success('任务停止成功');
-          this.loadTask(); // 重新加载任务状态
-        } catch (error) {
-          this.message.error('停止任务失败: ' + (error as any)?.message || '未知错误');
-        }
-      }
+      nzOnOk: () => new Promise<void>((resolve, reject) => {
+        const t = this.task!;
+        this.apiService.cancelXStoreFollower(t.metadata.namespace, t.metadata.name)
+          .subscribe({
+            next: () => { 
+              this.message.success('任务停止成功'); 
+              this.loadTaskData(); 
+              resolve(); 
+            },
+            error: (error) => { 
+              this.message.error('停止任务失败: ' + (error as any)?.message || '未知错误'); 
+              reject(error); 
+            }
+          });
+      })
     });
   }
 
+  /**
+   * 重试任务
+   */
   retryTask(): void {
     if (!this.task) return;
     
-    const modal = this.modal.confirm({
+    this.modal.confirm({
       nzTitle: '确认重试任务',
       nzContent: `确定要重试重搭任务 "${this.task.metadata.name}" 吗？`,
-      nzOnOk: async () => {
-        if (!this.task) return;
-        try {
-          await this.apiService.retryXStoreFollower(this.task.metadata.namespace, this.task.metadata.name).toPromise();
-          this.message.success('任务重试成功');
-          this.loadTask(); // 重新加载任务状态
-        } catch (error) {
-          this.message.error('重试任务失败: ' + (error as any)?.message || '未知错误');
-        }
-      }
+      nzOnOk: () => new Promise<void>((resolve, reject) => {
+        const t = this.task!;
+        this.apiService.retryXStoreFollower(t.metadata.namespace, t.metadata.name)
+          .subscribe({
+            next: () => { 
+              this.message.success('任务重试成功'); 
+              this.loadTaskData(); 
+              resolve(); 
+            },
+            error: (error) => { 
+              this.message.error('重试任务失败: ' + (error as any)?.message || '未知错误'); 
+              reject(error); 
+            }
+          });
+      })
     });
   }
 
+  /**
+   * 删除任务
+   */
   deleteTask(): void {
     if (!this.task) return;
     
-    const modal = this.modal.confirm({
+    this.modal.confirm({
       nzTitle: '确认删除任务',
       nzContent: `确定要删除重搭任务 "${this.task.metadata.name}" 吗？此操作不可撤销。`,
       nzOkDanger: true,
-      nzOnOk: async () => {
-        if (!this.task) return;
-        try {
-          await this.apiService.deleteXStoreFollower(this.task.metadata.namespace, this.task.metadata.name).toPromise();
-          this.message.success('任务删除成功');
-          this.goBack(); // 返回任务列表
-        } catch (error) {
-          this.message.error('删除任务失败: ' + (error as any)?.message || '未知错误');
-        }
-      }
+      nzOnOk: () => new Promise<void>((resolve, reject) => {
+        const t = this.task!;
+        this.apiService.deleteXStoreFollower(t.metadata.namespace, t.metadata.name)
+          .subscribe({
+            next: () => { 
+              this.message.success('任务删除成功'); 
+              this.goBack(); 
+              resolve(); 
+            },
+            error: (error) => { 
+              this.message.error('删除任务失败: ' + (error as any)?.message || '未知错误'); 
+              reject(error); 
+            }
+          });
+      })
     });
+  }
+
+  toggleAutoRefresh(): void {
+    this.autoRefresh = !this.autoRefresh;
+    if (!this.autoRefresh) {
+      this.stopPolling();
+    } else {
+      this.startPolling();
+    }
+  }
+
+  toggleRaw(): void {
+    this.showRaw = !this.showRaw;
+    this.cdr.markForCheck();
+  }
+
+  /**
+   * 强制更新（调试用）
+   */
+  forceUpdate(): void {
+    console.log('🔄 强制更新UI状态');
+    console.log('当前状态:', { loading: this.loading, task: !!this.task, errorMessage: this.errorMessage });
+    this.cdr.detectChanges();
   }
 }
