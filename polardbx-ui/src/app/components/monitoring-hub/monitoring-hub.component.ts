@@ -76,7 +76,7 @@ import { filter } from 'rxjs/operators';
     </div>
   `,
   styles: [`
-    .monitoring-hub { padding: 8px 16px; background: #ffffff; }
+    .monitoring-hub { padding: 8px 16px; background: #f5f5f5; min-height: 100vh; }
     .tabs { background: #fff; margin-bottom: 8px; }
     .outlet { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px; }
 
