@@ -18,7 +18,7 @@ import { ApiService } from '../../services/api.service';
       <div class="page-header">
         <div class="header-content">
           <h1 class="page-title">
-            <i nz-icon nzType="safety" class="page-icon"></i>
+            <i nz-icon nzType="safety-certificate" class="page-icon"></i>
             监控安装前健康体检
           </h1>
           <p class="page-description">刷新前提示：可用区分布与 IOPS 性能、时钟同步等信息一览</p>

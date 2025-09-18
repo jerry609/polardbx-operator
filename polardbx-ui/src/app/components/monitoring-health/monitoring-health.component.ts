@@ -17,7 +17,7 @@ import { ApiService } from '../../services/api.service';
       <div class="page-header">
         <div class="header-content">
           <h1 class="page-title">
-            <i nz-icon nzType="safety" class="page-icon"></i>
+            <i nz-icon nzType="heart" class="page-icon"></i>
             监控健康检查
           </h1>
           <p class="page-description">检测 Prometheus / Grafana / Alertmanager 组件状态</p>

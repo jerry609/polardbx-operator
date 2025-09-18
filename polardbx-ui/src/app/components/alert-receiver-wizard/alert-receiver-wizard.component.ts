@@ -86,7 +86,6 @@ interface DingTalkConfig {
       <app-wizard-shell
         title="告警接收器向导"
         subtitle="配置告警通知渠道"
-        titleIcon="mail"
         [namespace]="form.value.namespace"
         [objectName]="getObjectName()"
         objectLabel="接收器"
@@ -447,7 +446,19 @@ interface DingTalkConfig {
 
     /* 覆盖wizard-shell的深色背景 */
     :deep(.wizard-shell) {
-      background: #f5f5f5 !important;
+      background: transparent !important;
+    }
+    
+    :deep(.wizard-body) {
+      background: transparent !important;
+    }
+    
+    :deep(.wizard-header) {
+      background: white !important;
+    }
+    
+    :deep(.wizard-footer) {
+      background: white !important;
     }
 
     .page-header {

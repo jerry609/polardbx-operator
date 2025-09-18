@@ -83,7 +83,6 @@ const MAX_STATE_AGE_HOURS = 24;
       <app-wizard-shell
         title="监控开启向导"
         subtitle="快速启用 PolarDB-X 集群监控"
-        titleIcon="tool"
         [namespace]="form.value.namespace"
         [objectName]="getObjectName()"
         objectLabel="目标"
@@ -508,7 +507,19 @@ kubectl port-forward svc/alertmanager-main -n polardbx-monitor 9093</pre>
 
     /* 覆盖wizard-shell的深色背景 */
     :deep(.wizard-shell) {
-      background: #f5f5f5 !important;
+      background: transparent !important;
+    }
+    
+    :deep(.wizard-body) {
+      background: transparent !important;
+    }
+    
+    :deep(.wizard-header) {
+      background: white !important;
+    }
+    
+    :deep(.wizard-footer) {
+      background: white !important;
     }
 
     .page-header {
