@@ -6,6 +6,7 @@
 @use './styles/notifications.scss' as *;
 @use './app/styles/shared' as *;
 @use './app/styles/neutral-theme.scss' as *;
+@use './app/styles/page-header.scss' as *;
 
 // 自定义主题采用 CSS 变量 + 现有 _shared.scss 配色，不再引入预构建主题
 
@@ -34,6 +35,19 @@ body {
   background-color: var(--background-color);
   color: var(--text-color);
   line-height: 1.6;
+}
+
+/* Unified page header styles */
+.page-icon {
+  font-size: 24px !important;
+  color: #1890ff !important;
+}
+
+.page-title {
+  font-size: 20px !important;
+  font-weight: 600 !important;
+  color: rgba(0, 0, 0, 0.88) !important;
+  margin: 0 !important;
 }
 
 /* Fix: dropdown panels (MatSelect/Menu) covered by terminals/tables. Use fixed positioning. */
