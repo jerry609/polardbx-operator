@@ -51,7 +51,17 @@ interface RebuildFormData {
   ],
   template: `
     <div class="rebuild-form-container neutral-theme">
-      <nz-card class="form-card" nzTitle="创建重搭任务">
+      <div class="page-header">
+        <div class="header-content">
+          <h1 class="page-title">
+            <i nz-icon nzType="build" class="page-icon"></i>
+            创建重搭任务
+          </h1>
+          <p class="subtitle">配置 XStore 重搭参数，快速创建重搭任务</p>
+        </div>
+      </div>
+      
+      <nz-card class="form-card">
         <div class="form-content">
           <form nz-form [formGroup]="rebuildForm" (ngSubmit)="onSubmit()">
             
@@ -227,7 +237,38 @@ interface RebuildFormData {
       </nz-card>
     </div>
   `,
-  styleUrls: ['./rebuild-form.component.scss']
+  styleUrls: ['./rebuild-form.component.scss'],
+  styles: [`
+    .page-header {
+      margin-bottom: 16px;
+    }
+
+    .header-content {
+      max-width: 1120px;
+      margin: 0 auto;
+    }
+
+    .page-title {
+      font-size: 20px !important;
+      font-weight: 600 !important;
+      color: rgba(0, 0, 0, 0.88) !important;
+      margin: 0 !important;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .page-icon {
+      font-size: 24px !important;
+      color: #1890ff !important;
+    }
+
+    .subtitle {
+      color: rgba(0, 0, 0, 0.65);
+      font-size: 14px;
+      margin: 4px 0 0 36px;
+    }
+  `]
 })
 export class RebuildFormComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();

@@ -72,18 +72,29 @@ interface DingTalkConfig {
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <app-wizard-shell
-      title="告警接收器配置向导"
-      subtitle="配置邮件和钉钉告警通知，生成 Alertmanager Secret 配置"
-      titleIcon="notification"
-      [namespace]="form.value.namespace"
-      [objectName]="getObjectName()"
-      objectLabel="接收器"
-      docLink="https://docs.polardbx.com/alerting"
-      [steps]="wizardSteps"
-      [currentStepIndex]="currentStep"
-      [actions]="getStepActions()"
-      [loading]="stepLoading">
+    <div class="alert-receiver-wizard">
+      <div class="page-header">
+        <div class="header-content">
+          <h1 class="page-title">
+            <i nz-icon nzType="notification" class="page-icon"></i>
+            告警接收器配置向导
+          </h1>
+          <p class="subtitle">配置邮件和钉钉告警通知，生成 Alertmanager Secret 配置</p>
+        </div>
+      </div>
+      
+      <app-wizard-shell
+        title="告警接收器向导"
+        subtitle="配置告警通知渠道"
+        titleIcon="notification"
+        [namespace]="form.value.namespace"
+        [objectName]="getObjectName()"
+        objectLabel="接收器"
+        docLink="https://docs.polardbx.com/alerting"
+        [steps]="wizardSteps"
+        [currentStepIndex]="currentStep"
+        [actions]="getStepActions()"
+        [loading]="stepLoading">
 
       <!-- 步骤1：选择渠道 -->
       <ng-template #step1Template>
@@ -424,9 +435,47 @@ interface DingTalkConfig {
           </nz-result>
         </div>
       </ng-template>
-    </app-wizard-shell>
+      </app-wizard-shell>
+    </div>
   `,
   styles: [`
+    .alert-receiver-wizard {
+      padding: 16px;
+      background: #f5f5f5;
+      min-height: 100vh;
+    }
+
+    .page-header {
+      margin-bottom: 16px;
+    }
+
+    .header-content {
+      max-width: 1120px;
+      margin: 0 auto;
+    }
+
+    .page-title {
+      font-size: 20px !important;
+      font-weight: 600 !important;
+      color: rgba(0, 0, 0, 0.88) !important;
+      margin: 0 !important;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .page-icon {
+      font-size: 24px !important;
+      color: #1890ff !important;
+    }
+
+    .subtitle {
+      color: rgba(0, 0, 0, 0.65);
+      font-size: 14px;
+      margin: 4px 0 0 36px;
+    }
+  `,
+  `
     .step-content {
       padding: 0;
     }

@@ -69,18 +69,29 @@ const MAX_STATE_AGE_HOURS = 24;
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <app-wizard-shell
-      title="监控一键开启向导"
-      subtitle="快速启用 PolarDB-X 集群监控（企业版 PolarDBXMonitor / 标准版 ServiceMonitor）"
-      titleIcon="dashboard"
-      [namespace]="form.value.namespace"
-      [objectName]="getObjectName()"
-      objectLabel="目标"
-      docLink="https://docs.polardbx.com/monitoring"
-      [steps]="wizardSteps"
-      [currentStepIndex]="currentStep"
-      [actions]="getStepActions()"
-      [loading]="stepLoading">
+    <div class="monitoring-enable-wizard">
+      <div class="page-header">
+        <div class="header-content">
+          <h1 class="page-title">
+            <i nz-icon nzType="dashboard" class="page-icon"></i>
+            监控一键开启向导
+          </h1>
+          <p class="subtitle">快速启用 PolarDB-X 集群监控（企业版 PolarDBXMonitor / 标准版 ServiceMonitor）</p>
+        </div>
+      </div>
+      
+      <app-wizard-shell
+        title="监控开启向导"
+        subtitle="快速启用 PolarDB-X 集群监控"
+        titleIcon="dashboard"
+        [namespace]="form.value.namespace"
+        [objectName]="getObjectName()"
+        objectLabel="目标"
+        docLink="https://docs.polardbx.com/monitoring"
+        [steps]="wizardSteps"
+        [currentStepIndex]="currentStep"
+        [actions]="getStepActions()"
+        [loading]="stepLoading">
 
       <!-- 步骤1：选择目标 -->
       <ng-template #step1Template>
@@ -485,9 +496,47 @@ kubectl port-forward svc/alertmanager-main -n polardbx-monitor 9093</pre>
           </div>
         </div>
       </ng-template>
-    </app-wizard-shell>
+      </app-wizard-shell>
+    </div>
   `,
   styles: [`
+    .monitoring-enable-wizard {
+      padding: 16px;
+      background: #f5f5f5;
+      min-height: 100vh;
+    }
+
+    .page-header {
+      margin-bottom: 16px;
+    }
+
+    .header-content {
+      max-width: 1120px;
+      margin: 0 auto;
+    }
+
+    .page-title {
+      font-size: 20px !important;
+      font-weight: 600 !important;
+      color: rgba(0, 0, 0, 0.88) !important;
+      margin: 0 !important;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .page-icon {
+      font-size: 24px !important;
+      color: #1890ff !important;
+    }
+
+    .subtitle {
+      color: rgba(0, 0, 0, 0.65);
+      font-size: 14px;
+      margin: 4px 0 0 36px;
+    }
+  `,
+  `
     .step-content {
       padding: 0;
     }
