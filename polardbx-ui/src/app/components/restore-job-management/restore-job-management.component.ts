@@ -84,7 +84,7 @@ import { switchMap, takeUntil } from 'rxjs/operators';
           <mat-progress-bar *ngIf="loadingService.isLoading(loadingKeys.RESTORE_JOB_LIST)"
                            mode="indeterminate" class="loading-bar"></mat-progress-bar>
 
-          <mat-card-content class="list-content">
+          <div class="list-content">
             <div class="filter-toolbar">
               <mat-form-field appearance="outline" class="search-field">
                 <mat-label>搜索集群</mat-label>
@@ -181,12 +181,11 @@ import { switchMap, takeUntil } from 'rxjs/operators';
                 </div>
               </div>
             </div>
-          </mat-card-content>
-        </mat-card>
+          </div>
 
       <!-- 右侧详情面板 -->
       <div class="detail-panel" *ngIf="selectedJob; else emptyState">
-        <mat-card class="detail-card">
+        <div class="detail-card">
           <mat-card-header>
             <mat-card-title>
               <mat-icon>article</mat-icon>
@@ -222,7 +221,7 @@ import { switchMap, takeUntil } from 'rxjs/operators';
             </mat-card-actions>
           </mat-card-header>
           
-          <mat-card-content class="detail-content">
+          <div class="detail-content">
             <div class="status-section">
               <div class="status-header">
                 <mat-chip [ngClass]="phaseClass(selectedJob.phase)" class="status-chip-large">
@@ -270,14 +269,14 @@ import { switchMap, takeUntil } from 'rxjs/operators';
             <div class="raw-section" *ngIf="showRaw">
               <pre class="raw-json">{{ selectedJob | json }}</pre>
             </div>
-          </mat-card-content>
-        </mat-card>
+          </div>
+        </div>
       </div>
 
       <!-- 空状态 -->
       <ng-template #emptyState>
         <div class="empty-state">
-          <mat-icon class="empty-state-icon">touch_app</mat-icon>
+          <i nz-icon nzType="file-search" class="empty-state-icon"></i>
           <h3>选择任务查看详情</h3>
           <p>点击左侧任务列表中的任意一行来查看详细信息</p>
         </div>
