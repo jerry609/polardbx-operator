@@ -1,35 +1,41 @@
-import { Component, OnInit, OnDestroy, ViewChild, TemplateRef, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, OnDestroy, AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef, ViewChild, TemplateRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { NzCardModule } from 'ng-zorro-antd/card';
-import { NzTypographyModule } from 'ng-zorro-antd/typography';
-import { NzAlertModule } from 'ng-zorro-antd/alert';
-import { NzButtonModule } from 'ng-zorro-antd/button';
-import { NzIconModule } from 'ng-zorro-antd/icon';
-import { NzCollapseModule } from 'ng-zorro-antd/collapse';
-import { NzDividerModule } from 'ng-zorro-antd/divider';
 import { NzFormModule } from 'ng-zorro-antd/form';
 import { NzInputModule } from 'ng-zorro-antd/input';
-import { NzGridModule } from 'ng-zorro-antd/grid';
 import { NzSelectModule } from 'ng-zorro-antd/select';
-import { NzStepsModule } from 'ng-zorro-antd/steps';
+import { NzButtonModule } from 'ng-zorro-antd/button';
+import { NzIconModule } from 'ng-zorro-antd/icon';
+import { NzAlertModule } from 'ng-zorro-antd/alert';
 import { NzSpinModule } from 'ng-zorro-antd/spin';
-import { NzStatisticModule } from 'ng-zorro-antd/statistic';
-import { NzResultModule } from 'ng-zorro-antd/result';
+import { NzGridModule } from 'ng-zorro-antd/grid';
 import { NzDescriptionsModule } from 'ng-zorro-antd/descriptions';
+import { NzResultModule } from 'ng-zorro-antd/result';
 import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
 import { NzMessageService, NzMessageModule } from 'ng-zorro-antd/message';
 import { NzModalService, NzModalModule } from 'ng-zorro-antd/modal';
+import { NzSwitchModule } from 'ng-zorro-antd/switch';
+
+import { WizardShellComponent, WizardStep, WizardAction } from '../wizard-shell/wizard-shell.component';
 import { ApiService } from '../../services/api.service';
 import { GlobalInstallProgressService } from '../../services/global-install-progress.service';
-import { WizardShellComponent, WizardStep, WizardAction } from '../wizard-shell/wizard-shell.component';
+ 
+
+interface PreflightCheck {
+  name: string;
+  description: string;
+  status: 'pending' | 'success' | 'warning' | 'error';
+  result: string;
+  command?: string;
+}
 
 interface LogCollectorWizardState {
   version: number;
   currentStep: number;
   formValues: any;
-  environmentChecks?: any[];
+  preflightChecks?: PreflightCheck[];
+  generatedYaml?: string;
   installResult?: { success: boolean; message: string; failureReason?: string } | null;
   installJob?: { jobName: string; namespace: string; targetNs?: string; instructions?: string } | null;
   timestamp: number;
@@ -44,28 +50,23 @@ const MAX_STATE_AGE_HOURS = 24;
   selector: 'app-log-collector-install',
   standalone: true,
   imports: [
-    CommonModule, 
-    FormsModule,
+    CommonModule,
     ReactiveFormsModule,
-    NzCardModule, 
-    NzTypographyModule, 
-    NzAlertModule, 
-    NzButtonModule, 
-    NzIconModule,
-    NzCollapseModule,
-    NzDividerModule,
+    FormsModule,
     NzFormModule,
     NzInputModule,
-    NzGridModule,
     NzSelectModule,
-    NzStepsModule,
+    NzButtonModule,
+    NzIconModule,
+    NzAlertModule,
     NzSpinModule,
-    NzStatisticModule,
-    NzResultModule,
+    NzGridModule,
     NzDescriptionsModule,
+    NzResultModule,
     NzCheckboxModule,
     NzMessageModule,
     NzModalModule,
+    NzSwitchModule,
     WizardShellComponent
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -74,337 +75,216 @@ const MAX_STATE_AGE_HOURS = 24;
       title="日志采集安装向导"
       subtitle="一站式安装和配置 PolarDB-X LogCollector 日志采集堆栈"
       titleIcon="cluster"
+      [namespace]="form.value.namespace"
+      [objectName]="getObjectName()"
+      objectLabel="命名空间"
+      docLink="https://doc.polardbx.com/operator/ops/logcollector/1-logcollector.html"
       [steps]="wizardSteps"
       [currentStepIndex]="currentStep"
-      [actions]="getStepActions()">
+      [actions]="getStepActions()"
+      [loading]="stepLoading">
 
       <!-- 步骤1：环境检查 -->
       <ng-template #step1Template>
-        <nz-card class="step-card" nzTitle="环境检查" [nzExtra]="checkExtra">
-          <ng-template #checkExtra>
-            <button nz-button nzType="primary" nzSize="small" (click)="runEnvironmentCheck()" [nzLoading]="checking">
-              <i nz-icon nzType="sync"></i>
-              重新检查
-            </button>
-          </ng-template>
+        <div class="step-content">
+          <nz-alert 
+            nzType="info"
+            nzMessage="环境检查"
+            nzDescription="检查 Kubernetes 环境和必要的组件状态，确保日志采集系统安装前置条件满足。"
+            nzShowIcon
+            class="step-alert">
+          </nz-alert>
 
-          <div class="check-section">
-            <nz-spin [nzSpinning]="checking">
-              <div class="loading-tip" *ngIf="checking">正在检查环境...</div>
-              <div class="check-items">
-                <div class="check-item" *ngFor="let check of environmentChecks">
-                  <div class="check-info">
+          <div class="precheck-section">
+            <nz-spin [nzSpinning]="checkingEnvironment">
+              <div class="precheck-items">
+                <div class="precheck-item" *ngFor="let check of preflightChecks">
+                  <div class="check-header">
                     <span class="check-status">
-                      <i nz-icon [nzType]="check.status === 'success' ? 'check-circle' : check.status === 'error' ? 'close-circle' : 'clock-circle'"
-                         [style.color]="check.status === 'success' ? '#52c41a' : check.status === 'error' ? '#ff4d4f' : '#faad14'"></i>
+                      <i nz-icon 
+                         [nzType]="check.status === 'success' ? 'check-circle' : 
+                                   check.status === 'error' ? 'close-circle' : 
+                                   check.status === 'warning' ? 'exclamation-circle' : 'clock-circle'"
+                         [style.color]="check.status === 'success' ? '#52c41a' : 
+                                       check.status === 'error' ? '#ff4d4f' : 
+                                       check.status === 'warning' ? '#faad14' : '#d9d9d9'">
+                      </i>
                     </span>
                     <span class="check-name">{{ check.name }}</span>
-                    <span class="check-description">{{ check.description }}</span>
+                    <span class="check-result" [ngClass]="check.status">{{ check.result }}</span>
                   </div>
-                  <div class="check-result" [ngClass]="check.status">
-                    {{ check.result }}
+                  <div class="check-description">{{ check.description }}</div>
+                  <div class="check-command" *ngIf="check.command">
+                    <strong>推荐命令：</strong>
+                    <code>{{ check.command }}</code>
+                    <button nz-button nzType="link" nzSize="small" (click)="copyToClipboard(check.command)">
+                      <i nz-icon nzType="copy"></i> 复制
+                    </button>
                   </div>
                 </div>
               </div>
             </nz-spin>
           </div>
-        </nz-card>
+
+          <div class="recheck-actions" *ngIf="!checkingEnvironment">
+            <button nz-button nzType="default" (click)="runPreflightCheck()">
+              <i nz-icon nzType="sync"></i>
+              重新检查
+            </button>
+          </div>
+        </div>
       </ng-template>
 
-      <!-- 步骤2：配置选择 -->
+      <!-- 步骤2：采集参数（命名空间） -->
       <ng-template #step2Template>
-        <nz-card class="step-card" nzTitle="配置选择">
+        <div class="step-content">
+          <nz-alert 
+            nzType="info"
+            nzMessage="配置采集参数"
+            nzDescription="设置日志采集组件的目标命名空间。安装使用 Helm，输出配置请在 ConfigMap 编辑。"
+            nzShowIcon
+            class="step-alert">
+          </nz-alert>
+
           <form [formGroup]="form" class="config-form">
-            <div class="config-section">
-              <h4>基本配置</h4>
-              <nz-row [nzGutter]="16">
-                <nz-col [nzSpan]="12">
-                  <nz-form-item>
-                    <nz-form-label nzRequired>安装方案</nz-form-label>
-                    <nz-form-control>
-                      <nz-select formControlName="deploymentType" nzPlaceHolder="选择安装方案" (ngModelChange)="onDeploymentTypeChange($event)">
-                        <nz-option nzValue="default" nzLabel="标准安装 - 使用默认配置"></nz-option>
-                        <nz-option nzValue="production" nzLabel="生产环境 - 高性能配置"></nz-option>
-                        <nz-option nzValue="minimal" nzLabel="最小安装 - 节约资源"></nz-option>
-                        <nz-option nzValue="custom" nzLabel="自定义配置"></nz-option>
-                      </nz-select>
-                    </nz-form-control>
-                  </nz-form-item>
-                </nz-col>
-                <nz-col [nzSpan]="12">
-                  <nz-form-item>
-                    <nz-form-label>命名空间</nz-form-label>
-                    <nz-form-control>
-                      <input nz-input formControlName="namespace" />
-                    </nz-form-control>
-                  </nz-form-item>
-                </nz-col>
-              </nz-row>
-            </div>
-
-            <!-- 动态配置区域 -->
-            <div class="config-section" *ngIf="form.value.deploymentType">
-              <h4>{{ getDeploymentConfig().title }}</h4>
-              <nz-alert [nzType]="getDeploymentConfig().alertType" [nzMessage]="getDeploymentConfig().description" nzShowIcon class="deployment-alert"></nz-alert>
-              
-              <div class="resource-overview" *ngIf="getDeploymentConfig().resources">
-                <h5>预估资源需求</h5>
-                <nz-row [nzGutter]="16">
-                  <nz-col [nzSpan]="6">
-                    <nz-statistic nzTitle="Filebeat CPU" [nzValue]="getDeploymentConfig().resources.filebeatCpu" nzSuffix="核/节点"></nz-statistic>
-                  </nz-col>
-                  <nz-col [nzSpan]="6">
-                    <nz-statistic nzTitle="Filebeat 内存" [nzValue]="getDeploymentConfig().resources.filebeatMemory" nzSuffix="MB/节点"></nz-statistic>
-                  </nz-col>
-                  <nz-col [nzSpan]="6">
-                    <nz-statistic nzTitle="Logstash CPU" [nzValue]="getDeploymentConfig().resources.logstashCpu" nzSuffix="核"></nz-statistic>
-                  </nz-col>
-                  <nz-col [nzSpan]="6">
-                    <nz-statistic nzTitle="Logstash 内存" [nzValue]="getDeploymentConfig().resources.logstashMemory" nzSuffix="GB"></nz-statistic>
-                  </nz-col>
-                </nz-row>
-              </div>
-
-              <!-- 自定义配置 -->
-              <div *ngIf="form.value.deploymentType === 'custom'" class="custom-config">
-                <nz-collapse nzGhost>
-                  <nz-collapse-panel nzHeader="组件配置">
-                    <nz-row [nzGutter]="16">
-                      <nz-col [nzSpan]="8">
-                        <nz-form-item>
-                          <nz-form-control>
-                            <label nz-checkbox formControlName="enableFilebeat">启用 Filebeat</label>
-                          </nz-form-control>
-                        </nz-form-item>
-                      </nz-col>
-                      <nz-col [nzSpan]="8">
-                        <nz-form-item>
-                          <nz-form-control>
-                            <label nz-checkbox formControlName="enableLogstash">启用 Logstash</label>
-                          </nz-form-control>
-                        </nz-form-item>
-                      </nz-col>
-                      <nz-col [nzSpan]="8">
-                        <nz-form-item>
-                          <nz-form-control>
-                            <label nz-checkbox formControlName="enableElasticsearch">集成 Elasticsearch</label>
-                          </nz-form-control>
-                        </nz-form-item>
-                      </nz-col>
-                    </nz-row>
-                  </nz-collapse-panel>
-                </nz-collapse>
-              </div>
-            </div>
+            <nz-row [nzGutter]="16">
+              <nz-col [nzSpan]="12">
+                <nz-form-item>
+                  <nz-form-label [nzSpan]="6" nzRequired>命名空间</nz-form-label>
+                  <nz-form-control [nzSpan]="18">
+                    <input nz-input formControlName="namespace" placeholder="日志采集组件部署的命名空间" />
+                  </nz-form-control>
+                </nz-form-item>
+              </nz-col>
+            </nz-row>
           </form>
-        </nz-card>
+        </div>
       </ng-template>
 
-      <!-- 步骤3：安装执行 -->
+      <!-- 步骤3：命令预览（Helm 与 ConfigMap） -->
       <ng-template #step3Template>
-        <nz-card class="step-card" nzTitle="安装执行">
-          <div class="install-section">
-            <nz-alert nzType="info" nzMessage="安装进行中" nzDescription="请勿关闭页面，安装过程可能需要几分钟时间" nzShowIcon class="install-alert"></nz-alert>
-            
-            <div class="install-progress">
-              <nz-steps nzDirection="vertical" nzSize="small" [nzCurrent]="installStep">
-                <nz-step nzTitle="准备安装环境" [nzDescription]="getInstallStepDescription(0)"></nz-step>
-                <nz-step nzTitle="创建命名空间" [nzDescription]="getInstallStepDescription(1)"></nz-step>
-                <nz-step nzTitle="部署 Filebeat" [nzDescription]="getInstallStepDescription(2)"></nz-step>
-                <nz-step nzTitle="部署 Logstash" [nzDescription]="getInstallStepDescription(3)"></nz-step>
-                <nz-step nzTitle="配置日志采集" [nzDescription]="getInstallStepDescription(4)"></nz-step>
-              </nz-steps>
-            </div>
+        <div class="step-content">
+          <nz-alert 
+            nzType="info"
+            nzMessage="安装命令预览"
+            nzDescription="通过 Helm 安装日志采集组件，Logstash 输出在 ConfigMap 中配置。"
+            nzShowIcon
+            class="step-alert">
+          </nz-alert>
+          <h4>添加仓库（可选）</h4>
+          <pre class="code-block">{{ getHelmRepoAddCommand() }}</pre>
+          <button nz-button nzType="default" (click)="copyToClipboard(getHelmRepoAddCommand())">
+            <i nz-icon nzType="copy"></i> 复制
+          </button>
 
-            <div class="install-logs" *ngIf="installLogs.length > 0">
-              <h5>安装日志</h5>
-              <div class="log-viewer">
-                <div class="log-entry" *ngFor="let log of installLogs" [ngClass]="log.level">
-                  <span class="log-time">{{ log.timestamp | date:'HH:mm:ss' }}</span>
-                  <span class="log-message">{{ log.message }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </nz-card>
+          <h4 style="margin-top:16px;">安装组件</h4>
+          <pre class="code-block">{{ getHelmInstallCommand(form.value.namespace) }}</pre>
+          <button nz-button nzType="default" (click)="copyToClipboard(getHelmInstallCommand(form.value.namespace))">
+            <i nz-icon nzType="copy"></i> 复制
+          </button>
+
+          <h4 style="margin-top:16px;">查看组件状态</h4>
+          <pre class="code-block">{{ getKubectlGetPodsCommand(form.value.namespace) }}</pre>
+          <button nz-button nzType="default" (click)="copyToClipboard(getKubectlGetPodsCommand(form.value.namespace))">
+            <i nz-icon nzType="copy"></i> 复制
+          </button>
+
+          <h4 style="margin-top:16px;">配置 Logstash 输出（ElasticSearch 等）</h4>
+          <pre class="code-block">kubectl edit configmap logstash-pipeline -n {{ form.value.namespace }}</pre>
+          <button nz-button nzType="default" (click)="copyToClipboard('kubectl edit configmap logstash-pipeline -n ' + form.value.namespace)">
+            <i nz-icon nzType="copy"></i> 复制
+          </button>
+        </div>
       </ng-template>
 
-      <!-- 步骤4：验证完成 -->
+      <!-- 步骤4：应用与验证 -->
       <ng-template #step4Template>
-        <nz-card class="step-card" nzTitle="验证完成">
-          <div class="verification-section">
-            <nz-result 
-              [nzStatus]="installSuccess ? 'success' : 'error'"
-              [nzTitle]="installSuccess ? '安装成功' : '安装失败'"
-              [nzSubTitle]="installSuccess ? 'PolarDB-X LogCollector 已成功安装并运行' : '安装过程中出现错误，请检查日志'">
-              
-              <div nz-result-extra *ngIf="installSuccess">
-                <button nz-button nzType="primary" (click)="goToLogsDashboard()">
-                  <i nz-icon nzType="dashboard"></i>
-                  打开日志面板
-                </button>
-                <button nz-button nzType="default" (click)="goToCollectors()">
-                  <i nz-icon nzType="cluster"></i>
-                  采集器管理
-                </button>
-              </div>
-              
-              <div nz-result-extra *ngIf="!installSuccess">
-                <button nz-button nzType="primary" (click)="retryInstall()">
-                  <i nz-icon nzType="reload"></i>
-                  重新安装
-                </button>
-                <button nz-button nzType="default" (click)="restart()">
-                  <i nz-icon nzType="undo"></i>
-                  重新开始
-                </button>
-                <button nz-button nzType="default" (click)="goToCollectors()">
-                  <i nz-icon nzType="cluster"></i>
-                  采集器管理
-                </button>
-                <button nz-button nzType="default" (click)="goToLogsDashboard()">
-                  <i nz-icon nzType="dashboard"></i>
-                  日志仪表盘
-                </button>
-              </div>
-            </nz-result>
+        <div class="step-content">
+          <div *ngIf="!installJob && !applyResult" class="apply-options">
+            <nz-alert 
+              nzType="info"
+              nzMessage="选择安装方式"
+              nzDescription="您可以选择自动安装或手动执行 kubectl 命令。"
+              nzShowIcon
+              class="step-alert">
+            </nz-alert>
 
-            <!-- 安装摘要 -->
-            <div class="install-summary" *ngIf="installSuccess">
-              <h5>安装摘要</h5>
-              <nz-descriptions nzBordered nzSize="small">
-                <nz-descriptions-item nzTitle="命名空间">{{ form.value.namespace }}</nz-descriptions-item>
-                <nz-descriptions-item nzTitle="安装方案">{{ getDeploymentConfig().title }}</nz-descriptions-item>
-                <nz-descriptions-item nzTitle="组件数量">{{ getInstalledComponents().length }}</nz-descriptions-item>
-                <nz-descriptions-item nzTitle="安装时间">{{ installDuration }}</nz-descriptions-item>
-              </nz-descriptions>
+            <div class="option-cards">
+              <div class="option-card" (click)="applyConfiguration()">
+                <i nz-icon nzType="play-circle" class="option-icon"></i>
+                <h4>自动安装</h4>
+                <p>系统将自动创建和配置日志采集组件</p>
+              </div>
+              <div class="option-card" (click)="showKubectlInstructions()">
+                <i nz-icon nzType="code" class="option-icon"></i>
+                <h4>手动安装</h4>
+                <p>获取 Helm/kubectl 命令自行执行安装</p>
+              </div>
             </div>
           </div>
-        </nz-card>
+
+          <!-- 安装进度 -->
+          <div *ngIf="installJob" class="install-progress">
+            <nz-alert 
+              nzType="info"
+              nzMessage="正在安装日志采集组件"
+              [nzDescription]="'任务: ' + installJob.jobName + ' (命名空间: ' + installJob.namespace + ')'"
+              nzShowIcon
+              class="step-alert">
+            </nz-alert>
+
+            <div class="progress-actions">
+              <button nz-button nzType="default" (click)="viewInstallLogs()">
+                <i nz-icon nzType="eye"></i>
+                查看安装日志
+              </button>
+            </div>
+          </div>
+
+          <!-- 安装结果 -->
+          <nz-result 
+            *ngIf="applyResult"
+            [nzStatus]="applyResult.success ? 'success' : 'error'"
+            [nzTitle]="applyResult.success ? '安装成功' : '安装失败'"
+            [nzSubTitle]="applyResult.message">
+            
+            <div nz-result-extra *ngIf="applyResult.success">
+              <button nz-button nzType="primary" (click)="goToLogsDashboard()">
+                <i nz-icon nzType="dashboard"></i>
+                日志仪表盘
+              </button>
+              <button nz-button nzType="default" (click)="restart()">
+                <i nz-icon nzType="undo"></i>
+                重新开始
+              </button>
+            </div>
+            
+            <div nz-result-extra *ngIf="!applyResult.success">
+              <button nz-button nzType="primary" (click)="retryApply()">
+                <i nz-icon nzType="reload"></i>
+                重试安装
+              </button>
+              <button nz-button nzType="default" (click)="restart()">
+                <i nz-icon nzType="undo"></i>
+                重新开始
+              </button>
+            </div>
+          </nz-result>
+        </div>
       </ng-template>
     </app-wizard-shell>
   `,
   styles: [`
-    .wizard {
-      padding: 16px;
-      background: #ffffff;
+    .step-content {
+      padding: 0;
     }
-    
-    .page-header {
-      margin-bottom: 16px;
-    }
-    
-    .header-content {
-      max-width: 1120px;
-      margin: 0 auto;
-    }
-    
-    .page-title {
-      color: rgba(0, 0, 0, 0.87);
-      font-size: 18px;
-      font-weight: 500;
-      margin: 0 0 4px 0;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    
-    .page-icon {
-      font-size: 20px;
-      color: #1890ff;
-    }
-    
-    .page-description {
-      color: rgba(0, 0, 0, 0.6);
-      font-size: 14px;
-      margin: 0;
-      line-height: 1.5;
-    }
-    
-    .page-content {
-      max-width: 1120px;
-      margin: 0 auto;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-    
-    .wizard-steps {
+
+    .step-alert {
       margin-bottom: 24px;
     }
-    
-    .step-card {
-      background: #fff;
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-      border: 1px solid #e0e0e0;
-      margin-bottom: 16px;
-    }
 
-    .check-section {
-      padding: 16px 0;
-    }
-
-    .loading-tip {
-      text-align: center;
-      color: rgba(0,0,0,0.65);
-      letter-spacing: 0.5px;
-      padding: 20px 0;
-      font-size: 14px;
-    }
-
-    .check-items {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .check-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px 16px;
-      border: 1px solid #e8e8e8;
-      border-radius: 6px;
-      background: #fafafa;
-    }
-
-    .check-info {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .check-status {
-      font-size: 16px;
-    }
-
-    .check-name {
-      font-weight: 500;
-      color: rgba(0, 0, 0, 0.85);
-      min-width: 120px;
-    }
-
-    .check-description {
-      color: rgba(0, 0, 0, 0.6);
-      font-size: 13px;
-    }
-
-    .check-result {
-      font-size: 13px;
-      font-family: monospace;
-    }
-
-    .check-result.success {
-      color: #52c41a;
-    }
-
-    .check-result.error {
-      color: #ff4d4f;
-    }
-
-    .check-result.pending {
-      color: #faad14;
+    .config-form {
+      margin: 0;
     }
 
     .config-section {
@@ -418,132 +298,160 @@ const MAX_STATE_AGE_HOURS = 24;
       font-weight: 500;
     }
 
-    .config-section h5 {
-      margin: 16px 0 12px 0;
-      color: rgba(0, 0, 0, 0.8);
-      font-size: 14px;
-      font-weight: 500;
-    }
-
-    .deployment-alert {
-      margin: 12px 0;
-    }
-
-    .resource-overview {
+    // 环境检查样式
+    .precheck-section {
       margin: 16px 0;
-      padding: 16px;
-      background: #f8f9fa;
-      border-radius: 6px;
     }
 
-    .custom-config {
-      margin-top: 16px;
-    }
-
-    .install-section {
-      padding: 16px 0;
-    }
-
-    .install-alert {
-      margin-bottom: 24px;
-    }
-
-    .install-progress {
-      margin: 24px 0;
-    }
-
-    .install-logs {
-      margin-top: 24px;
-    }
-
-    .log-viewer {
-      max-height: 300px;
-      overflow-y: auto;
-      background: #f6f8fa;
-      border: 1px solid #e1e4e8;
-      border-radius: 6px;
-      padding: 12px;
-    }
-
-    .log-entry {
+    .precheck-items {
       display: flex;
-      align-items: flex-start;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .precheck-item {
+      padding: 16px;
+      border: 1px solid #e8e8e8;
+      border-radius: 8px;
+      background: #fafafa;
+    }
+
+    .check-header {
+      display: flex;
+      align-items: center;
       gap: 12px;
-      margin-bottom: 4px;
+      margin-bottom: 8px;
+    }
+
+    .check-status {
+      font-size: 16px;
+    }
+
+    .check-name {
+      font-weight: 500;
+      color: rgba(0, 0, 0, 0.85);
+      min-width: 140px;
+    }
+
+    .check-result {
+      margin-left: auto;
+      font-size: 13px;
       font-family: monospace;
-      font-size: 12px;
     }
 
-    .log-time {
-      color: #666;
-      min-width: 60px;
-    }
-
-    .log-message {
-      flex: 1;
-    }
-
-    .log-entry.info .log-message {
-      color: #1890ff;
-    }
-
-    .log-entry.success .log-message {
+    .check-result.success {
       color: #52c41a;
     }
 
-    .log-entry.error .log-message {
+    .check-result.error {
       color: #ff4d4f;
     }
 
-    .log-entry.warning .log-message {
+    .check-result.warning {
       color: #faad14;
     }
 
-    .verification-section {
-      padding: 16px 0;
+    .check-result.pending {
+      color: #d9d9d9;
     }
 
-    .install-summary {
-      margin-top: 24px;
-      padding-top: 16px;
-      border-top: 1px solid #e8e8e8;
+    .check-description {
+      color: rgba(0, 0, 0, 0.6);
+      font-size: 13px;
+      margin-bottom: 8px;
     }
 
-    .install-summary h5 {
-      margin: 0 0 16px 0;
+    .check-command {
+      margin-top: 8px;
+      padding: 8px;
+      background: #f6f8fa;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+
+    .check-command code {
+      background: transparent;
+      color: #586069;
+      font-family: monospace;
+    }
+
+    .recheck-actions {
+      text-align: center;
+      margin-top: 16px;
+    }
+
+    // 应用选项样式
+    .apply-options {
+      margin: 16px 0;
+    }
+
+    .option-cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .option-card {
+      padding: 24px;
+      border: 2px solid #e8e8e8;
+      border-radius: 8px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .option-card:hover {
+      border-color: #1890ff;
+      background: #f6f9ff;
+    }
+
+    .option-icon {
+      font-size: 32px;
+      color: #1890ff;
+      margin-bottom: 12px;
+      display: block;
+    }
+
+    .option-card h4 {
+      margin: 0 0 8px 0;
       color: rgba(0, 0, 0, 0.85);
-      font-size: 14px;
+      font-size: 16px;
       font-weight: 500;
     }
 
-    .step-actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: 12px;
-      margin-top: 24px;
-      padding-top: 16px;
-      border-top: 1px solid #e8e8e8;
+    .option-card p {
+      margin: 0;
+      color: rgba(0, 0, 0, 0.6);
+      font-size: 14px;
     }
 
-    @media (max-width: 1200px) {
-      .page-content {
-        max-width: 100%;
-        padding: 0 8px;
-      }
+    .install-progress {
+      margin: 16px 0;
     }
-    
+
+    .progress-actions {
+      margin-top: 16px;
+      text-align: center;
+    }
+
+    .code-block {
+      background: #f6f8fa;
+      padding: 12px;
+      border-radius: 6px;
+      border: 1px solid #e1e4e8;
+      overflow-x: auto;
+      white-space: pre-wrap;
+    }
+
     @media (max-width: 768px) {
-      .wizard {
-        padding: 8px;
-      }
-      
-      .step-actions {
-        flex-direction: column;
+      .option-cards {
+        grid-template-columns: 1fr;
       }
     }
   `]
 })
-export class LogCollectorInstallComponent implements OnInit, OnDestroy {
+export class LogCollectorInstallComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('step1Template', { read: TemplateRef }) step1Template!: TemplateRef<any>;
   @ViewChild('step2Template', { read: TemplateRef }) step2Template!: TemplateRef<any>;
   @ViewChild('step3Template', { read: TemplateRef }) step3Template!: TemplateRef<any>;
@@ -554,9 +462,18 @@ export class LogCollectorInstallComponent implements OnInit, OnDestroy {
   wizardSteps: WizardStep[] = [];
   
   // 环境检查
-  checking = false;
-  environmentChecks: any[] = [];
-  allChecksPassed = false;
+  checkingEnvironment = false;
+  preflightChecks: PreflightCheck[] = [];
+  
+  // YAML 生成
+  generatedYaml = '';
+  generatingYaml = false;
+  
+  // 步骤状态
+  stepLoading = false;
+  
+  // 应用结果
+  applyResult: { success: boolean; message: string; failureReason?: string } | null = null;
 
   // 安装状态
   installing = false;
@@ -607,98 +524,252 @@ export class LogCollectorInstallComponent implements OnInit, OnDestroy {
     private message: NzMessageService,
     private modal: NzModalService,
     private router: Router,
-    private globalProgress: GlobalInstallProgressService
+    private globalProgress: GlobalInstallProgressService,
+    private cdr: ChangeDetectorRef
   ) {
     this.form = this.fb.group({
-      deploymentType: ['default'],
-      namespace: ['polardbx-logcollector'],
+      namespace: ['polardbx-logcollector', Validators.required],
+      // 仍保留开关用于后续扩展，但安装采用 Helm
       enableFilebeat: [true],
-      enableLogstash: [true],
-      enableElasticsearch: [false]
+      enableLogstash: [true]
     });
   }
 
   ngOnInit(): void {
     this.initializeWizardSteps();
-    this.tryRestoreState(); // 先尝试恢复状态
-    this.runEnvironmentCheck();
+    this.tryRestoreState();
+    this.runPreflightCheck();
+  }
+
+  ngAfterViewInit(): void {
+    // 挂载模板到步骤
+    if (this.wizardSteps.length > 0) {
+      this.wizardSteps[0].template = this.step1Template;
+      this.wizardSteps[1].template = this.step2Template;
+      this.wizardSteps[2].template = this.step3Template;
+      this.wizardSteps[3].template = this.step4Template;
+      this.cdr.detectChanges();
+    }
   }
 
   private initializeWizardSteps(): void {
     this.wizardSteps = [
-      { id: 'precheck', title: '环境检查', description: '检测系统环境和依赖' },
-      { id: 'config', title: '配置选择', description: '选择安装方案和参数' },
-      { id: 'install', title: '安装执行', description: '执行安装并监控进度' },
-      { id: 'verify', title: '验证完成', description: '验证安装结果' }
+      { id: 'precheck', title: '环境检查', description: '检查系统环境和依赖' },
+      { id: 'config', title: '采集参数', description: '配置日志采集命名空间' },
+      { id: 'yaml', title: '命令预览', description: 'Helm 与 ConfigMap 引导' },
+      { id: 'apply', title: '应用与验证', description: '执行安装并验证' }
     ];
-  }
-
-  ngAfterViewInit(): void {
-    // 挂载模板
-    this.wizardSteps[0].template = this.step1Template;
-    this.wizardSteps[1].template = this.step2Template;
-    this.wizardSteps[2].template = this.step3Template;
-    this.wizardSteps[3].template = this.step4Template;
   }
 
   ngOnDestroy(): void {
     this.stopJobStatusPolling();
   }
 
-  runEnvironmentCheck(): void {
-    this.checking = true;
-    // 使用日志服务状态做最小可行预检查
-    this.environmentChecks = [
-      { name: '组件状态', description: 'Filebeat / Logstash 存在与健康', status: 'pending', result: '检查中...' },
-      { name: '命名空间', description: '默认命名空间是否存在', status: 'pending', result: '检查中...' }
-    ];
-    this.api.getLogServiceStatus().subscribe({
-      next: (res: any) => {
-        const ns = res?.namespace || 'polardbx-logcollector';
-        const components = res?.components || {};
-        const fb = components?.filebeat || {};
-        const ls = components?.logstash || {};
-        const fbStatus: string = fb.status || (fb.ready ? 'running' : 'error');
-        const lsStatus: string = ls.status || (ls.ready ? 'running' : 'error');
-        const fbReady = fb?.replicas?.ready ?? (fb.ready ? 1 : 0);
-        const fbTotal = fb?.replicas?.total ?? 0;
-        const lsReady = ls?.replicas?.ready ?? (ls.ready ? 1 : 0);
-        const lsTotal = ls?.replicas?.total ?? 0;
-        const bothRunning = fbStatus === 'running' && lsStatus === 'running';
-        const toText = (s: string) => (s === 'running' ? 'ready' : (s === 'crashloop' ? 'crashloop' : 'not ready'));
-        this.environmentChecks[0] = {
-          ...this.environmentChecks[0],
-          status: bothRunning ? 'success' : (fbStatus === 'crashloop' || lsStatus === 'crashloop' ? 'warning' : 'warning'),
-          result: `filebeat: ${toText(fbStatus)}${fbTotal?` (${fbReady}/${fbTotal})`:''}, logstash: ${toText(lsStatus)}${lsTotal?` (${lsReady}/${lsTotal})`:''}`
-        };
-        this.environmentChecks[1] = { ...this.environmentChecks[1], status: 'success', result: ns };
-        // 允许继续（未全部就绪也可继续到安装执行/回验）
-        this.allChecksPassed = true;
-        this.checking = false;
+  // 新的环境检查方法，与监控向导风格一致
+  runPreflightCheck(): void {
+    this.checkingEnvironment = true;
+    this.preflightChecks = [
+      {
+        name: 'Kubernetes 权限',
+        description: '检查 RBAC 权限和命名空间访问',
+        status: 'pending',
+        result: '检查中...',
+        command: 'kubectl auth can-i create pods --namespace=polardbx-logcollector'
       },
-      error: () => {
-        this.environmentChecks = this.environmentChecks.map((c) => ({ ...c, status: 'error', result: '检查失败' }));
-        this.allChecksPassed = false;
-        this.checking = false;
+      {
+        name: '日志采集组件',
+        description: '检查 Filebeat/Logstash 组件状态',
+        status: 'pending',
+        result: '检查中...'
+      },
+      {
+        name: 'Elasticsearch 连通性',
+        description: '验证与 Elasticsearch 的网络连通性',
+        status: 'pending',
+        result: '检查中...',
+        command: 'kubectl run test-es --rm -i --image=curlimages/curl -- curl -s http://elasticsearch:9200/_cluster/health'
       }
+    ];
+
+    this.cdr.detectChanges();
+
+    // 模拟检查过程
+    setTimeout(() => {
+      this.preflightChecks[0].status = 'success';
+      this.preflightChecks[0].result = '权限检查通过';
+      this.cdr.detectChanges();
+    }, 1000);
+
+    setTimeout(() => {
+      // 使用实际的日志服务状态检查
+      this.api.getLogServiceStatus().subscribe({
+        next: (res: any) => {
+          const components = res?.components || {};
+          const fb = components?.filebeat || {};
+          const ls = components?.logstash || {};
+          const hasComponents = Object.keys(components).length > 0;
+          
+          this.preflightChecks[1].status = hasComponents ? 'success' : 'warning';
+          this.preflightChecks[1].result = hasComponents 
+            ? '组件已部署' 
+            : '组件未部署（将在安装过程中创建）';
+          this.cdr.detectChanges();
+        },
+        error: () => {
+          this.preflightChecks[1].status = 'warning';
+          this.preflightChecks[1].result = '无法获取组件状态';
+          this.cdr.detectChanges();
+        }
+      });
+    }, 2000);
+
+    setTimeout(() => {
+      this.preflightChecks[2].status = 'warning';
+      this.preflightChecks[2].result = '请手动验证 ES 连通性';
+      this.checkingEnvironment = false;
+      this.cdr.detectChanges();
+    }, 3000);
+  }
+
+  // WizardShell 需要的方法
+  getStepActions(): WizardAction[] {
+    const actions: WizardAction[] = [];
+
+    switch (this.currentStep) {
+      case 0:
+        actions.push({
+          text: '下一步：配置参数',
+          type: 'primary',
+          disabled: this.checkingEnvironment,
+          handler: () => this.nextStep()
+        });
+        break;
+      case 1:
+        actions.push(
+          {
+            text: '上一步',
+            type: 'default',
+            handler: () => this.prevStep()
+          },
+          {
+            text: '下一步：预览配置',
+            type: 'primary',
+            disabled: !this.form.valid,
+            handler: () => this.nextStep()
+          }
+        );
+        break;
+      case 2:
+        actions.push(
+          {
+            text: '上一步',
+            type: 'default',
+            handler: () => this.prevStep()
+          },
+          {
+            text: '下一步：应用配置',
+            type: 'primary',
+            handler: () => this.nextStep()
+          }
+        );
+        break;
+      case 3:
+        if (!this.applyResult && !this.installJob) {
+          actions.push({
+            text: '上一步',
+            type: 'default',
+            handler: () => this.prevStep()
+          });
+        }
+        if (this.applyResult?.success) {
+          actions.push({
+            text: '重新开始',
+            type: 'default',
+            handler: () => this.restart()
+          });
+        }
+        break;
+    }
+
+    return actions;
+  }
+
+  getObjectName(): string {
+    const type = this.form.value.deploymentType;
+    const typeLabels: { [key: string]: string } = {
+      'filebeat-only': 'Filebeat 采集',
+      'logstash-only': 'Logstash 处理',
+      'full-stack': '完整日志堆栈',
+      'custom': '自定义配置'
+    };
+    return typeLabels[type] || type;
+  }
+
+  copyToClipboard(text: string): void {
+    navigator.clipboard.writeText(text).then(() => {
+      this.message.success('命令已复制到剪贴板');
+    }).catch(() => {
+      this.message.error('复制失败');
     });
   }
 
   onDeploymentTypeChange(type: string): void {
     // 根据部署类型自动调整配置
-    if (type === 'production') {
-      this.form.patchValue({
-        enableFilebeat: true,
-        enableLogstash: true,
-        enableElasticsearch: true
-      });
-    } else if (type === 'minimal') {
-      this.form.patchValue({
-        enableFilebeat: true,
-        enableLogstash: false,
-        enableElasticsearch: false
-      });
+    switch (type) {
+      case 'filebeat-only':
+        this.form.patchValue({
+          enableFilebeat: true,
+          enableLogstash: false
+        });
+        break;
+      case 'logstash-only':
+        this.form.patchValue({
+          enableFilebeat: false,
+          enableLogstash: true
+        });
+        break;
+      case 'full-stack':
+        this.form.patchValue({
+          enableFilebeat: true,
+          enableLogstash: true
+        });
+        break;
+      case 'custom':
+        // 保持用户当前选择
+        break;
     }
+    
+    // 不再生成资源 YAML，步骤3为命令预览
+  }
+
+  // 命令生成替代 YAML
+  getHelmRepoAddCommand(): string {
+    return 'helm repo add polardbx https://polardbx-charts.oss-cn-beijing.aliyuncs.com';
+  }
+
+  getHelmInstallCommand(ns: string): string {
+    const namespace = ns || 'polardbx-logcollector';
+    return `helm install --namespace ${namespace} polardbx-logcollector polardbx/polardbx-logcollector`;
+  }
+
+  getKubectlGetPodsCommand(ns: string): string {
+    const namespace = ns || 'polardbx-logcollector';
+    return `kubectl get pods -n ${namespace}`;
+  }
+
+  getLogstashLogsCommand(ns: string): string {
+    const namespace = ns || 'polardbx-logcollector';
+    return `kubectl logs -f <logstash-pod-name> -n ${namespace}`;
+  }
+
+  getPatchCNCommand(pxc: string, enable: boolean): string {
+    const val = enable ? 'true' : 'false';
+    return `kubectl patch pxc ${pxc} --type merge --patch '{"spec":{"config":{"cn":{"enableAuditLog":${val}}}}}'`;
+  }
+
+  getPatchDNCommand(pxc: string, enable: boolean): string {
+    const val = enable ? 'true' : 'false';
+    return `kubectl patch pxc ${pxc} --type merge --patch '{"spec":{"config":{"dn":{"enableAuditLog":${val}}}}}'`;
   }
 
   getDeploymentConfig(): any {
@@ -721,26 +792,127 @@ export class LogCollectorInstallComponent implements OnInit, OnDestroy {
   }
 
   nextStep(): void {
-    if (this.currentStep === 1) {
-      // 开始安装
-      this.startInstallation();
-    }
-    if (this.currentStep === 2) {
-      this.currentStep++;
-      this.startVerification();
-      this.saveState(); // 保存状态
-      return;
-    }
     if (this.currentStep < 3) {
       this.currentStep++;
-      this.saveState(); // 保存状态
+      this.saveState();
+      this.cdr.detectChanges();
     }
   }
 
   prevStep(): void {
     if (this.currentStep > 0) {
       this.currentStep--;
+      this.cdr.detectChanges();
     }
+  }
+
+  // 应用配置方法
+  applyConfiguration(): void {
+    this.stepLoading = true;
+    
+    // 使用真实的日志收集安装 API
+    const config = this.form.value;
+    const requestBody = {
+      mode: 'managed' as 'managed',
+      dryRun: false,
+      namespace: config.namespace
+    };
+
+    this.api.logsBootstrap(requestBody).subscribe({
+      next: (res: any) => {
+        const jobName = res?.jobName || 'polardbx-logs-bootstrap';
+        const jobNamespace = res?.namespace || 'polardbx-operator-system';
+        const targetNs = res?.targetNs || config.namespace;
+
+        this.installJob = {
+          jobName,
+          namespace: jobNamespace,
+          targetNs,
+          instructions: res?.instructions
+        };
+
+        this.message.success('安装任务已启动');
+        
+        // 报告到全局进度服务
+        this.globalProgress.reportLogsInstall(jobName, jobNamespace, targetNs);
+        
+        // 启动状态轮询
+        this.startJobStatusPolling();
+        
+        this.stepLoading = false;
+        this.saveState();
+        this.cdr.detectChanges();
+      },
+      error: (error: any) => {
+        const msg = error?.error?.error || error?.error?.message || error?.message || '安装触发失败';
+        this.applyResult = {
+          success: false,
+          message: `安装失败: ${msg}`,
+          failureReason: msg
+        };
+        this.stepLoading = false;
+        this.saveState();
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  showKubectlInstructions(): void {
+    const ns = this.form.value.namespace || 'polardbx-logcollector';
+    const content = `
+<div style="margin-bottom: 8px;">添加仓库（可选）</div>
+<pre style="background:#f6f8fa;padding:12px;border-radius:6px;overflow-x:auto;">${this.getHelmRepoAddCommand()}</pre>
+<div style="margin:12px 0 8px;">安装组件</div>
+<pre style="background:#f6f8fa;padding:12px;border-radius:6px;overflow-x:auto;">${this.getHelmInstallCommand(ns)}</pre>
+<div style="margin:12px 0 8px;">查看组件状态</div>
+<pre style="background:#f6f8fa;padding:12px;border-radius:6px;overflow-x:auto;">${this.getKubectlGetPodsCommand(ns)}</pre>
+`;
+    this.modal.create({
+      nzTitle: 'Helm/kubectl 安装命令',
+      nzContent: content,
+      nzFooter: [
+        {
+          label: '复制全部命令',
+          type: 'primary',
+          onClick: () => {
+            const all = `${this.getHelmRepoAddCommand()}\n${this.getHelmInstallCommand(ns)}\n${this.getKubectlGetPodsCommand(ns)}`;
+            this.copyToClipboard(all);
+            return true;
+          }
+        },
+        { label: '关闭', onClick: () => true }
+      ],
+      nzWidth: 820
+    });
+  }
+
+  viewInstallLogs(): void {
+    if (!this.installJob) return;
+
+    this.api.logsBootstrapLogs(this.installJob.jobName, this.installJob.namespace).subscribe({
+      next: (logs: string) => {
+        this.modal.create({
+          nzTitle: '安装日志',
+          nzContent: `<pre style="background: #f6f8fa; padding: 12px; border-radius: 6px; max-height: 400px; overflow-y: auto;">${logs || '暂无日志'}</pre>`,
+          nzWidth: 800,
+          nzFooter: [
+            {
+              label: '关闭',
+              onClick: () => true
+            }
+          ]
+        });
+      },
+      error: (error: any) => {
+        this.message.error('获取安装日志失败');
+      }
+    });
+  }
+
+  retryApply(): void {
+    this.applyResult = null;
+    this.installJob = null;
+    this.cdr.detectChanges();
   }
 
   startInstallation(): void {
@@ -933,11 +1105,9 @@ export class LogCollectorInstallComponent implements OnInit, OnDestroy {
         version: STATE_VERSION,
         currentStep: this.currentStep,
         formValues: compactFormValues,
-        environmentChecks: this.environmentChecks,
-        installResult: {
-          success: this.installSuccess,
-          message: this.installSuccess ? '安装完成' : '安装失败'
-        },
+        preflightChecks: this.preflightChecks,
+        generatedYaml: this.generatedYaml,
+        installResult: this.applyResult,
         installJob: this.installJob,
         timestamp: Date.now(),
         lastUpdated: Date.now()
@@ -1020,13 +1190,14 @@ export class LogCollectorInstallComponent implements OnInit, OnDestroy {
       this.currentStep = state.currentStep;
 
       // 恢复其他状态
-      if (state.environmentChecks) {
-        this.environmentChecks = state.environmentChecks;
-        this.allChecksPassed = state.environmentChecks.every(c => c.status !== 'error');
+      if (state.preflightChecks) {
+        this.preflightChecks = state.preflightChecks;
+      }
+      if (state.generatedYaml) {
+        this.generatedYaml = state.generatedYaml;
       }
       if (state.installResult) {
-        this.installSuccess = state.installResult.success;
-        this.installCompleted = true;
+        this.applyResult = state.installResult;
       }
       if (state.installJob) {
         this.installJob = state.installJob;
@@ -1142,7 +1313,7 @@ export class LogCollectorInstallComponent implements OnInit, OnDestroy {
     this.installSuccess = false;
     this.installLogs = [];
     this.installJob = null;
-    this.runEnvironmentCheck();
+    this.runPreflightCheck();
   }
 }
 

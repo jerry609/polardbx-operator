@@ -84,7 +84,7 @@ export interface WizardAction {
                 [nzCurrent]="currentStepIndex"
                 class="wizard-steps">
                 <nz-step 
-                  *ngFor="let step of steps; let i = index"
+                  *ngFor="let step of steps; let i = index; trackBy: trackByStep"
                   [nzTitle]="step.title"
                   [nzDescription]="step.description"
                   [nzStatus]="getStepStatus(step, i)"
@@ -127,7 +127,7 @@ export interface WizardAction {
         <div class="footer-content">
           <div class="footer-actions">
             <button 
-              *ngFor="let action of actions"
+              *ngFor="let action of actions; trackBy: trackByAction"
               nz-button 
               [nzType]="action.type || 'default'"
               [nzLoading]="action.loading"
@@ -428,5 +428,14 @@ export class WizardShellComponent implements OnInit {
     if (this.currentStepIndex > 0) {
       this.goToStep(this.currentStepIndex - 1);
     }
+  }
+
+  // trackBy 避免 *ngFor 重建 DOM
+  trackByStep(index: number, step: WizardStep): string {
+    return step.id || `${index}-${step.title}`;
+  }
+
+  trackByAction(index: number, action: WizardAction): string {
+    return `${action.text}-${action.icon || ''}-${action.type || ''}`;
   }
 }

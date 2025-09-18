@@ -138,10 +138,10 @@ func main() {
 		v1.GET("/system/namespaces", api_system.ListNamespaces)
 
 		// Direct routes for frontend compatibility
-		v1.GET("/namespaces", api_system.ListNamespaces) // Maps to /platform/system/namespaces
-		v1.GET("/prometheus-rules", api_prometheusrule.List) // PrometheusRule resources
+		v1.GET("/namespaces", api_system.ListNamespaces)                              // Maps to /platform/system/namespaces
+		v1.GET("/prometheus-rules", api_prometheusrule.List)                          // PrometheusRule resources
 		v1.GET("/prometheus-rules/:namespace/:name/yaml", api_prometheusrule.GetYAML) // Get YAML
-		v1.POST("/prometheus-rules/validate", api_prometheusrule.ValidateRule) // Validate YAML
+		v1.POST("/prometheus-rules/validate", api_prometheusrule.ValidateRule)        // Validate YAML
 
 		// Pre-change safety checklist
 		v1.GET("/clusters/:namespace/:name/prechange-check", domain_pxc.GetPrechangeChecklist)
@@ -217,6 +217,10 @@ func main() {
 		v1.DELETE("/log-strategies/:name", api_logstrategy.Delete)
 		v1.POST("/log-strategies/:name/apply", api_logstrategy.Apply)
 		v1.POST("/log-strategies/test-connection", api_logstrategy.TestConnection)
+		// Logs Bootstrap (安装向导后端)
+		v1.POST("/logs/bootstrap", api_logs.Bootstrap)
+		v1.GET("/logs/bootstrap/status", api_logs.BootstrapStatus)
+		v1.GET("/logs/bootstrap/logs", api_logs.BootstrapLogs)
 		v1.POST("/logs/query", api_logs.Query)
 		v1.GET("/logs/presets", api_logs.Presets)
 		v1.GET("/logs/presets/:pattern", api_logs.PresetByPattern)

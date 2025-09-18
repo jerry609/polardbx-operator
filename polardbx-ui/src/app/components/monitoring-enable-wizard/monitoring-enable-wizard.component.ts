@@ -398,6 +398,38 @@ const MAX_STATE_AGE_HOURS = 24;
                     </button>
                   </div>
                 </div>
+
+                <div class="kubectl-command" style="margin-top: 12px;">
+                  <h5>端口转发（本地访问）</h5>
+                  <div class="command-block">
+                    <pre>kubectl port-forward svc/grafana -n polardbx-monitor 3000
+kubectl port-forward svc/prometheus-k8s -n polardbx-monitor 9090
+kubectl port-forward svc/alertmanager-main -n polardbx-monitor 9093</pre>
+                    <button 
+                      nz-button 
+                      nzType="dashed" 
+                      nzSize="small"
+                      (click)="copyPortForwardCommands()">
+                      <i nz-icon nzType="copy"></i>
+                      复制全部
+                    </button>
+                  </div>
+                </div>
+
+                <div class="kubectl-command" style="margin-top: 12px;">
+                  <h5>LoadBalancer 示例（可选，values.yaml）</h5>
+                  <div class="command-block">
+                    <pre>{{ getLoadBalancerValuesSnippet() }}</pre>
+                    <button 
+                      nz-button 
+                      nzType="dashed" 
+                      nzSize="small"
+                      (click)="copyLoadBalancerValues()">
+                      <i nz-icon nzType="copy"></i>
+                      复制片段
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -1013,7 +1045,7 @@ export class MonitoringEnableWizardComponent implements OnInit, OnDestroy {
 
   runPreflightChecks(): void {
     this.runningPreflight = true;
-    
+
     // 初始化检查项
     this.preflightChecks = [
       {
@@ -1037,30 +1069,56 @@ export class MonitoringEnableWizardComponent implements OnInit, OnDestroy {
       }
     ];
 
-    // 模拟检查过程
+    const ns = this.form.value.namespace || 'polardbx-monitor';
+
+    // 1) 轻量：CRD 与 RBAC 仍保持占位（后续接入真实校验）
     setTimeout(() => {
       this.preflightChecks[0] = {
         ...this.preflightChecks[0],
         status: 'success',
-        result: 'CRD 已安装'
+        result: 'CRD 已安装（或将于安装时部署）'
       };
-      
       this.preflightChecks[1] = {
         ...this.preflightChecks[1],
         status: 'warning',
-        result: '权限检查需要手动确认',
-        command: 'kubectl auth can-i create servicemonitors --as=system:serviceaccount:default:prometheus'
+        result: '权限需按集群环境确认',
+        command: 'kubectl auth can-i list pods --as=system:serviceaccount:default:prometheus'
       };
-      
-      this.preflightChecks[2] = {
-        ...this.preflightChecks[2],
-        status: 'success',
-        result: 'Prometheus 运行正常'
-      };
-      
-      this.runningPreflight = false;
       this.cdr.markForCheck();
-    }, 2000);
+    }, 400);
+
+    // 2) 实锤：调用 /monitoring/status 获取 Prometheus/Grafana 就绪情况
+    this.api.getMonitoringStatus(ns).subscribe({
+      next: (s: any) => {
+        const comp = s?.components || {};
+        const prom = comp?.prometheus || {};
+        const graf = comp?.grafana || {};
+        const nsUsed = s?.namespace || ns;
+
+        const pReady = !!prom.ready;
+        const pMsg = `Prometheus: ${pReady ? 'Ready' : 'Not Ready'}  (${prom.readyReplicas ?? 0}/${prom.replicas ?? 0})  svc=${prom.service ? 'Yes' : 'No'}  ns=${nsUsed}`;
+        this.preflightChecks[2] = {
+          ...this.preflightChecks[2],
+          status: pReady ? 'success' : 'warning',
+          result: pMsg,
+          command: `kubectl -n ${nsUsed} get pods -l app.kubernetes.io/name=prometheus\n` +
+                   `kubectl -n ${nsUsed} get svc | grep -i prometheus`
+        };
+        this.runningPreflight = false;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.preflightChecks[2] = {
+          ...this.preflightChecks[2],
+          status: 'warning',
+          result: '无法获取 Prometheus 状态（可能未安装）',
+          command: `kubectl -n ${ns} get pods | grep -i prom\n` +
+                   `kubectl -n ${ns} get svc | grep -i prom`
+        };
+        this.runningPreflight = false;
+        this.cdr.markForCheck();
+      }
+    });
   }
 
   hasPreflightErrors(): boolean {
@@ -1248,6 +1306,24 @@ spec:
   copyPodsCheckCommand(): void {
     const cmd = this.getPodsCheckCommand();
     navigator.clipboard.writeText(cmd).then(() => this.message.success('命令已复制到剪贴板'));
+  }
+
+  copyPortForwardCommands(): void {
+    const cmds = [
+      'kubectl port-forward svc/grafana -n polardbx-monitor 3000',
+      'kubectl port-forward svc/prometheus-k8s -n polardbx-monitor 9090',
+      'kubectl port-forward svc/alertmanager-main -n polardbx-monitor 9093'
+    ].join('\n');
+    navigator.clipboard.writeText(cmds).then(() => this.message.success('端口转发命令已复制'));
+  }
+
+  getLoadBalancerValuesSnippet(): string {
+    return `monitors:\n  grafana:\n    serviceType: LoadBalancer\n  prometheus:\n    serviceType: LoadBalancer`;
+  }
+
+  copyLoadBalancerValues(): void {
+    const snippet = this.getLoadBalancerValuesSnippet();
+    navigator.clipboard.writeText(snippet).then(() => this.message.success('values 片段已复制'));
   }
 
   viewInstallLogs(): void {

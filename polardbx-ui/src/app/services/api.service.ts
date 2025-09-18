@@ -1449,8 +1449,9 @@ export class ApiService {
   // -----------------------------
   getMonitoringStatus(namespace?: string): Observable<any> {
     const url = `${this.baseUrl}/monitoring/status`;
+    const params = namespace ? new HttpParams().set('namespace', namespace) : this.withNs();
     return this.handleRequest(
-      this.http.get(url, { headers: this.getHeaders(), params: this.withNs() }),
+      this.http.get(url, { headers: this.getHeaders(), params }),
       LoadingKeys.MONITOR_LIST,
       '/monitoring/status',
       'GET'

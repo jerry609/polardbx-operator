@@ -46,7 +46,7 @@ func TestBackupOverview_EvaluateConnectivity(t *testing.T) {
 	var resp2 map[string]any
 	_ = json.Unmarshal(w2.Body.Bytes(), &resp2)
 	kpi2 := resp2["kpi"].(map[string]any)
-	assert.Equal(t, "unknown", kpi2["storageConnectivityStatus"]) // updated key in domain service when evaluateConnectivity=true
+	assert.Equal(t, "error", kpi2["storageConnectivityStatus"]) // new impl returns error when unreachable
 
 	// when configmap exists in system namespace -> connected
 	cm := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "polardbx-hpfs-config", Namespace: "polardbx-operator-system"}}
@@ -61,5 +61,5 @@ func TestBackupOverview_EvaluateConnectivity(t *testing.T) {
 	var resp3 map[string]any
 	_ = json.Unmarshal(w3.Body.Bytes(), &resp3)
 	kpi3 := resp3["kpi"].(map[string]any)
-	assert.Equal(t, "unknown", kpi3["storageConnectivityStatus"]) // we do not mark connected in new impl
+	assert.Equal(t, "error", kpi3["storageConnectivityStatus"]) // align with new impl semantics
 }

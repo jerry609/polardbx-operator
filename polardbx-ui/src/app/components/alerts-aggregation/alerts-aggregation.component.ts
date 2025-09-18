@@ -148,7 +148,7 @@ import { GlobalInstallProgressComponent } from '../global-install-progress/globa
                   <span class="namespace">{{ alert.labels?.namespace || '-' }}</span>
                 </td>
                 <td>
-                  <span class="cluster">{{ alert.labels?.cluster || alert.labels?.involvedObject || '-' }}</span>
+                  <span class="cluster">{{ alert.labels?.cluster || alert.labels?.involvedObject || alert.labels?.namespace || '-' }}</span>
                 </td>
                 <td>
                   <span class="message" [nz-tooltip]="alert.message" nzTooltipPlacement="topLeft">

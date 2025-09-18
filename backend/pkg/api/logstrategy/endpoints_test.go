@@ -33,11 +33,28 @@ func setupTestRouter() *gin.Engine {
 	return r
 }
 
+// setupTestRouterWithClients attaches mock clients at the group level to ensure availability in handlers.
+func setupTestRouterWithClients(cs *k8sfake.Clientset, cli client.Client) *gin.Engine {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	v1 := r.Group("/api/v1")
+	v1.Use(withMockK8sClients(cs, cli))
+	{
+		v1.GET("/log-strategies", List)
+		v1.POST("/log-strategies", Create)
+		v1.GET("/log-strategies/apply-records", ListApplyRecords)
+		v1.POST("/log-strategies/:name/apply", Apply)
+		v1.POST("/log-strategies/precheck", Precheck)
+		v1.POST("/log-strategies/test-connection", TestConnection)
+	}
+	return r
+}
+
 // Mock middleware to inject fake Kubernetes clients
 func withMockK8sClients(cs *k8sfake.Clientset, cli client.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Set("clientset", cs)
-		c.Set("k8s-client", cli)
+		c.Set("k8sClient", cli)
 		c.Next()
 	}
 }
@@ -49,8 +66,7 @@ func TestListApplyRecords_EmptyConfigMap(t *testing.T) {
 	_ = corev1.AddToScheme(scheme)
 	cli := crfake.NewClientBuilder().WithScheme(scheme).Build()
 
-	router := setupTestRouter()
-	router.Use(withMockK8sClients(cs, cli))
+	router := setupTestRouterWithClients(cs, cli)
 
 	// Test empty records
 	w := httptest.NewRecorder()
@@ -105,8 +121,7 @@ func TestListApplyRecords_WithData(t *testing.T) {
 	_ = corev1.AddToScheme(scheme)
 	cli := crfake.NewClientBuilder().WithScheme(scheme).WithObjects(cm).Build()
 
-	router := setupTestRouter()
-	router.Use(withMockK8sClients(cs, cli))
+	router := setupTestRouterWithClients(cs, cli)
 
 	// Test with data
 	w := httptest.NewRecorder()
@@ -140,9 +155,11 @@ func TestAddApplyRecord(t *testing.T) {
 	// Setup gin context
 	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/", nil)
 	c, _ := gin.CreateTestContext(w)
+	c.Request = req
 	c.Set("clientset", cs)
-	c.Set("k8s-client", cli)
+	c.Set("k8sClient", cli)
 
 	// Call addApplyRecord
 	addApplyRecord(c, "test-strategy", "success", "Test message", []string{"ns/cluster"})
@@ -244,8 +261,7 @@ func TestPrecheck_ValidStrategy(t *testing.T) {
 	cs := k8sfake.NewSimpleClientset(cluster)
 	cli := crfake.NewClientBuilder().WithScheme(scheme).WithObjects(cluster).Build()
 
-	router := setupTestRouter()
-	router.Use(withMockK8sClients(cs, cli))
+	router := setupTestRouterWithClients(cs, cli)
 
 	strategy := Strategy{
 		Name:        "test-strategy",

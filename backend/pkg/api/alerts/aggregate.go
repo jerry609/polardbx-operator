@@ -44,6 +44,7 @@ func List(c *gin.Context) {
 						if msg == "" {
 							msg = a.Labels["alertname"]
 						}
+						// 统一 timestamp 为 RFC3339 字符串；Alertmanager StartsAt 已为字符串
 						items = append(items, map[string]any{
 							"source":    "alertmanager",
 							"severity":  a.Labels["severity"],
@@ -72,19 +73,31 @@ func List(c *gin.Context) {
 			if ev.Type == corev1.EventTypeWarning {
 				sev = "warning"
 			}
+			// 统一 labels：始终提供 namespace/involvedObject；cluster 仅在传参时设置
 			labels := map[string]string{
 				"namespace":      ev.Namespace,
-				"cluster":        cluster,
 				"reason":         ev.Reason,
 				"involvedObject": ev.InvolvedObject.Name,
 			}
+			if cluster != "" {
+				labels["cluster"] = cluster
+			}
+			// 统一仅返回 timestamp，保留 time 以兼容旧前端
+			ts := ev.LastTimestamp.Time
+			if ts.IsZero() && !ev.EventTime.IsZero() {
+				ts = ev.EventTime.Time
+			}
+			if ts.IsZero() {
+				ts = ev.ObjectMeta.CreationTimestamp.Time
+			}
+			tsStr := ts.Format(time.RFC3339)
 			items = append(items, map[string]any{
 				"source":    "k8s-event",
 				"severity":  sev,
 				"message":   ev.Message,
 				"labels":    labels,
-				"time":      ev.LastTimestamp.Time.Format(time.RFC3339),
-				"timestamp": ev.LastTimestamp.Time.Format(time.RFC3339),
+				"time":      tsStr,
+				"timestamp": tsStr,
 			})
 		}
 	}
