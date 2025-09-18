@@ -27,7 +27,6 @@ import { NzEmptyModule } from 'ng-zorro-antd/empty';
 import { NzStatisticModule } from 'ng-zorro-antd/statistic';
 import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
-import { EmptyStateComponent } from '../empty-state/empty-state.component';
 import { takeUntil, finalize } from 'rxjs/operators';
 
 import { ApiService } from '../../services/api.service';
@@ -69,7 +68,6 @@ import {
     NzDescriptionsModule,
     NzEmptyModule,
     NzStatisticModule,
-    EmptyStateComponent,
     FormsModule,
     NzModalModule,
     NzMessageModule

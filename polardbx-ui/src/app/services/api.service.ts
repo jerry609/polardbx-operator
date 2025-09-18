@@ -987,13 +987,29 @@ export class ApiService {
   // Restore job management
   listRestoreJobs(namespace?: string): Observable<RestoreJob[]> {
     const url = `${this.baseUrl}/restore-jobs`;
+    const opt: { headers: HttpHeaders; params?: HttpParams } = { headers: this.getHeaders() } as any;
+    if (namespace) {
+      opt.params = new HttpParams().set('namespace', namespace);
+    }
     return this.handleRequest(
-      this.http.get<any>(url, { headers: this.getHeaders(), params: this.withNs() }),
-      LoadingKeys.BACKUPS_LIST,
+      this.http.get<any>(url, opt),
+      LoadingKeys.RESTORE_JOB_LIST,
       '/restore-jobs',
       'GET'
     ).pipe(
-      map((res: any) => Array.isArray(res) ? (res as RestoreJob[]) : (res?.restoreJobs ?? []))
+      map((res: any) => {
+        const items = Array.isArray(res) ? res : (res?.items ?? res?.restoreJobs ?? []);
+        return (items as any[]).map((it: any) => ({
+          clusterName: it.clusterName || it.name,
+          namespace: it.namespace,
+          phase: it.phase,
+          stage: it.stage,
+          restoreSpec: it.restoreSpec,
+          pitrStatus: it.pitrStatus,
+          observedGeneration: it.observedGeneration,
+          conditions: it.conditions
+        } as RestoreJob));
+      })
     );
   }
 

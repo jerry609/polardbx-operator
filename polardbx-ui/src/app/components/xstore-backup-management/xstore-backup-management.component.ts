@@ -25,7 +25,6 @@ import { NzPopconfirmModule } from 'ng-zorro-antd/popconfirm';
 import { NzSwitchModule } from 'ng-zorro-antd/switch';
 import { NzCollapseModule } from 'ng-zorro-antd/collapse';
 import { NzEmptyModule } from 'ng-zorro-antd/empty';
-import { EmptyStateComponent } from '../empty-state/empty-state.component';
 import { ApiService } from '../../services/api.service';
 import { LoadingService, LoadingKeys } from '../../services/loading.service';
 import { XStoreBackup, XStoreBackupWithStatus, CreateXStoreBackupRequest } from '../../models/xstore-backup.model';
@@ -64,7 +63,6 @@ import { takeUntil } from 'rxjs/operators';
     NzSwitchModule,
     NzCollapseModule,
     NzEmptyModule,
-    EmptyStateComponent
   ],
   template: `
     <div class="xstore-backup-management">

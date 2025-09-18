@@ -224,7 +224,7 @@ import { ApiService } from '../../services/api.service';
     }
     
     .setting-card {
-      background: #fff;
+      background: #ffffff;
       border-radius: 8px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.06);
       border: 1px solid #e0e0e0;
@@ -241,7 +241,7 @@ import { ApiService } from '../../services/api.service';
       justify-content: center;
       gap: 16px;
       padding: 16px;
-      background: #fff;
+      background: #ffffff;
       border-radius: 8px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.06);
       border: 1px solid #e0e0e0;

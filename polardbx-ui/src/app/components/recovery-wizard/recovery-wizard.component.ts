@@ -398,7 +398,7 @@ export interface RecoveryWizardDialogData {
     }
     
     .wizard-card {
-      background: #fff;
+      background: #ffffff;
       border-radius: 8px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.06);
       border: 1px solid #e0e0e0;

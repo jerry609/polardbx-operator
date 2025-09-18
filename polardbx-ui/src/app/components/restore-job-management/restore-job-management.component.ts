@@ -19,11 +19,13 @@ import { NzMessageService } from 'ng-zorro-antd/message';
 import { NzDrawerModule } from 'ng-zorro-antd/drawer';
 import { NzDescriptionsModule } from 'ng-zorro-antd/descriptions';
 import { NzGridModule } from 'ng-zorro-antd/grid';
+import { NzAlertModule } from 'ng-zorro-antd/alert';
+import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
 import { ApiService } from '../../services/api.service';
 import { LoadingService, LoadingKeys } from '../../services/loading.service';
 import { RestoreJob, RestoreJobWithStatus } from '../../models/restore.model';
-import { Subject, interval } from 'rxjs';
-import { switchMap, takeUntil } from 'rxjs/operators';
+import { Subject, interval, from, of } from 'rxjs';
+import { switchMap, takeUntil, concatMap, toArray, catchError } from 'rxjs/operators';
 
 @Component({
   selector: 'app-restore-job-management',
@@ -47,7 +49,9 @@ import { switchMap, takeUntil } from 'rxjs/operators';
     NzEmptyModule,
     NzDrawerModule,
     NzDescriptionsModule,
-    NzGridModule
+    NzGridModule,
+    NzAlertModule,
+    NzCheckboxModule
   ],
   template: `
     <div class="restore-job-management">
@@ -70,182 +74,157 @@ import { switchMap, takeUntil } from 'rxjs/operators';
           [nzExtra]="listExtra"
           [nzLoading]="loadingService.isLoading(loadingKeys.RESTORE_JOB_LIST)">
           <ng-template #listExtra>
-            <div class="extra-actions">
-              <button nz-button nzType="default" nzSize="small" (click)="refreshJobs()">
+            <div class="extra-actions" style="display:flex; gap:8px; align-items:center;">
+              <button nz-button nzType="default" nzSize="small" (click)="refreshAll()">
                 <i nz-icon nzType="reload"></i>
                 刷新
               </button>
-              <nz-switch [(ngModel)]="listAutoRefresh" (ngModelChange)="toggleAutoRefresh($event)">
-                自动刷新
-              </nz-switch>
+              <nz-switch [(ngModel)]="listAutoRefresh" (ngModelChange)="toggleAutoRefresh($event)">自动刷新</nz-switch>
+              <button nz-button nzType="primary" nzDanger nzSize="small" [disabled]="!hasCancelableSelection()" (click)="cancelBatch()">
+                <i nz-icon nzType="close"></i>
+                批量取消
+              </button>
             </div>
           </ng-template>
 
-          <mat-progress-bar *ngIf="loadingService.isLoading(loadingKeys.RESTORE_JOB_LIST)"
-                           mode="indeterminate" class="loading-bar"></mat-progress-bar>
+          <nz-spin *ngIf="loadingService.isLoading(loadingKeys.RESTORE_JOB_LIST)" nzSimple></nz-spin>
 
           <div class="list-content">
             <div class="filter-toolbar">
-              <mat-form-field appearance="outline" class="search-field">
-                <mat-label>搜索集群</mat-label>
-                <input matInput placeholder="输入集群名称" [(ngModel)]="searchTerm" (ngModelChange)="applyFilters()" />
-                <button mat-icon-button matSuffix *ngIf="searchTerm" (click)="clearSearch()" aria-label="清空搜索">
-                  <mat-icon>close</mat-icon>
+              <div class="search-field" style="display:flex; gap:8px; align-items:center;">
+                <input nz-input placeholder="输入集群名称" [(ngModel)]="searchTerm" (ngModelChange)="applyFilters()" />
+                <button nz-button nzShape="circle" nzSize="small" *ngIf="searchTerm" (click)="clearSearch()">
+                  <i nz-icon nzType="close"></i>
                 </button>
-              </mat-form-field>
+              </div>
 
               <div class="filters-line">
                 <div class="filter-group">
                   <span class="filter-label">状态:</span>
-                  <mat-chip-listbox class="chip-group" [multiple]="false">
-                    <mat-chip-option [selected]="statusFilter==='all'" (click)="setStatusFilter('all')">全部 ({{statusCounts.all}})</mat-chip-option>
-                    <mat-chip-option [selected]="statusFilter==='ongoing'" (click)="setStatusFilter('ongoing')">进行中 ({{statusCounts.ongoing}})</mat-chip-option>
-                    <mat-chip-option [selected]="statusFilter==='completed'" (click)="setStatusFilter('completed')">已完成 ({{statusCounts.completed}})</mat-chip-option>
-                    <mat-chip-option [selected]="statusFilter==='failed'" (click)="setStatusFilter('failed')">失败 ({{statusCounts.failed}})</mat-chip-option>
-                  </mat-chip-listbox>
+                  <button nz-button [nzType]="statusFilter==='all' ? 'primary':'default'" (click)="setStatusFilter('all')">全部 ({{statusCounts.all}})</button>
+                  <button nz-button [nzType]="statusFilter==='ongoing' ? 'primary':'default'" (click)="setStatusFilter('ongoing')">进行中 ({{statusCounts.ongoing}})</button>
+                  <button nz-button [nzType]="statusFilter==='completed' ? 'primary':'default'" (click)="setStatusFilter('completed')">已完成 ({{statusCounts.completed}})</button>
+                  <button nz-button [nzType]="statusFilter==='failed' ? 'primary':'default'" (click)="setStatusFilter('failed')">失败 ({{statusCounts.failed}})</button>
                 </div>
 
                 <div class="filter-group">
                   <span class="filter-label">类型:</span>
-                  <mat-chip-listbox class="chip-group" [multiple]="false">
-                    <mat-chip-option [selected]="typeFilter==='all'" (click)="setTypeFilter('all')">全部</mat-chip-option>
-                    <mat-chip-option [selected]="typeFilter==='backup'" (click)="setTypeFilter('backup')">备份恢复</mat-chip-option>
-                    <mat-chip-option [selected]="typeFilter==='pitr'" (click)="setTypeFilter('pitr')">PITR</mat-chip-option>
-                  </mat-chip-listbox>
+                  <button nz-button [nzType]="typeFilter==='all' ? 'primary':'default'" (click)="setTypeFilter('all')">全部</button>
+                  <button nz-button [nzType]="typeFilter==='backup' ? 'primary':'default'" (click)="setTypeFilter('backup')">备份恢复</button>
+                  <button nz-button [nzType]="typeFilter==='pitr' ? 'primary':'default'" (click)="setTypeFilter('pitr')">PITR</button>
                 </div>
-
                 <div class="toolbar-spacer"></div>
-                <div class="meta">
-                  <mat-slide-toggle [checked]="listAutoRefresh" (change)="toggleAutoRefresh($event.checked)">自动刷新</mat-slide-toggle>
-                  <span class="last-updated">上次更新：{{ lastUpdated | date:'HH:mm:ss' }}</span>
-                  <button mat-stroked-button (click)="refreshAll()">
-                    <mat-icon>refresh</mat-icon>
-                    刷新
-                  </button>
-                </div>
+                <span class="last-updated">上次更新：{{ lastUpdated | date:'HH:mm:ss' }}</span>
               </div>
             </div>
 
             <div class="table-container">
-              <table mat-table [dataSource]="dataSource" class="restore-table mat-elevation-z1" matSort>
-                <ng-container matColumnDef="clusterName">
-                  <th mat-header-cell *matHeaderCellDef class="cluster-col" mat-sort-header>集群名称</th>
-                  <td mat-cell *matCellDef="let j" class="cluster-cell">
-                    <div class="cluster-info">
-                      <mat-icon class="cluster-icon">storage</mat-icon>
-                      <span class="cluster-name">{{ j.clusterName }}</span>
-                    </div>
-                  </td>
-                </ng-container>
-                <ng-container matColumnDef="phase">
-                  <th mat-header-cell *matHeaderCellDef class="status-col" mat-sort-header>状态</th>
-                  <td mat-cell *matCellDef="let j" class="status-cell">
-                    <mat-chip [ngClass]="phaseClass(j.phase)" class="status-chip">
-                      {{ j.phase || '-' }}
-                    </mat-chip>
-                  </td>
-                </ng-container>
-                <ng-container matColumnDef="restoreType">
-                  <th mat-header-cell *matHeaderCellDef class="type-col" mat-sort-header>类型</th>
-                  <td mat-cell *matCellDef="let j" class="type-cell">
-                    <span class="restore-type">{{ getRestoreType(j) === 'pitr' ? 'PITR' : '备份恢复' }}</span>
-                  </td>
-                </ng-container>
-                <ng-container matColumnDef="created">
-                  <th mat-header-cell *matHeaderCellDef class="time-col" mat-sort-header>创建时间</th>
-                  <td mat-cell *matCellDef="let j" class="time-cell">
-                    <div class="time-info">
-                      <span class="time-date">{{ j.creationTimestamp | date:'MM-dd' }}</span>
-                      <span class="time-time">{{ j.creationTimestamp | date:'HH:mm' }}</span>
-                    </div>
-                  </td>
-                </ng-container>
-                <ng-container matColumnDef="actions">
-                  <th mat-header-cell *matHeaderCellDef class="actions-col">操作</th>
-                  <td mat-cell *matCellDef="let j" class="actions-cell" (click)="$event.stopPropagation()">
-                    <button mat-icon-button (click)="selectJob(j)" class="action-btn" matTooltip="查看详情" aria-label="查看详情">
-                      <mat-icon>visibility</mat-icon>
-                    </button>
-                    <button mat-icon-button color="warn" (click)="cancelJob(j)" class="action-btn" matTooltip="取消任务" aria-label="取消任务" [disabled]="!j.canCancel">
-                      <mat-icon>cancel</mat-icon>
-                    </button>
-                  </td>
-                </ng-container>
-                <tr mat-header-row *matHeaderRowDef="displayedColumns" class="table-header"></tr>
-                <tr mat-row *matRowDef="let row; columns: displayedColumns;" (click)="selectJob(row)" class="table-row" [class.selected]="selectedJob?.clusterName === row.clusterName"></tr>
-              </table>
+              <nz-table #nzTable [nzData]="dataSource" [nzFrontPagination]="true" [nzPageSize]="pageSize" [nzShowPagination]="(dataSource.length||0) > pageSize">
+                <thead>
+                  <tr>
+                    <th style="width: 40px;">
+                      <label nz-checkbox [ngModel]="isAllSelected()" (ngModelChange)="toggleSelectAll($event)"></label>
+                    </th>
+                    <th>集群名称</th>
+                    <th>状态</th>
+                    <th>类型</th>
+                    <th>创建时间</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let j of nzTable.data" (click)="selectJob(j)" class="table-row" [class.selected]="selectedJob?.clusterName === j.clusterName">
+                    <td (click)="$event.stopPropagation()">
+                      <label nz-checkbox [(ngModel)]="selection[makeKey(j)]" (ngModelChange)="onRowSelectChange(j, $event)"></label>
+                    </td>
+                    <td>
+                      <div class="cluster-info">
+                        <i nz-icon nzType="database" class="cluster-icon"></i>
+                        <span class="cluster-name">{{ j.clusterName }}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <nz-tag [nzColor]="getProgressClass(j) === 'phase-warn' ? 'error' : (getProgressClass(j) === 'phase-primary' ? 'processing' : 'default')">
+                        {{ j.phase || '-' }}
+                      </nz-tag>
+                    </td>
+                    <td>{{ getRestoreType(j) === 'pitr' ? 'PITR' : '备份恢复' }}</td>
+                    <td>
+                      <div class="time-info">
+                        <span class="time-date">{{ getJobCreationTime(j) | date:'MM-dd' }}</span>
+                        <span class="time-time">{{ getJobCreationTime(j) | date:'HH:mm' }}</span>
+                      </div>
+                    </td>
+                    <td (click)="$event.stopPropagation()">
+                      <button nz-button nzType="link" nzSize="small" (click)="selectJob(j)"><i nz-icon nzType="eye"></i></button>
+                      <button nz-button nzType="link" nzSize="small" [disabled]="j.phase === 'Completed' || j.phase === 'Failed'" (click)="cancelJob(j)"><i nz-icon nzType="close"></i></button>
+                    </td>
+                  </tr>
+                </tbody>
+              </nz-table>
+
               <div *ngIf="(dataSource?.length || 0) === 0" class="empty-list">
                 <div class="empty-inner">
-                  <mat-icon class="empty-icon">inbox</mat-icon>
+                  <i nz-icon nzType="inbox" class="empty-icon"></i>
                   <p class="empty-text">暂无恢复任务</p>
                 </div>
               </div>
             </div>
           </div>
+        </nz-card>
 
-      <!-- 右侧详情面板 -->
-      <div class="detail-panel" *ngIf="selectedJob; else emptyState">
-        <div class="detail-card">
-          <mat-card-header>
-            <mat-card-title>
-              <mat-icon>article</mat-icon>
-              任务详情 · {{ selectedJob.clusterName }}
-            </mat-card-title>
-            <mat-card-actions align="end">
-              <a *ngIf="grafanaLinkForSelected() as gLink; else noGrafana"
-                 [href]="gLink" target="_blank" rel="noopener" mat-stroked-button>
-                <mat-icon>open_in_new</mat-icon>
-                在 Grafana 打开
-              </a>
-              <ng-template #noGrafana></ng-template>
-              <button mat-stroked-button (click)="reloadSelected()">
-                <mat-icon>refresh</mat-icon>
-                刷新
-              </button>
-              <button mat-stroked-button (click)="toggleRaw()">
-                <mat-icon>code</mat-icon>
-                原始JSON
-              </button>
-              <button mat-stroked-button (click)="copySelectedJson()">
-                <mat-icon>content_copy</mat-icon>
-                复制
-              </button>
-              <button mat-stroked-button color="warn" [disabled]="!selectedJob.canCancel" (click)="cancelSelected()">
-                <mat-icon>cancel</mat-icon>
-                取消
-              </button>
-              <button mat-raised-button color="primary" *ngIf="isFailed(selectedJob)" (click)="diagnoseSelected()">
-                <mat-icon>medical_information</mat-icon>
-                诊断
-              </button>
-            </mat-card-actions>
-          </mat-card-header>
+      <!-- 右侧详情面板 (大屏) -->
+      <div class="detail-panel" *ngIf="!isSmallScreen && selectedJob; else emptyState">
+        <nz-card [nzTitle]="'任务详情 · ' + selectedJob.clusterName">
+          <div nz-card-extra>
+            <a *ngIf="grafanaLinkForSelected() as gLink; else noGrafana"
+               [href]="gLink" target="_blank" rel="noopener" nz-button nzType="link">
+              <i nz-icon nzType="external-link"></i>
+              在 Grafana 打开
+            </a>
+            <ng-template #noGrafana></ng-template>
+            <button nz-button nzSize="small" (click)="toggleRaw()">
+              <i nz-icon nzType="code"></i>
+              原始JSON
+            </button>
+            <button nz-button nzSize="small" (click)="copySelectedJson()">
+              <i nz-icon nzType="copy"></i>
+              复制
+            </button>
+            <button nz-button nzType="primary" nzSize="small" *ngIf="isFailed(selectedJob)" (click)="diagnoseSelected()">
+              <i nz-icon nzType="medicine-box"></i>
+              诊断
+            </button>
+          </div>
           
           <div class="detail-content">
             <div class="status-section">
               <div class="status-header">
-                <mat-chip [ngClass]="phaseClass(selectedJob.phase)" class="status-chip-large">
+                <nz-tag [nzColor]="getProgressClass(selectedJob) === 'phase-warn' ? 'error' : (getProgressClass(selectedJob) === 'phase-primary' ? 'processing' : 'default')" class="status-chip-large">
                   {{ selectedJob.phase || '-' }}
-                </mat-chip>
+                </nz-tag>
                 <span class="progress-text">{{ getProgress(selectedJob) }}%</span>
               </div>
-              <mat-progress-bar mode="determinate" [value]="getProgress(selectedJob)" class="progress-bar" [ngClass]="getProgressClass(selectedJob)"></mat-progress-bar>
+              <nz-progress [nzPercent]="getProgress(selectedJob)" [nzStatus]="getProgressClass(selectedJob) === 'phase-warn' ? 'exception' : 'active'"></nz-progress>
+              <div *ngIf="isFailed(selectedJob)" style="margin-top:8px;">
+                <nz-alert nzType="error" [nzMessage]="getErrorMessage(selectedJob)" nzShowIcon></nz-alert>
+              </div>
             </div>
 
             <div class="info-section">
-              <h4 class="section-title"><mat-icon>info</mat-icon> 基本信息</h4>
-              <div class="info-grid">
-                <div class="info-item"><span class="info-label">源集群</span><span class="info-value">{{ selectedJob.sourceCluster || '-' }}</span></div>
-                <div class="info-item"><span class="info-label">命名空间</span><span class="info-value">{{ selectedJob.namespace || '-' }}</span></div>
-                <div class="info-item"><span class="info-label">恢复类型</span><span class="info-value">{{ getRestoreType(selectedJob!) === 'pitr' ? 'PITR恢复' : '备份恢复' }}</span></div>
-                <div class="info-item"><span class="info-label">当前阶段</span><span class="info-value">{{ selectedJob.stage || '-' }}</span></div>
-                <div class="info-item"><span class="info-label">开始时间</span><span class="info-value">{{ selectedJob.creationTimestamp | date:'yyyy-MM-dd HH:mm:ss' }}</span></div>
-                <div class="info-item"><span class="info-label">可取消</span><span class="info-value">{{ selectedJob.canCancel ? '是' : '否' }}</span></div>
-              </div>
+              <h4 class="section-title"><i nz-icon nzType="info-circle"></i> 基本信息</h4>
+              <nz-descriptions nzBordered [nzColumn]="2">
+                <nz-descriptions-item nzTitle="源集群">{{ selectedJob.sourceCluster || '-' }}</nz-descriptions-item>
+                <nz-descriptions-item nzTitle="命名空间">{{ selectedJob.namespace || '-' }}</nz-descriptions-item>
+                <nz-descriptions-item nzTitle="恢复类型">{{ getRestoreType(selectedJob!) === 'pitr' ? 'PITR恢复' : '备份恢复' }}</nz-descriptions-item>
+                <nz-descriptions-item nzTitle="当前阶段">{{ selectedJob.stage || '-' }}</nz-descriptions-item>
+                <nz-descriptions-item nzTitle="开始时间">{{ getJobCreationTime(selectedJob) | date:'yyyy-MM-dd HH:mm:ss' }}</nz-descriptions-item>
+                <nz-descriptions-item nzTitle="可取消">{{ (selectedJob.phase !== 'Completed' && selectedJob.phase !== 'Failed') ? '是' : '否' }}</nz-descriptions-item>
+              </nz-descriptions>
             </div>
 
             <div class="conditions-section" *ngIf="selectedJob.conditions?.length">
-              <h4 class="section-title"><mat-icon>event_note</mat-icon> 状态条件</h4>
+              <h4 class="section-title"><i nz-icon nzType="calendar"></i> 状态条件</h4>
               <div class="conditions-list">
                 <div class="condition-item" *ngFor="let c of selectedJob.conditions">
                   <div class="condition-header">
@@ -262,16 +241,62 @@ import { switchMap, takeUntil } from 'rxjs/operators';
             </div>
 
             <div *ngIf="!selectedJob.conditions?.length" class="no-conditions">
-              <mat-icon>info_outline</mat-icon>
-              <span>暂无状态条件</span>
+              <nz-alert nzType="info" nzMessage="暂无状态条件" nzShowIcon></nz-alert>
             </div>
 
             <div class="raw-section" *ngIf="showRaw">
               <pre class="raw-json">{{ selectedJob | json }}</pre>
             </div>
           </div>
-        </div>
+        </nz-card>
       </div>
+
+      <!-- 小屏抽屉详情 -->
+      <nz-drawer [nzVisible]="isSmallScreen && !!selectedJob" [nzTitle]="selectedJob ? ('任务详情 · ' + selectedJob.clusterName) : ''" [nzWidth]="'100%'" (nzOnClose)="closeDrawer()">
+        <div *ngIf="selectedJob" class="detail-content">
+          <div class="status-section">
+            <div class="status-header">
+              <nz-tag [nzColor]="getProgressClass(selectedJob) === 'phase-warn' ? 'error' : (getProgressClass(selectedJob) === 'phase-primary' ? 'processing' : 'default')" class="status-chip-large">
+                {{ selectedJob.phase || '-' }}
+              </nz-tag>
+              <span class="progress-text">{{ getProgress(selectedJob) }}%</span>
+            </div>
+            <nz-progress [nzPercent]="getProgress(selectedJob)" [nzStatus]="getProgressClass(selectedJob) === 'phase-warn' ? 'exception' : 'active'"></nz-progress>
+            <div *ngIf="isFailed(selectedJob)" style="margin-top:8px;">
+              <nz-alert nzType="error" [nzMessage]="getErrorMessage(selectedJob)" nzShowIcon></nz-alert>
+            </div>
+          </div>
+
+          <div class="info-section">
+            <h4 class="section-title"><i nz-icon nzType="info-circle"></i> 基本信息</h4>
+            <nz-descriptions nzBordered [nzColumn]="1">
+              <nz-descriptions-item nzTitle="源集群">{{ selectedJob.sourceCluster || '-' }}</nz-descriptions-item>
+              <nz-descriptions-item nzTitle="命名空间">{{ selectedJob.namespace || '-' }}</nz-descriptions-item>
+              <nz-descriptions-item nzTitle="恢复类型">{{ getRestoreType(selectedJob!) === 'pitr' ? 'PITR恢复' : '备份恢复' }}</nz-descriptions-item>
+              <nz-descriptions-item nzTitle="当前阶段">{{ selectedJob.stage || '-' }}</nz-descriptions-item>
+              <nz-descriptions-item nzTitle="开始时间">{{ getJobCreationTime(selectedJob) | date:'yyyy-MM-dd HH:mm:ss' }}</nz-descriptions-item>
+              <nz-descriptions-item nzTitle="可取消">{{ (selectedJob.phase !== 'Completed' && selectedJob.phase !== 'Failed') ? '是' : '否' }}</nz-descriptions-item>
+            </nz-descriptions>
+          </div>
+
+          <div class="conditions-section" *ngIf="selectedJob.conditions?.length">
+            <h4 class="section-title"><i nz-icon nzType="calendar"></i> 状态条件</h4>
+            <div class="conditions-list">
+              <div class="condition-item" *ngFor="let c of selectedJob.conditions">
+                <div class="condition-header">
+                  <span class="condition-type">{{ c.type }}</span>
+                  <span class="condition-status" [ngClass]="getConditionStatusClass(c.status)">{{ c.status }}</span>
+                  <span class="condition-time">{{ c.lastTransitionTime | date:'MM-dd HH:mm:ss' }}</span>
+                </div>
+                <div class="condition-details" *ngIf="c.reason || c.message">
+                  <span class="condition-reason" *ngIf="c.reason">{{ c.reason }}</span>
+                  <span class="condition-message" *ngIf="c.message">{{ c.message }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </nz-drawer>
 
       <!-- 空状态 -->
       <ng-template #emptyState>
@@ -284,13 +309,40 @@ import { switchMap, takeUntil } from 'rxjs/operators';
     </div>
   `,
   styles: [`
-    .restore-page { display: grid; grid-template-columns: 1fr; gap: 16px; padding: 20px; background: #ffffff; box-sizing: border-box; }
+    .restore-job-management { display: grid; grid-template-columns: 1fr; gap: 16px; padding: 20px; background: #f5f5f5; box-sizing: border-box; min-height: 100vh; }
+    
+    .page-header {
+      margin-bottom: 24px;
+    }
+    
+    .page-title {
+      font-size: 20px !important;
+      font-weight: 600 !important;
+      color: rgba(0, 0, 0, 0.88) !important;
+      margin: 0 0 8px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .page-description {
+      color: rgba(0, 0, 0, 0.65);
+      margin: 0;
+      font-size: 14px;
+    }
+    
+    .page-content {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+    
     .page-header-card { margin-bottom: 4px; grid-column: 1 / -1; }
     .list-panel { width: 100%; }
     .detail-panel { width: 100%; }
 
     @media (min-width: 1200px) {
-      .restore-page { grid-template-columns: 52% 1fr; }
+      .page-content { grid-template-columns: 52% 1fr; }
       .list-panel { min-width: 620px; }
     }
 
@@ -298,7 +350,7 @@ import { switchMap, takeUntil } from 'rxjs/operators';
     .loading-bar { height: 3px; }
     .list-content { padding: 0 8px 8px 8px; }
 
-    .filter-toolbar { display: grid; gap: 12px; padding: 12px; background: #fff; border-bottom: 1px solid #eee; border-radius: 8px; }
+    .filter-toolbar { display: grid; gap: 12px; padding: 12px; background: #ffffff; border-bottom: 1px solid #eee; border-radius: 8px; }
     .filters-line { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
     .filter-group { display: flex; align-items: center; gap: 8px; }
     .filter-label { color: #666; font-size: 13px; }
@@ -308,7 +360,7 @@ import { switchMap, takeUntil } from 'rxjs/operators';
     .last-updated { font-size: 12px; }
     .search-field { width: 100%; max-width: 360px; }
 
-    .table-container { max-height: calc(100vh - 360px); overflow-y: auto; background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; }
+    .table-container { max-height: calc(100vh - 360px); overflow-y: auto; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 10px; }
     .restore-table { width: 100%; background: white; }
     .table-header { background: #fafafa; font-weight: 600; color: #333; }
     .table-container .mat-mdc-header-row { position: sticky; top: 0; z-index: 2; background: #fafafa; border-bottom: 1px solid #e5e7eb; }
@@ -320,7 +372,7 @@ import { switchMap, takeUntil } from 'rxjs/operators';
     .cluster-icon { color: #666; font-size: 20px; }
     .status-chip { font-weight: 500; border-radius: 16px; padding: 4px 12px; font-size: 12px; }
 
-    .table-container mat-paginator { border-top: 1px solid #e5e7eb; padding: 4px 8px; background: #fff; }
+    .table-container mat-paginator { border-top: 1px solid #e5e7eb; padding: 4px 8px; background: #ffffff; }
 
     .detail-content { padding: 16px 24px 24px; }
     .status-section { margin-bottom: 16px; padding: 16px; background: #f8f9fa; border-radius: 12px; border: 1px solid #e9ecef; }
@@ -378,6 +430,9 @@ export class RestoreJobManagementComponent implements OnInit, OnDestroy {
   showRaw = false;
   listAutoRefresh = true;
   pageSize = 10;
+  // 选择与小屏
+  selection: Record<string, boolean> = {};
+  isSmallScreen = typeof window !== 'undefined' ? window.innerWidth < 1200 : false;
 
   constructor(
     private apiService: ApiService,
@@ -388,6 +443,7 @@ export class RestoreJobManagementComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadJobs();
     this.startListPolling();
+    try { window.addEventListener('resize', this.onResize); } catch {}
   }
 
   loadJobs(): void {
@@ -462,6 +518,9 @@ export class RestoreJobManagementComponent implements OnInit, OnDestroy {
     this.selectedJob = job as RestoreJobWithStatus;
     this.startPolling();
     this.reloadSelected();
+    if (this.isSmallScreen) {
+      // 抽屉通过 selectedJob 控制打开
+    }
   }
 
   cancelJob(job: RestoreJob): void {
@@ -545,6 +604,15 @@ export class RestoreJobManagementComponent implements OnInit, OnDestroy {
     });
   }
 
+  // 小屏抽屉关闭
+  closeDrawer(): void {
+    this.selectedJob = undefined;
+  }
+
+  onResize = () => {
+    try { this.isSmallScreen = window.innerWidth < 1200; } catch {}
+  };
+
   startPolling(): void {
     this.stopPolling();
     if (!this.selectedJob) return;
@@ -610,6 +678,13 @@ export class RestoreJobManagementComponent implements OnInit, OnDestroy {
     return p === 'failed' || p === '失败';
   }
 
+  getErrorMessage(job?: RestoreJob): string {
+    if (!job) return '任务失败，请查看状态条件';
+    const conds = (job as any)?.conditions as any[] || [];
+    const errorCond = conds.find(c => (c?.message || '').trim());
+    return (errorCond?.message as string) || '任务失败，请查看状态条件';
+  }
+
   diagnoseSelected(): void {
     if (!this.selectedJob) return;
     const ns = this.selectedJob.namespace || 'default';
@@ -628,8 +703,52 @@ export class RestoreJobManagementComponent implements OnInit, OnDestroy {
     return `${base}/d/polardbx-monitor?orgId=1&var-namespace=${encodeURIComponent(ns)}${clusterParam}`;
   }
 
+  getJobCreationTime(job: RestoreJob): string | null {
+    // Try to get creationTimestamp from extended type
+    const extendedJob = job as any;
+    return extendedJob?.creationTimestamp || null;
+  }
+
+  // ---------- 多选与批量取消 ----------
+  makeKey(job: RestoreJob): string { return `${job.namespace || 'default'}/${job.clusterName}`; }
+  isAllSelected(): boolean {
+    const keys = (this.dataSource || []).map(j => this.makeKey(j));
+    if (keys.length === 0) return false;
+    return keys.every(k => !!this.selection[k]);
+  }
+  toggleSelectAll(checked: boolean): void {
+    const keys = (this.dataSource || []).map(j => this.makeKey(j));
+    keys.forEach(k => this.selection[k] = checked);
+  }
+  onRowSelectChange(job: RestoreJob, checked: boolean): void {
+    this.selection[this.makeKey(job)] = checked;
+  }
+  getSelectedJobs(): RestoreJob[] {
+    const map = this.selection || {};
+    return (this.dataSource || []).filter(j => !!map[this.makeKey(j)]);
+  }
+  hasCancelableSelection(): boolean {
+    return this.getSelectedJobs().some(j => !this.isTerminal(j));
+  }
+  clearSelection(): void { this.selection = {}; }
+  cancelBatch(): void {
+    const targets = this.getSelectedJobs().filter(j => !this.isTerminal(j));
+    if (targets.length === 0) { this.message.info('未选择可取消的任务'); return; }
+    if (!confirm(`确定批量取消选中的 ${targets.length} 个任务吗？`)) return;
+    from(targets).pipe(
+      concatMap(j => this.apiService.cancelRestoreJob(j.namespace || 'default', j.clusterName).pipe(
+        catchError(() => { this.message.error(`取消失败: ${j.clusterName}`); return of(null); })
+      )),
+      toArray()
+    ).subscribe({
+      next: () => { this.message.success('批量取消请求已提交'); this.clearSelection(); this.loadJobs(); },
+      error: () => { this.message.error('批量取消过程中发生错误'); this.loadJobs(); }
+    });
+  }
+
   ngOnDestroy(): void {
     this.stopPolling();
     this.stopListPolling();
+    try { window.removeEventListener('resize', this.onResize); } catch {}
   }
 }
