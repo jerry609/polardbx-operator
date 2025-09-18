@@ -1093,17 +1093,43 @@ export class MonitoringEnableWizardComponent implements OnInit, OnDestroy {
         const comp = s?.components || {};
         const prom = comp?.prometheus || {};
         const graf = comp?.grafana || {};
+        const am = comp?.alertmanager || {};
         const nsUsed = s?.namespace || ns;
 
+        // Prometheus
         const pReady = !!prom.ready;
         const pMsg = `Prometheus: ${pReady ? 'Ready' : 'Not Ready'}  (${prom.readyReplicas ?? 0}/${prom.replicas ?? 0})  svc=${prom.service ? 'Yes' : 'No'}  ns=${nsUsed}`;
         this.preflightChecks[2] = {
           ...this.preflightChecks[2],
           status: pReady ? 'success' : 'warning',
           result: pMsg,
-          command: `kubectl -n ${nsUsed} get pods -l app.kubernetes.io/name=prometheus\n` +
-                   `kubectl -n ${nsUsed} get svc | grep -i prometheus`
+          command: `kubectl -n ${nsUsed} get pods | grep -Ei 'prom|kube-prometheus'\n` +
+                   `kubectl -n ${nsUsed} get svc | grep -Ei 'prom|kube-prometheus'`
         };
+
+        // 追加 Grafana 检查项（插入到 Prometheus 后面）
+        const gReady = !!graf.ready;
+        const gMsg = `Grafana: ${gReady ? 'Ready' : 'Not Ready'}  (${graf.readyReplicas ?? 0}/${graf.replicas ?? 0})  svc=${graf.service ? 'Yes' : 'No'}  ns=${nsUsed}`;
+        this.preflightChecks.splice(3, 0, {
+          name: 'Grafana 状态',
+          description: '检查 Grafana 运行状态',
+          status: gReady ? 'success' : 'warning',
+          result: gMsg,
+          command: `kubectl -n ${nsUsed} get pods | grep -Ei 'grafana'\n` +
+                   `kubectl -n ${nsUsed} get svc | grep -Ei 'grafana'`
+        });
+
+        // 追加 Alertmanager 检查项
+        const amConfigured = !!am.configured;
+        const aMsg = `Alertmanager: ${amConfigured ? 'Service Present' : 'Service Missing'}  ns=${nsUsed}`;
+        this.preflightChecks.splice(4, 0, {
+          name: 'Alertmanager 状态',
+          description: '检查 Alertmanager Service 配置',
+          status: amConfigured ? 'success' : 'warning',
+          result: aMsg,
+          command: `kubectl -n ${nsUsed} get svc | grep -Ei 'alertmanager'`
+        });
+
         this.runningPreflight = false;
         this.cdr.markForCheck();
       },
