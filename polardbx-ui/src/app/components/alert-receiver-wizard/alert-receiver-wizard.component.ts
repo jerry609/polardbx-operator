@@ -76,7 +76,7 @@ interface DingTalkConfig {
       <div class="page-header">
         <div class="header-content">
           <h1 class="page-title">
-            <i nz-icon nzType="notification" class="page-icon"></i>
+            <i nz-icon nzType="mail" class="page-icon"></i>
             告警接收器配置向导
           </h1>
           <p class="subtitle">配置邮件和钉钉告警通知，生成 Alertmanager Secret 配置</p>
@@ -86,7 +86,7 @@ interface DingTalkConfig {
       <app-wizard-shell
         title="告警接收器向导"
         subtitle="配置告警通知渠道"
-        titleIcon="notification"
+        titleIcon="mail"
         [namespace]="form.value.namespace"
         [objectName]="getObjectName()"
         objectLabel="接收器"
@@ -443,6 +443,11 @@ interface DingTalkConfig {
       padding: 16px;
       background: #f5f5f5;
       min-height: 100vh;
+    }
+
+    /* 覆盖wizard-shell的深色背景 */
+    :deep(.wizard-shell) {
+      background: #f5f5f5 !important;
     }
 
     .page-header {

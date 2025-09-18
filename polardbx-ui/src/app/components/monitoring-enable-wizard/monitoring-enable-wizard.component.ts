@@ -73,7 +73,7 @@ const MAX_STATE_AGE_HOURS = 24;
       <div class="page-header">
         <div class="header-content">
           <h1 class="page-title">
-            <i nz-icon nzType="dashboard" class="page-icon"></i>
+            <i nz-icon nzType="tool" class="page-icon"></i>
             监控一键开启向导
           </h1>
           <p class="subtitle">快速启用 PolarDB-X 集群监控（企业版 PolarDBXMonitor / 标准版 ServiceMonitor）</p>
@@ -83,7 +83,7 @@ const MAX_STATE_AGE_HOURS = 24;
       <app-wizard-shell
         title="监控开启向导"
         subtitle="快速启用 PolarDB-X 集群监控"
-        titleIcon="dashboard"
+        titleIcon="tool"
         [namespace]="form.value.namespace"
         [objectName]="getObjectName()"
         objectLabel="目标"
@@ -504,6 +504,11 @@ kubectl port-forward svc/alertmanager-main -n polardbx-monitor 9093</pre>
       padding: 16px;
       background: #f5f5f5;
       min-height: 100vh;
+    }
+
+    /* 覆盖wizard-shell的深色背景 */
+    :deep(.wizard-shell) {
+      background: #f5f5f5 !important;
     }
 
     .page-header {

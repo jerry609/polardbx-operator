@@ -16,13 +16,13 @@ import { filter } from 'rxjs/operators';
                  (nzSelectedIndexChange)="onTabChange($event)">
         <nz-tab nzTitle="监控开启向导">
           <ng-template #nzTabHeading>
-            <i nz-icon nzType="setting"></i>
+            <i nz-icon nzType="tool"></i>
             <span>监控开启向导</span>
           </ng-template>
         </nz-tab>
         <nz-tab nzTitle="配置">
           <ng-template #nzTabHeading>
-            <i nz-icon nzType="control"></i>
+            <i nz-icon nzType="setting"></i>
             <span>配置</span>
           </ng-template>
         </nz-tab>
@@ -34,7 +34,7 @@ import { filter } from 'rxjs/operators';
         </nz-tab>
         <nz-tab nzTitle="预检查">
           <ng-template #nzTabHeading>
-            <i nz-icon nzType="safety-certificate"></i>
+            <i nz-icon nzType="audit"></i>
             <span>预检查</span>
           </ng-template>
         </nz-tab>
@@ -64,7 +64,7 @@ import { filter } from 'rxjs/operators';
         </nz-tab>
         <nz-tab nzTitle="告警接收器">
           <ng-template #nzTabHeading>
-            <i nz-icon nzType="inbox"></i>
+            <i nz-icon nzType="mail"></i>
             <span>告警接收器</span>
           </ng-template>
         </nz-tab>
