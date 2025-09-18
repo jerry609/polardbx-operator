@@ -174,20 +174,15 @@ import { switchMap, takeUntil } from 'rxjs/operators';
                 <tr mat-header-row *matHeaderRowDef="displayedColumns" class="table-header"></tr>
                 <tr mat-row *matRowDef="let row; columns: displayedColumns;" (click)="selectJob(row)" class="table-row" [class.selected]="selectedJob?.clusterName === row.clusterName"></tr>
               </table>
-              <div *ngIf="dataSource.data.length === 0" class="empty-list">
+              <div *ngIf="(dataSource?.length || 0) === 0" class="empty-list">
                 <div class="empty-inner">
                   <mat-icon class="empty-icon">inbox</mat-icon>
                   <p class="empty-text">暂无恢复任务</p>
                 </div>
               </div>
-              <mat-paginator [length]="dataSource.filteredData.length || 0"
-                             [pageSize]="pageSize" [pageSizeOptions]="[10, 25, 50]"
-                             showFirstLastButtons>
-              </mat-paginator>
             </div>
           </mat-card-content>
         </mat-card>
-      </div>
 
       <!-- 右侧详情面板 -->
       <div class="detail-panel" *ngIf="selectedJob; else emptyState">
@@ -428,11 +423,11 @@ export class RestoreJobManagementComponent implements OnInit, OnDestroy {
   startListPolling(): void {
     this.stopListPolling();
     if (!this.listAutoRefresh) return;
-    this.listPollingSub = interval(10000).subscribe(() => this.loadJobs());
+    interval(10000).pipe(takeUntil(this.destroy$)).subscribe(() => this.loadJobs());
   }
 
   stopListPolling(): void {
-    if (this.listPollingSub) { this.listPollingSub.unsubscribe(); this.listPollingSub = undefined; }
+    this.destroy$.next();
   }
 
   applyFilters(): void {
@@ -554,7 +549,8 @@ export class RestoreJobManagementComponent implements OnInit, OnDestroy {
   startPolling(): void {
     this.stopPolling();
     if (!this.selectedJob) return;
-    this.pollingSub = interval(5000).pipe(
+    interval(5000).pipe(
+      takeUntil(this.destroy$),
       switchMap(() => this.apiService.getRestoreJob(this.selectedJob!.namespace || 'default', this.selectedJob!.clusterName as string))
     ).subscribe({ next: (full) => {
       this.selectedJob = full;
@@ -563,7 +559,7 @@ export class RestoreJobManagementComponent implements OnInit, OnDestroy {
   }
 
   stopPolling(): void {
-    if (this.pollingSub) { this.pollingSub.unsubscribe(); this.pollingSub = undefined; }
+    this.destroy$.next();
   }
 
   cancelSelected(): void {
@@ -598,14 +594,14 @@ export class RestoreJobManagementComponent implements OnInit, OnDestroy {
     const text = JSON.stringify(this.selectedJob, null, 2);
     if (navigator?.clipboard?.writeText) {
       navigator.clipboard.writeText(text).then(() => {
-        this.snackBar.open('已复制 JSON', '关闭', { duration: 2000 });
-      }).catch(() => this.snackBar.open('复制失败', '关闭', { duration: 2000 }));
+        this.message.success('已复制 JSON');
+      }).catch(() => this.message.error('复制失败'));
     } else {
       const ta = document.createElement('textarea');
       ta.value = text;
       document.body.appendChild(ta);
       ta.select();
-      try { document.execCommand('copy'); this.snackBar.open('已复制 JSON', '关闭', { duration: 2000 }); } catch {}
+      try { document.execCommand('copy'); this.message.success('已复制 JSON'); } catch {}
       document.body.removeChild(ta);
     }
   }
