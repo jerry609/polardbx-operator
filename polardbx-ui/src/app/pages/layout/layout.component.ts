@@ -27,7 +27,18 @@ import {
   ToolOutline,
   AlertOutline,
   NotificationOutline,
-  RollbackOutline
+  RollbackOutline,
+  PieChartOutline,
+  FileDoneOutline,
+  InboxOutline,
+  BuildOutline,
+  ClusterOutline,
+  CheckCircleOutline,
+  TeamOutline,
+  ContainerOutline,
+  ControlOutline,
+  ApiOutline,
+  BookOutline
 } from '@ant-design/icons-angular/icons';
 import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -65,7 +76,18 @@ const icons = [
   ToolOutline,
   AlertOutline,
   NotificationOutline,
-  RollbackOutline
+  RollbackOutline,
+  PieChartOutline,
+  FileDoneOutline,
+  InboxOutline,
+  BuildOutline,
+  ClusterOutline,
+  CheckCircleOutline,
+  TeamOutline,
+  ContainerOutline,
+  ControlOutline,
+  ApiOutline,
+  BookOutline
 ];
 
 @Component({

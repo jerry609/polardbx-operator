@@ -15,7 +15,7 @@ import { filter } from 'rxjs/operators';
       <div class="page-header">
         <div class="header-content">
           <h1 class="page-title">
-            <i nz-icon nzType="file-search" class="page-icon"></i>
+            <i nz-icon nzType="container" class="page-icon"></i>
             日志与采集
           </h1>
         </div>
@@ -89,21 +89,6 @@ import { filter } from 'rxjs/operators';
       align-items: center;
     }
 
-    .page-title {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      font-size: 24px;
-      font-weight: 600;
-      margin: 0;
-      color: #333;
-    }
-
-    .page-icon {
-      font-size: 28px;
-      color: #1890ff;
-    }
-
     /* 内容区域 */
     .content {
       background: white;
@@ -134,10 +119,6 @@ import { filter } from 'rxjs/operators';
     @media (max-width: 768px) {
       .logs-hub {
         padding: 12px;
-      }
-
-      .page-title {
-        font-size: 20px;
       }
 
       .tab-content {

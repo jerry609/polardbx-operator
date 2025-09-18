@@ -25,7 +25,7 @@
       <li nz-submenu nzTitle="备份管理" nzIcon="cloud-upload">
         <ul>
           <li nz-menu-item routerLink="/backup/overview" nzMatchRouter>
-            <nz-icon nzType="dashboard"></nz-icon>
+            <nz-icon nzType="pie-chart"></nz-icon>
             <span>备份概览</span>
           </li>
           <li nz-menu-item routerLink="/backup/manual-backups" nzMatchRouter>
@@ -37,11 +37,11 @@
             <span>定时备份</span>
           </li>
           <li nz-menu-item routerLink="/backup/backup-binlogs" nzMatchRouter>
-            <nz-icon nzType="file-text"></nz-icon>
+            <nz-icon nzType="file-done"></nz-icon>
             <span>增量日志备份</span>
           </li>
           <li nz-menu-item routerLink="/backup/xstore-backups" nzMatchRouter>
-            <nz-icon nzType="hdd"></nz-icon>
+            <nz-icon nzType="inbox"></nz-icon>
             <span>存储备份</span>
           </li>
         </ul>
@@ -50,7 +50,7 @@
       <li nz-submenu nzTitle="恢复管理" nzIcon="undo">
         <ul>
           <li nz-menu-item routerLink="/recovery/restore-wizard" nzMatchRouter>
-            <nz-icon nzType="tool"></nz-icon>
+            <nz-icon nzType="build"></nz-icon>
             <span>恢复向导</span>
           </li>
           <li nz-menu-item routerLink="/recovery/restore-jobs" nzMatchRouter>
@@ -63,7 +63,7 @@
       <li nz-submenu nzTitle="存储管理" nzIcon="database">
         <ul>
           <li nz-menu-item routerLink="/storage/xstores" nzMatchRouter>
-            <nz-icon nzType="hdd"></nz-icon>
+            <nz-icon nzType="cluster"></nz-icon>
             <span>存储节点</span>
           </li>
           <li nz-submenu nzTitle="备库重搭" nzIcon="deployment-unit">
@@ -77,11 +77,11 @@
                 <span>创建重搭任务</span>
               </li>
               <li nz-menu-item routerLink="/storage/xstore-rebuild/health-check" nzMatchRouter>
-                <nz-icon nzType="profile"></nz-icon>
+                <nz-icon nzType="check-circle"></nz-icon>
                 <span>健康检查</span>
               </li>
               <li nz-menu-item routerLink="/storage/xstore-followers" nzMatchRouter>
-                <nz-icon nzType="deployment-unit"></nz-icon>
+                <nz-icon nzType="team"></nz-icon>
                 <span>Follower 管理</span>
               </li>
             </ul>
@@ -98,18 +98,18 @@
             <span>监控与告警（聚合）</span>
           </li>
           <li nz-menu-item routerLink="/operations/logs/install" nzMatchRouter>
-            <nz-icon nzType="file-text"></nz-icon>
+            <nz-icon nzType="container"></nz-icon>
             <span>日志与采集（聚合）</span>
           </li>
  
           <li nz-submenu nzTitle="参数与调优" nzIcon="sliders">
             <ul>
               <li nz-menu-item routerLink="/operations/parameter-templates" nzMatchRouter>
-                <nz-icon nzType="sliders"></nz-icon>
+                <nz-icon nzType="control"></nz-icon>
                 <span>参数模板</span>
               </li>
               <li nz-menu-item routerLink="/operations/cluster-knobs" nzMatchRouter>
-                <nz-icon nzType="tool"></nz-icon>
+                <nz-icon nzType="api"></nz-icon>
                 <span>集群调优</span>
               </li>
             </ul>
@@ -122,14 +122,14 @@
                 <span>诊断与排障</span>
               </li>
               <li nz-menu-item routerLink="/operations/runbook-slo" nzMatchRouter>
-                <nz-icon nzType="profile"></nz-icon>
+                <nz-icon nzType="book"></nz-icon>
                 <span>Runbook / SLO</span>
               </li>
             </ul>
           </li>
 
           <li nz-menu-item routerLink="/operations/settings" nzMatchRouter>
-            <nz-icon nzType="setting"></nz-icon>
+            <nz-icon nzType="control"></nz-icon>
             <span>阈值与设置</span>
           </li>
         </ul>
