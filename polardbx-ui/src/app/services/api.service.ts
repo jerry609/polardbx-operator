@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpErrorResponse, HttpParams } from '@angular/common/http';
-import { Observable, throwError } from 'rxjs';
+import { Observable, throwError, of } from 'rxjs';
 import { catchError, finalize, tap, map } from 'rxjs/operators';
 import { PolarDBXCluster } from '../models/cluster.model';
 import { ClusterCreationConfig } from '../models/cluster-creation.model';
@@ -393,33 +393,34 @@ export class ApiService {
   // 获取集群升级规划（候选版本/兼容矩阵/推荐项），无后端时返回回退数据
   getClusterUpgradePlan(namespace: string, clusterName: string): Observable<{ currentVersion: string; candidates: Array<{ version: string; recommended?: boolean; notes?: string }>; matrix?: any }> {
     const url = `${this.baseUrl}/clusters/${encodeURIComponent(namespace)}/${encodeURIComponent(clusterName)}/upgrade-plan`;
-    const req$ = this.http.get<any>(url, { headers: this.getHeaders() }).pipe(
-      map((res: any) => {
+    type UpgradePlan = { currentVersion: string; candidates: Array<{ version: string; recommended?: boolean; notes?: string }>; matrix?: any };
+    const req$: Observable<UpgradePlan> = this.http.get<any>(url, { headers: this.getHeaders() }).pipe(
+      map((res: any): UpgradePlan => {
         const current = res?.currentVersion || res?.current || '';
         const cands = Array.isArray(res?.candidates) ? res.candidates : [];
         if (cands.length > 0) return { currentVersion: current, candidates: cands, matrix: res?.matrix };
         // 若接口存在但无 candidates，降级为默认
-        return { currentVersion: current, candidates: [
-          { version: '5.4.19', recommended: true },
-          { version: '5.4.18' }
-        ] };
+        return {
+          currentVersion: current,
+          candidates: [
+            { version: '5.4.19', recommended: true },
+            { version: '5.4.18' }
+          ]
+        } as UpgradePlan;
       }),
       catchError((_err: any) => {
-        // 完整回退：使用固定候选列表，currentVersion 尝试从 cluster 缓存或未知
-        const current = (localStorage.getItem('lastClusterVersion') || '').trim();
-        return new Observable(sub => {
-          sub.next({
-            currentVersion: current,
-            candidates: [
-              { version: '5.4.19', recommended: true },
-              { version: '5.4.18' }
-            ]
-          });
-          sub.complete();
-        });
+        const cur = (localStorage.getItem('lastClusterVersion') || '').trim();
+        const fallback: UpgradePlan = {
+          currentVersion: cur,
+          candidates: [
+            { version: '5.4.19', recommended: true },
+            { version: '5.4.18' }
+          ]
+        };
+        return of<UpgradePlan>(fallback);
       })
     );
-    return this.handleRequest(
+    return this.handleRequest<UpgradePlan>(
       req$,
       LoadingKeys.CLUSTER_DETAIL,
       `/clusters/${namespace}/${clusterName}/upgrade-plan`,
