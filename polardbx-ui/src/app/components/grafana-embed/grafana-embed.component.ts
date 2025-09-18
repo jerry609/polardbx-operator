@@ -135,7 +135,8 @@ import { ApiService } from '../../services/api.service';
   styles: [`
     .grafana-embed {
       padding: 16px;
-      background: #ffffff;
+      background: #f5f5f5;
+      min-height: 100vh;
     }
     
     .page-header {

@@ -74,6 +74,8 @@ import { filter } from 'rxjs/operators';
   styles: [`
     .logs-hub {
       padding: 16px;
+      background: #f5f5f5;
+      min-height: 100vh;
       max-width: 1400px;
       margin: 0 auto;
     }
