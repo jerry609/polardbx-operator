@@ -368,16 +368,12 @@ import { switchMap, takeUntil } from 'rxjs/operators';
     .empty-text { margin: 0; font-size: 14px; color: #97a0aa; }
   `]
 })
-export class RestoreJobManagementComponent implements OnInit, AfterViewInit, OnDestroy {
+export class RestoreJobManagementComponent implements OnInit, OnDestroy {
   loadingKeys = LoadingKeys;
   displayedColumns = ['clusterName', 'phase', 'restoreType', 'created', 'actions'];
-  dataSource = new MatTableDataSource<RestoreJob>([]);
+  dataSource: RestoreJob[] = [];
   selectedJob?: RestoreJobWithStatus;
-  private pollingSub?: Subscription;
-  private listPollingSub?: Subscription;
-
-  @ViewChild(MatPaginator) paginator!: MatPaginator;
-  @ViewChild(MatSort) sort!: MatSort;
+  private destroy$ = new Subject<void>();
 
   allJobs: RestoreJob[] = [];
   searchTerm = '';
@@ -392,27 +388,12 @@ export class RestoreJobManagementComponent implements OnInit, AfterViewInit, OnD
   constructor(
     private apiService: ApiService,
     public loadingService: LoadingService,
-    private snackBar: MatSnackBar
-  ) {
-    this.dataSource.sortingDataAccessor = (item: any, property: string) => {
-      switch (property) {
-        case 'clusterName': return (item.clusterName || '').toLowerCase();
-        case 'phase': return this.mapPhaseOrder(item.phase);
-        case 'restoreType': return this.getRestoreType(item) === 'pitr' ? 1 : 0;
-        case 'created': return new Date(item.creationTimestamp || 0).getTime();
-        default: return item[property];
-      }
-    };
-  }
+    private message: NzMessageService
+  ) {}
 
   ngOnInit(): void {
     this.loadJobs();
     this.startListPolling();
-  }
-
-  ngAfterViewInit(): void {
-    this.dataSource.paginator = this.paginator;
-    this.dataSource.sort = this.sort;
   }
 
   loadJobs(): void {
@@ -427,10 +408,10 @@ export class RestoreJobManagementComponent implements OnInit, AfterViewInit, OnD
         this.applyFilters();
         this.lastUpdated = new Date();
         if (this.selectedJob && this.isTerminal(this.selectedJob)) {
-          this.stopPolling();
+          // 停止轮询仅指详情轮询
         }
       },
-      error: () => { this.allJobs = []; this.dataSource.data = []; this.computeCounts(); }
+      error: () => { this.allJobs = []; this.dataSource = []; this.computeCounts(); }
     });
   }
 
@@ -472,8 +453,7 @@ export class RestoreJobManagementComponent implements OnInit, AfterViewInit, OnD
         return true;
       });
     }
-    this.dataSource.data = result;
-    if (this.paginator) this.paginator.firstPage();
+    this.dataSource = result;
   }
 
   computeCounts(): void {
@@ -493,8 +473,8 @@ export class RestoreJobManagementComponent implements OnInit, AfterViewInit, OnD
   cancelJob(job: RestoreJob): void {
     if (!confirm(`确定取消恢复任务 (cluster=${job.clusterName}) 吗？`)) return;
     this.apiService.cancelRestoreJob(job.namespace || 'default', job.clusterName).subscribe({
-      next: () => { this.snackBar.open('取消请求已提交', '关闭', { duration: 2000 }); this.loadJobs(); },
-      error: () => { this.snackBar.open('取消失败', '关闭', { duration: 2500 }); }
+      next: () => { this.message.success('取消请求已提交'); this.loadJobs(); },
+      error: () => { this.message.error('取消失败'); }
     });
   }
 

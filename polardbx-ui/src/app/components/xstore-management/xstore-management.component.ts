@@ -153,7 +153,6 @@ import { XStore } from '../../models/xstore.model';
                   </nz-card>
                 </div>
               </ng-template>
-            </div>
           </nz-tab>
 
           <nz-tab nzTitle="创建存储节点">
