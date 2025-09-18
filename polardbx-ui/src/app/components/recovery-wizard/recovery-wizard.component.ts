@@ -62,7 +62,7 @@ export interface RecoveryWizardDialogData {
       <div class="page-header">
         <div class="header-content">
           <h1 class="page-title">
-            <i nz-icon nzType="build" class="page-icon"></i>
+            <i nz-icon nzType="tool" class="page-icon"></i>
             恢复向导
           </h1>
           <p class="page-description">分步式引导完成集群恢复操作，支持备份恢复和时间点恢复</p>
@@ -382,6 +382,21 @@ export interface RecoveryWizardDialogData {
     .header-content {
       max-width: 1120px;
       margin: 0 auto;
+    }
+    
+    .page-title {
+      color: rgba(0, 0, 0, 0.87);
+      font-size: 18px;
+      font-weight: 500;
+      margin: 0 0 4px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .page-icon {
+      font-size: 20px;
+      color: #1890ff;
     }
     
     .page-description {

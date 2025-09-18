@@ -71,7 +71,7 @@ import { NzDrawerModule } from 'ng-zorro-antd/drawer';
       <div class="page-header">
         <div class="header-content">
           <h1 class="page-title">
-            <i nz-icon nzType="inbox" class="page-icon"></i>
+            <i nz-icon nzType="cloud-download" class="page-icon"></i>
             存储备份管理
           </h1>
           <p class="page-description">管理 PolarDB-X 集群的全量备份，支持手动创建和存储连通性检测</p>
@@ -604,6 +604,21 @@ import { NzDrawerModule } from 'ng-zorro-antd/drawer';
     .header-content {
       max-width: 1120px;
       margin: 0 auto;
+    }
+    
+    .page-title {
+      color: rgba(0, 0, 0, 0.87);
+      font-size: 18px;
+      font-weight: 500;
+      margin: 0 0 4px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .page-icon {
+      font-size: 20px;
+      color: #1890ff;
     }
     
     .page-description {

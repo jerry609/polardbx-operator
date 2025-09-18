@@ -57,7 +57,7 @@ import { takeUntil } from 'rxjs/operators';
       <div class="page-header">
         <div class="header-content">
           <h1 class="page-title">
-            <i nz-icon nzType="file-done" class="page-icon"></i>
+            <i nz-icon nzType="file-sync" class="page-icon"></i>
             增量日志备份管理
           </h1>
           <p class="page-description">管理数据库增量日志备份配置，支持二进制日志备份和时间点恢复</p>
@@ -413,8 +413,7 @@ import { takeUntil } from 'rxjs/operators';
     styles: [`
     .backup-binlog-container {
       padding: 16px;
-      background: #f5f5f5;
-      min-height: 100vh;
+      background: #ffffff;
     }
     
     .page-header {
@@ -427,17 +426,17 @@ import { takeUntil } from 'rxjs/operators';
     }
     
     .page-title {
-      font-size: 24px;
-      font-weight: 600;
-      margin: 0 0 8px 0;
-      color: #262626;
+      color: rgba(0, 0, 0, 0.87);
+      font-size: 18px;
+      font-weight: 500;
+      margin: 0 0 4px 0;
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 8px;
     }
     
     .page-icon {
-      font-size: 28px;
+      font-size: 20px;
       color: #1890ff;
     }
     

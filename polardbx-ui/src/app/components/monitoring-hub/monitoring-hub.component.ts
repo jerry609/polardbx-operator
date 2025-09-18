@@ -14,60 +14,15 @@ import { filter } from 'rxjs/operators';
       <nz-tabset nzType="card" class="tabs" [nzTabBarGutter]="8"
                  [nzSelectedIndex]="selectedIndex"
                  (nzSelectedIndexChange)="onTabChange($event)">
-        <nz-tab nzTitle="监控开启向导">
-          <ng-template #nzTabHeading>
-            <i nz-icon nzType="setting"></i>
-            <span>监控开启向导</span>
-          </ng-template>
-        </nz-tab>
-        <nz-tab nzTitle="配置">
-          <ng-template #nzTabHeading>
-            <i nz-icon nzType="control"></i>
-            <span>配置</span>
-          </ng-template>
-        </nz-tab>
-        <nz-tab nzTitle="健康检查">
-          <ng-template #nzTabHeading>
-            <i nz-icon nzType="heart"></i>
-            <span>健康检查</span>
-          </ng-template>
-        </nz-tab>
-        <nz-tab nzTitle="预检查">
-          <ng-template #nzTabHeading>
-            <i nz-icon nzType="safety-certificate"></i>
-            <span>预检查</span>
-          </ng-template>
-        </nz-tab>
-        <nz-tab nzTitle="Grafana">
-          <ng-template #nzTabHeading>
-            <i nz-icon nzType="line-chart"></i>
-            <span>Grafana</span>
-          </ng-template>
-        </nz-tab>
-        <nz-tab nzTitle="告警聚合">
-          <ng-template #nzTabHeading>
-            <i nz-icon nzType="bell"></i>
-            <span>告警聚合</span>
-          </ng-template>
-        </nz-tab>
-        <nz-tab nzTitle="告警管理">
-          <ng-template #nzTabHeading>
-            <i nz-icon nzType="alert"></i>
-            <span>告警管理</span>
-          </ng-template>
-        </nz-tab>
-        <nz-tab nzTitle="PrometheusRule">
-          <ng-template #nzTabHeading>
-            <i nz-icon nzType="fire"></i>
-            <span>PrometheusRule</span>
-          </ng-template>
-        </nz-tab>
-        <nz-tab nzTitle="告警接收器">
-          <ng-template #nzTabHeading>
-            <i nz-icon nzType="inbox"></i>
-            <span>告警接收器</span>
-          </ng-template>
-        </nz-tab>
+        <nz-tab nzTitle="监控开启向导"></nz-tab>
+        <nz-tab nzTitle="配置"></nz-tab>
+        <nz-tab nzTitle="健康检查"></nz-tab>
+        <nz-tab nzTitle="预检查"></nz-tab>
+        <nz-tab nzTitle="Grafana"></nz-tab>
+        <nz-tab nzTitle="告警聚合"></nz-tab>
+        <nz-tab nzTitle="告警管理"></nz-tab>
+        <nz-tab nzTitle="PrometheusRule"></nz-tab>
+        <nz-tab nzTitle="告警接收器"></nz-tab>
       </nz-tabset>
 
       <div class="outlet">
@@ -79,12 +34,6 @@ import { filter } from 'rxjs/operators';
     .monitoring-hub { padding: 8px 16px; background: #ffffff; }
     .tabs { background: #fff; margin-bottom: 8px; }
     .outlet { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px; }
-
-    ::ng-deep .ant-tabs-tab {
-      .anticon {
-        margin-right: 8px;
-      }
-    }
   `]
 })
 export class MonitoringHubComponent implements OnInit {

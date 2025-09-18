@@ -43,22 +43,20 @@ import { XStore } from '../../models/xstore.model';
   ],
   template: `
     <div class="xstore-management">
-      <div class="page-header">
-        <div class="header-content">
-          <h1 class="page-title">
-            <i nz-icon nzType="database" class="page-icon"></i>
-            存储节点管理
-          </h1>
-          <p class="subtitle">管理 XStore 存储节点与拓扑</p>
+      <nz-card nzTitle="存储节点管理" class="main-card">
+        <ng-template #titleContent>
+          <i nz-icon nzType="database" class="title-icon"></i>
+          存储节点管理
+        </ng-template>
+
+        <div nz-card-extra>
+          <span class="subtitle">管理XStore存储节点和拓扑</span>
         </div>
-      </div>
 
-      <nz-card class="main-card">
-
-        <nz-tabset [(nzSelectedIndex)]="selectedTab" class="main-tabs">
+        <nz-tabset [(nzSelectedIndex)]="selectedTab" nzType="card" nzSize="large">
           <nz-tab nzTitle="存储节点列表">
             <div class="tab-content">
-              <div class="header-actions">
+              <div class="page-header">
                 <div class="header-actions">
                   <button nz-button nzType="primary" (click)="refreshXStores()" [nzLoading]="loadingService.isLoading(loadingKeys.XSTORE_LIST)">
                     <i nz-icon nzType="reload"></i>
@@ -264,45 +262,25 @@ import { XStore } from '../../models/xstore.model';
       min-height: 100vh;
     }
 
-    .page-header {
-      margin-bottom: 16px;
-    }
-
-    .header-content {
-      max-width: 1120px;
-      margin: 0 auto;
-    }
-
-    .page-title {
-      font-size: 20px !important;
-      font-weight: 600 !important;
-      color: rgba(0, 0, 0, 0.88) !important;
-      margin: 0 !important;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .page-icon {
-      font-size: 24px !important;
-      color: #1890ff !important;
-    }
-
     .main-card {
       border-radius: 8px;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
 
-    .page-header-title {
-      display: flex;
-      align-items: center;
-      gap: 8px;
+    .title-icon {
+      margin-right: 8px;
+      color: #1890ff;
+      font-size: 18px;
     }
 
-    .subtitle { color: rgba(0, 0, 0, 0.65); font-size: 14px; }
+    .subtitle {
+      color: rgba(0, 0, 0, 0.65);
+      font-size: 14px;
+    }
 
-    .main-tabs { background: #fff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.06); border: 1px solid #e0e0e0; }
-    .tab-content { padding: 16px; }
+    .tab-content {
+      padding: 24px 0;
+    }
 
     .page-header {
       margin-bottom: 16px;
