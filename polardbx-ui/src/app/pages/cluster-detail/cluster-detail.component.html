@@ -119,43 +119,7 @@
       </div>
     </div>
 
-    <nz-divider></nz-divider>
-    
-    <!-- 快速操作 -->
-    <div class="quick-actions">
-      <nz-space nzSize="middle">
-        <span *nzSpaceItem>
-          <button nz-button nzType="default" (click)="goToBackupsTab()">
-            <i nz-icon nzType="safety"></i>
-            备份与恢复
-          </button>
-        </span>
-        <span *nzSpaceItem>
-          <button nz-button nzType="default" (click)="selectedTabIndex = 1">
-            <i nz-icon nzType="cluster"></i>
-            节点管理
-          </button>
-        </span>
-        <span *nzSpaceItem>
-          <button nz-button nzType="default" (click)="selectedTabIndex = 2">
-            <i nz-icon nzType="setting"></i>
-            集群变配
-          </button>
-        </span>
-        <span *nzSpaceItem>
-          <button nz-button nzType="default" (click)="selectedTabIndex = 3">
-            <i nz-icon nzType="rocket"></i>
-            版本升级
-          </button>
-        </span>
-        <span *nzSpaceItem>
-          <button nz-button nzType="primary" (click)="router.navigate(['/clusters', clusterNamespace || 'default', clusterName || '', 'change'])">
-            <i nz-icon nzType="arrow-right"></i>
-            变更向导
-          </button>
-        </span>
-      </nz-space>
-    </div>
+    <!-- 快速操作（按需移除） -->
   </nz-card>
 
   <!-- 选项卡导航 -->

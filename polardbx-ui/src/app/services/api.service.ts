@@ -390,6 +390,43 @@ export class ApiService {
     );
   }
 
+  // 获取集群升级规划（候选版本/兼容矩阵/推荐项），无后端时返回回退数据
+  getClusterUpgradePlan(namespace: string, clusterName: string): Observable<{ currentVersion: string; candidates: Array<{ version: string; recommended?: boolean; notes?: string }>; matrix?: any }> {
+    const url = `${this.baseUrl}/clusters/${encodeURIComponent(namespace)}/${encodeURIComponent(clusterName)}/upgrade-plan`;
+    const req$ = this.http.get<any>(url, { headers: this.getHeaders() }).pipe(
+      map((res: any) => {
+        const current = res?.currentVersion || res?.current || '';
+        const cands = Array.isArray(res?.candidates) ? res.candidates : [];
+        if (cands.length > 0) return { currentVersion: current, candidates: cands, matrix: res?.matrix };
+        // 若接口存在但无 candidates，降级为默认
+        return { currentVersion: current, candidates: [
+          { version: '5.4.19', recommended: true },
+          { version: '5.4.18' }
+        ] };
+      }),
+      catchError((_err: any) => {
+        // 完整回退：使用固定候选列表，currentVersion 尝试从 cluster 缓存或未知
+        const current = (localStorage.getItem('lastClusterVersion') || '').trim();
+        return new Observable(sub => {
+          sub.next({
+            currentVersion: current,
+            candidates: [
+              { version: '5.4.19', recommended: true },
+              { version: '5.4.18' }
+            ]
+          });
+          sub.complete();
+        });
+      })
+    );
+    return this.handleRequest(
+      req$,
+      LoadingKeys.CLUSTER_DETAIL,
+      `/clusters/${namespace}/${clusterName}/upgrade-plan`,
+      'GET'
+    );
+  }
+
   // 更新集群
   updateCluster(namespace: string, name: string, cluster: PolarDBXCluster): Observable<PolarDBXCluster> {
     return this.handleRequest(
@@ -513,10 +550,11 @@ export class ApiService {
       // Depending on CRD, storage class is usually picked up from StorageClass on PVC; leaving as is for operator defaults.
     }
     const cleaned = JSON.parse(JSON.stringify(body));
+    const params = new HttpParams().set('namespace', namespace || xstoreRequest.namespace || 'default');
     return this.handleRequest(
       this.http.post<XStore>(`${this.baseUrl}/xstores`, body, {
         headers: this.getHeaders(),
-        params: this.withNs()
+        params
       }),
       LoadingKeys.XSTORE_CREATE,
       `/xstores`,

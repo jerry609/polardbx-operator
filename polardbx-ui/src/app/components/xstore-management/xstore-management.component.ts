@@ -1,204 +1,437 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { MatCardModule } from '@angular/material/card';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatTableModule } from '@angular/material/table';
-import { MatTabsModule } from '@angular/material/tabs';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
+import { NzCardModule } from 'ng-zorro-antd/card';
+import { NzButtonModule } from 'ng-zorro-antd/button';
+import { NzIconModule } from 'ng-zorro-antd/icon';
+import { NzTableModule } from 'ng-zorro-antd/table';
+import { NzTabsModule } from 'ng-zorro-antd/tabs';
+import { NzSpinModule } from 'ng-zorro-antd/spin';
+import { NzTagModule } from 'ng-zorro-antd/tag';
+import { NzMessageService } from 'ng-zorro-antd/message';
+import { NzFormModule } from 'ng-zorro-antd/form';
+import { NzInputModule } from 'ng-zorro-antd/input';
+import { NzInputNumberModule } from 'ng-zorro-antd/input-number';
+import { NzGridModule } from 'ng-zorro-antd/grid';
+import { NzEmptyModule } from 'ng-zorro-antd/empty';
+import { NzModalService, NzModalModule } from 'ng-zorro-antd/modal';
+import { NzToolTipModule } from 'ng-zorro-antd/tooltip';
 import { ApiService } from '../../services/api.service';
 import { LoadingService, LoadingKeys } from '../../services/loading.service';
 import { XStore } from '../../models/xstore.model';
-import { EmptyStateComponent } from '../empty-state/empty-state.component';
 
 @Component({
   selector: 'app-xstore-management',
   standalone: true,
   imports: [
     CommonModule,
-    MatCardModule,
-    MatButtonModule,
-    MatIconModule,
-    MatTableModule,
-    MatTabsModule,
-    MatProgressBarModule,
-    MatChipsModule,
-    MatSnackBarModule,
-    MatFormFieldModule,
-    MatInputModule,
-    ReactiveFormsModule,
-    EmptyStateComponent
+    NzCardModule,
+    NzButtonModule,
+    NzIconModule,
+    NzTableModule,
+    NzTabsModule,
+    NzSpinModule,
+    NzTagModule,
+    NzFormModule,
+    NzInputModule,
+    NzInputNumberModule,
+    NzGridModule,
+    NzEmptyModule,
+    NzModalModule,
+    NzToolTipModule,
+    ReactiveFormsModule
   ],
   template: `
     <div class="xstore-management">
-      <mat-card>
-        <mat-card-header>
-          <mat-card-title>
-            <mat-icon>dns</mat-icon>
-            存储节点管理
-          </mat-card-title>
-          <mat-card-subtitle>管理XStore存储节点和拓扑</mat-card-subtitle>
-        </mat-card-header>
-        <mat-card-content>
-          <mat-tab-group [(selectedIndex)]="selectedTab">
-            <mat-tab label="存储节点列表">
-              <div class="tab-content">
-                <div class="actions-toolbar">
-                  <button mat-raised-button color="primary" (click)="refreshXStores()">
-                    <mat-icon>refresh</mat-icon>
+      <nz-card nzTitle="存储节点管理" class="main-card">
+        <ng-template #titleContent>
+          <i nz-icon nzType="database" class="title-icon"></i>
+          存储节点管理
+        </ng-template>
+
+        <div nz-card-extra>
+          <span class="subtitle">管理XStore存储节点和拓扑</span>
+        </div>
+
+        <nz-tabset [(nzSelectedIndex)]="selectedTab" nzType="card" nzSize="large">
+          <nz-tab nzTitle="存储节点列表">
+            <div class="tab-content">
+              <div class="page-header">
+                <div class="header-actions">
+                  <button nz-button nzType="primary" (click)="refreshXStores()" [nzLoading]="loadingService.isLoading(loadingKeys.XSTORE_LIST)">
+                    <i nz-icon nzType="reload"></i>
                     刷新
                   </button>
-                  <button mat-raised-button color="accent" (click)="createNew()">
-                    <mat-icon>add</mat-icon>
+                  <button nz-button nzType="primary" nzGhost (click)="createNew()">
+                    <i nz-icon nzType="plus"></i>
                     新建节点
                   </button>
                 </div>
-                <mat-progress-bar *ngIf="loadingService.isLoading(loadingKeys.XSTORE_LIST)" mode="indeterminate"></mat-progress-bar>
-                
-                <app-empty-state *ngIf="xstores.length === 0 && !loadingService.isLoading(loadingKeys.XSTORE_LIST)"
-                                  icon="dns"
-                                  title="暂无存储节点"
-                                  hint="点击“新建节点”创建您的第一个存储节点"></app-empty-state>
-                
-                <mat-table *ngIf="xstores.length > 0" [dataSource]="xstores" class="xstore-table">
-                  <ng-container matColumnDef="name">
-                    <mat-header-cell *matHeaderCellDef>节点名称</mat-header-cell>
-                    <mat-cell *matCellDef="let xstore">{{ xstore.metadata.name }}</mat-cell>
-                  </ng-container>
-
-                  <ng-container matColumnDef="namespace">
-                    <mat-header-cell *matHeaderCellDef>命名空间</mat-header-cell>
-                    <mat-cell *matCellDef="let xstore">{{ xstore.metadata.namespace }}</mat-cell>
-                  </ng-container>
-
-                  <ng-container matColumnDef="status">
-                    <mat-header-cell *matHeaderCellDef>状态</mat-header-cell>
-                    <mat-cell *matCellDef="let xstore">
-                      <mat-chip [color]="getStatusColor(xstore.status?.phase)">
-                        {{ xstore.status?.phase || '未知' }}
-                      </mat-chip>
-                    </mat-cell>
-                  </ng-container>
-
-                  <ng-container matColumnDef="replicas">
-                    <mat-header-cell *matHeaderCellDef>副本数</mat-header-cell>
-                    <mat-cell *matCellDef="let xstore">{{ getReplicaDisplay(xstore) }}</mat-cell>
-                  </ng-container>
-
-                  <ng-container matColumnDef="createdTime">
-                    <mat-header-cell *matHeaderCellDef>创建时间</mat-header-cell>
-                    <mat-cell *matCellDef="let xstore">{{ xstore.metadata.creationTimestamp | date:'medium' }}</mat-cell>
-                  </ng-container>
-
-                  <ng-container matColumnDef="actions">
-                    <mat-header-cell *matHeaderCellDef>操作</mat-header-cell>
-                    <mat-cell *matCellDef="let xstore">
-                      <button mat-icon-button color="primary" (click)="viewXStoreDetails(xstore)" title="查看详情">
-                        <mat-icon>visibility</mat-icon>
-                      </button>
-                      <button mat-icon-button color="warn" (click)="deleteXStore(xstore)" title="删除节点">
-                        <mat-icon>delete</mat-icon>
-                      </button>
-                    </mat-cell>
-                  </ng-container>
-
-                  <mat-header-row *matHeaderRowDef="['name', 'namespace', 'status', 'replicas', 'createdTime', 'actions']"></mat-header-row>
-                  <mat-row *matRowDef="let row; columns: ['name', 'namespace', 'status', 'replicas', 'createdTime', 'actions']"></mat-row>
-                </mat-table>
               </div>
-            </mat-tab>
-            <mat-tab label="创建存储节点">
-              <div class="form-container">
-                <mat-card class="create-card">
-                  <mat-card-header>
-                    <mat-card-title>创建存储节点</mat-card-title>
-                  </mat-card-header>
-                  <mat-card-content>
-                    <form [formGroup]="createForm" (ngSubmit)="submit()" class="form-grid">
-                      <mat-form-field appearance="outline" class="grid-item">
-                        <mat-label>名称</mat-label>
-                        <input matInput formControlName="name" placeholder="xstore-name">
-                      </mat-form-field>
-                      <mat-form-field appearance="outline" class="grid-item">
-                        <mat-label>命名空间</mat-label>
-                        <input matInput formControlName="namespace" placeholder="default">
-                      </mat-form-field>
 
-                      <mat-form-field appearance="outline" class="grid-item">
-                        <mat-label>引擎</mat-label>
-                        <input matInput formControlName="engine" placeholder="galaxy">
-                      </mat-form-field>
-                      <mat-form-field appearance="outline" class="grid-item">
-                        <mat-label>节点数</mat-label>
-                        <input matInput type="number" min="1" formControlName="nodeCount" placeholder="2">
-                      </mat-form-field>
+              <nz-spin [nzSpinning]="loadingService.isLoading(loadingKeys.XSTORE_LIST)" nzTip="加载中...">
+                <nz-empty *ngIf="xstores.length === 0 && !loadingService.isLoading(loadingKeys.XSTORE_LIST)"
+                         nzNotFoundImage="simple"
+                         nzNotFoundDescription="暂无存储节点">
+                  <div nz-empty-footer>
+                    <button nz-button nzType="primary" (click)="createNew()">
+                      <i nz-icon nzType="plus"></i>
+                      创建第一个存储节点
+                    </button>
+                  </div>
+                </nz-empty>
 
-                      <mat-form-field appearance="outline" class="grid-item">
-                        <mat-label>CPU (limits)</mat-label>
-                        <input matInput formControlName="cpu" placeholder="2">
-                      </mat-form-field>
-                      <mat-form-field appearance="outline" class="grid-item">
-                        <mat-label>内存 (limits)</mat-label>
-                        <input matInput formControlName="memory" placeholder="4Gi">
-                      </mat-form-field>
+                <nz-table *ngIf="xstores.length > 0"
+                         [nzData]="xstores"
+                         nzBordered
+                         nzSize="middle"
+                         [nzPageSize]="10"
+                         [nzShowPagination]="xstores.length > 10"
+                         class="xstore-table">
+                  <thead>
+                    <tr>
+                      <th nzWidth="160px">节点名称</th>
+                      <th nzWidth="120px">命名空间</th>
+                      <th nzWidth="100px">状态</th>
+                      <th nzWidth="100px">副本数</th>
+                      <th nzWidth="180px">创建时间</th>
+                      <th nzWidth="120px">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let xstore of xstores">
+                      <td>
+                        <strong>{{ xstore.metadata.name }}</strong>
+                      </td>
+                      <td>
+                        <nz-tag nzColor="blue">{{ xstore.metadata.namespace }}</nz-tag>
+                      </td>
+                      <td>
+                        <nz-tag [nzColor]="getStatusColor(xstore.status?.phase)">
+                          {{ xstore.status?.phase || '未知' }}
+                        </nz-tag>
+                      </td>
+                      <td>
+                        <span class="replica-count">{{ getReplicaDisplay(xstore) }}</span>
+                      </td>
+                      <td>
+                        <span class="created-time">{{ xstore.metadata.creationTimestamp | date:'yyyy-MM-dd HH:mm:ss' }}</span>
+                      </td>
+                      <td>
+                        <div class="action-buttons">
+                          <button nz-button nzType="link" nzSize="small" (click)="viewXStoreDetails(xstore)"
+                                  nz-tooltip="查看详情" nzTooltipPlacement="top">
+                            <i nz-icon nzType="eye"></i>
+                          </button>
+                          <button nz-button nzType="link" nzSize="small" nzDanger (click)="deleteXStore(xstore)"
+                                  nz-tooltip="删除节点" nzTooltipPlacement="top">
+                            <i nz-icon nzType="delete"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </nz-table>
+              </nz-spin>
+            </div>
+          </nz-tab>
 
-                      <mat-form-field appearance="outline" class="grid-item">
-                        <mat-label>数据卷大小</mat-label>
-                        <input matInput formControlName="diskQuota" placeholder="100Gi">
-                      </mat-form-field>
-                      <mat-form-field appearance="outline" class="grid-item">
-                        <mat-label>存储类</mat-label>
-                        <input matInput formControlName="storageClass" placeholder="(可选)">
-                      </mat-form-field>
+          <nz-tab nzTitle="创建存储节点">
+            <div class="create-tab-content">
+              <nz-card nzTitle="创建存储节点" class="create-form-card">
+                <form nz-form [formGroup]="createForm" (ngSubmit)="submit()" nzLayout="vertical">
+                  <nz-row [nzGutter]="[16, 16]">
+                    <nz-col [nzSpan]="12">
+                      <nz-form-item>
+                        <nz-form-label nzRequired>名称</nz-form-label>
+                        <nz-form-control nzErrorTip="请输入符合规范的名称">
+                          <input nz-input formControlName="name" placeholder="xstore-example">
+                        </nz-form-control>
+                      </nz-form-item>
+                    </nz-col>
+                    <nz-col [nzSpan]="12">
+                      <nz-form-item>
+                        <nz-form-label nzRequired>命名空间</nz-form-label>
+                        <nz-form-control nzErrorTip="请输入命名空间">
+                          <input nz-input formControlName="namespace" placeholder="default">
+                        </nz-form-control>
+                      </nz-form-item>
+                    </nz-col>
+                  </nz-row>
 
-                      <mat-form-field appearance="outline" class="grid-item">
-                        <mat-label>CN 副本数</mat-label>
-                        <input type="number" min="0" matInput formControlName="cnReplicas" placeholder="0">
-                      </mat-form-field>
-                      <mat-form-field appearance="outline" class="grid-item">
-                        <mat-label>服务类型</mat-label>
-                        <input matInput formControlName="serviceType" placeholder="NodePort">
-                      </mat-form-field>
+                  <nz-row [nzGutter]="[16, 16]">
+                    <nz-col [nzSpan]="12">
+                      <nz-form-item>
+                        <nz-form-label>引擎</nz-form-label>
+                        <nz-form-control>
+                          <input nz-input formControlName="engine" placeholder="galaxy">
+                        </nz-form-control>
+                      </nz-form-item>
+                    </nz-col>
+                    <nz-col [nzSpan]="12">
+                      <nz-form-item>
+                        <nz-form-label nzRequired>节点数</nz-form-label>
+                        <nz-form-control nzErrorTip="节点数必须大于0">
+                          <nz-input-number formControlName="nodeCount" [nzMin]="1" [nzMax]="50" nzPlaceHolder="2" style="width: 100%">
+                          </nz-input-number>
+                        </nz-form-control>
+                      </nz-form-item>
+                    </nz-col>
+                  </nz-row>
 
-                      <div class="form-actions grid-full">
-                        <button mat-raised-button color="primary" type="submit" [disabled]="createForm.invalid">创建</button>
-                        <button mat-button type="button" (click)="selectedTab = 0">返回列表</button>
-                      </div>
-                    </form>
-                  </mat-card-content>
-                </mat-card>
-              </div>
-            </mat-tab>
-          </mat-tab-group>
-        </mat-card-content>
-      </mat-card>
+                  <nz-row [nzGutter]="[16, 16]">
+                    <nz-col [nzSpan]="12">
+                      <nz-form-item>
+                        <nz-form-label>CPU (limits)</nz-form-label>
+                        <nz-form-control>
+                          <input nz-input formControlName="cpu" placeholder="2">
+                        </nz-form-control>
+                      </nz-form-item>
+                    </nz-col>
+                    <nz-col [nzSpan]="12">
+                      <nz-form-item>
+                        <nz-form-label>内存 (limits)</nz-form-label>
+                        <nz-form-control>
+                          <input nz-input formControlName="memory" placeholder="4Gi">
+                        </nz-form-control>
+                      </nz-form-item>
+                    </nz-col>
+                  </nz-row>
+
+                  <nz-row [nzGutter]="[16, 16]">
+                    <nz-col [nzSpan]="12">
+                      <nz-form-item>
+                        <nz-form-label>数据卷大小</nz-form-label>
+                        <nz-form-control>
+                          <input nz-input formControlName="diskQuota" placeholder="100Gi">
+                        </nz-form-control>
+                      </nz-form-item>
+                    </nz-col>
+                    <nz-col [nzSpan]="12">
+                      <nz-form-item>
+                        <nz-form-label>存储类</nz-form-label>
+                        <nz-form-control>
+                          <input nz-input formControlName="storageClass" placeholder="(可选)">
+                        </nz-form-control>
+                      </nz-form-item>
+                    </nz-col>
+                  </nz-row>
+
+                  <nz-row [nzGutter]="[16, 16]">
+                    <nz-col [nzSpan]="12">
+                      <nz-form-item>
+                        <nz-form-label>CN 副本数</nz-form-label>
+                        <nz-form-control>
+                          <nz-input-number formControlName="cnReplicas" [nzMin]="0" [nzMax]="20" nzPlaceHolder="0" style="width: 100%">
+                          </nz-input-number>
+                        </nz-form-control>
+                      </nz-form-item>
+                    </nz-col>
+                    <nz-col [nzSpan]="12">
+                      <nz-form-item>
+                        <nz-form-label>服务类型</nz-form-label>
+                        <nz-form-control>
+                          <input nz-input formControlName="serviceType" placeholder="NodePort">
+                        </nz-form-control>
+                      </nz-form-item>
+                    </nz-col>
+                  </nz-row>
+
+                  <nz-form-item class="form-actions">
+                    <button nz-button nzType="primary" nzSize="large" type="submit" [disabled]="createForm.invalid">
+                      <i nz-icon nzType="plus"></i>
+                      创建存储节点
+                    </button>
+                    <button nz-button nzType="default" nzSize="large" type="button" (click)="selectedTab = 0">
+                      <i nz-icon nzType="arrow-left"></i>
+                      返回列表
+                    </button>
+                  </nz-form-item>
+                </form>
+              </nz-card>
+            </div>
+          </nz-tab>
+        </nz-tabset>
+      </nz-card>
     </div>
   `,
   styles: [`
-    .xstore-management { padding: 20px; }
-    .tab-content { padding: 20px; }
-    .actions-toolbar { margin-bottom: 16px; display: flex; gap: 8px; }
-    .empty-state { text-align: center; padding: 40px; color: #666; }
-    .empty-state mat-icon { font-size: 64px; width: 64px; height: 64px; color: #ccc; }
-    .empty-state .hint { font-size: 0.9em; opacity: 0.7; }
-    .form-container { padding: 20px; }
-    mat-card-title { display: flex; align-items: center; gap: 8px; }
-
-    .form-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 16px 24px;
+    .xstore-management {
+      padding: 16px;
+      background: #f5f5f5;
+      min-height: 100vh;
     }
-    .grid-item { width: 100%; }
-    .grid-full { grid-column: 1 / -1; display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
 
-    @media (min-width: 1280px) {
-      .form-grid { gap: 20px 32px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+    .main-card {
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .title-icon {
+      margin-right: 8px;
+      color: #1890ff;
+      font-size: 18px;
+    }
+
+    .subtitle {
+      color: rgba(0, 0, 0, 0.65);
+      font-size: 14px;
+    }
+
+    .tab-content {
+      padding: 24px 0;
+    }
+
+    .page-header {
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .xstore-table {
+      background: white;
+      border-radius: 6px;
+    }
+
+    .xstore-table th {
+      background: #fafafa;
+      color: rgba(0, 0, 0, 0.85);
+      font-weight: 600;
+    }
+
+    .xstore-table td {
+      padding: 12px 16px;
+    }
+
+    .replica-count {
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 13px;
+      color: rgba(0, 0, 0, 0.75);
+    }
+
+    .created-time {
+      font-size: 13px;
+      color: rgba(0, 0, 0, 0.65);
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 4px;
+    }
+
+    .create-tab-content {
+      padding: 24px 0;
+      display: flex;
+      justify-content: center;
+    }
+
+    .create-form-card {
+      width: 100%;
+      max-width: 800px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    }
+
+    .form-actions {
+      margin-top: 24px;
+      text-align: center;
+    }
+
+    .form-actions button {
+      margin: 0 8px;
+      min-width: 120px;
+    }
+
+    /* 响应式设计 */
+    @media (max-width: 768px) {
+      .xstore-management {
+        padding: 8px;
+      }
+
+      .page-header {
+        flex-direction: column;
+        gap: 12px;
+        align-items: stretch;
+      }
+
+      .header-actions {
+        justify-content: center;
+      }
+
+      .create-form-card {
+        margin: 0 8px;
+      }
+
+      .action-buttons {
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      nz-col[nzSpan="12"] {
+        flex: 0 0 100% !important;
+        max-width: 100% !important;
+      }
+    }
+
+    @media (min-width: 1200px) {
+      .xstore-management {
+        padding: 24px;
+      }
+
+      .tab-content {
+        padding: 32px 0;
+      }
+
+      .create-tab-content {
+        padding: 32px 0;
+      }
+    }
+
+    /* ng-zorro特定样式优化 */
+    nz-table {
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    nz-tag {
+      border-radius: 4px;
+      font-weight: 500;
+    }
+
+    nz-empty {
+      padding: 60px 20px;
+    }
+
+    nz-spin {
+      min-height: 200px;
+    }
+
+    .ant-form-item-label > label {
+      color: rgba(0, 0, 0, 0.85);
+      font-weight: 500;
+    }
+
+    .ant-input-number {
+      width: 100%;
+    }
+
+    .ant-card-head-title {
+      display: flex;
+      align-items: center;
+    }
+
+    .ant-tabs-card > .ant-tabs-content {
+      margin-top: 0;
+    }
+
+    .ant-tabs-card > .ant-tabs-content > .ant-tabs-tabpane {
+      background: transparent;
     }
   `]
 })
@@ -207,8 +440,9 @@ export class XStoreManagementComponent implements OnInit {
   loadingKeys = LoadingKeys;
   xstores: XStore[] = [];
   createForm!: FormGroup;
-  
-  private snackBar = inject(MatSnackBar);
+
+  private message = inject(NzMessageService);
+  private modal = inject(NzModalService);
   public loadingService = inject(LoadingService);
   private apiService = inject(ApiService);
   private fb = inject(FormBuilder);
@@ -230,13 +464,12 @@ export class XStoreManagementComponent implements OnInit {
   }
 
   loadXStores(): void {
-    // 使用全局选择的命名空间（ApiService 内部会从 localStorage.activeNamespace 读取）
     this.apiService.getXStores().subscribe({
       next: (xstores) => {
         this.xstores = xstores;
       },
       error: (err) => {
-        this.snackBar.open(`加载存储节点失败: ${err.error?.message || err.message}`, '关闭', { duration: 5000 });
+        this.message.error(`加载存储节点失败: ${err.error?.message || err.message}`);
         this.xstores = [];
       }
     });
@@ -244,7 +477,7 @@ export class XStoreManagementComponent implements OnInit {
 
   refreshXStores(): void {
     this.loadXStores();
-    this.snackBar.open('存储节点列表已刷新', '关闭', { duration: 2000 });
+    this.message.success('存储节点列表已刷新');
   }
 
   createNew(): void {
@@ -252,21 +485,29 @@ export class XStoreManagementComponent implements OnInit {
   }
 
   viewXStoreDetails(xstore: XStore): void {
-    this.snackBar.open(`查看存储节点详情: ${xstore.metadata.name}`, '关闭', { duration: 3000 });
+    this.message.info(`查看存储节点详情: ${xstore.metadata.name}`);
   }
 
   deleteXStore(xstore: XStore): void {
-    if (confirm(`确定删除存储节点 "${xstore.metadata.name}" 吗？`)) {
-      this.apiService.deleteXStore(xstore.metadata.namespace || 'default', xstore.metadata.name).subscribe({
-        next: () => {
-          this.snackBar.open('删除成功!', '关闭', { duration: 3000 });
-          this.loadXStores();
-        },
-        error: (err) => {
-          this.snackBar.open(`删除失败: ${err.error?.message || err.message}`, '关闭', { duration: 5000 });
-        }
-      });
-    }
+    this.modal.confirm({
+      nzTitle: '确认删除',
+      nzContent: `确定删除存储节点 "${xstore.metadata.name}" 吗？此操作不可恢复。`,
+      nzOkText: '确定删除',
+      nzOkType: 'primary',
+      nzOkDanger: true,
+      nzCancelText: '取消',
+      nzOnOk: () => {
+        this.apiService.deleteXStore(xstore.metadata.namespace || 'default', xstore.metadata.name).subscribe({
+          next: () => {
+            this.message.success('删除成功！');
+            this.loadXStores();
+          },
+          error: (err) => {
+            this.message.error(`删除失败: ${err.error?.message || err.message}`);
+          }
+        });
+      }
+    });
   }
 
   submit(): void {
@@ -284,12 +525,12 @@ export class XStoreManagementComponent implements OnInit {
     } as any;
     this.apiService.createXStore(v.namespace, req).subscribe({
       next: () => {
-        this.snackBar.open('创建成功！', '关闭', { duration: 3000 });
+        this.message.success('创建成功！');
         this.selectedTab = 0;
         this.loadXStores();
       },
       error: (err) => {
-        this.snackBar.open(`创建失败: ${err.error?.message || err.message}`, '关闭', { duration: 5000 });
+        this.message.error(`创建失败: ${err.error?.message || err.message}`);
       }
     });
   }
@@ -297,13 +538,16 @@ export class XStoreManagementComponent implements OnInit {
   getStatusColor(status?: string): string {
     switch (status?.toLowerCase()) {
       case 'running':
-        return 'primary';
+        return 'green';
       case 'ready':
-        return 'accent';
+        return 'blue';
       case 'failed':
-        return 'warn';
+      case 'error':
+        return 'red';
+      case 'pending':
+        return 'orange';
       default:
-        return '';
+        return 'default';
     }
   }
 

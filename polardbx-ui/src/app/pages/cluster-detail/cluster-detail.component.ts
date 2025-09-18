@@ -285,6 +285,8 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
   }
 
   ngOnInit(): void {
+    // 记录上次已知版本（供候选回退使用）
+    try { localStorage.setItem('lastClusterVersion', this.clusterVersion || ''); } catch {}
     // 强制清除所有可能残留的加载状态
     this.loadingService.clearAll();
     this.constructorColumns();
@@ -315,6 +317,18 @@ export class ClusterDetailComponent implements OnInit, AfterViewInit, OnDestroy 
     setTimeout(() => {
       this.initCharts();
     }, 100);
+    // 拉取升级候选，快速升级默认选推荐项
+    this.apiService.getClusterUpgradePlan(this.clusterNamespace || 'default', this.clusterName || '').subscribe({
+      next: (plan: any) => {
+        const cands: Array<{ version: string; recommended?: boolean }> = Array.isArray(plan?.candidates) ? plan.candidates : [];
+        if (cands.length > 0) {
+          const recommended = cands.find(c => c.recommended) || cands[0];
+          const v = recommended?.version || cands[0]?.version;
+          if (v) this.upgradeForm.patchValue({ targetVersion: v });
+        }
+      },
+      error: () => {}
+    });
   }
 
   private loadClusterData(): void {

@@ -155,11 +155,16 @@ const CheckRouteMap: Record<string, { route?: string; allow?: OperationType[]; n
 
           <form nz-form [formGroup]="upgradeForm" nzLayout="vertical" *ngIf="opType==='upgrade'">
             <nz-form-item>
+              <nz-form-label>当前版本</nz-form-label>
+              <nz-form-control>
+                <span>{{ currentVersion || '-' }}</span>
+              </nz-form-control>
+            </nz-form-item>
+            <nz-form-item>
               <nz-form-label nzRequired>目标版本</nz-form-label>
               <nz-form-control>
                 <nz-select formControlName="targetVersion" nzPlaceHolder="请选择目标版本">
-                  <nz-option nzValue="5.4.19" nzLabel="5.4.19 (推荐)"></nz-option>
-                  <nz-option nzValue="5.4.18" nzLabel="5.4.18"></nz-option>
+                  <nz-option *ngFor="let v of upgradeOptions; trackBy: trackByVersion" [nzValue]="v.version" [nzLabel]="vLabel(v)"></nz-option>
                 </nz-select>
               </nz-form-control>
             </nz-form-item>
@@ -232,6 +237,11 @@ const CheckRouteMap: Record<string, { route?: string; allow?: OperationType[]; n
               [nzDescription]="impactDescription">
             </nz-alert>
 
+            <div *ngIf="opType==='upgrade' && upgradeImpactSummary" style="margin-top:12px;">
+              <nz-tag nzColor="processing">升级摘要</nz-tag>
+              <span>{{ upgradeImpactSummary }}</span>
+            </div>
+
             <div class="impact-list" *ngIf="impactPlan.length">
               <div class="impact-item" *ngFor="let it of impactPlan; trackBy: trackByIdx">
                 <nz-tag [nzColor]="it.state==='ok' ? 'green' : (it.state==='warn' ? 'orange' : 'red')">{{ it.state }}</nz-tag>
@@ -282,6 +292,10 @@ const CheckRouteMap: Record<string, { route?: string; allow?: OperationType[]; n
 
         <div class="step-body" *ngIf="currentStep === 5">
           <nz-result [nzStatus]="postPass ? 'success' : 'warning'" [nzTitle]="postPass ? '回验通过' : '回验存在警告'" [nzSubTitle]="postDescription"></nz-result>
+          <div style="margin:12px 0;" *ngIf="podsTotal>=0">
+            <nz-tag nzColor="blue">Pods</nz-tag>
+            <span>就绪 {{ podsReady }}/{{ podsTotal }}</span>
+          </div>
           <div class="step-actions">
             <button nz-button nzType="default" (click)="goBackToCluster()">
               返回集群
@@ -332,6 +346,13 @@ export class ClusterChangeWizardComponent implements OnInit {
   upgradeForm: FormGroup;
   configForm: FormGroup;
   _enableSqlAuditModel = false;
+  // 升级候选与当前版本
+  currentVersion = '';
+  upgradeOptions: Array<{ version: string; recommended?: boolean }> = [];
+  upgradeImpactSummary = '';
+  // 回验摘要
+  podsReady: number = -1;
+  podsTotal: number = -1;
 
   // impact/dry-run
   impactLoading = false;
@@ -371,6 +392,27 @@ export class ClusterChangeWizardComponent implements OnInit {
     this.route.params.subscribe(p => {
       this.namespace = p['namespace'] || this.namespace;
       this.name = p['name'] || this.name;
+    });
+    // 获取当前集群信息
+    this.api.getCluster(this.namespace, this.name).subscribe({
+      next: (c: any) => {
+        this.currentVersion = (c?.status?.version || c?.status?.polardbxVersion || c?.spec?.version || '').toString();
+      },
+      error: () => {}
+    });
+    // 预取升级候选，填充下拉并默认选推荐项
+    this.api.getClusterUpgradePlan(this.namespace, this.name).subscribe({
+      next: (plan: any) => {
+        const cands: Array<{ version: string; recommended?: boolean }> = Array.isArray(plan?.candidates) ? plan.candidates : [];
+        this.currentVersion = plan?.currentVersion || this.currentVersion;
+        this.upgradeOptions = cands;
+        if (cands.length > 0) {
+          const recommended = cands.find(c => c.recommended) || cands[0];
+          const v = recommended?.version || cands[0]?.version;
+          if (v) this.upgradeForm.patchValue({ targetVersion: v });
+        }
+      },
+      error: () => {}
     });
   }
 
@@ -417,6 +459,13 @@ export class ClusterChangeWizardComponent implements OnInit {
         this.impactDescription = hasError ? '存在阻断项，请先处理后再继续'
           : hasWarn ? '存在警告项，可在知晓风险后继续'
           : '未发现阻断项，可继续执行';
+        // 升级摘要
+        if (this.opType === 'upgrade') {
+          const tgt = this.upgradeForm.get('targetVersion')?.value;
+          this.upgradeImpactSummary = `将以滚动策略升级：${this.currentVersion || '未知'} → ${tgt || '未选择'}，不可用阈值 1 个实例。`;
+        } else {
+          this.upgradeImpactSummary = '';
+        }
         this.impactLoading = false;
       },
       error: (err) => {
@@ -523,6 +572,19 @@ export class ClusterChangeWizardComponent implements OnInit {
         this.postDescription = '回验失败，请稍后重试';
       }
     });
+    // 计算 Pods Ready 概览
+    this.api.getPodsForCluster(this.namespace, this.name).subscribe({
+      next: (pods: any[]) => {
+        const total = Array.isArray(pods) ? pods.length : 0;
+        const ready = (pods || []).filter((p: any) => (p?.status?.phase || '').toLowerCase() === 'running').length;
+        this.podsTotal = total;
+        this.podsReady = ready;
+      },
+      error: () => {
+        this.podsTotal = -1;
+        this.podsReady = -1;
+      }
+    });
   }
 
   navigateSuggested(id: string): void {
@@ -553,6 +615,8 @@ export class ClusterChangeWizardComponent implements OnInit {
   }
 
   trackByIdx(i: number): number { return i; }
+  trackByVersion(i: number, v: { version: string }): string { return v?.version; }
+  vLabel(v: { version: string; recommended?: boolean }): string { return v ? `${v.version}${v.recommended ? ' (推荐)' : ''}` : ''; }
 }
 
 
