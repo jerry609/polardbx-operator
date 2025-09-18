@@ -16,6 +16,8 @@ import { NzGridModule } from 'ng-zorro-antd/grid';
 import { NzEmptyModule } from 'ng-zorro-antd/empty';
 import { NzModalService, NzModalModule } from 'ng-zorro-antd/modal';
 import { NzToolTipModule } from 'ng-zorro-antd/tooltip';
+import { NzDividerModule } from 'ng-zorro-antd/divider';
+import { NzPopconfirmModule } from 'ng-zorro-antd/popconfirm';
 import { ApiService } from '../../services/api.service';
 import { LoadingService, LoadingKeys } from '../../services/loading.service';
 import { XStore } from '../../models/xstore.model';
@@ -39,102 +41,118 @@ import { XStore } from '../../models/xstore.model';
     NzEmptyModule,
     NzModalModule,
     NzToolTipModule,
+    NzDividerModule,
+    NzPopconfirmModule,
     ReactiveFormsModule
   ],
   template: `
     <div class="xstore-management">
+      <!-- 页面头部 -->
       <div class="page-header">
         <div class="header-content">
           <h1 class="page-title">
             <i nz-icon nzType="database" class="page-icon"></i>
             存储节点管理
           </h1>
-          <p class="subtitle">管理 XStore 存储节点与拓扑</p>
+          <p class="page-description">管理 XStore 存储节点与拓扑，包括节点创建、状态监控和运维操作</p>
         </div>
       </div>
 
-      <nz-card class="main-card">
+      <div class="page-content">
 
-        <nz-tabset [(nzSelectedIndex)]="selectedTab" class="main-tabs">
+        <nz-tabset [(nzSelectedIndex)]="selectedTab" class="main-tabs" [nzTabPosition]="'top'">
+
           <nz-tab nzTitle="存储节点列表">
-            <div class="tab-content">
-              <div class="header-actions">
-                <div class="header-actions">
-                  <button nz-button nzType="primary" (click)="refreshXStores()" [nzLoading]="loadingService.isLoading(loadingKeys.XSTORE_LIST)">
-                    <i nz-icon nzType="reload"></i>
-                    刷新
-                  </button>
-                  <button nz-button nzType="primary" nzGhost (click)="createNew()">
-                    <i nz-icon nzType="plus"></i>
-                    新建节点
-                  </button>
-                </div>
-              </div>
+              <ng-template nz-tab>
+                <div class="tab-content">
+                  <nz-card 
+                    class="list-card" 
+                    nzTitle="存储节点配置" 
+                    [nzExtra]="listExtra"
+                    [nzLoading]="loadingService.isLoading(loadingKeys.XSTORE_LIST)">
+                    <ng-template #listExtra>
+                      <div class="extra-actions">
+                        <button nz-button nzType="default" nzSize="small" (click)="refreshXStores()">
+                          <i nz-icon nzType="reload"></i>
+                          刷新
+                        </button>
+                        <button nz-button nzType="primary" nzSize="small" (click)="createNew()">
+                          <i nz-icon nzType="plus"></i>
+                          新建节点
+                        </button>
+                      </div>
+                    </ng-template>
+                    <div class="list-content">
 
-              <nz-spin [nzSpinning]="loadingService.isLoading(loadingKeys.XSTORE_LIST)" nzTip="加载中...">
-                <nz-empty *ngIf="xstores.length === 0 && !loadingService.isLoading(loadingKeys.XSTORE_LIST)"
-                         nzNotFoundImage="simple"
-                         nzNotFoundDescription="暂无存储节点">
-                  <div nz-empty-footer>
-                    <button nz-button nzType="primary" (click)="createNew()">
-                      <i nz-icon nzType="plus"></i>
-                      创建第一个存储节点
-                    </button>
-                  </div>
-                </nz-empty>
-
-                <nz-table *ngIf="xstores.length > 0"
-                         [nzData]="xstores"
-                         nzBordered
-                         nzSize="middle"
-                         [nzPageSize]="10"
-                         [nzShowPagination]="xstores.length > 10"
-                         class="xstore-table">
-                  <thead>
-                    <tr>
-                      <th nzWidth="160px">节点名称</th>
-                      <th nzWidth="120px">命名空间</th>
-                      <th nzWidth="100px">状态</th>
-                      <th nzWidth="100px">副本数</th>
-                      <th nzWidth="180px">创建时间</th>
-                      <th nzWidth="120px">操作</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr *ngFor="let xstore of xstores">
-                      <td>
-                        <strong>{{ xstore.metadata.name }}</strong>
-                      </td>
-                      <td>
-                        <nz-tag nzColor="blue">{{ xstore.metadata.namespace }}</nz-tag>
-                      </td>
-                      <td>
-                        <nz-tag [nzColor]="getStatusColor(xstore.status?.phase)">
-                          {{ xstore.status?.phase || '未知' }}
-                        </nz-tag>
-                      </td>
-                      <td>
-                        <span class="replica-count">{{ getReplicaDisplay(xstore) }}</span>
-                      </td>
-                      <td>
-                        <span class="created-time">{{ xstore.metadata.creationTimestamp | date:'yyyy-MM-dd HH:mm:ss' }}</span>
-                      </td>
-                      <td>
-                        <div class="action-buttons">
-                          <button nz-button nzType="link" nzSize="small" (click)="viewXStoreDetails(xstore)"
-                                  nz-tooltip="查看详情" nzTooltipPlacement="top">
-                            <i nz-icon nzType="eye"></i>
-                          </button>
-                          <button nz-button nzType="link" nzSize="small" nzDanger (click)="deleteXStore(xstore)"
-                                  nz-tooltip="删除节点" nzTooltipPlacement="top">
-                            <i nz-icon nzType="delete"></i>
+                      <nz-table 
+                        #xTable 
+                        [nzData]="xstores" 
+                        [nzLoading]="loadingService.isLoading(loadingKeys.XSTORE_LIST)"
+                        [nzPageSize]="10"
+                        [nzShowPagination]="xstores.length > 10"
+                        [nzScroll]="{ x: '1200px' }">
+                        <thead>
+                          <tr>
+                            <th nzWidth="160px">节点名称</th>
+                            <th nzWidth="120px">命名空间</th>
+                            <th nzWidth="100px">状态</th>
+                            <th nzWidth="100px">副本数</th>
+                            <th nzWidth="180px">创建时间</th>
+                            <th nzWidth="120px" nzAlign="center">操作</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr *ngFor="let x of xTable.data">
+                            <td>
+                              <div class="xstore-name">
+                                <i nz-icon 
+                                   [nzType]="getStatusIcon(x.status?.phase)"
+                                   [style.color]="getStatusColor(x.status?.phase)">
+                                </i>
+                                <span style="margin-left: 8px;">{{ x.metadata.name }}</span>
+                              </div>
+                            </td>
+                            <td>
+                              <nz-tag nzColor="blue">{{ x.metadata.namespace }}</nz-tag>
+                            </td>
+                            <td>
+                              <nz-tag [nzColor]="getStatusColor(x.status?.phase)">
+                                {{ getStatusLabel(x.status?.phase) }}
+                              </nz-tag>
+                            </td>
+                            <td>{{ getReplicaDisplay(x) }}</td>
+                            <td>{{ formatDate(x.metadata.creationTimestamp) }}</td>
+                            <td nzAlign="center">
+                              <button nz-button nzType="link" nzSize="small" (click)="viewDetails(x)">
+                                <i nz-icon nzType="eye"></i>
+                                查看
+                              </button>
+                              <nz-divider nzType="vertical"></nz-divider>
+                              <button nz-button nzType="link" nzSize="small" nz-popconfirm 
+                                      nzPopconfirmTitle="确定删除此存储节点？" 
+                                      (nzOnConfirm)="deleteXStore(x)">
+                                <i nz-icon nzType="delete"></i>
+                                删除
+                              </button>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </nz-table>
+                      
+                      <nz-empty *ngIf="xstores.length === 0 && !loadingService.isLoading(loadingKeys.XSTORE_LIST)"
+                               nzNotFoundImage="simple"
+                               nzNotFoundDescription="暂无存储节点">
+                        <div nz-empty-footer>
+                          <button nz-button nzType="primary" (click)="createNew()">
+                            <i nz-icon nzType="plus"></i>
+                            创建第一个存储节点
                           </button>
                         </div>
-                      </td>
-                    </tr>
-                  </tbody>
-                </nz-table>
-              </nz-spin>
+                      </nz-empty>
+                    </div>
+                  </nz-card>
+                </div>
+              </ng-template>
             </div>
           </nz-tab>
 
@@ -254,7 +272,7 @@ import { XStore } from '../../models/xstore.model';
             </div>
           </nz-tab>
         </nz-tabset>
-      </nz-card>
+      </div>
     </div>
   `,
   styles: [`
@@ -265,7 +283,50 @@ import { XStore } from '../../models/xstore.model';
     }
 
     .page-header {
-      margin-bottom: 16px;
+      margin-bottom: 24px;
+    }
+    
+    .page-description {
+      color: rgba(0, 0, 0, 0.6);
+      font-size: 14px;
+      margin: 4px 0 0 36px;
+    }
+    
+    .page-content {
+      max-width: 1120px;
+      margin: 0 auto;
+    }
+    
+    .main-tabs {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      overflow: hidden;
+    }
+    
+    .tab-content {
+      padding: 0;
+    }
+    
+    .list-card {
+      border: none;
+      border-radius: 0;
+      box-shadow: none;
+    }
+    
+    .extra-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    
+    .list-content {
+      margin-top: 0;
+    }
+    
+    .xstore-name {
+      display: flex;
+      align-items: center;
     }
 
     .header-content {
@@ -600,5 +661,36 @@ export class XStoreManagementComponent implements OnInit {
     
     // 都没有则显示未知
     return 'N/A';
+  }
+
+  getStatusIcon(phase?: string): string {
+    switch (phase) {
+      case 'Running': return 'check-circle';
+      case 'Creating': return 'loading';
+      case 'Failed': return 'close-circle';
+      case 'Deleting': return 'delete';
+      default: return 'question-circle';
+    }
+  }
+
+  getStatusLabel(phase?: string): string {
+    switch (phase) {
+      case 'Running': return '运行中';
+      case 'Creating': return '创建中';
+      case 'Failed': return '失败';
+      case 'Deleting': return '删除中';
+      default: return '未知';
+    }
+  }
+
+  formatDate(dateStr?: string): string {
+    if (!dateStr) return '-';
+    return new Date(dateStr).toLocaleString('zh-CN');
+  }
+
+  viewDetails(xstore: XStore): void {
+    // 实现查看详情逻辑
+    console.log('View details for:', xstore);
+    this.message.info('功能开发中...');
   }
 }

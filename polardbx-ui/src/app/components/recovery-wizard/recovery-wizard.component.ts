@@ -372,7 +372,8 @@ export interface RecoveryWizardDialogData {
   styles: [`
     .recovery-wizard {
       padding: 16px;
-      background: #ffffff;
+      background: #f5f5f5;
+      min-height: 100vh;
     }
     
     .page-header {

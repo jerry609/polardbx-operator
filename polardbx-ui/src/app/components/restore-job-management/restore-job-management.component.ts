@@ -1,66 +1,85 @@
-import { Component, OnInit, OnDestroy, AfterViewInit, ViewChild } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MatCardModule } from '@angular/material/card';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatTableModule, MatTableDataSource } from '@angular/material/table';
-import { MatTabsModule } from '@angular/material/tabs';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatDividerModule } from '@angular/material/divider';
-import { MatTooltipModule } from '@angular/material/tooltip';
+import { FormsModule } from '@angular/forms';
+import { NzCardModule } from 'ng-zorro-antd/card';
+import { NzButtonModule } from 'ng-zorro-antd/button';
+import { NzIconModule } from 'ng-zorro-antd/icon';
+import { NzTableModule } from 'ng-zorro-antd/table';
+import { NzTabsModule } from 'ng-zorro-antd/tabs';
+import { NzProgressModule } from 'ng-zorro-antd/progress';
+import { NzTagModule } from 'ng-zorro-antd/tag';
+import { NzDividerModule } from 'ng-zorro-antd/divider';
+import { NzToolTipModule } from 'ng-zorro-antd/tooltip';
+import { NzFormModule } from 'ng-zorro-antd/form';
+import { NzInputModule } from 'ng-zorro-antd/input';
+import { NzSwitchModule } from 'ng-zorro-antd/switch';
+import { NzSpinModule } from 'ng-zorro-antd/spin';
+import { NzEmptyModule } from 'ng-zorro-antd/empty';
+import { NzMessageService } from 'ng-zorro-antd/message';
+import { NzDrawerModule } from 'ng-zorro-antd/drawer';
+import { NzDescriptionsModule } from 'ng-zorro-antd/descriptions';
+import { NzGridModule } from 'ng-zorro-antd/grid';
 import { ApiService } from '../../services/api.service';
 import { LoadingService, LoadingKeys } from '../../services/loading.service';
 import { RestoreJob, RestoreJobWithStatus } from '../../models/restore.model';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { Subscription, interval } from 'rxjs';
-import { switchMap } from 'rxjs/operators';
-import { FormsModule } from '@angular/forms';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
-import { MatSort, MatSortModule } from '@angular/material/sort';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { Subject, interval } from 'rxjs';
+import { switchMap, takeUntil } from 'rxjs/operators';
 
 @Component({
   selector: 'app-restore-job-management',
   standalone: true,
   imports: [
     CommonModule,
-    MatCardModule,
-    MatButtonModule,
-    MatIconModule,
-    MatTableModule,
-    MatTabsModule,
-    MatProgressBarModule,
-    MatChipsModule,
-    MatDividerModule,
-    MatTooltipModule,
-    MatFormFieldModule,
-    MatInputModule,
     FormsModule,
-    MatPaginatorModule,
-    MatSortModule,
-    MatSlideToggleModule
+    NzCardModule,
+    NzButtonModule,
+    NzIconModule,
+    NzTableModule,
+    NzTabsModule,
+    NzProgressModule,
+    NzTagModule,
+    NzDividerModule,
+    NzToolTipModule,
+    NzFormModule,
+    NzInputModule,
+    NzSwitchModule,
+    NzSpinModule,
+    NzEmptyModule,
+    NzDrawerModule,
+    NzDescriptionsModule,
+    NzGridModule
   ],
   template: `
-    <div class="restore-page">
-      <mat-card class="page-header-card">
-        <mat-card-header>
-          <mat-card-title>
-            <mat-icon>manage_search</mat-icon>
-            恢复任务
-          </mat-card-title>
-          <mat-card-subtitle>管理恢复作业与进度</mat-card-subtitle>
-        </mat-card-header>
-      </mat-card>
+    <div class="restore-job-management">
+      <!-- 页面头部 -->
+      <div class="page-header">
+        <div class="header-content">
+          <h1 class="page-title">
+            <i nz-icon nzType="history" class="page-icon"></i>
+            恢复任务管理
+          </h1>
+          <p class="page-description">管理恢复作业与进度，支持备份恢复和PITR恢复</p>
+        </div>
+      </div>
 
-      <!-- 左侧任务列表面板 -->
-      <div class="list-panel">
-        <mat-card class="list-card">
-          <mat-card-header>
-            <mat-card-title>任务列表（{{ dataSource.filteredData.length || 0 }}）</mat-card-title>
-          </mat-card-header>
+      <div class="page-content">
+
+        <nz-card 
+          class="list-card" 
+          nzTitle="恢复任务列表" 
+          [nzExtra]="listExtra"
+          [nzLoading]="loadingService.isLoading(loadingKeys.RESTORE_JOB_LIST)">
+          <ng-template #listExtra>
+            <div class="extra-actions">
+              <button nz-button nzType="default" nzSize="small" (click)="refreshJobs()">
+                <i nz-icon nzType="reload"></i>
+                刷新
+              </button>
+              <nz-switch [(ngModel)]="listAutoRefresh" (ngModelChange)="toggleAutoRefresh($event)">
+                自动刷新
+              </nz-switch>
+            </div>
+          </ng-template>
 
           <mat-progress-bar *ngIf="loadingService.isLoading(loadingKeys.RESTORE_JOB_LIST)"
                            mode="indeterminate" class="loading-bar"></mat-progress-bar>

@@ -107,7 +107,7 @@ import { ApiService } from '../../services/api.service';
     </div>
   `,
   styles: [`
-    .runbook-slo { padding: 20px; }
+    .runbook-slo { padding: 20px; background: #f5f5f5; min-height: 100vh; }
     label { display:block; margin-bottom:4px; color: rgba(0,0,0,.65); }
   `]
 })
