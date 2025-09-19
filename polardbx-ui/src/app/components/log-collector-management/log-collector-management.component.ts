@@ -83,7 +83,7 @@ import {
                   <i nz-icon nzType="reload"></i>
                   <span>刷新</span>
                 </button>
-                <button nz-button nzType="primary" (click)="selectedTab = 1">
+                <button nz-button nzType="default" (click)="selectedTab = 1">
                   <i nz-icon nzType="plus"></i>
                   <span>创建采集器</span>
                 </button>
