@@ -1034,7 +1034,7 @@ export class LogCollectorInstallComponent implements OnInit, AfterViewInit, OnDe
           this.completeInstallation(false);
           this.saveState();
         }
-      );
+      });
       },
       error: () => {
         this.api.logsBootstrap(requestBody).subscribe({
