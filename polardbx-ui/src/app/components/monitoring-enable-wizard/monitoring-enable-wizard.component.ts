@@ -1330,13 +1330,6 @@ spec:
     this.stepLoading = true;
     this.installJob = null;
     this.applyResult = null;
-
-    // 若已有安装 Job，不重复触发
-    if (this.installJob?.jobName) {
-      this.startJobStatusPolling();
-      return;
-    }
-
     // 直接触发安装（当前后端未提供 exists 标记，保守推进）
     this.api.monitoringBootstrap({ mode: 'managed', dryRun: false }).subscribe({
       next: (res: any) => {
