@@ -6,6 +6,7 @@ import (
 	"polardbx-ui-backend/pkg/api"
 	api_alerts "polardbx-ui-backend/pkg/api/alerts"
 	api_auth "polardbx-ui-backend/pkg/api/auth"
+    api_clusterknobs "polardbx-ui-backend/pkg/api/clusterknobs"
 	api_diagnostics "polardbx-ui-backend/pkg/api/diagnostics"
 	api_grafana "polardbx-ui-backend/pkg/api/grafana"
 	api_logcollector "polardbx-ui-backend/pkg/api/logcollector"
@@ -184,6 +185,13 @@ func main() {
 		v1.GET("/parameter-templates/:namespace/:name", domain_pxc.GetTemplate)
 		v1.PUT("/parameter-templates/:namespace/:name", domain_pxc.UpdateTemplate)
 		v1.DELETE("/parameter-templates/:namespace/:name", domain_pxc.DeleteTemplate)
+
+        // ClusterKnobs routes → clusterknobs handlers (add direct aliases for frontend)
+        v1.GET("/cluster-knobs", api_clusterknobs.GetList)
+        v1.POST("/cluster-knobs", api_clusterknobs.Create)
+        v1.GET("/cluster-knobs/:namespace/:name", api_clusterknobs.Get)
+        v1.PUT("/cluster-knobs/:namespace/:name", api_clusterknobs.Update)
+        v1.DELETE("/cluster-knobs/:namespace/:name", api_clusterknobs.Delete)
 
 		// SystemTask routes → domain/systemtasks
 		v1.GET("/system-tasks", domain_st.List)
