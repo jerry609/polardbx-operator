@@ -126,22 +126,132 @@ func RestoreCluster(c *gin.Context) {
 
 // POST /clusters/:namespace/:name/pitr
 func InitiatePITR(c *gin.Context) {
-	_, ok := util.K8sClientFromContext(c)
+	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
 		return
 	}
-	ns := c.Param("namespace")
-	name := c.Param("name")
-	var req struct{ TargetTime, TargetName, BackupName, BinlogPath string }
+	namespace := c.Param("namespace")
+	sourceName := c.Param("name")
+
+	// Support both frontend request shape and earlier placeholder fields for compatibility
+	var req struct {
+		Time            string `json:"time"`
+		TargetTime      string `json:"targetTime"`
+		TimeZone        string `json:"timezone"`
+		BackupSet       string `json:"backupSet"`
+		BackupName      string `json:"backupName"`
+		TargetCluster   string `json:"targetCluster"`
+		TargetName      string `json:"targetName"`
+		StorageProvider *struct {
+			Type   string            `json:"type"`
+			Config map[string]string `json:"config"`
+		} `json:"storageProvider"`
+	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid PITR request", "details": err.Error()})
 		return
 	}
-	if strings.TrimSpace(req.TargetTime) == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid PITR request", "details": "targetTime is required"})
+
+	// Normalize fields
+	if strings.TrimSpace(req.Time) == "" {
+		req.Time = req.TargetTime
+	}
+	if req.BackupSet == "" && req.BackupName != "" {
+		req.BackupSet = req.BackupName
+	}
+	if req.TargetCluster == "" && req.TargetName != "" {
+		req.TargetCluster = req.TargetName
+	}
+
+	if strings.TrimSpace(req.Time) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid PITR request", "details": "time (or targetTime) is required"})
 		return
 	}
-	c.JSON(http.StatusAccepted, gin.H{"message": "PITR request accepted", "cluster": name, "namespace": ns, "targetTime": req.TargetTime, "targetName": req.TargetName, "note": "PITR functionality pending"})
+
+	// If backupSet provided, ensure it exists and finished; otherwise operator will resolve last completed backup by time
+	if strings.TrimSpace(req.BackupSet) != "" {
+		var backup polardbxv1.PolarDBXBackup
+		if err := cli.Get(c.Request.Context(), client.ObjectKey{Namespace: namespace, Name: req.BackupSet}, &backup); err != nil {
+			util.HandleK8sError(c, "backup not found", err)
+			return
+		}
+		if backup.Status.Phase != polardbxv1.BackupFinished {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "backup not ready", "details": fmt.Sprintf("phase=%s", backup.Status.Phase)})
+			return
+		}
+	}
+
+	// Ensure target cluster name
+	target := req.TargetCluster
+	if target == "" {
+		target = sourceName + "-pitr"
+	}
+
+	// Ensure target cluster not exists
+	var exist polardbxv1.PolarDBXCluster
+	if err := cli.Get(c.Request.Context(), client.ObjectKey{Namespace: namespace, Name: target}, &exist); err == nil {
+		c.JSON(http.StatusConflict, gin.H{"error": "target cluster exists", "details": fmt.Sprintf("%s/%s", namespace, target)})
+		return
+	}
+
+	// Load source cluster
+	var source polardbxv1.PolarDBXCluster
+	if err := cli.Get(c.Request.Context(), client.ObjectKey{Namespace: namespace, Name: sourceName}, &source); err != nil {
+		util.HandleK8sError(c, "source cluster not found", err)
+		return
+	}
+
+	// Build PITR restored cluster from source spec
+	restored := &polardbxv1.PolarDBXCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      target,
+			Namespace: namespace,
+			Labels: map[string]string{
+				"app.kubernetes.io/name":     "polardbx",
+				"app.kubernetes.io/instance": target,
+				"polardbx/restore-source":    sourceName,
+			},
+			Annotations: map[string]string{
+				"polardbx/restore-from": fmt.Sprintf("%s/%s", namespace, sourceName),
+				"polardbx/restore-time": req.Time,
+			},
+		},
+		Spec: source.Spec,
+	}
+	restored.Spec.ServiceName = target
+	if restored.Spec.Restore == nil {
+		restored.Spec.Restore = &polardbx.RestoreSpec{}
+	}
+	restored.Spec.Restore.Time = req.Time
+	if req.TimeZone != "" {
+		restored.Spec.Restore.TimeZone = req.TimeZone
+	}
+	if req.BackupSet != "" {
+		restored.Spec.Restore.BackupSet = req.BackupSet
+		if restored.Labels == nil {
+			restored.Labels = map[string]string{}
+		}
+		restored.Labels["polardbx/restore-backup"] = req.BackupSet
+	}
+	restored.Spec.Restore.From = polardbx.PolarDBXRestoreFrom{PolarBDXName: sourceName}
+
+	if err := cli.Create(c.Request.Context(), restored); err != nil {
+		util.HandleK8sError(c, "failed to create PITR restored cluster", err)
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{
+		"message":       "PITR initiated successfully",
+		"sourceCluster": sourceName,
+		"targetCluster": target,
+		"namespace":     namespace,
+		"pitrTime":      req.Time,
+		"restoreSpec": gin.H{
+			"time":      req.Time,
+			"timezone":  req.TimeZone,
+			"backupSet": req.BackupSet,
+		},
+	})
 }
 
 // GET /clusters/:namespace/:name/restore-status

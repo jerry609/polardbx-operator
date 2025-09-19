@@ -91,14 +91,14 @@ func TestRecoveryEndpoints(t *testing.T) {
 	})
 
 	t.Run("InitiatePITR_Success", func(t *testing.T) {
-		fakeClient := fake.NewClientBuilder().WithScheme(scheme).Build()
+		source := &polardbxv1.PolarDBXCluster{ObjectMeta: metav1.ObjectMeta{Name: "test-cluster", Namespace: "default"}}
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(source).Build()
 		router := setupRecoveryTestRouter(fakeClient)
 		w := httptest.NewRecorder()
 
 		pitrReq := gin.H{
-			"targetTime": "2023-12-01T10:00:00Z",
+			"time":       "2023-12-01T10:00:00Z",
 			"targetName": "pitr-cluster",
-			"backupName": "base-backup",
 		}
 		body, _ := json.Marshal(pitrReq)
 		req, _ := http.NewRequest(http.MethodPost, "/clusters/default/test-cluster/pitr", bytes.NewReader(body))
@@ -106,7 +106,7 @@ func TestRecoveryEndpoints(t *testing.T) {
 
 		router.ServeHTTP(w, req)
 
-		assert.Equal(t, http.StatusAccepted, w.Code)
+		assert.Equal(t, http.StatusCreated, w.Code)
 	})
 
 	t.Run("InitiatePITR_InvalidRequest", func(t *testing.T) {
@@ -114,7 +114,7 @@ func TestRecoveryEndpoints(t *testing.T) {
 		router := setupRecoveryTestRouter(fakeClient)
 		w := httptest.NewRecorder()
 
-		// Missing required targetTime field
+		// Missing required time/targetTime field
 		pitrReq := gin.H{
 			"targetName": "pitr-cluster",
 		}
