@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	dynamicfake "k8s.io/client-go/dynamic/fake"
 )
@@ -31,7 +32,7 @@ func setupTestRouter() *gin.Engine {
 // Mock middleware to inject fake dynamic client
 func withMockDynamicClient(dynClient dynamic.Interface) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.Set("k8s-client", dynClient)
+		c.Set("dynamic-client", dynClient)
 		c.Next()
 	}
 }
@@ -86,7 +87,11 @@ func TestList_Success(t *testing.T) {
 	rule2 := createMockPrometheusRule("test-rule-2", "polardbx-monitor")
 
 	scheme := runtime.NewScheme()
-	dynClient := dynamicfake.NewSimpleDynamicClient(scheme, rule1, rule2)
+	dynClient := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(
+		scheme,
+		map[schema.GroupVersionResource]string{prometheusRuleGVR: "PrometheusRuleList"},
+		rule1, rule2,
+	)
 
 	router := setupTestRouter()
 	router.Use(withMockDynamicClient(dynClient))

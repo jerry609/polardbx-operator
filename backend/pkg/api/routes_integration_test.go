@@ -305,7 +305,7 @@ func TestEndpointSecurity(t *testing.T) {
 		{
 			name:           "Namespaces without auth",
 			path:           "/api/v1/namespaces",
-			expectedStatus: http.StatusInternalServerError, // Should fail without k8s client
+			expectedStatus: http.StatusUnauthorized, // Unauthorized when k8s client missing
 			description:    "Should require proper k8s authentication",
 		},
 		{

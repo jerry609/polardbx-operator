@@ -38,12 +38,10 @@ func K8sClientFromContext(c *gin.Context) (client.Client, bool) {
 func ClientsetFromContext(c *gin.Context) (kubernetes.Interface, bool) {
 	v, ok := c.Get("clientset")
 	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "kubeconfig not provided or invalid"})
 		return nil, false
 	}
 	cs, ok := v.(kubernetes.Interface)
 	if !ok || cs == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid clientset in context"})
 		return nil, false
 	}
 	return cs, true

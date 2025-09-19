@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"encoding/pem"
+	"fmt"
 	"net/http"
 	"net/url"
 	"sort"
@@ -273,7 +274,7 @@ func performCleanupForCluster(c *gin.Context, ns string, clusterName string) {
 func Precheck(c *gin.Context) {
 	var s Strategy
 	if err := c.ShouldBindJSON(&s); err != nil || s.Name == "" || s.ClusterName == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid strategy", "details": "name and clusterName required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "name and clusterName required"})
 		return
 	}
 	cli, ok := util.K8sClientFromContext(c)
@@ -529,7 +530,7 @@ func TestConnection(c *gin.Context) {
 		Password string   `json:"password"`
 	}
 	if err := c.ShouldBindJSON(&payload); err != nil || len(payload.Hosts) == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payload", "details": "hosts required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "hosts required"})
 		return
 	}
 	host := strings.TrimSpace(payload.Hosts[0])
@@ -676,5 +677,7 @@ func addApplyRecord(c *gin.Context, strategyName string, status string, message 
 
 // Generate a simple record ID based on timestamp
 func generateRecordID() string {
-	return time.Now().Format("20060102-150405-") + time.Now().Format("000")
+	t := time.Now()
+	ms := t.Nanosecond() / 1e6
+	return t.Format("20060102-150405-") + fmt.Sprintf("%03d", ms)
 }

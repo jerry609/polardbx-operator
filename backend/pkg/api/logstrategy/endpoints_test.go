@@ -188,8 +188,8 @@ func TestGenerateRecordID(t *testing.T) {
 	id2 := generateRecordID()
 
 	assert.NotEqual(t, id1, id2)
-	assert.Len(t, id1, 18) // Format: 20060102-150405-000
-	assert.Len(t, id2, 18)
+	assert.Len(t, id1, 19) // Format: 20060102-150405-000 (19 chars with hyphens)
+	assert.Len(t, id2, 19)
 }
 
 func TestTestConnection_Success(t *testing.T) {
