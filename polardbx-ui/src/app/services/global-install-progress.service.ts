@@ -56,6 +56,7 @@ export class GlobalInstallProgressService {
   private refreshAllTasks(): Observable<void> {
     const list = this.tasks$.value;
     if (!list.length) return of(void 0);
+    const toRemove: InstallTask[] = [];
     const updates: Promise<void>[] = list.map(async (t) => {
       try {
         if (t.kind === 'monitoring') {
@@ -67,12 +68,26 @@ export class GlobalInstallProgressService {
           t.phase = status?.phase;
           t.message = status?.failureReason || status?.message || '';
         }
-      } catch {
-        // 忽略单项错误
+      } catch (err: any) {
+        // 若任务不存在（404），从队列中移除，避免持续轮询报错
+        const code = err?.status || err?.error?.code || err?.code;
+        if (Number(code) === 404) {
+          toRemove.push(t);
+        }
+        // 其他错误暂时忽略
       }
     });
     return from(Promise.all(updates)).pipe(
-      map(() => void 0),
+      map(() => {
+        if (toRemove.length) {
+          const next = this.tasks$.value.filter(
+            (it) => !toRemove.some(r => r.kind === it.kind && r.jobName === it.jobName && r.namespace === it.namespace)
+          );
+          this.tasks$.next(next);
+          this.saveToStorage(next);
+        }
+        return void 0;
+      }),
       catchError(() => of(void 0))
     );
   }

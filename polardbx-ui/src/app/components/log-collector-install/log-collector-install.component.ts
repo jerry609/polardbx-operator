@@ -818,6 +818,14 @@ export class LogCollectorInstallComponent implements OnInit, AfterViewInit, OnDe
       namespace: config.namespace
     };
 
+    // 若已有 installJob，避免重复触发，直接继续轮询/查看
+    if (this.installJob?.jobName) {
+      this.stepLoading = false;
+      this.startJobStatusPolling();
+      this.cdr.detectChanges();
+      return;
+    }
+
     this.api.logsBootstrap(requestBody).subscribe({
       next: (res: any) => {
         const jobName = res?.jobName || 'polardbx-logs-bootstrap';
@@ -942,6 +950,13 @@ export class LogCollectorInstallComponent implements OnInit, AfterViewInit, OnDe
       enableLogstash: this.form.value.enableLogstash || true,
       deploymentType: deployment
     };
+
+    // 已存在任务则不重复创建
+    if (this.installJob?.jobName) {
+      this.simulateInstallation();
+      this.saveState();
+      return;
+    }
 
     this.api.logsBootstrap(requestBody).subscribe({
       next: (res: any) => {
@@ -1238,6 +1253,7 @@ export class LogCollectorInstallComponent implements OnInit, AfterViewInit, OnDe
   private maxPollingInterval = 60000; // 最大60秒间隔
 
   private startJobStatusPolling(): void {
+    // 没有有效任务则不轮询，避免 404 噪音
     if (!this.installJob?.jobName) return;
 
     this.stopJobStatusPolling();
@@ -1299,6 +1315,7 @@ export class LogCollectorInstallComponent implements OnInit, AfterViewInit, OnDe
           this.addLog('warning', '安装任务已被清理或不存在，请重新启动安装');
           this.stopJobStatusPolling();
           this.message.warning('安装任务不存在，可能已被系统清理');
+          this.installJob = null; // 清空任务，避免后续进入页面继续轮询
           this.saveState();
           return;
         }
