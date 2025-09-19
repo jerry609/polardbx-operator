@@ -86,7 +86,8 @@ func Get(c *gin.Context) {
 	name := c.Param("name")
 	var pod corev1.Pod
 	if err := cli.Get(c.Request.Context(), client.ObjectKey{Namespace: ns, Name: name}, &pod); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get pod", "details": err.Error()})
+        // 统一使用 K8s 错误映射，NotFound->404 等
+        util.HandleK8sError(c, "failed to get pod", err)
 		return
 	}
 	c.JSON(http.StatusOK, pod)
