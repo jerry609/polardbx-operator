@@ -11,15 +11,7 @@ import { filter } from 'rxjs/operators';
   imports: [CommonModule, RouterModule, NzTabsModule, NzIconModule],
   template: `
     <div class="logs-hub">
-      <!-- 页面头部 -->
-      <div class="page-header">
-        <div class="header-content">
-          <h1 class="page-title">
-            <i nz-icon nzType="container" class="page-icon"></i>
-            日志与采集
-          </h1>
-        </div>
-      </div>
+      <!-- 页面头部已移除 -->
 
       <!-- 导航标签 -->
       <div class="content">
@@ -80,16 +72,7 @@ import { filter } from 'rxjs/operators';
       margin: 0 auto;
     }
 
-    /* 页面头部 */
-    .page-header {
-      margin-bottom: 24px;
-    }
-
-    .header-content {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
+    /* 页面头部样式已移除 */
 
     /* 内容区域 */
     .content {
