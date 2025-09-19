@@ -143,11 +143,13 @@ func Status(c *gin.Context) {
 			"filebeat": gin.H{
 				"status":   fbStatus,
 				"replicas": gin.H{"ready": readyFB, "total": desiredFB},
+				"exists":   existsFB,
 				"error":    errString(dsErr),
 			},
 			"logstash": gin.H{
 				"status":   lsStatus,
 				"replicas": gin.H{"ready": readyLS, "total": desiredLS},
+				"exists":   existsLS,
 				"error":    errString(depErr),
 			},
 		},
