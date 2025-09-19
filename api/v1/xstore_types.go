@@ -51,7 +51,7 @@ type XStoreRestoreSpec struct {
 	// +optional
 	StorageProvider *polardbx.BackupStorageProvider `json:"storageProvider,omitempty"`
 
-	// Time defines the specified time of the restored data, in the format of RFC3339 (e.g. '2006-01-02T15:04:05Z').
+	// Time defines the specified time of the restored data, in the format of 'yyyy-MM-ddTHH:mm:ssZ'. Required.
 	Time string `json:"time,omitempty"`
 
 	// TimeZone defines the specified time zone of the restore time. Default is the location of current cluster.

@@ -2,6 +2,7 @@ package prometheusrule
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -20,6 +22,20 @@ import (
 func setupTestRouter() *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
+	v1 := r.Group("/api/v1")
+	{
+		v1.GET("/prometheus-rules", List)
+		v1.GET("/prometheus-rules/:namespace/:name/yaml", GetYAML)
+		v1.POST("/prometheus-rules/validate", ValidateRule)
+	}
+	return r
+}
+
+func setupTestRouterWithDyn(dynClient dynamic.Interface) *gin.Engine {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	// Ensure middleware is registered BEFORE routes so it takes effect
+	r.Use(withMockDynamicClient(dynClient))
 	v1 := r.Group("/api/v1")
 	{
 		v1.GET("/prometheus-rules", List)
@@ -93,8 +109,7 @@ func TestList_Success(t *testing.T) {
 		rule1, rule2,
 	)
 
-	router := setupTestRouter()
-	router.Use(withMockDynamicClient(dynClient))
+	router := setupTestRouterWithDyn(dynClient)
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/api/v1/prometheus-rules?namespace=polardbx-monitor", nil)
@@ -135,10 +150,12 @@ func TestList_Success(t *testing.T) {
 
 func TestList_EmptyNamespace(t *testing.T) {
 	scheme := runtime.NewScheme()
-	dynClient := dynamicfake.NewSimpleDynamicClient(scheme)
+	dynClient := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(
+		scheme,
+		map[schema.GroupVersionResource]string{prometheusRuleGVR: "PrometheusRuleList"},
+	)
 
-	router := setupTestRouter()
-	router.Use(withMockDynamicClient(dynClient))
+	router := setupTestRouterWithDyn(dynClient)
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/api/v1/prometheus-rules?namespace=empty-namespace", nil)
@@ -158,8 +175,7 @@ func TestGetYAML_Success(t *testing.T) {
 	scheme := runtime.NewScheme()
 	dynClient := dynamicfake.NewSimpleDynamicClient(scheme, rule)
 
-	router := setupTestRouter()
-	router.Use(withMockDynamicClient(dynClient))
+	router := setupTestRouterWithDyn(dynClient)
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/api/v1/prometheus-rules/polardbx-monitor/test-rule/yaml", nil)
@@ -179,8 +195,7 @@ func TestGetYAML_NotFound(t *testing.T) {
 	scheme := runtime.NewScheme()
 	dynClient := dynamicfake.NewSimpleDynamicClient(scheme)
 
-	router := setupTestRouter()
-	router.Use(withMockDynamicClient(dynClient))
+	router := setupTestRouterWithDyn(dynClient)
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/api/v1/prometheus-rules/polardbx-monitor/nonexistent/yaml", nil)
@@ -415,5 +430,27 @@ func TestIsValidPromQLBasic(t *testing.T) {
 	for _, test := range tests {
 		result := isValidPromQLBasic(test.expr)
 		assert.Equal(t, test.expected, result, "Expression: %s", test.expr)
+	}
+}
+
+// Debug test to inspect dynamic fake List error details
+func Test_debug_ListDirect(t *testing.T) {
+	rule1 := createMockPrometheusRule("dbg-rule-1", "polardbx-monitor")
+	rule2 := createMockPrometheusRule("dbg-rule-2", "polardbx-monitor")
+
+	scheme := runtime.NewScheme()
+	dynClient := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(
+		scheme,
+		map[schema.GroupVersionResource]string{prometheusRuleGVR: "PrometheusRuleList"},
+		rule1, rule2,
+	)
+
+	// Directly call List on the fake client to see if it works
+	list, err := dynClient.Resource(prometheusRuleGVR).Namespace("polardbx-monitor").List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		t.Fatalf("direct list failed: %v", err)
+	}
+	if len(list.Items) != 2 {
+		t.Fatalf("expected 2 items, got %d", len(list.Items))
 	}
 }

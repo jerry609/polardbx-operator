@@ -176,17 +176,18 @@ func List(c *gin.Context) {
 
 // GetYAML returns the YAML representation of a specific PrometheusRule
 func GetYAML(c *gin.Context) {
-	var cli dynamic.Interface
-	var ok bool
-	if cli, ok = util.DynamicClientFromContext(c); !ok {
-		return
-	}
-
 	namespace := c.Param("namespace")
 	name := c.Param("name")
 
+	// 先做参数校验，避免因缺少客户端而返回 500
 	if namespace == "" || name == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "namespace and name are required"})
+		return
+	}
+
+	var cli dynamic.Interface
+	var ok bool
+	if cli, ok = util.DynamicClientFromContext(c); !ok {
 		return
 	}
 
