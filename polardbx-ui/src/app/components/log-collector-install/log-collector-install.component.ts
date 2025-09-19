@@ -831,9 +831,8 @@ export class LogCollectorInstallComponent implements OnInit, AfterViewInit, OnDe
     this.api.getLogServiceStatus().subscribe({
       next: (s: any) => {
         const comps = s?.components || {};
-        const fbReady = !!(comps?.filebeat?.ready || comps?.filebeat?.status === 'running');
-        const lsReady = !!(comps?.logstash?.ready || comps?.logstash?.status === 'running');
-        if (fbReady || lsReady) {
+        const exists = !!(comps?.filebeat?.exists || comps?.logstash?.exists || (comps?.filebeat && comps?.filebeat?.status !== 'not_found') || (comps?.logstash && comps?.logstash?.status !== 'not_found'));
+        if (exists) {
           this.message.info('检测到日志组件已安装，已跳过安装。可直接查看状态或日志。');
           this.stepLoading = false;
           this.cdr.detectChanges();
@@ -993,7 +992,18 @@ export class LogCollectorInstallComponent implements OnInit, AfterViewInit, OnDe
       return;
     }
 
-    this.api.logsBootstrap(requestBody).subscribe({
+    // 若组件已存在则不创建
+    this.api.getLogServiceStatus().subscribe({
+      next: (s: any) => {
+        const comps = s?.components || {};
+        const exists = !!(comps?.filebeat?.exists || comps?.logstash?.exists || (comps?.filebeat && comps?.filebeat?.status !== 'not_found') || (comps?.logstash && comps?.logstash?.status !== 'not_found'));
+        if (exists) {
+          this.addLog('info', '检测到日志组件已安装，跳过安装流程');
+          this.completeInstallation(true);
+          this.saveState();
+          return;
+        }
+        this.api.logsBootstrap(requestBody).subscribe({
       next: (res: any) => {
         const jobName = res?.jobName || 'polardbx-logs-bootstrap';
         const jobNamespace = res?.namespace || 'polardbx-operator-system';
@@ -1017,12 +1027,35 @@ export class LogCollectorInstallComponent implements OnInit, AfterViewInit, OnDe
         // 展示进度动画
         this.simulateInstallation();
         this.saveState(); // 保存状态
+        },
+        error: (error: any) => {
+          const msg = error?.error?.error || error?.error?.message || error?.message || '安装触发失败';
+          this.addLog('error', `启动安装失败: ${msg}`);
+          this.completeInstallation(false);
+          this.saveState();
+        }
+      );
       },
-      error: (error: any) => {
-        const msg = error?.error?.error || error?.error?.message || error?.message || '安装触发失败';
-        this.addLog('error', `启动安装失败: ${msg}`);
-        this.completeInstallation(false);
-        this.saveState(); // 即使失败也保存状态
+      error: () => {
+        this.api.logsBootstrap(requestBody).subscribe({
+          next: (res: any) => {
+            const jobName = res?.jobName || 'polardbx-logs-bootstrap';
+            const jobNamespace = res?.namespace || 'polardbx-operator-system';
+            const targetNs = res?.targetNs || ns;
+            this.installJob = { jobName, namespace: jobNamespace, targetNs, instructions: res?.instructions };
+            this.addLog('success', `已创建日志收集安装 Job: ${jobName}`);
+            this.globalProgress.reportLogsInstall(jobName, jobNamespace, targetNs);
+            this.startJobStatusPolling();
+            this.simulateInstallation();
+            this.saveState();
+          },
+          error: (error: any) => {
+            const msg = error?.error?.error || error?.error?.message || error?.message || '安装触发失败';
+            this.addLog('error', `启动安装失败: ${msg}`);
+            this.completeInstallation(false);
+            this.saveState();
+          }
+        });
       }
     });
   }

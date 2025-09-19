@@ -16,6 +16,7 @@ export interface InstallTask {
 export class GlobalInstallProgressService {
   private readonly STORAGE_KEY = 'polardbx.global.installTasks';
   private tasks$ = new BehaviorSubject<InstallTask[]>(this.loadFromStorage());
+  private readonly TTL_MS = 2 * 60 * 60 * 1000; // 2h
 
   constructor(private api: ApiService) {
     // 周期性轮询更新任务状态（仅当列表非空）
@@ -56,6 +57,14 @@ export class GlobalInstallProgressService {
   private refreshAllTasks(): Observable<void> {
     const list = this.tasks$.value;
     if (!list.length) return of(void 0);
+
+    // TTL 清理过期任务
+    const now = Date.now();
+    const fresh = list.filter((t: any) => !t._ts || (now - (t._ts as number)) < this.TTL_MS);
+    if (fresh.length !== list.length) {
+      this.tasks$.next(fresh);
+      this.saveToStorage(fresh);
+    }
     const toRemove: InstallTask[] = [];
     const updates: Promise<void>[] = list.map(async (t) => {
       try {
@@ -68,6 +77,7 @@ export class GlobalInstallProgressService {
           t.phase = status?.phase;
           t.message = status?.failureReason || status?.message || '';
         }
+        (t as any)._ts = now;
       } catch (err: any) {
         // 若任务不存在（404），从队列中移除，避免持续轮询报错
         const code = err?.status || err?.error?.code || err?.code;

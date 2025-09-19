@@ -466,7 +466,7 @@ export class ApiService {
     );
   }
 
-  private handleRequest<T>(request: Observable<T>, loadingKey: string, endpoint = '', method = 'GET'): Observable<T> {
+  private handleRequest<T>(request: Observable<T>, loadingKey: string, endpoint = '', method = 'GET', opts?: { silent?: boolean }): Observable<T> {
     // 仅对关键操作设置全局遮罩（GLOBAL），普通 detail/list 请求只记录性能不遮挡页面
     const shouldShowGlobal = (loadingKey as any) === LoadingKeys.CONNECT;
     // 防御：只在 CONNECT 时设置全局遮罩
@@ -485,7 +485,9 @@ export class ApiService {
         const duration = performance.now() - startTime;
         this.performanceService.recordApiPerformance(endpoint, method, duration, error.status);
         this.performanceService.recordError();
-        this.errorHandler.handleHttpError(error, '请求失败');
+        if (!opts?.silent) {
+          this.errorHandler.handleHttpError(error, '请求失败');
+        }
         return throwError(() => error);
       }),
       finalize(() => {
