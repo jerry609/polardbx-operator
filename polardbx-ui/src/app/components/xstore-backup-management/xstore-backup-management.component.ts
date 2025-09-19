@@ -110,12 +110,12 @@ import { takeUntil } from 'rxjs/operators';
                         [nzLoading]="loadingService.isLoading(loadingKeys.XSTORE_BACKUP_LIST)"
                         [nzPageSize]="10"
                         [nzShowPagination]="backups.length > 10"
-                        [nzScroll]="{ x: '1200px' }">
+                        [nzScroll]="{ x: '1300px' }">
                         <thead>
                           <tr>
                             <th nzWidth="180px">名称</th>
-                            <th nzWidth="150px">XStore</th>
-                            <th nzWidth="120px">类别</th>
+                            <th nzWidth="200px">XStore</th>
+                            <th nzWidth="150px">类别</th>
                             <th nzWidth="100px">类型</th>
                             <th nzWidth="120px">状态</th>
                             <th nzWidth="120px">大小</th>
@@ -136,13 +136,19 @@ import { takeUntil } from 'rxjs/operators';
                               </div>
                             </td>
                             <td>
-                              <nz-tag nzColor="purple">{{ getXStoreName(b) }}</nz-tag>
+                              <div class="xstore-display">
+                                <i nz-icon nzType="database" class="xstore-icon"></i>
+                                <span class="xstore-name">{{ getXStoreName(b) }}</span>
+                              </div>
                             </td>
                             <td>
-                              <nz-tag nzColor="geekblue" *ngIf="getCategoryDisplay(b) as cat" 
-                                      nz-tooltip [nzTooltipTitle]="getCategoryTooltip(b)">
-                                {{ cat }}
-                              </nz-tag>
+                              <div class="category-display">
+                                <nz-tag nzColor="geekblue" *ngIf="getCategoryDisplay(b) as cat" 
+                                        nz-tooltip [nzTooltipTitle]="getCategoryTooltip(b)"
+                                        class="category-tag">
+                                  {{ cat }}
+                                </nz-tag>
+                              </div>
                             </td>
                             <td>{{ (b.spec.backupType || 'full') === 'full' ? '全量' : '增量' }}</td>
                             <td>
@@ -738,6 +744,41 @@ import { takeUntil } from 'rxjs/operators';
       display: flex;
       align-items: center;
       gap: 8px;
+    }
+    
+    .xstore-display {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      max-width: 100%;
+    }
+    
+    .xstore-icon {
+      font-size: 14px;
+      color: #722ed1;
+      flex-shrink: 0;
+    }
+    
+    .xstore-name {
+      color: #722ed1;
+      font-weight: 500;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    
+    .category-display {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      max-width: 100%;
+    }
+    
+    .category-tag {
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     
     .action-buttons {
