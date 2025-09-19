@@ -890,23 +890,32 @@ export class LogCollectorInstallComponent implements OnInit, AfterViewInit, OnDe
     if (!this.installJob) return;
 
     this.api.logsBootstrapLogs(this.installJob.jobName, this.installJob.namespace).subscribe({
-      next: (logs: string) => {
+      next: (res: any) => {
+        const content = this.normalizeLogsResponse(res);
         this.modal.create({
           nzTitle: '安装日志',
-          nzContent: `<pre style="background: #f6f8fa; padding: 12px; border-radius: 6px; max-height: 400px; overflow-y: auto;">${logs || '暂无日志'}</pre>`,
+          nzContent: `<pre style="background: #f6f8fa; padding: 12px; border-radius: 6px; max-height: 400px; overflow-y: auto;">${content}</pre>`,
           nzWidth: 800,
           nzFooter: [
-            {
-              label: '关闭',
-              onClick: () => true
-            }
+            { label: '关闭', onClick: () => true }
           ]
         });
       },
-      error: (error: any) => {
+      error: (_error: any) => {
         this.message.error('获取安装日志失败');
       }
     });
+  }
+
+  // 规范化后端返回的日志对象，避免 [object Object]
+  private normalizeLogsResponse(res: any): string {
+    const raw = (res && (res.logs || res.message || res.text || res)) as any;
+    const str = typeof raw === 'string' ? raw : JSON.stringify(raw, null, 2);
+    return this.escapeHtml(str || '暂无日志');
+  }
+
+  private escapeHtml(s: string): string {
+    return s.replace(/[&<>]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' } as any)[ch] || ch);
   }
 
   retryApply(): void {
