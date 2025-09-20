@@ -72,15 +72,15 @@ import { takeUntil } from 'rxjs/operators';
         <div class="header-content">
           <h1 class="page-title">
             <i nz-icon nzType="hdd" class="page-icon"></i>
-            存储备份管理
+            XStore 备份管理
           </h1>
-          <p class="page-description">管理 XStore 存储级备份，支持全量和增量备份</p>
+          <p class="page-description">管理 XStore 存储备份任务与增量日志备份配置</p>
         </div>
       </div>
 
       <div class="page-content">
         <nz-tabset class="main-tabs" [nzTabPosition]="'top'" [(nzSelectedIndex)]="selectedTab">
-          <nz-tab nzTitle="存储备份列表">
+          <nz-tab nzTitle="存储备份任务">
               <ng-template nz-tab>
                 <div class="tab-content">
                   <nz-card 
@@ -94,9 +94,15 @@ import { takeUntil } from 'rxjs/operators';
                           <i nz-icon nzType="reload"></i>
                           刷新
                         </button>
-                        <button nz-button nzType="primary" nzSize="small" (click)="createNew()">
+                        <button nz-button nzType="primary" nzSize="small" (click)="createNew()" 
+                                nz-tooltip="创建存储级全量/增量备份任务">
                           <i nz-icon nzType="plus"></i>
-                          新建备份
+                          新建存储备份
+                        </button>
+                        <button nz-button nzType="default" nzSize="small" (click)="createNewBinlog()"
+                                nz-tooltip="创建增量日志备份配置（标准版）">
+                          <i nz-icon nzType="file-text"></i>
+                          新建日志备份
                         </button>
                         <div class="view-toggle">
                           <button nz-button [nzType]="viewMode==='summary' ? 'primary' : 'default'" nzSize="small" (click)="onChangeViewMode('summary')">汇总</button>
@@ -213,10 +219,18 @@ import { takeUntil } from 'rxjs/operators';
                           nzNotFoundImage="simple" 
                           nzNotFoundContent="暂无存储备份配置">
                           <div nz-empty-footer>
-                            <button nz-button nzType="primary" (click)="createNew()">
-                              <i nz-icon nzType="plus"></i>
-                              新建备份
-                            </button>
+                            <div style="display: flex; gap: 8px;">
+                              <button nz-button nzType="primary" (click)="createNew()"
+                                      nz-tooltip="创建存储级全量/增量备份任务">
+                                <i nz-icon nzType="plus"></i>
+                                新建存储备份
+                              </button>
+                              <button nz-button nzType="default" (click)="createNewBinlog()"
+                                      nz-tooltip="创建增量日志备份配置（标准版）">
+                                <i nz-icon nzType="file-text"></i>
+                                新建日志备份
+                              </button>
+                            </div>
                           </div>
                         </nz-empty>
                       </div>
@@ -226,7 +240,7 @@ import { takeUntil } from 'rxjs/operators';
               </ng-template>
             </nz-tab>
             
-            <nz-tab nzTitle="增量日志备份">
+            <nz-tab nzTitle="日志备份配置">
               <ng-template nz-tab>
                 <div class="tab-content">
                   <nz-card 
@@ -455,7 +469,7 @@ import { takeUntil } from 'rxjs/operators';
                         <nz-form-label nzRequired>Sink 名称</nz-form-label>
                         <nz-form-control nzErrorTip="请输入或选择 sink 名称">
                           <nz-select formControlName="sinkName" nzShowSearch nzAllowClear nzPlaceHolder="选择 HPFS 配置中的 sink 名称">
-                            <nz-option *ngFor="let s of filteredHpfsSinks" [nzValue]="s.name" [nzLabel]="s.name"></nz-option>
+                            <nz-option *ngFor="let s of filteredHpfsSinksForBinlog" [nzValue]="s.name" [nzLabel]="s.name"></nz-option>
                           </nz-select>
                         </nz-form-control>
                       </nz-form-item>
@@ -1160,7 +1174,7 @@ export class XStoreBackupManagementComponent implements OnInit, OnDestroy {
     // init binlog form
     this.binlogForm = this.fb.group({
       name: ['', Validators.required],
-      namespace: [''],
+      namespace: [this.data.namespace || 'default'],
       xstoreName: ['', Validators.required],
       remoteExpireLogHours: [168, [Validators.min(1)]],
       localExpireLogHours: [7, [Validators.min(1)]],
@@ -1937,6 +1951,12 @@ export class XStoreBackupManagementComponent implements OnInit, OnDestroy {
 
   get filteredHpfsSinks(): Array<{ name: string; type: string; endpoint?: string; bucket?: string; host?: string; port?: number; rootPath?: string; bucketLookupType?: string }> {
     const type = (this.selectedStorageType || '').toLowerCase();
+    if (!type) return this.hpfsSinks;
+    return this.hpfsSinks.filter(s => (s.type || '').toLowerCase() === type);
+  }
+
+  get filteredHpfsSinksForBinlog(): Array<{ name: string; type: string; endpoint?: string; bucket?: string; host?: string; port?: number; rootPath?: string; bucketLookupType?: string }> {
+    const type = (this.binlogForm?.get('storageType')?.value || '').toLowerCase();
     if (!type) return this.hpfsSinks;
     return this.hpfsSinks.filter(s => (s.type || '').toLowerCase() === type);
   }
