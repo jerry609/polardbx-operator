@@ -99,8 +99,8 @@ import { takeUntil } from 'rxjs/operators';
                           <i nz-icon nzType="plus"></i>
                           新建存储备份
                         </button>
-                        <button nz-button nzType="default" nzSize="small" (click)="createNewBinlog()"
-                                nz-tooltip="创建增量日志备份配置（标准版）">
+                        <button nz-button nzType="default" nzSize="small" (click)="switchToBinlogTab()"
+                                nz-tooltip="跳转到增量日志备份配置页面">
                           <i nz-icon nzType="file-text"></i>
                           新建日志备份
                         </button>
@@ -225,8 +225,8 @@ import { takeUntil } from 'rxjs/operators';
                                 <i nz-icon nzType="plus"></i>
                                 新建存储备份
                               </button>
-                              <button nz-button nzType="default" (click)="createNewBinlog()"
-                                      nz-tooltip="创建增量日志备份配置（标准版）">
+                              <button nz-button nzType="default" (click)="switchToBinlogTab()"
+                                      nz-tooltip="跳转到增量日志备份配置页面">
                                 <i nz-icon nzType="file-text"></i>
                                 新建日志备份
                               </button>
@@ -256,7 +256,7 @@ import { takeUntil } from 'rxjs/operators';
                         </button>
                         <button nz-button nzType="primary" nzSize="small" (click)="createNewBinlog()">
                           <i nz-icon nzType="plus"></i>
-                          新建增量日志备份
+                          新建日志备份配置
                         </button>
                       </div>
                     </ng-template>
@@ -349,7 +349,7 @@ import { takeUntil } from 'rxjs/operators';
                           <div nz-empty-footer>
                             <button nz-button nzType="primary" (click)="createNewBinlog()">
                               <i nz-icon nzType="plus"></i>
-                              新建增量日志备份
+                              新建日志备份配置
                             </button>
                           </div>
                         </nz-empty>
@@ -1724,7 +1724,7 @@ export class XStoreBackupManagementComponent implements OnInit, OnDestroy {
     this.data.mode = 'edit';
     this.data.backup = backup;
     this.populateFormFromBackup(backup);
-    this.selectedTab = 1;
+    this.selectedTab = 2; // 跳转到"创建备份配置"Tab
   }
 
   viewBackup(backup: XStoreBackupWithStatus): void {
@@ -1779,6 +1779,10 @@ export class XStoreBackupManagementComponent implements OnInit, OnDestroy {
   switchToListTab(): void {
     this.selectedTab = 0;
   }
+
+  switchToBinlogTab(): void {
+    this.selectedTab = 1; // 跳转到"日志备份配置"Tab
+  }
   
   formatDate(dateString?: string): string {
     if (!dateString) return '-';
@@ -1799,7 +1803,7 @@ export class XStoreBackupManagementComponent implements OnInit, OnDestroy {
   createNew(): void {
     this.data.mode = 'create';
     this.resetForms();
-    this.selectedTab = 1;
+    this.selectedTab = 2; // 跳转到"创建备份配置"Tab
   }
 
   // ============================================================================
