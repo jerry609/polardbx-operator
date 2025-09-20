@@ -204,8 +204,8 @@ func Status(c *gin.Context) {
 			prom = gin.H{"ready": r == d, "readyReplicas": r, "replicas": d}
 		}
 	}
-    prom["service"] = checkService("prometheus-k8s") || checkService("kube-prometheus-stack-prometheus")
-    prom["exists"] = prom["readyReplicas"] != nil || prom["service"].(bool)
+	prom["service"] = checkService("prometheus-k8s") || checkService("kube-prometheus-stack-prometheus")
+	prom["exists"] = prom["readyReplicas"] != nil || prom["service"].(bool)
 
 	graf := gin.H{"ready": false}
 	if r, d, ok := checkDeploy("grafana"); ok {
@@ -216,11 +216,11 @@ func Status(c *gin.Context) {
 			graf = gin.H{"ready": r == d, "readyReplicas": r, "replicas": d}
 		}
 	}
-    graf["service"] = checkService("grafana") || checkService("kube-prometheus-stack-grafana")
-    graf["exists"] = graf["readyReplicas"] != nil || graf["service"].(bool)
+	graf["service"] = checkService("grafana") || checkService("kube-prometheus-stack-grafana")
+	graf["exists"] = graf["readyReplicas"] != nil || graf["service"].(bool)
 
-    am := gin.H{"configured": checkService("alertmanager-main") || checkService("kube-prometheus-stack-alertmanager")}
-    am["exists"] = am["configured"].(bool)
+	am := gin.H{"configured": checkService("alertmanager-main") || checkService("kube-prometheus-stack-alertmanager")}
+	am["exists"] = am["configured"].(bool)
 
 	c.JSON(http.StatusOK, gin.H{
 		"namespace": ns,

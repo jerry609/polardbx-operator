@@ -656,11 +656,49 @@ func DeletePolarDBXBackupBinlog(c client.Client, namespace, name string) error {
 	return c.Delete(context.TODO(), binlog)
 }
 
-// ============================================================================
-// 🚨 CRITICAL MISSING FUNCTIONALITY: XStoreFollower API Functions
-// Based on document analysis, XStoreFollower is for DN replica fault recovery (备库重搭)
-// This is identified as high priority missing functionality in the Management Platform
-// ============================================================================
+// XStoreBackupBinlog (Standard Edition Incremental Log Backup)
+func ListXStoreBackupBinlogs(c client.Client, namespace string) ([]polardbxv1.XStoreBackupBinlog, error) {
+	var list polardbxv1.XStoreBackupBinlogList
+	if err := c.List(context.TODO(), &list, client.InNamespace(namespace)); err != nil {
+		return nil, err
+	}
+	return list.Items, nil
+}
+
+func CreateXStoreBackupBinlog(c client.Client, namespace string, obj *polardbxv1.XStoreBackupBinlog) (*polardbxv1.XStoreBackupBinlog, error) {
+	if obj.Namespace == "" {
+		obj.Namespace = namespace
+	}
+	if err := c.Create(context.TODO(), obj); err != nil {
+		return nil, err
+	}
+	return obj, nil
+}
+
+func GetXStoreBackupBinlog(c client.Client, namespace, name string) (*polardbxv1.XStoreBackupBinlog, error) {
+	var out polardbxv1.XStoreBackupBinlog
+	if err := c.Get(context.TODO(), client.ObjectKey{Namespace: namespace, Name: name}, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func UpdateXStoreBackupBinlog(c client.Client, namespace string, obj *polardbxv1.XStoreBackupBinlog) (*polardbxv1.XStoreBackupBinlog, error) {
+	if obj.Namespace == "" {
+		obj.Namespace = namespace
+	}
+	if err := c.Update(context.TODO(), obj); err != nil {
+		return nil, err
+	}
+	return obj, nil
+}
+
+func DeleteXStoreBackupBinlog(c client.Client, namespace, name string) error {
+	obj := &polardbxv1.XStoreBackupBinlog{}
+	obj.Name = name
+	obj.Namespace = namespace
+	return c.Delete(context.TODO(), obj)
+}
 
 // XStoreFollower Management Functions for DN Replica Fault Recovery
 

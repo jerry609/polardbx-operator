@@ -26,6 +26,13 @@ func RegisterRoutes(v1 *gin.RouterGroup) {
 	g.POST("/backups/:namespace/:name/force-delete", ForceDeleteBackup)
 	g.GET("/backups/:namespace/:name/remote-info", GetBackupRemoteInfo)
 
+	// XStoreBackupBinlogs (domain alias for standard edition binlog backup)
+	g.GET("/backup-binlogs", ListBackupBinlogs)
+	g.POST("/backup-binlogs", CreateBackupBinlog)
+	g.GET("/backup-binlogs/:namespace/:name", GetBackupBinlog)
+	g.PUT("/backup-binlogs/:namespace/:name", UpdateBackupBinlog)
+	g.DELETE("/backup-binlogs/:namespace/:name", DeleteBackupBinlog)
+
 	// XStoreFollower (domain alias)
 	g.GET("/followers", ListFollowers)
 	g.POST("/followers", CreateFollower)
@@ -41,7 +48,7 @@ func RegisterRoutes(v1 *gin.RouterGroup) {
 	item.GET("/rebuild/wait", RebuildWait)
 	item.GET("/rebuild/progress", RebuildProgress)
 	item.DELETE("/rebuild/cancel", RebuildCancel)
-	
+
 	// XStoreFollower operations
 	g.POST("/followers/:namespace/:name/retry", RetryFollower)
 	g.DELETE("/followers/:namespace/:name/cancel", CancelFollower)

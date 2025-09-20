@@ -28,6 +28,7 @@ import { NzEmptyModule } from 'ng-zorro-antd/empty';
 import { ApiService } from '../../services/api.service';
 import { LoadingService, LoadingKeys } from '../../services/loading.service';
 import { XStoreBackup, XStoreBackupWithStatus, CreateXStoreBackupRequest } from '../../models/xstore-backup.model';
+import { XStoreBackupBinlog, CreateXStoreBackupBinlogRequest } from '../../models/xstore-backup-binlog.model';
 import { XStore } from '../../models/xstore.model';
 import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { NamespaceService } from '../../services/namespace.service';
@@ -215,6 +216,126 @@ import { takeUntil } from 'rxjs/operators';
                             <button nz-button nzType="primary" (click)="createNew()">
                               <i nz-icon nzType="plus"></i>
                               新建备份
+                            </button>
+                          </div>
+                        </nz-empty>
+                      </div>
+                    </div>
+                  </nz-card>
+                </div>
+              </ng-template>
+            </nz-tab>
+            
+            <nz-tab nzTitle="增量日志备份">
+              <ng-template nz-tab>
+                <div class="tab-content">
+                  <nz-card 
+                    class="list-card" 
+                    nzTitle="增量日志备份配置（标准版）" 
+                    [nzExtra]="binlogListExtra"
+                    [nzLoading]="loadingService.isLoading(loadingKeys.XSTORE_BINLOG_LIST)">
+                    <ng-template #binlogListExtra>
+                      <div class="extra-actions">
+                        <button nz-button nzType="default" nzSize="small" (click)="refreshBinlogBackups()">
+                          <i nz-icon nzType="reload"></i>
+                          刷新
+                        </button>
+                        <button nz-button nzType="primary" nzSize="small" (click)="createNewBinlog()">
+                          <i nz-icon nzType="plus"></i>
+                          新建增量日志备份
+                        </button>
+                      </div>
+                    </ng-template>
+                    <div class="list-content">
+                      <nz-table 
+                        #binlogTable 
+                        [nzData]="binlogBackups" 
+                        [nzLoading]="loadingService.isLoading(loadingKeys.XSTORE_BINLOG_LIST)"
+                        [nzPageSize]="10"
+                        [nzShowPagination]="binlogBackups.length > 10"
+                        [nzScroll]="{ x: '1200px' }">
+                        <thead>
+                          <tr>
+                            <th nzWidth="180px">名称</th>
+                            <th nzWidth="180px">XStore</th>
+                            <th nzWidth="120px">状态</th>
+                            <th nzWidth="120px">远程保留</th>
+                            <th nzWidth="120px">本地保留</th>
+                            <th nzWidth="100px">PITR</th>
+                            <th nzWidth="120px">存储类型</th>
+                            <th nzWidth="180px" nzAlign="center">操作</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr *ngFor="let bl of binlogTable.data">
+                            <td>
+                              <div class="backup-name">
+                                <i nz-icon nzType="file-text" [style.color]="getNzStatusColor(bl.status?.phase)"></i>
+                                <span style="margin-left: 8px;">{{ bl.metadata.name }}</span>
+                              </div>
+                            </td>
+                            <td>
+                              <div class="xstore-display">
+                                <i nz-icon nzType="database" class="xstore-icon"></i>
+                                <span class="xstore-name">{{ bl.spec.xstoreName }}</span>
+                              </div>
+                            </td>
+                            <td>
+                              <nz-tag [nzColor]="getNzStatusColor(bl.status?.phase)">
+                                {{ bl.status?.phase || '未知' }}
+                              </nz-tag>
+                            </td>
+                            <td>{{ bl.spec.remoteExpireLogHours || 168 }}h</td>
+                            <td>{{ bl.spec.localExpireLogHours || 7 }}h</td>
+                            <td>
+                              <nz-tag [nzColor]="bl.spec.pointInTimeRecover ? 'green' : 'default'">
+                                {{ bl.spec.pointInTimeRecover ? '启用' : '禁用' }}
+                              </nz-tag>
+                            </td>
+                            <td>{{ bl.spec.storageProvider?.storageName || '-' }}</td>
+                            <td nzAlign="center">
+                              <div class="action-buttons">
+                                <button 
+                                  nz-button 
+                                  nzType="link" 
+                                  nzSize="small"
+                                  nz-tooltip="查看详情"
+                                  (click)="viewBinlogBackup(bl)">
+                                  <i nz-icon nzType="eye"></i>
+                                </button>
+                                <button 
+                                  nz-button 
+                                  nzType="link" 
+                                  nzSize="small"
+                                  nz-tooltip="编辑配置"
+                                  (click)="editBinlogBackup(bl)">
+                                  <i nz-icon nzType="edit"></i>
+                                </button>
+                                <button 
+                                  nz-button 
+                                  nzType="link" 
+                                  nzDanger
+                                  nzSize="small"
+                                  nz-tooltip="删除配置"
+                                  nz-popconfirm
+                                  nzPopconfirmTitle="确定要删除这个增量日志备份配置吗？"
+                                  (nzOnConfirm)="deleteBinlogBackup(bl)">
+                                  <i nz-icon nzType="delete"></i>
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </nz-table>
+
+                      <div *ngIf="!loadingService.isLoading(loadingKeys.XSTORE_BINLOG_LIST) && binlogBackups.length === 0" class="empty-state">
+                        <nz-empty 
+                          nzNotFoundImage="simple" 
+                          nzNotFoundContent="暂无增量日志备份配置">
+                          <div nz-empty-footer>
+                            <button nz-button nzType="primary" (click)="createNewBinlog()">
+                              <i nz-icon nzType="plus"></i>
+                              新建增量日志备份
                             </button>
                           </div>
                         </nz-empty>
@@ -852,6 +973,7 @@ export class XStoreBackupManagementComponent implements OnInit, OnDestroy {
   hpfsSinks: Array<{ name: string; type: string; endpoint?: string; bucket?: string; host?: string; port?: number; rootPath?: string; bucketLookupType?: string }> = [];
   sinkStatus: 'idle' | 'valid' | 'invalid' | 'checking' = 'idle';
   backups: XStoreBackupWithStatus[] = [];
+  binlogBackups: XStoreBackupBinlog[] = [];
   // 汇总/明细视图切换，默认汇总
   viewMode: 'summary' | 'detail' = 'summary';
   // 明细计数与名称用于汇总视图显示类别细分（DN/GMS）
@@ -907,6 +1029,7 @@ export class XStoreBackupManagementComponent implements OnInit, OnDestroy {
       this.data.namespace = namespace || 'default';
       this.backupForm.patchValue({ namespace: this.data.namespace });
       this.loadBackups();
+      this.loadBinlogBackups();
     });
     this.loadInitialData();
     if (this.data.mode === 'edit' && this.data.backup) {
@@ -1528,6 +1651,54 @@ export class XStoreBackupManagementComponent implements OnInit, OnDestroy {
     this.data.mode = 'create';
     this.resetForms();
     this.selectedTab = 1;
+  }
+
+  // ============================================================================
+  // XStoreBackupBinlog Methods (Standard Edition Incremental Log Backup)
+  // ============================================================================
+
+  private async loadBinlogBackups(): Promise<void> {
+    try {
+      const binlogs = await this.apiService.listXStoreBackupBinlogs(this.data.namespace as string).toPromise();
+      this.binlogBackups = binlogs || [];
+    } catch (error) {
+      console.error('Failed to load binlog backups:', error);
+      this.binlogBackups = [];
+    }
+  }
+
+  async refreshBinlogBackups(): Promise<void> {
+    await this.loadBinlogBackups();
+  }
+
+  createNewBinlog(): void {
+    // TODO: Implement binlog backup creation form
+    this.message.info('增量日志备份创建功能开发中...');
+  }
+
+  viewBinlogBackup(binlog: XStoreBackupBinlog): void {
+    // TODO: Implement binlog backup detail view
+    this.message.info('增量日志备份详情查看功能开发中...');
+  }
+
+  editBinlogBackup(binlog: XStoreBackupBinlog): void {
+    // TODO: Implement binlog backup editing
+    this.message.info('增量日志备份编辑功能开发中...');
+  }
+
+  async deleteBinlogBackup(binlog: XStoreBackupBinlog): Promise<void> {
+    try {
+      await this.apiService.deleteXStoreBackupBinlog(
+        binlog.metadata.namespace as string,
+        binlog.metadata.name
+      ).toPromise();
+      
+      this.message.success('删除成功');
+      await this.loadBinlogBackups();
+    } catch (error) {
+      console.error('Failed to delete binlog backup:', error);
+      this.message.error('删除失败');
+    }
   }
 
   resetForms(): void {

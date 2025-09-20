@@ -12,6 +12,7 @@ import (
 	crd_polardbxparameters "polardbx-ui-backend/pkg/api/crd/polardbxparameters"
 	crd_polardbxparametertemplates "polardbx-ui-backend/pkg/api/crd/polardbxparametertemplates"
 	crd_systemtasks "polardbx-ui-backend/pkg/api/crd/systemtasks"
+	crd_xstorebackupbinlogs "polardbx-ui-backend/pkg/api/crd/xstorebackupbinlogs"
 	crd_xstores "polardbx-ui-backend/pkg/api/crd/xstores"
 	domain_platform "polardbx-ui-backend/pkg/api/domain/platform"
 
@@ -33,6 +34,7 @@ func RegisterCRDAliasRoutes(v1 *gin.RouterGroup) {
 	crd_polardbxbackups.RegisterRoutes(crd)
 	crd_polardbxbackupschedules.RegisterRoutes(crd)
 	crd_polardbxbackupbinlogs.RegisterRoutes(crd)
+	crd_xstorebackupbinlogs.RegisterRoutes(crd)
 	crd_polardbxparameters.RegisterRoutes(crd)
 	crd_polardbxparametertemplates.RegisterRoutes(crd)
 	crd_polardbxmonitors.RegisterRoutes(crd)

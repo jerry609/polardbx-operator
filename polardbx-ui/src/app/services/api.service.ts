@@ -1296,6 +1296,61 @@ export class ApiService {
     );
   }
 
+  // ============================================================================
+  // XStoreBackupBinlog API Methods - Standard edition incremental binlog backup
+  // ============================================================================
+
+  listXStoreBackupBinlogs(namespace?: string): Observable<any[]> {
+    const url = `${this.baseUrl}/xstores/backup-binlogs`;
+    const params = namespace ? new HttpParams().set('namespace', namespace) : this.withNs();
+    return this.handleRequest(
+      this.http.get<any[]>(url, { headers: this.getHeaders(), params }),
+      LoadingKeys.BACKUP_BINLOG_LIST,
+      `/xstores/backup-binlogs`,
+      'GET'
+    );
+  }
+
+  createXStoreBackupBinlog(namespace: string, body: any): Observable<any> {
+    const url = `${this.baseUrl}/xstores/backup-binlogs`;
+    return this.handleRequest(
+      this.http.post<any>(url, body, { headers: this.getHeaders(), params: this.withNs(new HttpParams().set('namespace', namespace)) }),
+      LoadingKeys.BACKUP_BINLOG_CREATE,
+      `/xstores/backup-binlogs`,
+      'POST'
+    );
+  }
+
+  getXStoreBackupBinlog(namespace: string, name: string): Observable<any> {
+    const url = `${this.baseUrl}/xstores/backup-binlogs/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}`;
+    return this.handleRequest(
+      this.http.get<any>(url, { headers: this.getHeaders() }),
+      LoadingKeys.BACKUP_BINLOG_DETAIL,
+      `/xstores/backup-binlogs/${namespace}/${name}`,
+      'GET'
+    );
+  }
+
+  updateXStoreBackupBinlog(namespace: string, body: any): Observable<any> {
+    const url = `${this.baseUrl}/xstores/backup-binlogs/${encodeURIComponent(namespace)}/${encodeURIComponent(body?.metadata?.name || '')}`;
+    return this.handleRequest(
+      this.http.put<any>(url, body, { headers: this.getHeaders() }),
+      LoadingKeys.BACKUP_BINLOG_UPDATE,
+      `/xstores/backup-binlogs/${namespace}/${body?.metadata?.name || ''}`,
+      'PUT'
+    );
+  }
+
+  deleteXStoreBackupBinlog(namespace: string, name: string): Observable<any> {
+    const url = `${this.baseUrl}/xstores/backup-binlogs/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}`;
+    return this.handleRequest(
+      this.http.delete<any>(url, { headers: this.getHeaders() }),
+      LoadingKeys.BACKUP_BINLOG_DELETE,
+      `/xstores/backup-binlogs/${namespace}/${name}`,
+      'DELETE'
+    );
+  }
+
   // PolarDBXClusterKnobs 管理 API - 性能调优参数管理
   getClusterKnobsList(): Observable<PolarDBXClusterKnobsList> {
     return this.handleRequest(

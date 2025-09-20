@@ -276,6 +276,12 @@ export const LoadingKeys = {
   XSTORE_BACKUP_DETAIL: 'xstore-backup-detail',
   XSTORE_BACKUP_UPDATE: 'xstore-backup-update',
   XSTORE_BACKUP_DELETE: 'xstore-backup-delete',
+  
+  // XStore Backup Binlog loading keys - Standard edition incremental log backup
+  XSTORE_BINLOG_LIST: 'xstore-binlog-list',
+  XSTORE_BINLOG_CREATE: 'xstore-binlog-create',
+  XSTORE_BINLOG_UPDATE: 'xstore-binlog-update',
+  XSTORE_BINLOG_DELETE: 'xstore-binlog-delete',
 
   // BackupBinlog loading keys - Binlog backup & PITR
   BACKUP_BINLOG_LIST: 'backup-binlog-list',
