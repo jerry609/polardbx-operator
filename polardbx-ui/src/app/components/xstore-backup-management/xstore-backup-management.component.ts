@@ -346,6 +346,125 @@ import { takeUntil } from 'rxjs/operators';
               </ng-template>
             </nz-tab>
             
+            <!-- Binlog Create/Edit Modal -->
+            <nz-modal
+              [(nzVisible)]="binlogModalVisible"
+              [nzTitle]="binlogForm.get('name')?.value ? '编辑增量日志备份' : '创建增量日志备份'"
+              [nzMaskClosable]="false"
+              [nzWidth]="720"
+              (nzOnCancel)="binlogModalVisible=false"
+              (nzOnOk)="saveBinlogBackup()">
+              <div *nzModalContent>
+                <form nz-form [formGroup]="binlogForm" nzLayout="vertical">
+                  <div nz-row [nzGutter]="16">
+                    <div nz-col [nzSpan]="12">
+                      <nz-form-item>
+                        <nz-form-label nzRequired>名称</nz-form-label>
+                        <nz-form-control nzErrorTip="请输入名称">
+                          <input nz-input formControlName="name" placeholder="binlog-backup-name" />
+                        </nz-form-control>
+                      </nz-form-item>
+                    </div>
+                    <div nz-col [nzSpan]="12">
+                      <nz-form-item>
+                        <nz-form-label nzRequired>命名空间</nz-form-label>
+                        <nz-form-control nzErrorTip="请输入命名空间">
+                          <input nz-input formControlName="namespace" placeholder="default" />
+                        </nz-form-control>
+                      </nz-form-item>
+                    </div>
+                  </div>
+
+                  <div nz-row [nzGutter]="16">
+                    <div nz-col [nzSpan]="12">
+                      <nz-form-item>
+                        <nz-form-label nzRequired>XStore</nz-form-label>
+                        <nz-form-control nzErrorTip="请选择 XStore">
+                          <nz-select formControlName="xstoreName" nzPlaceHolder="选择 XStore" nzShowSearch>
+                            <nz-option *ngFor="let x of availableXStores" [nzValue]="x.metadata.name" [nzLabel]="x.metadata.name"></nz-option>
+                          </nz-select>
+                        </nz-form-control>
+                      </nz-form-item>
+                    </div>
+                    <div nz-col [nzSpan]="12">
+                      <nz-form-item>
+                        <nz-form-label>校验码</nz-form-label>
+                        <nz-form-control>
+                          <nz-select formControlName="binlogChecksum">
+                            <nz-option nzValue="CRC32" nzLabel="CRC32"></nz-option>
+                            <nz-option nzValue="NONE" nzLabel="NONE"></nz-option>
+                          </nz-select>
+                        </nz-form-control>
+                      </nz-form-item>
+                    </div>
+                  </div>
+
+                  <div nz-row [nzGutter]="16">
+                    <div nz-col [nzSpan]="8">
+                      <nz-form-item>
+                        <nz-form-label>远程保留(小时)</nz-form-label>
+                        <nz-form-control>
+                          <nz-input-number [nzMin]="1" [nzStep]="1" formControlName="remoteExpireLogHours"></nz-input-number>
+                        </nz-form-control>
+                      </nz-form-item>
+                    </div>
+                    <div nz-col [nzSpan]="8">
+                      <nz-form-item>
+                        <nz-form-label>本地保留(小时)</nz-form-label>
+                        <nz-form-control>
+                          <nz-input-number [nzMin]="1" [nzStep]="1" formControlName="localExpireLogHours"></nz-input-number>
+                        </nz-form-control>
+                      </nz-form-item>
+                    </div>
+                    <div nz-col [nzSpan]="8">
+                      <nz-form-item>
+                        <nz-form-label>本地最大文件数</nz-form-label>
+                        <nz-form-control>
+                          <nz-input-number [nzMin]="1" [nzStep]="1" formControlName="maxLocalBinlogCount"></nz-input-number>
+                        </nz-form-control>
+                      </nz-form-item>
+                    </div>
+                  </div>
+
+                  <div nz-row [nzGutter]="16">
+                    <div nz-col [nzSpan]="12">
+                      <nz-form-item>
+                        <nz-form-label>PITR</nz-form-label>
+                        <nz-form-control>
+                          <label nz-checkbox formControlName="pointInTimeRecover">启用</label>
+                        </nz-form-control>
+                      </nz-form-item>
+                    </div>
+                    <div nz-col [nzSpan]="12">
+                      <nz-form-item>
+                        <nz-form-label nzRequired>存储类型</nz-form-label>
+                        <nz-form-control>
+                          <nz-select formControlName="storageType">
+                            <nz-option nzValue="oss" nzLabel="OSS"></nz-option>
+                            <nz-option nzValue="s3" nzLabel="S3/MinIO"></nz-option>
+                            <nz-option nzValue="sftp" nzLabel="SFTP"></nz-option>
+                          </nz-select>
+                        </nz-form-control>
+                      </nz-form-item>
+                    </div>
+                  </div>
+
+                  <div nz-row [nzGutter]="16">
+                    <div nz-col [nzSpan]="24">
+                      <nz-form-item>
+                        <nz-form-label nzRequired>Sink 名称</nz-form-label>
+                        <nz-form-control nzErrorTip="请输入或选择 sink 名称">
+                          <nz-select formControlName="sinkName" nzShowSearch nzAllowClear nzPlaceHolder="选择 HPFS 配置中的 sink 名称">
+                            <nz-option *ngFor="let s of filteredHpfsSinks" [nzValue]="s.name" [nzLabel]="s.name"></nz-option>
+                          </nz-select>
+                        </nz-form-control>
+                      </nz-form-item>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </nz-modal>
+
             <nz-tab nzTitle="创建备份配置">
               <ng-template nz-tab>
                 <div class="tab-content">
@@ -967,6 +1086,7 @@ export class XStoreBackupManagementComponent implements OnInit, OnDestroy {
   storageForm!: FormGroup;
   retentionForm!: FormGroup;
   resourceForm!: FormGroup;
+  binlogForm!: FormGroup;
 
   // Data
   availableXStores: XStore[] = [];
@@ -976,6 +1096,8 @@ export class XStoreBackupManagementComponent implements OnInit, OnDestroy {
   binlogBackups: XStoreBackupBinlog[] = [];
   // 汇总/明细视图切换，默认汇总
   viewMode: 'summary' | 'detail' = 'summary';
+  // Binlog modal
+  binlogModalVisible = false;
   // 明细计数与名称用于汇总视图显示类别细分（DN/GMS）
   private detailCountsByParent: Record<string, { dn: number; gms: number; dnNames: string[]; gmsNames: string[] }> = {};
   
@@ -1035,6 +1157,19 @@ export class XStoreBackupManagementComponent implements OnInit, OnDestroy {
     if (this.data.mode === 'edit' && this.data.backup) {
       this.populateFormFromBackup(this.data.backup);
     }
+    // init binlog form
+    this.binlogForm = this.fb.group({
+      name: ['', Validators.required],
+      namespace: [''],
+      xstoreName: ['', Validators.required],
+      remoteExpireLogHours: [168, [Validators.min(1)]],
+      localExpireLogHours: [7, [Validators.min(1)]],
+      maxLocalBinlogCount: [60, [Validators.min(1)]],
+      pointInTimeRecover: [true],
+      binlogChecksum: ['CRC32'],
+      storageType: ['oss', Validators.required],
+      sinkName: ['', Validators.required]
+    });
   }
 
   ngOnDestroy(): void {
@@ -1672,8 +1807,16 @@ export class XStoreBackupManagementComponent implements OnInit, OnDestroy {
   }
 
   createNewBinlog(): void {
-    // TODO: Implement binlog backup creation form
-    this.message.info('增量日志备份创建功能开发中...');
+    this.binlogForm.reset({
+      namespace: this.data.namespace || 'default',
+      remoteExpireLogHours: 168,
+      localExpireLogHours: 7,
+      maxLocalBinlogCount: 60,
+      pointInTimeRecover: true,
+      binlogChecksum: 'CRC32',
+      storageType: 'oss'
+    });
+    this.binlogModalVisible = true;
   }
 
   viewBinlogBackup(binlog: XStoreBackupBinlog): void {
@@ -1682,8 +1825,19 @@ export class XStoreBackupManagementComponent implements OnInit, OnDestroy {
   }
 
   editBinlogBackup(binlog: XStoreBackupBinlog): void {
-    // TODO: Implement binlog backup editing
-    this.message.info('增量日志备份编辑功能开发中...');
+    this.binlogForm.reset({
+      name: binlog.metadata.name,
+      namespace: binlog.metadata.namespace,
+      xstoreName: binlog.spec.xstoreName,
+      remoteExpireLogHours: binlog.spec.remoteExpireLogHours ?? 168,
+      localExpireLogHours: binlog.spec.localExpireLogHours ?? 7,
+      maxLocalBinlogCount: binlog.spec.maxLocalBinlogCount ?? 60,
+      pointInTimeRecover: binlog.spec.pointInTimeRecover ?? true,
+      binlogChecksum: binlog.spec.binlogChecksum ?? 'CRC32',
+      storageType: binlog.spec.storageProvider?.storageName ?? 'oss',
+      sinkName: binlog.spec.storageProvider?.sink ?? ''
+    });
+    this.binlogModalVisible = true;
   }
 
   async deleteBinlogBackup(binlog: XStoreBackupBinlog): Promise<void> {
@@ -1698,6 +1852,42 @@ export class XStoreBackupManagementComponent implements OnInit, OnDestroy {
     } catch (error) {
       console.error('Failed to delete binlog backup:', error);
       this.message.error('删除失败');
+    }
+  }
+
+  async saveBinlogBackup(): Promise<void> {
+    if (!this.binlogForm.valid) {
+      this.message.warning('请完善表单信息');
+      return;
+    }
+    const v = this.binlogForm.value;
+    const namespace = (v.namespace || this.data.namespace || 'default') as string;
+    const request: CreateXStoreBackupBinlogRequest = {
+      metadata: {
+        name: v.name,
+        namespace
+      },
+      spec: {
+        xstoreName: v.xstoreName,
+        remoteExpireLogHours: v.remoteExpireLogHours,
+        localExpireLogHours: v.localExpireLogHours,
+        maxLocalBinlogCount: v.maxLocalBinlogCount,
+        pointInTimeRecover: v.pointInTimeRecover,
+        binlogChecksum: v.binlogChecksum,
+        storageProvider: {
+          storageName: v.storageType,
+          sink: v.sinkName
+        }
+      }
+    };
+    try {
+      await this.apiService.createXStoreBackupBinlog(namespace, request).toPromise();
+      this.message.success('保存成功');
+      this.binlogModalVisible = false;
+      await this.loadBinlogBackups();
+    } catch (error: any) {
+      console.error('Failed to save binlog backup:', error);
+      this.message.error(error?.error?.message || '保存失败');
     }
   }
 
