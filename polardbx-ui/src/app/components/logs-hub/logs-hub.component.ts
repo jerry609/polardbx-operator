@@ -42,12 +42,7 @@ import { filter } from 'rxjs/operators';
               <span>策略管理</span>
             </ng-template>
           </nz-tab>
-          <nz-tab nzTitle="ILM 策略">
-            <ng-template #nzTabHeading>
-              <i nz-icon nzType="clock-circle"></i>
-              <span>ILM 策略</span>
-            </ng-template>
-          </nz-tab>
+          <!-- 移除 ILM 策略 Tab -->
           <nz-tab nzTitle="日志查询">
             <ng-template #nzTabHeading>
               <i nz-icon nzType="search"></i>
@@ -116,7 +111,7 @@ export class LogsHubComponent implements OnInit {
   selectedIndex = 0;
   totalCollectors = 0;
   activePolicies = 0;
-  private paths = ['install', 'dashboard', 'collectors', 'strategies', 'ilm', 'search'];
+  private paths = ['install', 'dashboard', 'collectors', 'strategies', 'search'];
 
   constructor(private router: Router, private route: ActivatedRoute) {}
 
