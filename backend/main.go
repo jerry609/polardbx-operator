@@ -16,12 +16,14 @@ import (
 	api_logstrategy "polardbx-ui-backend/pkg/api/logstrategy"
 	api_monitor "polardbx-ui-backend/pkg/api/monitor"
 	api_monitoring "polardbx-ui-backend/pkg/api/monitoring"
+	api_monitoring_v2 "polardbx-ui-backend/pkg/api/monitoringv2"
 	api_pod "polardbx-ui-backend/pkg/api/pod"
 	api_prometheusrule "polardbx-ui-backend/pkg/api/prometheusrule"
 	api_restore "polardbx-ui-backend/pkg/api/restore"
 	api_router "polardbx-ui-backend/pkg/api/router"
 	api_settings "polardbx-ui-backend/pkg/api/settings"
 	api_system "polardbx-ui-backend/pkg/api/system"
+	"strings"
 
 	// domain handlers
 	domain_pxc "polardbx-ui-backend/pkg/api/domain/polardbxclusters"
@@ -49,6 +51,19 @@ func CORSMiddleware() gin.HandlerFunc {
 		}
 
 		c.Next()
+	}
+}
+
+func monitoringV2Enabled() bool {
+	value := strings.ToLower(strings.TrimSpace(os.Getenv("MONITORING_V2_ENABLED")))
+	if value == "" {
+		return true
+	}
+	switch value {
+	case "0", "false", "no", "off", "disabled":
+		return false
+	default:
+		return true
 	}
 }
 
@@ -250,6 +265,17 @@ func main() {
 		v1.GET("/monitoring/status", api_monitoring.Status)
 		v1.GET("/monitoring/preflight", api_monitoring.Preflight)
 		v1.DELETE("/monitoring/uninstall", api_monitoring.Uninstall)
+
+		if monitoringV2Enabled() {
+			// Monitoring v2 workflow endpoints (guarded for gradual rollout)
+			v1.GET("/monitoring/detect", api_monitoring_v2.DetectEnvironment)
+			v1.POST("/monitoring/plan", api_monitoring_v2.CreatePlan)
+			v1.POST("/monitoring/install", api_monitoring_v2.StartInstallation)
+			v1.GET("/monitoring/install/:sessionId/status", api_monitoring_v2.GetInstallStatus)
+			v1.POST("/monitoring/install/:sessionId/retry", api_monitoring_v2.TriggerRetry)
+			v1.POST("/monitoring/diagnose", api_monitoring_v2.DiagnoseFailure)
+			v1.POST("/monitoring/auto-fix", api_monitoring_v2.ApplyAutoFix)
+		}
 		v1.GET("/monitoring/grafana/config", api_grafana.GetConfig)
 		v1.PUT("/monitoring/grafana/config", api_grafana.PutConfig)
 		v1.POST("/monitoring/grafana/dashboards/sync", api_grafana.SyncDashboards)

@@ -30,10 +30,52 @@
       .toolbar-right {
         display: flex;
         align-items: center;
+        gap: 12px;
         
         .filters {
           display: flex;
           align-items: center;
+          gap: 12px;
+
+          .filter-control {
+            min-width: 120px;
+          }
+
+          .search-box {
+            flex: 1 1 220px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 0 12px;
+            border: 1px solid #d9d9d9;
+            border-radius: 6px;
+            background: #fafafa;
+            height: 32px;
+
+            i {
+              color: rgba(0, 0, 0, 0.45);
+            }
+
+            input {
+              flex: 1;
+              border: none;
+              background: transparent;
+              box-shadow: none;
+            }
+
+            input:focus {
+              border: none;
+              box-shadow: none;
+            }
+
+            .search-clear {
+              border-radius: 6px;
+              padding: 0 8px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+            }
+          }
         }
         
         .actions {
@@ -132,6 +174,16 @@
           .filters {
             flex-wrap: wrap;
             gap: 8px;
+            width: 100%;
+            
+            .filter-control {
+              min-width: 0;
+              flex: 1 1 180px;
+            }
+            
+            .search-box {
+              flex: 1 1 100%;
+            }
           }
         }
       }
@@ -172,10 +224,15 @@
             grid-template-columns: 1fr 1fr;
             gap: 8px;
             
-            nz-select, nz-input {
+            nz-select {
               width: 100% !important;
               margin-right: 0 !important;
               margin-bottom: 0;
+            }
+
+            .search-box {
+              grid-column: 1 / -1;
+              width: 100%;
             }
           }
           

@@ -23,6 +23,7 @@ import { ErrorHandlerService } from './error-handler.service';
 import { LoadingService, LoadingKeys } from './loading.service';
 import { PerformanceService } from './performance.service';
 import { LogsPresetList, LogsQueryRequest, NormalizedResponse } from '../models/logs.model';
+import { appendKubeconfigHeader, buildJsonHeaders } from '../utils/http-headers';
 
 @Injectable({
   providedIn: 'root'
@@ -38,14 +39,7 @@ export class ApiService {
   private baseUrl = '/api/v1';
 
   private getHeaders(): HttpHeaders {
-    let headers = new HttpHeaders({ 'Content-Type': 'application/json' });
-    const kubeconfig = localStorage.getItem('kubeconfig');
-    if (kubeconfig) {
-      const kubeconfigB64 = btoa(unescape(encodeURIComponent(kubeconfig)));
-      headers = headers.set('X-Kubeconfig-B64', kubeconfigB64);
-    }
-    // 其余身份凭据（如 JWT）由拦截器负责注入，这里不强制要求 kubeconfig 存在
-    return headers;
+    return buildJsonHeaders();
   }
 
   private withNs(params?: HttpParams): HttpParams {
@@ -61,10 +55,7 @@ export class ApiService {
   connect(kubeconfig: string): Observable<unknown> {
     // 使用更安全的 base64 编码方法处理 Unicode 字符
     const kubeconfigB64 = btoa(unescape(encodeURIComponent(kubeconfig)));
-    const headers = new HttpHeaders({
-      'Content-Type': 'application/json',
-      'X-Kubeconfig-B64': kubeconfigB64
-    });
+    const headers = appendKubeconfigHeader(new HttpHeaders({ 'Content-Type': 'application/json' })).set('X-Kubeconfig-B64', kubeconfigB64);
     return this.handleRequest(
       this.http.post(`${this.baseUrl}/connect`, {}, { headers }),
       LoadingKeys.CONNECT,
@@ -1931,6 +1922,22 @@ export class ApiService {
       LoadingKeys.MONITOR_CREATE,
       '/alerts/test',
       'POST'
+    );
+  }
+
+  detectMonitoringEnvironment(namespace?: string): Observable<any> {
+    const url = `${this.baseUrl}/monitoring/detect`;
+    const storedNs = (localStorage.getItem('activeNamespace') || '').trim();
+    const finalNamespace = (namespace || '').trim() || storedNs;
+    let params = new HttpParams();
+    if (finalNamespace) {
+      params = params.set('namespace', finalNamespace);
+    }
+    return this.handleRequest(
+      this.http.get(url, { headers: this.getHeaders(), params }),
+      LoadingKeys.MONITOR_LIST,
+      '/monitoring/detect',
+      'GET'
     );
   }
 

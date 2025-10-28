@@ -224,7 +224,7 @@ export class YamlPreviewComponent implements OnChanges, OnDestroy {
   @Input() loading = false;
   @Input() readonly = false;
   @Input() showValidateButton = false;
-  @Input() language: string = 'yaml';
+  @Input() language = 'yaml';
   @Input() validateFunction?: (yaml: string) => Promise<{ success: boolean; message: string }>;
   @Input() cardTitle = 'YAML 预览';
   @Input() usePlainRenderer = false;
@@ -265,7 +265,6 @@ export class YamlPreviewComponent implements OnChanges, OnDestroy {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['usePlainRenderer']) {
-      console.log('[YAML预览] usePlainRenderer 变化:', this.usePlainRenderer);
       if (this.usePlainRenderer) {
         this.enableFallback();
       } else if (this.fallbackMode) {
@@ -275,11 +274,6 @@ export class YamlPreviewComponent implements OnChanges, OnDestroy {
     }
 
     if (changes['yamlContent']) {
-      console.log('[YAML预览] yamlContent 变化:', {
-        length: this.yamlContent?.length || 0,
-        hasContent: !!this.yamlContent,
-        firstChars: this.yamlContent?.substring(0, 50)
-      });
       this.pendingContent = this.yamlContent || '';
       this.setEditorValue(this.pendingContent);
     }
@@ -367,7 +361,7 @@ export class YamlPreviewComponent implements OnChanges, OnDestroy {
       console.error('校验失败:', error);
       this.validationResult = {
         success: false,
-        message: '校验过程出现错误: ' + (error as Error).message
+        message: '校验过程出现错误: ' + (error instanceof Error ? error.message : String(error))
       };
       this.cdr.markForCheck();
     } finally {
@@ -583,11 +577,11 @@ export class YamlPreviewComponent implements OnChanges, OnDestroy {
     this.editorDisposables.forEach(disposable => {
       try {
         disposable.dispose();
-      } catch (err: any) {
-        // 忽略 "Canceled" 错误，这是正常的清理过程
-        if (err?.message !== 'Canceled') {
-          console.warn('释放编辑器监听器失败:', err);
+      } catch (err: unknown) {
+        if (err instanceof Error && err.message === 'Canceled') {
+          return;
         }
+        console.warn('释放编辑器监听器失败:', err);
       }
     });
     this.editorDisposables = [];
@@ -595,12 +589,11 @@ export class YamlPreviewComponent implements OnChanges, OnDestroy {
     if (this.editorInstance) {
       try {
         this.editorInstance.dispose();
-      } catch (err: any) {
-        // Monaco 编辑器在 dispose 时可能抛出 "Canceled" 错误，这是正常现象
-        // 只有非预期的错误才需要警告
-        if (err?.message !== 'Canceled') {
-          console.warn('释放 Monaco 编辑器失败:', err);
+      } catch (err: unknown) {
+        if (err instanceof Error && err.message === 'Canceled') {
+          return;
         }
+        console.warn('释放 Monaco 编辑器失败:', err);
       }
       this.editorInstance = undefined;
     }

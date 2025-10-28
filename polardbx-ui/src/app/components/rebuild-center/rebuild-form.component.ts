@@ -51,19 +51,27 @@ interface RebuildFormData {
   ],
   template: `
     <div class="rebuild-form-container neutral-theme">
-      <div class="page-header">
-        <div class="header-content">
-          <h1 class="page-title">
-            <i nz-icon nzType="build" class="page-icon"></i>
-            创建重搭任务
-          </h1>
-          <p class="subtitle">配置 XStore 重搭参数，快速创建重搭任务</p>
+      <div class="layout-container">
+        <div class="page-header">
+          <div class="header-content">
+            <h1 class="page-title">
+              <i nz-icon nzType="build" class="page-icon"></i>
+              创建重搭任务
+            </h1>
+            <p class="subtitle">配置 XStore 重搭参数，快速创建重搭任务</p>
+          </div>
+          <div class="header-actions">
+            <button nz-button nzType="default" (click)="goToTaskList()">
+              <i nz-icon nzType="bars"></i>
+              <span>查看任务列表</span>
+            </button>
+          </div>
         </div>
-      </div>
-      
-      <nz-card class="form-card">
-        <div class="form-content">
-          <form nz-form [formGroup]="rebuildForm" (ngSubmit)="onSubmit()">
+
+        <div class="page-content">
+          <nz-card class="form-card">
+            <div class="form-content">
+              <form nz-form [formGroup]="rebuildForm" (ngSubmit)="onSubmit()">
             
             <!-- 基础信息 -->
             <div class="form-section">
@@ -201,51 +209,56 @@ interface RebuildFormData {
             </div>
 
             <!-- 操作按钮 -->
-            <nz-form-item class="submit-buttons">
-              <nz-form-control [nzOffset]="6" [nzSpan]="18">
-                <button 
-                  nz-button 
-                  nzType="primary" 
-                  [nzLoading]="isSubmitting"
-                  [disabled]="!rebuildForm.valid"
-                  type="submit">
-                  <i nz-icon nzType="play-circle"></i>
-                  <span>创建重搭任务</span>
-                </button>
-                <button 
-                  nz-button 
-                  nzType="default" 
-                  (click)="onCancel()"
-                  [disabled]="isSubmitting"
-                  style="margin-left: 8px;">
-                  <i nz-icon nzType="rollback"></i>
-                  <span>取消</span>
-                </button>
-                <button 
-                  nz-button 
-                  nzType="default" 
-                  (click)="goToTaskList()"
-                  style="margin-left: 8px;">
-                  <i nz-icon nzType="bars"></i>
-                  <span>查看任务列表</span>
-                </button>
-              </nz-form-control>
-            </nz-form-item>
+                <nz-form-item class="submit-buttons">
+                  <nz-form-control [nzOffset]="6" [nzSpan]="18">
+                    <button 
+                      nz-button 
+                      nzType="primary" 
+                      [nzLoading]="isSubmitting"
+                      [disabled]="!rebuildForm.valid"
+                      type="submit">
+                      <i nz-icon nzType="play-circle"></i>
+                      <span>创建重搭任务</span>
+                    </button>
+                    <button 
+                      nz-button 
+                      nzType="default" 
+                      (click)="onCancel()"
+                      [disabled]="isSubmitting"
+                      style="margin-left: 8px;">
+                      <i nz-icon nzType="rollback"></i>
+                      <span>取消</span>
+                    </button>
+                  </nz-form-control>
+                </nz-form-item>
 
-          </form>
+              </form>
+            </div>
+          </nz-card>
         </div>
-      </nz-card>
+      </div>
     </div>
   `,
   styleUrls: ['./rebuild-form.component.scss'],
   styles: [`
     .page-header {
       margin-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
     }
 
     .header-content {
-      max-width: 1120px;
-      margin: 0 auto;
+      flex: 1;
+      min-width: 240px;
+      margin: 0;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 8px;
     }
 
     .page-title {

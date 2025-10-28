@@ -23,6 +23,15 @@ import { NzDescriptionsModule } from 'ng-zorro-antd/descriptions';
 import { ApiService } from '../../services/api.service';
 import { Router } from '@angular/router';
 
+type EnvironmentCheckStatus = 'success' | 'warning' | 'error';
+
+interface EnvironmentCheck {
+  name: string;
+  description: string;
+  status: EnvironmentCheckStatus;
+  result: string;
+}
+
 @Component({
   selector: 'app-monitoring-install-wizard',
   standalone: true,
@@ -663,7 +672,7 @@ export class MonitoringInstallWizardComponent implements OnInit {
   
   // 环境检查
   checking = false;
-  environmentChecks: any[] = [];
+  environmentChecks: EnvironmentCheck[] = [];
   allChecksPassed = false;
 
   // 安装状态
@@ -731,37 +740,115 @@ export class MonitoringInstallWizardComponent implements OnInit {
 
   runEnvironmentCheck(): void {
     this.checking = true;
-    // 初始化占位
-    this.environmentChecks = [
-      { name: '可用区与节点', description: 'AZ 分布与节点统计', status: 'pending', result: '检查中...' },
-      { name: '时钟漂移', description: '控制面与节点时钟一致性', status: 'pending', result: '检查中...' },
-      { name: 'IOPS 估算', description: '磁盘 IOPS 估算（占位）', status: 'pending', result: '检查中...' }
-    ];
-    this.api.getMonitoringPreflight().subscribe({
-      next: (res: any) => {
-        const az = res?.az || {}; // zones, count, nodeCount, nodesWithZone
-        const clock = res?.clock || {}; // ok, message
-        const iops = res?.iops || {}; // estimated, ok, message
-        this.environmentChecks[0] = {
-          ...this.environmentChecks[0],
-          status: 'success',
-          result: `zones: ${az.count ?? 0}, nodes: ${az.nodeCount ?? 0}`
-        };
-        this.environmentChecks[1] = {
-          ...this.environmentChecks[1],
-          status: clock.ok ? 'success' : 'warning',
-          result: clock.message || (clock.ok ? 'ok' : '需要人工确认')
-        };
-        this.environmentChecks[2] = {
-          ...this.environmentChecks[2],
-          status: iops.ok ? 'success' : 'warning',
-          result: iops.message || '未执行真实基准（占位）'
-        };
-        this.allChecksPassed = true;
+    this.allChecksPassed = false;
+    this.environmentChecks = [];
+
+    const namespace = (this.form?.value?.namespace || '').trim();
+    const componentMeta: Record<string, { name: string; description: string }> = {
+      prometheus: { name: 'Prometheus', description: '监控主实例，可观测性核心组件' },
+      grafana: { name: 'Grafana', description: '监控仪表盘与观察界面' },
+      alertmanager: { name: 'Alertmanager', description: '告警通知与路由服务' },
+      'node-exporter': { name: 'Node Exporter', description: '节点级指标采集守护进程' },
+      'kube-state-metrics': { name: 'kube-state-metrics', description: 'Kubernetes 对象状态指标' },
+      thanos: { name: 'Thanos', description: '远程存储与多集群聚合组件' },
+      'blackbox-exporter': { name: 'Blackbox Exporter', description: '外部探测与连通性测试' }
+    };
+
+    this.api.detectMonitoringEnvironment(namespace).subscribe({
+      next: (snapshot: any) => {
+        const components = Array.isArray(snapshot?.components) ? snapshot.components : [];
+        const componentChecks: EnvironmentCheck[] = components.map((component: any): EnvironmentCheck => {
+          const meta = componentMeta[component?.name] || {
+            name: component?.name || '未知组件',
+            description: '检测到的监控组件'
+          };
+          const exists = component?.exists === undefined ? false : !!component.exists;
+          const healthy = component?.healthy === undefined ? false : !!component.healthy;
+          const action = component?.actionRecommendation?.action || '';
+
+          let status: 'success' | 'warning' | 'error';
+          if (!exists || action === 'install') {
+            status = 'error';
+          } else if (healthy && (!action || action === 'skip')) {
+            status = 'success';
+          } else {
+            status = 'warning';
+          }
+
+          const resultParts: string[] = [];
+          if (component?.version) {
+            resultParts.push(`版本: ${component.version}`);
+          }
+          const details = component?.details ? Object.entries(component.details) : [];
+          details.forEach(([key, value]) => {
+            if (value !== undefined && value !== null && `${value}`.trim() !== '') {
+              resultParts.push(`${key}: ${value}`);
+            }
+          });
+          if (component?.actionRecommendation?.reason) {
+            resultParts.push(component.actionRecommendation.reason);
+          }
+          const result = resultParts.join(' | ') || (status === 'success' ? '组件已就绪' : '需要人工处理');
+
+          return {
+            name: meta.name,
+            description: meta.description,
+            status,
+            result
+          };
+        });
+
+        const allComponentsHealthy = componentChecks.length > 0 && componentChecks.every((item: EnvironmentCheck) => item.status === 'success');
+        const checks: EnvironmentCheck[] = [];
+
+        if (typeof snapshot?.healthScore === 'number') {
+          const score = snapshot.healthScore as number;
+          let scoreStatus: 'success' | 'warning' | 'error' = 'success';
+          if (!allComponentsHealthy || score < 80) {
+            scoreStatus = score >= 60 ? 'warning' : 'error';
+          }
+          checks.push({
+            name: '整体健康度',
+            description: '基于已发现组件的健康评分',
+            status: scoreStatus,
+            result: `${score}/100`
+          });
+        }
+
+        if (componentChecks.length > 0) {
+          checks.push(...componentChecks);
+        } else {
+          checks.push({
+            name: '监控组件扫描',
+            description: '尚未检测到已安装的监控组件',
+            status: 'warning',
+            result: '未找到现有安装，下一步将执行全新部署'
+          });
+        }
+
+        if (Array.isArray(snapshot?.recommendations) && snapshot.recommendations.length > 0) {
+          checks.push({
+            name: '环境建议',
+            description: '启动安装前的建议操作',
+            status: allComponentsHealthy ? 'warning' : 'error',
+            result: snapshot.recommendations.join('；')
+          });
+        }
+
+        this.environmentChecks = checks;
+        this.allChecksPassed = allComponentsHealthy;
         this.checking = false;
       },
-      error: () => {
-        this.environmentChecks = this.environmentChecks.map((c) => ({ ...c, status: 'error', result: '检查失败' }));
+      error: (err) => {
+        const message = err?.error?.message || err?.message || '环境检测失败，请稍后重试';
+        this.environmentChecks = [
+          {
+            name: '环境检测',
+            description: '监控组件与依赖检查',
+            status: 'error',
+            result: message
+          }
+        ];
         this.allChecksPassed = false;
         this.checking = false;
       }

@@ -69,21 +69,21 @@ interface TaskListItem {
             <div class="filters">
               <!-- 命名空间筛选 -->
               <nz-select 
+                class="filter-control"
                 [(ngModel)]="selectedNamespace" 
                 (ngModelChange)="onNamespaceChange($event)"
                 nzPlaceHolder="选择命名空间" 
-                nzAllowClear
-                style="width: 140px; margin-right: 8px;">
+                nzAllowClear>
                 <nz-option *ngFor="let ns of namespaces" [nzValue]="ns" [nzLabel]="ns"></nz-option>
               </nz-select>
               
               <!-- 角色筛选 -->
               <nz-select 
+                class="filter-control"
                 [(ngModel)]="selectedRole" 
                 (ngModelChange)="applyFilters()"
                 nzPlaceHolder="选择角色" 
-                nzAllowClear
-                style="width: 120px; margin-right: 8px;">
+                nzAllowClear>
                 <nz-option nzValue="learner" nzLabel="Learner"></nz-option>
                 <nz-option nzValue="logger" nzLabel="Logger"></nz-option>
                 <nz-option nzValue="follower" nzLabel="Follower"></nz-option>
@@ -91,21 +91,31 @@ interface TaskListItem {
               
               <!-- 状态筛选 -->
               <nz-select 
+                class="filter-control"
                 [(ngModel)]="selectedPhase" 
                 (ngModelChange)="applyFilters()"
                 nzPlaceHolder="选择状态" 
-                nzAllowClear
-                style="width: 140px; margin-right: 8px;">
+                nzAllowClear>
                 <nz-option *ngFor="let phase of availablePhases" [nzValue]="phase.value" [nzLabel]="phase.label"></nz-option>
               </nz-select>
               
               <!-- XStore 筛选 -->
-              <input 
-                nz-input
-                [(ngModel)]="xstoreFilter" 
-                (ngModelChange)="applyFilters()"
-                placeholder="搜索 XStore" 
-                style="width: 140px; margin-right: 8px;" />
+              <div class="search-box">
+                <i nz-icon nzType="search"></i>
+                <input 
+                  nz-input
+                  [(ngModel)]="xstoreFilter" 
+                  (ngModelChange)="applyFilters()"
+                  placeholder="搜索 XStore" />
+                <button
+                  nz-button
+                  nzSize="small"
+                  class="search-clear"
+                  *ngIf="xstoreFilter"
+                  (click)="clearXstoreFilter()">
+                  <i nz-icon nzType="close"></i>
+                </button>
+              </div>
             </div>
             
             <nz-divider nzType="vertical"></nz-divider>
@@ -395,6 +405,11 @@ export class RebuildTaskListComponent implements OnInit, OnDestroy {
           this.loadTasks(true /*silent*/);
         }
       });
+  }
+
+  clearXstoreFilter(): void {
+    this.xstoreFilter = '';
+    this.applyFilters();
   }
 
   private loadTasks(silent = false): void {

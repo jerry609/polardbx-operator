@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { RouterModule, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 
@@ -120,20 +120,20 @@ export class LayoutComponent implements OnInit {
   activeNamespace: string | null = null;
   isAuthenticated = false;
 
-  constructor(
-    private iconService: NzIconService, 
-    private ns: NamespaceService, 
-    private dialog: MatDialog, 
-    private auth: AuthService,
-    private router: Router,
-    private message: NzMessageService,
-    private modal: NzModalService
-  ) {
+  private readonly iconService = inject(NzIconService);
+  private readonly ns = inject(NamespaceService);
+  private readonly dialog = inject(MatDialog);
+  private readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
+  private readonly message = inject(NzMessageService);
+  private readonly modal = inject(NzModalService);
+
+  constructor() {
     // 确保运行时已注册，避免仅依赖providers导致的加载顺序问题
     this.iconService.addIcon(...icons);
   }
 
-  async ngOnInit() {
+  async ngOnInit(): Promise<void> {
     await this.ns.init();
     this.ns.namespaces$.subscribe(list => this.namespaces = list || []);
     this.ns.activeNamespace$.subscribe(ns => this.activeNamespace = ns);

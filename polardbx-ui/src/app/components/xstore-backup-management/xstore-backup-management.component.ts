@@ -1035,8 +1035,9 @@ import { BackupType } from '../../utils/backup-progress-strategies';
     }
     
     .header-content {
-      max-width: 1120px;
-      margin: 0 auto;
+      width: 100%;
+      max-width: none;
+      margin: 0;
     }
     
     .page-title {
@@ -1062,8 +1063,9 @@ import { BackupType } from '../../utils/backup-progress-strategies';
     }
     
     .page-content {
-      max-width: 1120px;
-      margin: 0 auto;
+      width: 100%;
+      max-width: none;
+      margin: 0;
     }
     
     .main-tabs {

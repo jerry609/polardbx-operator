@@ -99,53 +99,78 @@ export enum BackupBinlogPhase {
   Deleting = 'deleting'
 }
 
+type BackupPhaseCategory = 'pending' | 'in-progress' | 'completed' | 'failed' | 'deleting' | 'maintenance' | 'unknown';
+
+interface BackupPhaseMeta {
+  label: string;
+  color: 'success' | 'warning' | 'danger' | 'info' | 'secondary';
+  category: BackupPhaseCategory;
+}
+
+const BACKUP_PHASE_META: Record<string, BackupPhaseMeta> = {
+  [PolarDBXBackupPhase.New]: { label: '新建', color: 'secondary', category: 'pending' },
+  [PolarDBXBackupPhase.FullBackuping]: { label: '全量备份中', color: 'info', category: 'in-progress' },
+  [PolarDBXBackupPhase.BackupCollecting]: { label: '收集备份中', color: 'info', category: 'in-progress' },
+  [PolarDBXBackupPhase.BackupCalculating]: { label: '计算备份信息', color: 'info', category: 'in-progress' },
+  [PolarDBXBackupPhase.BinlogBackuping]: { label: 'Binlog备份中', color: 'info', category: 'in-progress' },
+  [PolarDBXBackupPhase.MetadataBackuping]: { label: '元数据备份中', color: 'info', category: 'in-progress' },
+  [XStoreBackupPhase.BinlogWaiting]: { label: '等待Binlog备份', color: 'info', category: 'in-progress' },
+  [PolarDBXBackupPhase.Finished]: { label: '已完成', color: 'success', category: 'completed' },
+  [PolarDBXBackupPhase.Failed]: { label: '失败', color: 'danger', category: 'failed' },
+  [PolarDBXBackupPhase.Deleting]: { label: '删除中', color: 'warning', category: 'deleting' },
+  [BackupBinlogPhase.Running]: { label: '运行中', color: 'info', category: 'maintenance' },
+  [BackupBinlogPhase.CheckExpiredFile]: { label: '检查过期文件', color: 'info', category: 'maintenance' },
+  [BackupBinlogPhase.Deleting]: { label: '删除中', color: 'warning', category: 'deleting' },
+  [PolarDBXBackupPhase.Empty]: { label: '未知', color: 'secondary', category: 'unknown' }
+};
+
+function getBackupPhaseMeta(
+  phase: PolarDBXBackupPhase | XStoreBackupPhase | BackupBinlogPhase | string
+): BackupPhaseMeta | undefined {
+  return BACKUP_PHASE_META[phase];
+}
+
 /**
  * Helper function to check if a phase represents a completed state
  */
 export function isBackupCompleted(phase: PolarDBXBackupPhase | XStoreBackupPhase | string): boolean {
-  return phase === PolarDBXBackupPhase.Finished || 
-         phase === XStoreBackupPhase.Finished ||
-         phase === 'Finished';
+  const meta = getBackupPhaseMeta(phase);
+  if (meta) {
+    return meta.category === 'completed';
+  }
+  return phase === PolarDBXBackupPhase.Finished || phase === 'Finished';
 }
 
 /**
  * Helper function to check if a phase represents a failed state
  */
 export function isBackupFailed(phase: PolarDBXBackupPhase | XStoreBackupPhase | string): boolean {
-  return phase === PolarDBXBackupPhase.Failed || 
-         phase === XStoreBackupPhase.Failed ||
-         phase === 'Failed';
+  const meta = getBackupPhaseMeta(phase);
+  if (meta) {
+    return meta.category === 'failed';
+  }
+  return phase === PolarDBXBackupPhase.Failed || phase === 'Failed';
 }
 
 /**
  * Helper function to check if a phase represents an in-progress state
  */
 export function isBackupInProgress(phase: PolarDBXBackupPhase | XStoreBackupPhase | string): boolean {
-  const inProgressPhases = [
-    PolarDBXBackupPhase.FullBackuping,
-    PolarDBXBackupPhase.BackupCollecting,
-    PolarDBXBackupPhase.BackupCalculating,
-    PolarDBXBackupPhase.BinlogBackuping,
-    PolarDBXBackupPhase.MetadataBackuping,
-    XStoreBackupPhase.FullBackuping,
-    XStoreBackupPhase.BackupCollecting,
-    XStoreBackupPhase.BinlogBackuping,
-    XStoreBackupPhase.BinlogWaiting,
-    XStoreBackupPhase.MetadataBackuping,
-    'FullBackuping',
-    'BackupCollecting',
-    'BackupCalculating',
-    'BinlogBackuping',
-    'BinlogWaiting',
-    'MetadataBackuping'
-  ];
-  return inProgressPhases.includes(phase as any);
+  const meta = getBackupPhaseMeta(phase);
+  if (meta) {
+    return meta.category === 'in-progress';
+  }
+  return false;
 }
 
 /**
  * Helper function to check if backup is in a terminal state (finished or failed)
  */
 export function isBackupTerminal(phase: PolarDBXBackupPhase | XStoreBackupPhase | string): boolean {
+  const meta = getBackupPhaseMeta(phase);
+  if (meta) {
+    return meta.category === 'completed' || meta.category === 'failed';
+  }
   return isBackupCompleted(phase) || isBackupFailed(phase);
 }
 
@@ -153,63 +178,20 @@ export function isBackupTerminal(phase: PolarDBXBackupPhase | XStoreBackupPhase 
  * Get display label for backup phase
  */
 export function getBackupPhaseLabel(phase: string): string {
-  switch (phase) {
-    case PolarDBXBackupPhase.New:
-    case XStoreBackupPhase.New:
-      return '新建';
-    case PolarDBXBackupPhase.FullBackuping:
-    case XStoreBackupPhase.FullBackuping:
-      return '全量备份中';
-    case PolarDBXBackupPhase.BackupCollecting:
-    case XStoreBackupPhase.BackupCollecting:
-      return '收集备份中';
-    case PolarDBXBackupPhase.BackupCalculating:
-      return '计算备份信息';
-    case PolarDBXBackupPhase.BinlogBackuping:
-    case XStoreBackupPhase.BinlogBackuping:
-      return 'Binlog备份中';
-    case XStoreBackupPhase.BinlogWaiting:
-      return '等待Binlog备份';
-    case PolarDBXBackupPhase.MetadataBackuping:
-    case XStoreBackupPhase.MetadataBackuping:
-      return '元数据备份中';
-    case PolarDBXBackupPhase.Finished:
-    case XStoreBackupPhase.Finished:
-      return '已完成';
-    case PolarDBXBackupPhase.Failed:
-    case XStoreBackupPhase.Failed:
-      return '失败';
-    case PolarDBXBackupPhase.Deleting:
-    case XStoreBackupPhase.Deleting:
-      return '删除中';
-    case BackupBinlogPhase.Running:
-      return '运行中';
-    case BackupBinlogPhase.CheckExpiredFile:
-      return '检查过期文件';
-    case PolarDBXBackupPhase.Empty:
-    case XStoreBackupPhase.Empty:
-    case BackupBinlogPhase.Empty:
-      return '未知';
-    default:
-      return phase || '未知';
+  const meta = getBackupPhaseMeta(phase);
+  if (meta) {
+    return meta.label;
   }
+  return phase || '未知';
 }
 
 /**
  * Get color/severity for backup phase
  */
 export function getBackupPhaseColor(phase: string): 'success' | 'warning' | 'danger' | 'info' | 'secondary' {
-  if (isBackupCompleted(phase)) {
-    return 'success';
-  }
-  if (isBackupFailed(phase)) {
-    return 'danger';
-  }
-  if (isBackupInProgress(phase)) {
-    return 'info';
-  }
-  if (phase === PolarDBXBackupPhase.Deleting || phase === XStoreBackupPhase.Deleting || phase === BackupBinlogPhase.Deleting) {
-    return 'warning';
+  const meta = getBackupPhaseMeta(phase);
+  if (meta) {
+    return meta.color;
   }
   return 'secondary';
 }

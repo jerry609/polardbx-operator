@@ -292,8 +292,9 @@ import { XStore } from '../../models/xstore.model';
     }
     
     .page-content {
-      max-width: 1120px;
-      margin: 0 auto;
+      width: 100%;
+      max-width: none;
+      margin: 0;
     }
     
     .main-tabs {
@@ -329,8 +330,9 @@ import { XStore } from '../../models/xstore.model';
     }
 
     .header-content {
-      max-width: 1120px;
-      margin: 0 auto;
+      width: 100%;
+      max-width: none;
+      margin: 0;
     }
 
     .page-title {

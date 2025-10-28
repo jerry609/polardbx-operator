@@ -92,11 +92,10 @@
 }
 
 .inner-content {
-  margin: 24px 16px 0;
-  background: #fff;
-  min-height: calc(100vh - 64px - 24px);
-  padding: 24px;
-  border-radius: 8px;
+  margin: 0;
+  padding: 0;
+  background: #f5f5f5;
+  min-height: calc(100vh - 64px);
 }
 
 /* 全局布局样式 */

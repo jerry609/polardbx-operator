@@ -4,6 +4,8 @@ all: build
 # --- Variables ---
 # Binary name
 BINARY_NAME=polardbx-ui-backend
+# Feature Flags (override via `make run MONITORING_V2_ENABLED=false`)
+MONITORING_V2_ENABLED ?= true
 # Docker image settings
 IMG ?= polardbx/polardbx-ui-backend:latest
 
@@ -17,7 +19,7 @@ build:
 # Run the Go application locally
 run:
 	@echo "Starting application..."
-	go run ./main.go
+	MONITORING_V2_ENABLED=$(MONITORING_V2_ENABLED) go run ./main.go
 
 # Build the Docker image
 docker-build:
@@ -92,5 +94,13 @@ security:
 
 # Run all code quality checks
 quality: format vet lint security
+
+# --- Code Generation ---
+
+generate-monitoring-types:
+	@echo "Generating monitoring v2 API models..."
+	cd pkg/api/monitoringv2/spec && go run github.com/deepmap/oapi-codegen/cmd/oapi-codegen --config server.cfg.yaml installation-openapi.yaml
+
+.PHONY: all build run docker-build clean tidy test test-coverage test-integration test-benchmark test-race test-all format lint vet security quality generate-monitoring-types 
 
 .PHONY: all build run docker-build clean tidy test test-coverage test-integration test-benchmark test-race test-all format lint vet security quality 

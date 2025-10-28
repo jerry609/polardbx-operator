@@ -59,213 +59,230 @@ import { BackupType } from '../../utils/backup-progress-strategies';
   ],
   template: `
     <div class="restore-job-management">
-      <!-- 页面头部 -->
-      <div class="page-header">
-        <div class="header-content">
-          <h1 class="page-title">
-            <i nz-icon nzType="history" class="page-icon"></i>
-            恢复任务管理
-          </h1>
-          <p class="page-description">管理恢复作业与进度，支持备份恢复和PITR恢复</p>
+      <div class="layout-container">
+        <div class="page-header">
+          <div class="header-content">
+            <h1 class="page-title">
+              <i nz-icon nzType="history" class="page-icon"></i>
+              恢复任务管理
+            </h1>
+            <p class="page-description">管理恢复作业与进度，支持备份恢复和 PITR 恢复</p>
+          </div>
         </div>
-      </div>
 
-      <div class="page-content">
-
-        <nz-card 
-          class="list-card" 
-          nzTitle="恢复任务列表" 
-          [nzExtra]="listExtra"
-          [nzLoading]="loadingService.isLoading(loadingKeys.RESTORE_JOB_LIST)">
-          <ng-template #listExtra>
-            <div class="extra-actions" style="display:flex; gap:8px; align-items:center;">
-              <button nz-button nzType="default" nzSize="small" (click)="refreshAll()">
-                <i nz-icon nzType="reload"></i>
-                刷新
-              </button>
-              <nz-switch [(ngModel)]="listAutoRefresh" (ngModelChange)="toggleAutoRefresh($event)">自动刷新</nz-switch>
-              <button nz-button nzType="primary" nzDanger nzSize="small" [disabled]="!hasCancelableSelection()" (click)="cancelBatch()">
-                <i nz-icon nzType="close"></i>
-                批量取消
-              </button>
-            </div>
-          </ng-template>
-
-          <nz-spin *ngIf="loadingService.isLoading(loadingKeys.RESTORE_JOB_LIST)" nzSimple></nz-spin>
-
-          <div class="list-content">
-            <div class="filter-toolbar">
-              <div class="search-field" style="display:flex; gap:8px; align-items:center;">
-                <input nz-input placeholder="输入集群名称" [(ngModel)]="searchTerm" (ngModelChange)="applyFilters()" />
-                <button nz-button nzShape="circle" nzSize="small" *ngIf="searchTerm" (click)="clearSearch()">
-                  <i nz-icon nzType="close"></i>
-                </button>
-              </div>
-
-              <div class="filters-line">
-                <div class="filter-group">
-                  <span class="filter-label">状态:</span>
-                  <button nz-button [nzType]="statusFilter==='all' ? 'primary':'default'" (click)="setStatusFilter('all')">全部 ({{statusCounts.all}})</button>
-                  <button nz-button [nzType]="statusFilter==='ongoing' ? 'primary':'default'" (click)="setStatusFilter('ongoing')">进行中 ({{statusCounts.ongoing}})</button>
-                  <button nz-button [nzType]="statusFilter==='completed' ? 'primary':'default'" (click)="setStatusFilter('completed')">已完成 ({{statusCounts.completed}})</button>
-                  <button nz-button [nzType]="statusFilter==='failed' ? 'primary':'default'" (click)="setStatusFilter('failed')">失败 ({{statusCounts.failed}})</button>
-                </div>
-
-                <div class="filter-group">
-                  <span class="filter-label">类型:</span>
-                  <button nz-button [nzType]="typeFilter==='all' ? 'primary':'default'" (click)="setTypeFilter('all')">全部</button>
-                  <button nz-button [nzType]="typeFilter==='backup' ? 'primary':'default'" (click)="setTypeFilter('backup')">备份恢复</button>
-                  <button nz-button [nzType]="typeFilter==='pitr' ? 'primary':'default'" (click)="setTypeFilter('pitr')">PITR</button>
-                </div>
-                <div class="toolbar-spacer"></div>
-                <span class="last-updated">上次更新：{{ lastUpdated | date:'HH:mm:ss' }}</span>
-              </div>
-            </div>
-
-            <div class="table-container">
-              <nz-table #nzTable [nzData]="dataSource" [nzFrontPagination]="true" [nzPageSize]="pageSize" [nzShowPagination]="(dataSource.length||0) > pageSize">
-                <thead>
-                  <tr>
-                    <th style="width: 40px;">
-                      <label nz-checkbox [ngModel]="isAllSelected()" (ngModelChange)="toggleSelectAll($event)"></label>
-                    </th>
-                    <th>集群名称</th>
-                    <th>状态</th>
-                    <th>类型</th>
-                    <th>创建时间</th>
-                    <th>操作</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr *ngFor="let j of nzTable.data" (click)="selectJob(j)" class="table-row" [class.selected]="selectedJob?.clusterName === j.clusterName">
-                    <td (click)="$event.stopPropagation()">
-                      <label nz-checkbox [(ngModel)]="selection[makeKey(j)]" (ngModelChange)="onRowSelectChange(j, $event)"></label>
-                    </td>
-                    <td>
-                      <div class="cluster-info">
-                        <i nz-icon nzType="database" class="cluster-icon"></i>
-                        <span class="cluster-name">{{ j.clusterName }}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <nz-tag [nzColor]="getProgressClass(j) === 'phase-warn' ? 'error' : (getProgressClass(j) === 'phase-primary' ? 'processing' : 'default')">
-                        {{ j.phase || '-' }}
-                      </nz-tag>
-                    </td>
-                    <td>{{ getRestoreType(j) === 'pitr' ? 'PITR' : '备份恢复' }}</td>
-                    <td>
-                      <div class="time-info">
-                        <span class="time-date">{{ getJobCreationTime(j) | date:'MM-dd' }}</span>
-                        <span class="time-time">{{ getJobCreationTime(j) | date:'HH:mm' }}</span>
-                      </div>
-                    </td>
-                    <td (click)="$event.stopPropagation()">
-                      <button nz-button nzType="link" nzSize="small" (click)="selectJob(j)"><i nz-icon nzType="eye"></i></button>
-                      <button nz-button nzType="link" nzSize="small" [disabled]="j.phase === 'Completed' || j.phase === 'Failed'" (click)="cancelJob(j)"><i nz-icon nzType="close"></i></button>
-                    </td>
-                  </tr>
-                </tbody>
-              </nz-table>
-
-              <div *ngIf="(dataSource?.length || 0) === 0" class="empty-list">
-                <div class="empty-inner">
-                  <i nz-icon nzType="inbox" class="empty-icon"></i>
-                  <p class="empty-text">暂无恢复任务</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </nz-card>
-
-      <!-- 右侧详情面板 (大屏) -->
-      <div class="detail-panel" *ngIf="!isSmallScreen && selectedJob; else emptyState">
-        <nz-card [nzTitle]="'任务详情 · ' + selectedJob.clusterName">
-          <div nz-card-extra>
-            <a *ngIf="grafanaLinkForSelected() as gLink; else noGrafana"
-               [href]="gLink" target="_blank" rel="noopener" nz-button nzType="link">
-              <i nz-icon nzType="external-link"></i>
-              在 Grafana 打开
-            </a>
-            <ng-template #noGrafana></ng-template>
-            <button nz-button nzSize="small" (click)="toggleRaw()">
-              <i nz-icon nzType="code"></i>
-              原始JSON
-            </button>
-            <button nz-button nzSize="small" (click)="copySelectedJson()">
-              <i nz-icon nzType="copy"></i>
-              复制
-            </button>
-            <button nz-button nzType="primary" nzSize="small" *ngIf="isFailed(selectedJob)" (click)="diagnoseSelected()">
-              <i nz-icon nzType="medicine-box"></i>
-              诊断
-            </button>
-          </div>
-          
-          <div class="detail-content">
-            <div class="status-section">
-              <div class="status-header">
-                <nz-tag [nzColor]="getProgressClass(selectedJob) === 'phase-warn' ? 'error' : (getProgressClass(selectedJob) === 'phase-primary' ? 'processing' : 'default')" class="status-chip-large">
-                  {{ selectedJob.phase || '-' }}
-                </nz-tag>
-                <span class="progress-text">{{ getProgress(selectedJob) }}%</span>
-              </div>
-              <app-backup-progress-indicator
-                [metadata]="toBackupMetadata(selectedJob)"
-                [type]="BackupType.RESTORE"
-                size="small"
-                [showDetails]="true">
-              </app-backup-progress-indicator>
-              <div *ngIf="isFailed(selectedJob)" style="margin-top:8px;">
-                <nz-alert nzType="error" [nzMessage]="getErrorMessage(selectedJob)" nzShowIcon></nz-alert>
-              </div>
-            </div>
-
-            <div class="info-section">
-              <h4 class="section-title"><i nz-icon nzType="info-circle"></i> 基本信息</h4>
-              <nz-descriptions nzBordered [nzColumn]="2">
-                <nz-descriptions-item nzTitle="源集群">{{ selectedJob.sourceCluster || '-' }}</nz-descriptions-item>
-                <nz-descriptions-item nzTitle="命名空间">{{ selectedJob.namespace || '-' }}</nz-descriptions-item>
-                <nz-descriptions-item nzTitle="恢复类型">{{ getRestoreType(selectedJob!) === 'pitr' ? 'PITR恢复' : '备份恢复' }}</nz-descriptions-item>
-                <nz-descriptions-item nzTitle="当前阶段">{{ selectedJob.stage || '-' }}</nz-descriptions-item>
-                <nz-descriptions-item nzTitle="开始时间">{{ getJobCreationTime(selectedJob) | date:'yyyy-MM-dd HH:mm:ss' }}</nz-descriptions-item>
-                <nz-descriptions-item nzTitle="可取消">{{ (selectedJob.phase !== 'Completed' && selectedJob.phase !== 'Failed') ? '是' : '否' }}</nz-descriptions-item>
-              </nz-descriptions>
-            </div>
-
-            <div class="conditions-section" *ngIf="selectedJob.conditions?.length">
-              <h4 class="section-title"><i nz-icon nzType="calendar"></i> 状态条件</h4>
-              <div class="conditions-list">
-                <div class="condition-item" *ngFor="let c of selectedJob.conditions">
-                  <div class="condition-header">
-                    <span class="condition-type">{{ c.type }}</span>
-                    <span class="condition-status" [ngClass]="getConditionStatusClass(c.status)">{{ c.status }}</span>
-                    <span class="condition-time">{{ c.lastTransitionTime | date:'MM-dd HH:mm:ss' }}</span>
+        <div class="page-content">
+          <div class="content-grid">
+            <div class="list-column">
+              <nz-card
+                class="list-card"
+                nzTitle="恢复任务列表"
+                [nzExtra]="listExtra"
+                [nzLoading]="loadingService.isLoading(loadingKeys.RESTORE_JOB_LIST)">
+                <ng-template #listExtra>
+                  <div class="list-actions">
+                    <button nz-button nzType="default" nzSize="small" (click)="refreshAll()" [disabled]="loadingService.isLoading(loadingKeys.RESTORE_JOB_LIST)">
+                      <i nz-icon nzType="reload"></i>
+                      刷新
+                    </button>
+                    <nz-switch [(ngModel)]="listAutoRefresh" (ngModelChange)="toggleAutoRefresh($event)">
+                      自动刷新
+                    </nz-switch>
+                    <button nz-button nzType="primary" nzDanger nzSize="small" [disabled]="!hasCancelableSelection()" (click)="cancelBatch()">
+                      <i nz-icon nzType="close"></i>
+                      批量取消
+                    </button>
                   </div>
-                  <div class="condition-details" *ngIf="c.reason || c.message">
-                    <span class="condition-reason" *ngIf="c.reason">{{ c.reason }}</span>
-                    <span class="condition-message" *ngIf="c.message">{{ c.message }}</span>
+                </ng-template>
+
+                <div class="list-toolbar">
+                  <div class="search-box">
+                    <i nz-icon nzType="search"></i>
+                    <input nz-input placeholder="输入集群名称" [(ngModel)]="searchTerm" (ngModelChange)="applyFilters()" />
+                    <button
+                      nz-button
+                      nzSize="small"
+                      class="search-clear"
+                      *ngIf="searchTerm"
+                      (click)="clearSearch()">
+                      <i nz-icon nzType="close"></i>
+                    </button>
+                  </div>
+
+                  <div class="toolbar-meta">
+                    <span class="last-updated">上次更新：{{ lastUpdated | date:'HH:mm:ss' }}</span>
                   </div>
                 </div>
-              </div>
+
+                <div class="filter-chips">
+                  <div class="chip-group">
+                    <span class="chip-label">状态</span>
+                    <button nz-button nzSize="small" [nzType]="statusFilter==='all' ? 'primary':'default'" (click)="setStatusFilter('all')">全部 ({{statusCounts.all}})</button>
+                    <button nz-button nzSize="small" [nzType]="statusFilter==='ongoing' ? 'primary':'default'" (click)="setStatusFilter('ongoing')">进行中 ({{statusCounts.ongoing}})</button>
+                    <button nz-button nzSize="small" [nzType]="statusFilter==='completed' ? 'primary':'default'" (click)="setStatusFilter('completed')">已完成 ({{statusCounts.completed}})</button>
+                    <button nz-button nzSize="small" [nzType]="statusFilter==='failed' ? 'primary':'default'" (click)="setStatusFilter('failed')">失败 ({{statusCounts.failed}})</button>
+                  </div>
+                  <div class="chip-group">
+                    <span class="chip-label">类型</span>
+                    <button nz-button nzSize="small" [nzType]="typeFilter==='all' ? 'primary':'default'" (click)="setTypeFilter('all')">全部</button>
+                    <button nz-button nzSize="small" [nzType]="typeFilter==='backup' ? 'primary':'default'" (click)="setTypeFilter('backup')">备份恢复</button>
+                    <button nz-button nzSize="small" [nzType]="typeFilter==='pitr' ? 'primary':'default'" (click)="setTypeFilter('pitr')">PITR</button>
+                  </div>
+                </div>
+
+                <div class="table-wrapper">
+                  <nz-table #nzTable [nzData]="dataSource" [nzFrontPagination]="true" [nzPageSize]="pageSize" [nzShowPagination]="(dataSource.length||0) > pageSize">
+                    <thead>
+                      <tr>
+                        <th style="width: 40px;">
+                          <label nz-checkbox [ngModel]="isAllSelected()" (ngModelChange)="toggleSelectAll($event)"></label>
+                        </th>
+                        <th>集群名称</th>
+                        <th>状态</th>
+                        <th>类型</th>
+                        <th>创建时间</th>
+                        <th>操作</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let j of nzTable.data" (click)="selectJob(j)" class="table-row" [class.selected]="selectedJob?.clusterName === j.clusterName">
+                        <td (click)="$event.stopPropagation()">
+                          <label nz-checkbox [(ngModel)]="selection[makeKey(j)]" (ngModelChange)="onRowSelectChange(j, $event)"></label>
+                        </td>
+                        <td>
+                          <div class="cluster-info">
+                            <i nz-icon nzType="database"></i>
+                            <span>{{ j.clusterName }}</span>
+                          </div>
+                        </td>
+                        <td>
+                          <nz-tag [nzColor]="getProgressClass(j) === 'phase-warn' ? 'error' : (getProgressClass(j) === 'phase-primary' ? 'processing' : 'default')">
+                            {{ j.phase || '-' }}
+                          </nz-tag>
+                        </td>
+                        <td>{{ getRestoreType(j) === 'pitr' ? 'PITR' : '备份恢复' }}</td>
+                        <td>
+                          <div class="time-info">
+                            <span class="time-date">{{ getJobCreationTime(j) | date:'MM-dd' }}</span>
+                            <span class="time-time">{{ getJobCreationTime(j) | date:'HH:mm' }}</span>
+                          </div>
+                        </td>
+                        <td (click)="$event.stopPropagation()">
+                          <button nz-button nzType="link" nzSize="small" (click)="selectJob(j)"><i nz-icon nzType="eye"></i></button>
+                          <button nz-button nzType="link" nzSize="small" [disabled]="j.phase === 'Completed' || j.phase === 'Failed'" (click)="cancelJob(j)"><i nz-icon nzType="close"></i></button>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </nz-table>
+
+                  <div *ngIf="(dataSource?.length || 0) === 0" class="empty-placeholder">
+                    <nz-empty nzNotFoundImage="simple" nzNotFoundContent="暂无恢复任务"></nz-empty>
+                  </div>
+                </div>
+              </nz-card>
             </div>
 
-            <div *ngIf="!selectedJob.conditions?.length" class="no-conditions">
-              <nz-alert nzType="info" nzMessage="暂无状态条件" nzShowIcon></nz-alert>
-            </div>
+            <aside class="detail-column" *ngIf="!isSmallScreen">
+              <ng-container *ngIf="selectedJob; else detailEmpty">
+                <nz-card class="detail-card" [nzTitle]="'任务详情 · ' + selectedJob.clusterName" [nzExtra]="detailExtra">
+                  <ng-template #detailExtra>
+                    <div class="detail-actions">
+                      <a *ngIf="grafanaLinkForSelected() as gLink" [href]="gLink" target="_blank" rel="noopener" nz-button nzType="link">
+                        <i nz-icon nzType="external-link"></i>
+                        在 Grafana 打开
+                      </a>
+                      <button nz-button nzSize="small" (click)="toggleRaw()">
+                        <i nz-icon nzType="code"></i>
+                        原始 JSON
+                      </button>
+                      <button nz-button nzSize="small" (click)="copySelectedJson()">
+                        <i nz-icon nzType="copy"></i>
+                        复制
+                      </button>
+                      <button nz-button nzType="primary" nzSize="small" *ngIf="isFailed(selectedJob)" (click)="diagnoseSelected()">
+                        <i nz-icon nzType="medicine-box"></i>
+                        诊断
+                      </button>
+                    </div>
+                  </ng-template>
 
-            <div class="raw-section" *ngIf="showRaw">
-              <pre class="raw-json">{{ selectedJob | json }}</pre>
-            </div>
+                  <div class="detail-body">
+                    <section class="status-card">
+                      <div class="status-head">
+                        <nz-tag [nzColor]="getProgressClass(selectedJob) === 'phase-warn' ? 'error' : (getProgressClass(selectedJob) === 'phase-primary' ? 'processing' : 'default')">
+                          {{ selectedJob.phase || '-' }}
+                        </nz-tag>
+                        <span class="progress-text">{{ getProgress(selectedJob) }}%</span>
+                      </div>
+                      <app-backup-progress-indicator
+                        [metadata]="toBackupMetadata(selectedJob)"
+                        [type]="BackupType.RESTORE"
+                        size="small"
+                        [showDetails]="true">
+                      </app-backup-progress-indicator>
+                      <nz-alert *ngIf="isFailed(selectedJob)" nzType="error" [nzMessage]="getErrorMessage(selectedJob)" nzShowIcon></nz-alert>
+                    </section>
+
+                    <section class="info-card">
+                      <h4><i nz-icon nzType="info-circle"></i> 基本信息</h4>
+                      <nz-descriptions nzBordered [nzColumn]="2">
+                        <nz-descriptions-item nzTitle="源集群">{{ selectedJob.sourceCluster || '-' }}</nz-descriptions-item>
+                        <nz-descriptions-item nzTitle="命名空间">{{ selectedJob.namespace || '-' }}</nz-descriptions-item>
+                        <nz-descriptions-item nzTitle="恢复类型">{{ getRestoreType(selectedJob!) === 'pitr' ? 'PITR恢复' : '备份恢复' }}</nz-descriptions-item>
+                        <nz-descriptions-item nzTitle="当前阶段">{{ selectedJob.stage || '-' }}</nz-descriptions-item>
+                        <nz-descriptions-item nzTitle="开始时间">{{ getJobCreationTime(selectedJob) | date:'yyyy-MM-dd HH:mm:ss' }}</nz-descriptions-item>
+                        <nz-descriptions-item nzTitle="可取消">{{ (selectedJob.phase !== 'Completed' && selectedJob.phase !== 'Failed') ? '是' : '否' }}</nz-descriptions-item>
+                      </nz-descriptions>
+                    </section>
+
+                    <section class="conditions-card" *ngIf="selectedJob.conditions?.length; else noConditions">
+                      <h4><i nz-icon nzType="calendar"></i> 状态条件</h4>
+                      <div class="conditions-list">
+                        <div class="condition-item" *ngFor="let c of selectedJob.conditions">
+                          <div class="condition-meta">
+                            <span class="condition-type">{{ c.type }}</span>
+                            <span class="condition-status" [ngClass]="getConditionStatusClass(c.status)">{{ c.status }}</span>
+                            <span class="condition-time">{{ c.lastTransitionTime | date:'MM-dd HH:mm:ss' }}</span>
+                          </div>
+                          <div class="condition-detail" *ngIf="c.reason || c.message">
+                            <span class="condition-reason" *ngIf="c.reason">{{ c.reason }}</span>
+                            <span class="condition-message" *ngIf="c.message">{{ c.message }}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </section>
+                    <ng-template #noConditions>
+                      <nz-alert nzType="info" nzMessage="暂无状态条件" nzShowIcon></nz-alert>
+                    </ng-template>
+
+                    <section class="raw-card" *ngIf="showRaw">
+                      <pre>{{ selectedJob | json }}</pre>
+                    </section>
+                  </div>
+                </nz-card>
+              </ng-container>
+            </aside>
           </div>
-        </nz-card>
+        </div>
+
+        <ng-template #detailEmpty>
+          <div class="detail-empty">
+            <i nz-icon nzType="file-search"></i>
+            <h3>选择任务查看详情</h3>
+            <p>点击左侧任务列表中的任意一行来查看详细信息</p>
+          </div>
+        </ng-template>
       </div>
 
-      <!-- 小屏抽屉详情 -->
-      <nz-drawer [nzVisible]="isSmallScreen && !!selectedJob" [nzTitle]="selectedJob ? ('任务详情 · ' + selectedJob.clusterName) : ''" [nzWidth]="'100%'" (nzOnClose)="closeDrawer()">
-        <div *ngIf="selectedJob" class="detail-content">
-          <div class="status-section">
-            <div class="status-header">
-              <nz-tag [nzColor]="getProgressClass(selectedJob) === 'phase-warn' ? 'error' : (getProgressClass(selectedJob) === 'phase-primary' ? 'processing' : 'default')" class="status-chip-large">
+      <nz-drawer
+        class="detail-drawer"
+        [nzVisible]="isSmallScreen && !!selectedJob"
+        [nzTitle]="selectedJob ? ('任务详情 · ' + selectedJob.clusterName) : ''"
+        [nzWidth]="'100%'"
+        (nzOnClose)="closeDrawer()">
+        <div *ngIf="selectedJob" class="drawer-body">
+          <section class="status-card">
+            <div class="status-head">
+              <nz-tag [nzColor]="getProgressClass(selectedJob) === 'phase-warn' ? 'error' : (getProgressClass(selectedJob) === 'phase-primary' ? 'processing' : 'default')">
                 {{ selectedJob.phase || '-' }}
               </nz-tag>
               <span class="progress-text">{{ getProgress(selectedJob) }}%</span>
@@ -276,13 +293,11 @@ import { BackupType } from '../../utils/backup-progress-strategies';
               size="default"
               [showDetails]="true">
             </app-backup-progress-indicator>
-            <div *ngIf="isFailed(selectedJob)" style="margin-top:8px;">
-              <nz-alert nzType="error" [nzMessage]="getErrorMessage(selectedJob)" nzShowIcon></nz-alert>
-            </div>
-          </div>
+            <nz-alert *ngIf="isFailed(selectedJob)" nzType="error" [nzMessage]="getErrorMessage(selectedJob)" nzShowIcon></nz-alert>
+          </section>
 
-          <div class="info-section">
-            <h4 class="section-title"><i nz-icon nzType="info-circle"></i> 基本信息</h4>
+          <section class="info-card">
+            <h4><i nz-icon nzType="info-circle"></i> 基本信息</h4>
             <nz-descriptions nzBordered [nzColumn]="1">
               <nz-descriptions-item nzTitle="源集群">{{ selectedJob.sourceCluster || '-' }}</nz-descriptions-item>
               <nz-descriptions-item nzTitle="命名空间">{{ selectedJob.namespace || '-' }}</nz-descriptions-item>
@@ -291,141 +306,423 @@ import { BackupType } from '../../utils/backup-progress-strategies';
               <nz-descriptions-item nzTitle="开始时间">{{ getJobCreationTime(selectedJob) | date:'yyyy-MM-dd HH:mm:ss' }}</nz-descriptions-item>
               <nz-descriptions-item nzTitle="可取消">{{ (selectedJob.phase !== 'Completed' && selectedJob.phase !== 'Failed') ? '是' : '否' }}</nz-descriptions-item>
             </nz-descriptions>
-          </div>
+          </section>
 
-          <div class="conditions-section" *ngIf="selectedJob.conditions?.length">
-            <h4 class="section-title"><i nz-icon nzType="calendar"></i> 状态条件</h4>
+          <section class="conditions-card" *ngIf="selectedJob.conditions?.length">
+            <h4><i nz-icon nzType="calendar"></i> 状态条件</h4>
             <div class="conditions-list">
               <div class="condition-item" *ngFor="let c of selectedJob.conditions">
-                <div class="condition-header">
+                <div class="condition-meta">
                   <span class="condition-type">{{ c.type }}</span>
                   <span class="condition-status" [ngClass]="getConditionStatusClass(c.status)">{{ c.status }}</span>
                   <span class="condition-time">{{ c.lastTransitionTime | date:'MM-dd HH:mm:ss' }}</span>
                 </div>
-                <div class="condition-details" *ngIf="c.reason || c.message">
+                <div class="condition-detail" *ngIf="c.reason || c.message">
                   <span class="condition-reason" *ngIf="c.reason">{{ c.reason }}</span>
                   <span class="condition-message" *ngIf="c.message">{{ c.message }}</span>
                 </div>
               </div>
             </div>
-          </div>
+          </section>
         </div>
       </nz-drawer>
-
-      <!-- 空状态 -->
-      <ng-template #emptyState>
-        <div class="empty-state">
-          <i nz-icon nzType="file-search" class="empty-state-icon"></i>
-          <h3>选择任务查看详情</h3>
-          <p>点击左侧任务列表中的任意一行来查看详细信息</p>
-        </div>
-      </ng-template>
     </div>
   `,
   styles: [`
-    .restore-job-management { display: grid; grid-template-columns: 1fr; gap: 16px; padding: 20px; background: #f5f5f5; box-sizing: border-box; min-height: 100vh; }
-    
-    .page-header {
-      margin-bottom: 24px;
+    .restore-job-management {
+      padding: 16px;
+      background: #f5f5f5;
+      min-height: 100vh;
     }
-    
+
+    .layout-container {
+      max-width: 1120px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .header-content {
+      flex: 1;
+      min-width: 260px;
+    }
+
     .page-title {
-      font-size: 20px !important;
-      font-weight: 600 !important;
-      color: rgba(0, 0, 0, 0.88) !important;
-      margin: 0 0 8px 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 24px;
+      font-weight: 600;
+      color: rgba(0, 0, 0, 0.88);
+      margin: 0;
+    }
+
+    .page-icon {
+      font-size: 28px;
+      color: #1890ff;
+    }
+
+    .page-description {
+      margin: 4px 0 0 38px;
+      color: rgba(0, 0, 0, 0.6);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .page-content {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .content-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    @media (min-width: 1100px) {
+      .content-grid {
+        grid-template-columns: 1.7fr 1fr;
+      }
+    }
+
+    .list-card {
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+      border: 1px solid #e0e0e0;
+    }
+
+    .list-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .list-actions nz-switch {
+      display: flex;
+      align-items: center;
+    }
+
+    .list-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .search-box {
+      flex: 1 1 320px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 12px;
+      border: 1px solid #d9d9d9;
+      border-radius: 6px;
+      background: #fafafa;
+    }
+
+    .search-box i {
+      color: rgba(0,0,0,0.45);
+    }
+
+    .search-box input {
+      background: transparent;
+      border: 0;
+      box-shadow: none;
+    }
+
+    .search-box input:focus {
+      border: 0;
+      box-shadow: none;
+    }
+
+    .search-clear {
+      border-radius: 6px;
+      padding: 0 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .toolbar-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: rgba(0,0,0,0.45);
+      font-size: 12px;
+    }
+
+    .filter-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .chip-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      background: #f6f7fb;
+      flex-wrap: wrap;
+    }
+
+    .chip-label {
+      font-size: 12px;
+      color: rgba(0,0,0,0.45);
+    }
+
+    .chip-group button {
+      border-radius: 6px;
+    }
+
+    .table-wrapper {
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    nz-table {
+      overflow: hidden;
+    }
+
+    nz-table ::ng-deep thead > tr > th {
+      background: #fafafa;
+      font-weight: 600;
+    }
+
+    .table-row {
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    .table-row:hover {
+      background: #f3f9ff;
+    }
+
+    .table-row.selected {
+      background: #e6f4ff;
+    }
+
+    .cluster-info {
       display: flex;
       align-items: center;
       gap: 8px;
     }
-    
-    .page-description {
-      color: rgba(0, 0, 0, 0.65);
-      margin: 0;
-      font-size: 14px;
+
+    .cluster-info i {
+      font-size: 18px;
+      color: rgba(0,0,0,0.45);
     }
-    
-    .page-content {
-      display: grid;
-      grid-template-columns: 1fr;
+
+    .time-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .time-date {
+      font-weight: 500;
+      color: rgba(0,0,0,0.65);
+    }
+
+    .time-time {
+      font-size: 12px;
+      color: rgba(0,0,0,0.45);
+    }
+
+    .empty-placeholder {
+      padding: 32px 0;
+      text-align: center;
+    }
+
+    .detail-column {
+      position: sticky;
+      top: 16px;
+    }
+
+    .detail-card {
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+      border: 1px solid #e0e0e0;
+    }
+
+    .detail-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .detail-body {
+      display: flex;
+      flex-direction: column;
       gap: 16px;
     }
-    
-    .page-header-card { margin-bottom: 4px; grid-column: 1 / -1; }
-    .list-panel { width: 100%; }
-    .detail-panel { width: 100%; }
 
-    @media (min-width: 1200px) {
-      .page-content { grid-template-columns: 52% 1fr; }
-      .list-panel { min-width: 620px; }
+    .status-card,
+    .info-card,
+    .conditions-card,
+    .raw-card {
+      padding: 16px;
+      border-radius: 8px;
+      border: 1px solid #f0f0f0;
+      background: #fafafa;
     }
 
-    .list-card, .detail-card { box-shadow: 0 4px 12px rgba(0,0,0,0.06); border-radius: 12px; }
-    .loading-bar { height: 3px; }
-    .list-content { padding: 0 8px 8px 8px; }
+    .status-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      gap: 12px;
+    }
 
-    .filter-toolbar { display: grid; gap: 12px; padding: 12px; background: #ffffff; border-bottom: 1px solid #eee; border-radius: 8px; }
-    .filters-line { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
-    .filter-group { display: flex; align-items: center; gap: 8px; }
-    .filter-label { color: #666; font-size: 13px; }
-    .chip-group .mat-mdc-chip { cursor: pointer; }
-    .toolbar-spacer { flex: 1; }
-    .meta { display: flex; align-items: center; gap: 8px; color: #999; }
-    .last-updated { font-size: 12px; }
-    .search-field { width: 100%; max-width: 360px; }
+    .progress-text {
+      font-weight: 600;
+      color: rgba(0,0,0,0.65);
+    }
 
-    .table-container { max-height: calc(100vh - 360px); overflow-y: auto; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 10px; }
-    .restore-table { width: 100%; background: white; }
-    .table-header { background: #fafafa; font-weight: 600; color: #333; }
-    .table-container .mat-mdc-header-row { position: sticky; top: 0; z-index: 2; background: #fafafa; border-bottom: 1px solid #e5e7eb; }
-    .table-row { cursor: pointer; transition: background .2s ease; border-bottom: 1px solid #f0f0f0; }
-    .table-row:hover { background: #f8f9ff; }
-    .table-row.selected { background: #e3f2fd; border-left: 4px solid #2196f3; }
+    .info-card h4,
+    .conditions-card h4,
+    .raw-card h4 {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 12px;
+      font-size: 16px;
+      color: rgba(0,0,0,0.75);
+    }
 
-    .cluster-info { display: flex; align-items: center; gap: 8px; }
-    .cluster-icon { color: #666; font-size: 20px; }
-    .status-chip { font-weight: 500; border-radius: 16px; padding: 4px 12px; font-size: 12px; }
+    .conditions-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
 
-    .table-container mat-paginator { border-top: 1px solid #e5e7eb; padding: 4px 8px; background: #ffffff; }
+    .condition-item {
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid #f0f0f0;
+      background: #fff;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
 
-    .detail-content { padding: 16px 24px 24px; }
-    .status-section { margin-bottom: 16px; padding: 16px; background: #f8f9fa; border-radius: 12px; border: 1px solid #e9ecef; }
-    .status-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-    .status-chip-large { font-weight: 600; font-size: 14px; padding: 8px 16px; border-radius: 20px; }
-    .progress-text { font-weight: 600; color: #666; font-size: 16px; }
-    .progress-bar { height: 8px; border-radius: 4px; }
+    .condition-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
 
-    .info-section { margin-bottom: 16px; }
-    .section-title { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 600; color: #333; margin: 8px 0 12px; padding-bottom: 8px; border-bottom: 2px solid #e3f2fd; }
-    .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
-    .info-item { display: flex; flex-direction: column; gap: 4px; padding: 12px; background: #fafafa; border-radius: 8px; border-left: 4px solid #2196f3; }
-    .info-label { font-size: 12px; color: #666; font-weight: 500; letter-spacing: .5px; }
-    .info-value { font-size: 14px; color: #333; font-weight: 500; }
+    .condition-type {
+      font-weight: 600;
+      color: rgba(0,0,0,0.75);
+      flex: 1;
+    }
 
-    .conditions-section { margin-bottom: 16px; }
-    .conditions-list { display: flex; flex-direction: column; gap: 12px; }
-    .condition-item { padding: 16px; background: #fafafa; border-radius: 8px; border-left: 4px solid #ff9800; }
-    .condition-header { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
-    .condition-type { font-weight: 600; color: #333; flex: 1; }
-    .condition-status { padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: 500; }
-    .condition-status.true { background: #e8f5e8; color: #2e7d32; }
-    .condition-status.false { background: #ffebee; color: #c62828; }
-    .condition-time { font-size: 12px; color: #666; }
+    .condition-status.true {
+      color: #2e7d32;
+    }
 
-    .no-conditions { display: flex; align-items: center; gap: 8px; padding: 20px; color: #999; justify-content: center; background: #fafafa; }
+    .condition-status.false {
+      color: #c62828;
+    }
 
-    .raw-section { margin-top: 16px; }
-    .raw-json { max-height: 280px; overflow: auto; background: #0f172a; color: #e2e8f0; padding: 12px; border-radius: 8px; font-size: 12px; }
+    .condition-time {
+      font-size: 12px;
+      color: rgba(0,0,0,0.45);
+    }
+
+    .raw-card pre {
+      max-height: 240px;
+      overflow: auto;
+      margin: 0;
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 12px;
+      border-radius: 6px;
+      font-size: 12px;
+    }
+
+    .detail-empty {
+      padding: 48px;
+      text-align: center;
+      color: rgba(0,0,0,0.45);
+    }
+
+    .detail-empty i {
+      font-size: 36px;
+      display: block;
+      margin-bottom: 12px;
+      color: rgba(0,0,0,0.25);
+    }
+
+    .detail-drawer .drawer-body {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .detail-drawer .status-card,
+    .detail-drawer .info-card,
+    .detail-drawer .conditions-card {
+      background: #fafafa;
+    }
+
+    @media (max-width: 767px) {
+      .restore-job-management {
+        padding: 12px;
+      }
+
+      .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .page-description {
+        margin-left: 0;
+      }
+
+      .content-grid {
+        gap: 12px;
+      }
+
+      .list-actions {
+        justify-content: flex-start;
+      }
+
+      .search-box {
+        flex: 1 1 100%;
+      }
+
+      .chip-group {
+        width: 100%;
+        justify-content: center;
+      }
+    }
 
     .phase-warn { background: #ffebee !important; color: #c62828 !important; }
     .phase-primary { background: #e3f2fd !important; color: #1976d2 !important; }
     .phase-accent { background: #f5f5f5 !important; color: #666 !important; }
-
-    /* Empty list styling */
-    .empty-list { display: flex; justify-content: center; align-items: center; height: 240px; }
-    .empty-inner { display: flex; flex-direction: column; align-items: center; gap: 8px; color: #9aa1a9; }
-    .empty-icon { font-size: 44px; width: 44px; height: 44px; color: #c0c6cc; }
-    .empty-text { margin: 0; font-size: 14px; color: #97a0aa; }
   `]
 })
 export class RestoreJobManagementComponent implements OnInit, OnDestroy {
@@ -669,7 +966,7 @@ export class RestoreJobManagementComponent implements OnInit, OnDestroy {
           this.computeCounts();
           this.applyFilters();
         }
-        if (this.isTerminal(full)) this.stopPolling();
+  if (this.isTerminal(full)) this.stopPolling();
       }
     });
   }

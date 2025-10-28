@@ -1,3 +1,16 @@
+import type { RestoreBinlogSource, RestoreStorageProvider } from './restore.model';
+
+type StringMap = Record<string, string>;
+type UnknownMap = Record<string, unknown>;
+
+interface SchedulingToleration {
+  readonly key?: string;
+  readonly operator?: string;
+  readonly value?: string;
+  readonly effect?: string;
+  readonly tolerationSeconds?: number;
+}
+
 export interface XStore {
   metadata: {
     name: string;
@@ -10,7 +23,7 @@ export interface XStore {
     engine?: string;
     serviceName?: string;
     serviceType?: string;
-    serviceLabels?: { [key: string]: string };
+    serviceLabels?: StringMap;
     privileges?: XStorePrivilege[];
     topology: XStoreTopology;
     config: XStoreConfig;
@@ -22,7 +35,7 @@ export interface XStore {
     restore?: XStoreRestoreSpec;
     tde?: XStoreTDE;
     exclusive?: boolean;
-    tolerations?: any[];
+  tolerations?: readonly SchedulingToleration[];
   };
   status?: {
     phase?: 'Creating' | 'Running' | 'Updating' | 'Failed' | 'Deleting';
@@ -30,7 +43,7 @@ export interface XStore {
     conditions?: XStoreCondition[];
     stage?: string;
     replicaStatus?: XStoreReplicaStatus;
-    detailedStatus?: any;
+    detailedStatus?: unknown;
   };
 }
 
@@ -56,20 +69,20 @@ export interface XStoreNodeSet {
 
 export interface XStoreNodeTemplate {
   metadata?: {
-    labels?: { [key: string]: string };
-    annotations?: { [key: string]: string };
+    labels?: StringMap;
+    annotations?: StringMap;
   };
   spec: {
     image?: string;
     imagePullPolicy?: string;
-    imagePullSecrets?: any[];
+  imagePullSecrets?: readonly UnknownMap[];
     resources?: {
-      requests?: { [key: string]: string };
-      limits?: { [key: string]: string };
+      requests?: StringMap;
+      limits?: StringMap;
     };
     hostNetwork?: boolean;
-    tolerations?: any[];
-    affinity?: any;
+  tolerations?: readonly SchedulingToleration[];
+    affinity?: unknown;
     volumes?: XStoreVolume[];
   };
 }
@@ -85,8 +98,8 @@ export interface XStoreVolume {
 }
 
 export interface XStoreConfig {
-  dynamic?: { [key: string]: any };
-  mycnf?: { [key: string]: any };
+  dynamic?: UnknownMap;
+  mycnf?: UnknownMap;
 }
 
 export interface XStoreParameterTemplate {
@@ -98,14 +111,14 @@ export interface XStoreRestoreSpec {
   backupset?: string;
   from?: {
     clusterName?: string;
-    backupSelector?: { [key: string]: string };
+    backupSelector?: StringMap;
     backupSetPath?: string;
   };
-  storageProvider?: any;
+  storageProvider?: RestoreStorageProvider;
   time?: string;
   timezone?: string;
   pitrEndpoint?: string;
-  binlogSource?: any;
+  binlogSource?: RestoreBinlogSource;
 }
 
 export interface XStoreTDE {
@@ -132,8 +145,8 @@ export interface CreateXStoreRequest {
   engine?: string;
   nodeCount: number;
   resources?: {
-    requests?: { [key: string]: string };
-    limits?: { [key: string]: string };
+    requests?: StringMap;
+    limits?: StringMap;
   };
   storage?: {
     size: string;

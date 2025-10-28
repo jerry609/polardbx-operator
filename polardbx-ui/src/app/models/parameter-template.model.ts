@@ -45,10 +45,8 @@ export interface PolarDBXParameterTemplateSpec {
   nodeType: TemplateNodeType;
 }
 
-// PolarDBXParameterTemplateStatus interface (currently empty)
-export interface PolarDBXParameterTemplateStatus {
-  // Status fields can be added here in the future
-}
+// PolarDBXParameterTemplateStatus type (currently placeholder for future fields)
+export type PolarDBXParameterTemplateStatus = Record<string, unknown>;
 
 // Main PolarDBXParameterTemplate interface
 export interface PolarDBXParameterTemplate {

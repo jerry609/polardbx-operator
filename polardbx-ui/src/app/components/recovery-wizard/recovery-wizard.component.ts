@@ -381,8 +381,9 @@ export interface RecoveryWizardDialogData {
     }
     
     .header-content {
-      max-width: 1120px;
-      margin: 0 auto;
+      width: 100%;
+      max-width: none;
+      margin: 0;
     }
     
     .page-description {
@@ -393,8 +394,9 @@ export interface RecoveryWizardDialogData {
     }
     
     .page-content {
-      max-width: 1120px;
-      margin: 0 auto;
+      width: 100%;
+      max-width: none;
+      margin: 0;
     }
     
     .wizard-card {

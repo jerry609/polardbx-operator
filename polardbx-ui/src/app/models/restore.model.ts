@@ -2,15 +2,23 @@
 // Based on document analysis, these are the most critical missing APIs
 // PolarDB-X Operator has complete recovery capabilities but Management Platform had ZERO recovery support
 
+type StringStringMap = Record<string, string>;
+
+interface RestoreProgress {
+  readonly percentage?: number;
+  readonly currentStep?: string;
+  readonly estimatedTimeRemaining?: string;
+}
+
 export interface RestoreStorageProvider {
   readonly type: 'oss' | 's3' | 'sftp';
-  readonly config: { [key: string]: string };
+  readonly config: StringStringMap;
 }
 
 export interface RestoreFromSpec {
   // Note: Backend field name is XStoreName but json tag is "clusterName"
   readonly clusterName?: string;
-  readonly backupSelector?: { [key: string]: string };
+  readonly backupSelector?: StringStringMap;
   readonly backupSetPath?: string;
 }
 
@@ -36,11 +44,7 @@ export interface PITRStatus {
   readonly prepareJobEndpoint?: string;         // PITR preparation job endpoint
   readonly job?: string;                        // Job name
   readonly phase?: string;                      // Current phase
-  readonly progress?: {
-    percentage?: number;
-    currentStep?: string;
-    estimatedTimeRemaining?: string;
-  };
+  readonly progress?: RestoreProgress;
 }
 
 // Request types for API calls
@@ -51,7 +55,7 @@ export interface RestoreClusterRequest {
   readonly targetCluster?: string;              // For restore to new cluster
   readonly storageProvider?: {
     type: 'oss' | 's3' | 'sftp';
-    config: { [key: string]: string };
+    config: StringStringMap;
   };
 }
 
@@ -71,14 +75,7 @@ export interface RestoreStatusResponse {
   readonly restoreSpec?: RestoreSpec;
   readonly pitrStatus?: PITRStatus;
   readonly observedGeneration?: number;
-  readonly conditions?: Array<{
-    type: string;
-    status: string;
-    lastTransitionTime?: string;
-    lastUpdateTime?: string;
-    reason?: string;
-    message?: string;
-  }>;
+  readonly conditions?: readonly RestoreCondition[];
 }
 
 export interface RestoreJob {
@@ -93,14 +90,7 @@ export interface RestoreJob {
   // Keep backward compatibility
   readonly pitrEndpoint?: string;
   readonly observedGeneration?: number;
-  readonly conditions?: Array<{
-    type: string;
-    status: string;
-    lastTransitionTime?: string;
-    lastUpdateTime?: string;
-    reason?: string;
-    message?: string;
-  }>;
+  readonly conditions?: readonly RestoreCondition[];
 }
 
 // UI-specific interfaces for restoration
@@ -143,20 +133,20 @@ export interface RestoreWizardData {
 // API Response types
 export interface RestoreResponse {
   readonly message: string;
-  readonly cluster: any;                        // PolarDBXCluster object
+  readonly cluster: unknown;                    // PolarDBXCluster object
   readonly restoreSpec: RestoreSpec;
 }
 
 export interface PITRResponse {
   readonly message: string;
-  readonly cluster: any;                        // PolarDBXCluster object
+  readonly cluster: unknown;                    // PolarDBXCluster object
   readonly pitrTime: string;
   readonly restoreSpec: RestoreSpec;
 }
 
 export interface CancelRestoreResponse {
   readonly message: string;
-  readonly cluster: any;                        // PolarDBXCluster object
+  readonly cluster: unknown;                    // PolarDBXCluster object
 }
 
 // Constants for UI
@@ -176,3 +166,12 @@ export const RESTORE_STAGES = {
 
 export type RestorePhase = typeof RESTORE_PHASES[keyof typeof RESTORE_PHASES];
 export type RestoreStage = typeof RESTORE_STAGES[keyof typeof RESTORE_STAGES];
+
+export interface RestoreCondition {
+  readonly type: string;
+  readonly status: string;
+  readonly lastTransitionTime?: string;
+  readonly lastUpdateTime?: string;
+  readonly reason?: string;
+  readonly message?: string;
+}

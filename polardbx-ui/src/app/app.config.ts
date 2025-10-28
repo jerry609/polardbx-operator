@@ -96,19 +96,16 @@ import {
 import { PauseOutline, ExperimentOutline, LineChartOutline, BarChartOutline, FileAddOutline, HeartOutline } from '@ant-design/icons-angular/icons';
 
 import { routes } from './app.routes';
+import { authInterceptor } from './interceptors/auth.interceptor';
+import { kubeconfigHeaderInterceptor } from './interceptors/kubeconfig.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }), 
     provideRouter(routes),
     provideHttpClient(withInterceptors([
-      (req, next) => {
-        const token = localStorage.getItem('jwtToken');
-        if (token && req.url.includes('/api/v1/') && !req.headers.has('Authorization')) {
-          req = req.clone({ setHeaders: { Authorization: `Bearer ${token}` } });
-        }
-        return next(req);
-      }
+      authInterceptor,
+      kubeconfigHeaderInterceptor
     ])),
     provideNoopAnimations(),
     provideNzI18n(zh_CN),

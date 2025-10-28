@@ -83,6 +83,19 @@ ng serve
 ```
 
 前端应用将在 `http://localhost:4200` 启动
+
+#### 5. 运行端到端测试（可选）
+首次执行前安装 Playwright 浏览器依赖：
+```bash
+npx playwright install --with-deps
+```
+
+随后可在前端目录运行自动化场景：
+```bash
+npm run e2e
+```
+
+测试完成后将在 `playwright-report/` 生成 HTML 报告。
 ## 开发代理配置（解决 CORS，推荐）
 
 开发环境下建议通过 Angular 代理将 `/api/*` 请求转发到后端，以避免浏览器跨域（CORS）问题。
@@ -247,6 +260,12 @@ ng build
 
 # 运行测试
 ng test
+
+# 运行 Playwright 端到端测试
+npm run e2e
+
+# 运行带界面的 E2E 调试
+npm run e2e:headed
 ```
 
 #### 后端开发

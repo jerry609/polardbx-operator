@@ -3,6 +3,7 @@ package config
 import (
 	"log"
 	"os"
+	"strings"
 	"sync"
 )
 
@@ -25,6 +26,11 @@ type ImageRegistryConfig struct {
 var (
 	globalConfig     *ImageRegistryConfig
 	globalConfigOnce sync.Once
+)
+
+var (
+	autoFixOverlayConfig     *AutoFixOverlayConfig
+	autoFixOverlayConfigOnce sync.Once
 )
 
 // GetGlobalConfig returns the global image registry configuration
@@ -133,4 +139,83 @@ func (c *ImageRegistryConfig) ToMap() map[string]interface{} {
 		"helmImage":       c.HelmImage,
 		"mirrors":         c.Mirrors,
 	}
+}
+
+// AutoFixOverlayConfig controls runtime patching of monitoring resources to enable auto-fix hooks
+// and RBAC without modifying the upstream Helm chart.
+type AutoFixOverlayConfig struct {
+	Enabled             bool
+	Namespace           string
+	ServiceAccount      string
+	ClusterRoleName     string
+	ClusterRoleBinding  string
+	AnnotationKey       string
+	PrometheusTargets   []string
+	GrafanaTargets      []string
+	AlertmanagerTargets []string
+}
+
+// GetAutoFixOverlayConfig lazily initializes and returns the auto-fix overlay config.
+func GetAutoFixOverlayConfig() *AutoFixOverlayConfig {
+	autoFixOverlayConfigOnce.Do(func() {
+		enabled := true
+		if strings.TrimSpace(os.Getenv("MONITORING_AUTOFIX_OVERLAY_ENABLED")) != "" {
+			enabled = parseBoolEnv("MONITORING_AUTOFIX_OVERLAY_ENABLED")
+		}
+		autoFixOverlayConfig = &AutoFixOverlayConfig{
+			Enabled:             enabled,
+			Namespace:           firstNonEmpty(os.Getenv("MONITORING_AUTOFIX_OVERLAY_NAMESPACE"), "polardbx-monitor"),
+			ServiceAccount:      os.Getenv("MONITORING_AUTOFIX_OVERLAY_SERVICE_ACCOUNT"),
+			ClusterRoleName:     firstNonEmpty(os.Getenv("MONITORING_AUTOFIX_OVERLAY_CLUSTER_ROLE"), "polardbx-monitor-autofix"),
+			ClusterRoleBinding:  firstNonEmpty(os.Getenv("MONITORING_AUTOFIX_OVERLAY_CLUSTER_ROLEBINDING"), "polardbx-monitor-autofix"),
+			AnnotationKey:       firstNonEmpty(os.Getenv("MONITORING_AUTOFIX_ANNOTATION_KEY"), "monitoring.polardbx.com/auto-fix-ids"),
+			PrometheusTargets:   parseListEnv("MONITORING_AUTOFIX_PROMETHEUS", []string{"prometheus-k8s", "kube-prometheus-stack-prometheus"}),
+			GrafanaTargets:      parseListEnv("MONITORING_AUTOFIX_GRAFANA", []string{"grafana", "kube-prometheus-stack-grafana"}),
+			AlertmanagerTargets: parseListEnv("MONITORING_AUTOFIX_ALERTMANAGER", []string{"main", "kube-prometheus-stack-alertmanager"}),
+		}
+		log.Printf("AutoFixOverlayConfig initialized: enabled=%v, namespace=%s, serviceAccount=%s", autoFixOverlayConfig.Enabled, autoFixOverlayConfig.Namespace, autoFixOverlayConfig.ServiceAccount)
+	})
+	return autoFixOverlayConfig
+}
+
+func parseBoolEnv(key string) bool {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		return false
+	}
+	switch strings.ToLower(raw) {
+	case "1", "true", "yes", "y", "on":
+		return true
+	default:
+		return false
+	}
+}
+
+func parseListEnv(key string, fallback []string) []string {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		return append([]string{}, fallback...)
+	}
+	parts := strings.Split(raw, ",")
+	out := make([]string, 0, len(parts))
+	for _, part := range parts {
+		trimmed := strings.TrimSpace(part)
+		if trimmed == "" {
+			continue
+		}
+		out = append(out, trimmed)
+	}
+	if len(out) == 0 {
+		return append([]string{}, fallback...)
+	}
+	return out
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, v := range values {
+		if strings.TrimSpace(v) != "" {
+			return v
+		}
+	}
+	return ""
 }

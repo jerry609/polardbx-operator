@@ -2,6 +2,22 @@
 // Based on document analysis, this completes the unified backup module
 // This addresses the gap in storage-level backup management
 
+type StringMap = Record<string, string>;
+
+interface ResourceRequirements {
+  readonly cpu?: string;
+  readonly memory?: string;
+  readonly storage?: string;
+}
+
+interface SchedulingToleration {
+  readonly key?: string;
+  readonly operator?: string;
+  readonly value?: string;
+  readonly effect?: string;
+  readonly tolerationSeconds?: number;
+}
+
 export interface BackupStorageOSS {
   readonly accessKeyId: string;
   readonly accessKeySecret: string;
@@ -37,7 +53,7 @@ export interface XStoreBackupSpec {
     oss?: BackupStorageOSS;
     s3?: BackupStorageS3;
     sftp?: BackupStorageSFTP;
-    config?: { [key: string]: string };
+    config?: StringMap;
   };
   readonly retentionPolicy?: {
     retain?: number;                            // Number of backups to retain
@@ -45,16 +61,8 @@ export interface XStoreBackupSpec {
     retainHours?: number;                       // Hours to retain backups
   };
   readonly resources?: {
-    requests?: {
-      cpu?: string;
-      memory?: string;
-      storage?: string;
-    };
-    limits?: {
-      cpu?: string;
-      memory?: string;
-      storage?: string;
-    };
+    requests?: ResourceRequirements;
+    limits?: ResourceRequirements;
   };
   readonly schedule?: string;                   // Cron expression for scheduled backups
   readonly compression?: boolean;               // Enable compression
@@ -63,14 +71,8 @@ export interface XStoreBackupSpec {
     key?: string;
     algorithm?: string;
   };
-  readonly tolerations?: Array<{
-    key?: string;
-    operator?: string;
-    value?: string;
-    effect?: string;
-    tolerationSeconds?: number;
-  }>;
-  readonly nodeSelector?: { [key: string]: string };
+  readonly tolerations?: readonly SchedulingToleration[];
+  readonly nodeSelector?: StringMap;
 }
 
 export interface XStoreBackupStatus {
@@ -83,7 +85,9 @@ export interface XStoreBackupStatus {
   backupRootPath?: string;
   backupSetTimestamp?: string;
   message?: string;
-}export interface XStoreBackup {
+}
+
+export interface XStoreBackup {
   readonly apiVersion?: string;
   readonly kind?: string;
   readonly metadata: {
@@ -94,8 +98,8 @@ export interface XStoreBackupStatus {
     generation?: number;
     creationTimestamp?: string;
     deletionTimestamp?: string;
-    labels?: { [key: string]: string };
-    annotations?: { [key: string]: string };
+    labels?: StringMap;
+    annotations?: StringMap;
     finalizers?: string[];
   };
   readonly spec: XStoreBackupSpec;
@@ -124,7 +128,7 @@ export interface CreateXStoreBackupRequest {
   readonly compression?: boolean;
   readonly encryption?: XStoreBackupSpec['encryption'];
   readonly resources?: XStoreBackupSpec['resources'];
-  readonly nodeSelector?: { [key: string]: string };
+  readonly nodeSelector?: StringMap;
 }
 
 export interface XStoreBackupRestoreRequest {

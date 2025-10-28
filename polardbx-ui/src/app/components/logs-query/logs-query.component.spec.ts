@@ -5,6 +5,7 @@ import { of } from 'rxjs';
 import { LogsQueryComponent } from './logs-query.component';
 import { ApiService } from '../../services/api.service';
 import { NzMessageService } from 'ng-zorro-antd/message';
+import { provideNoopAnimations } from '@angular/platform-browser/animations';
 
 class ApiServiceMock {
   getLogPresets = jasmine.createSpy('getLogPresets').and.returnValue(of({ total: 1, items: [ { indexPattern: 'logs-*', facets: ['host.keyword','pod'], histogram: { field: '@timestamp', intervals: ['1m','5m'] } } ] }));
@@ -21,7 +22,8 @@ describe('LogsQueryComponent', () => {
       providers: [
         { provide: ApiService, useClass: ApiServiceMock },
         { provide: NzMessageService, useValue: { error: () => {}, warning: () => {}, success: () => {} } },
-        { provide: ActivatedRoute, useValue: { snapshot: { queryParamMap: convertToParamMap({ preset: 'logs-*', index: 'logs-*', size: '5', normalize: '1', he: '1' }) } } }
+        { provide: ActivatedRoute, useValue: { snapshot: { queryParamMap: convertToParamMap({ preset: 'logs-*', index: 'logs-*', size: '5', normalize: '1', he: '1' }) } } },
+        provideNoopAnimations()
       ]
     }).compileComponents();
     router = TestBed.inject(Router);

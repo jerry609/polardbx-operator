@@ -199,6 +199,12 @@ Temporary Items
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 
+# Playwright test artifacts
+playwright-report/
+polardbx-ui/playwright-report/
+polardbx-ui/test-results/
+polardbx-ui/.playwright-cache/
+
 # Dependency directories (remove the comment below to include it)
 # vendor/
 

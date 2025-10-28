@@ -165,7 +165,7 @@ export const routes: Routes = [
               { path: 'config', loadComponent: () => import('./components/monitor-management/monitor-management.component').then(m => m.MonitorManagementComponent) },
               // 旧的安装向导（模拟版）重定向到新的 enable-wizard
               { path: 'install', redirectTo: 'enable-wizard', pathMatch: 'full' },
-              { path: 'enable-wizard', loadComponent: () => import('./components/monitoring-enable-wizard/monitoring-enable-wizard.component').then(m => m.MonitoringEnableWizardComponent) },
+              { path: 'enable-wizard', loadComponent: () => import('./components/monitoring-installation/monitoring-installation-wizard.component').then(m => m.MonitoringInstallationWizardComponent) },
               { path: 'health', loadComponent: () => import('./components/monitoring-health/monitoring-health.component').then(m => m.MonitoringHealthComponent) },
               { path: 'preflight', loadComponent: () => import('./components/monitoring-preflight/monitoring-preflight.component').then(m => m.MonitoringPreflightComponent) },
               { path: 'dashboards', loadComponent: () => import('./components/monitoring-dashboard-templates/monitoring-dashboard-templates.component').then(m => m.MonitoringDashboardTemplatesComponent) },

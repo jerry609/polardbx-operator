@@ -1,17 +1,22 @@
-<div class="management-container neutral-theme">
+<div class="xstore-follower-management">
   <div class="page-header">
     <div class="header-content">
       <h1 class="page-title">
         <i nz-icon nzType="deployment-unit" class="page-icon"></i>
         XStore Follower 管理
       </h1>
-      <p class="subtitle">备库重搭任务管理与监控</p>
+      <p class="page-description">备库重搭任务管理与监控</p>
+    </div>
+    <div class="header-actions">
+      <button nz-button nzType="default" (click)="goToXStores()">
+        <i nz-icon nzType="database"></i>
+        <span>查看 XStore 列表</span>
+      </button>
     </div>
   </div>
 
-  <!-- Main Content -->
-  <div class="content-wrapper">
-    <nz-tabset [(nzSelectedIndex)]="selectedTab" nzType="card" class="management-tabs">
+  <div class="page-content">
+    <nz-tabset [(nzSelectedIndex)]="selectedTab" nzType="card" class="main-tabs">
       
       <!-- Tab 1: Followers List -->
       <nz-tab nzTitle="Follower 列表">

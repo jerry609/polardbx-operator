@@ -27,6 +27,7 @@ describe('ApiService logs APIs', () => {
   let httpMock: HttpTestingController;
 
   beforeEach(() => {
+    localStorage.clear();
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],
       providers: [ApiService]
@@ -47,7 +48,7 @@ describe('ApiService logs APIs', () => {
       expect(res.items[0].indexPattern).toBe('logs-*');
     });
 
-    const req = httpMock.expectOne('http://localhost:8080/api/v1/logs/presets');
+  const req = httpMock.expectOne('/api/v1/logs/presets');
     expect(req.request.method).toBe('GET');
     req.flush(mock);
   });
@@ -61,7 +62,7 @@ describe('ApiService logs APIs', () => {
       expect(Array.isArray(r.items)).toBe(true);
     });
 
-    const req = httpMock.expectOne('http://localhost:8080/api/v1/logs/query');
+  const req = httpMock.expectOne('/api/v1/logs/query');
     expect(req.request.method).toBe('POST');
     req.flush(mock);
   });
@@ -101,8 +102,8 @@ describe('ApiService logs APIs', () => {
     loadingService = TestBed.inject(LoadingService) as jasmine.SpyObj<LoadingService>;
     performanceService = TestBed.inject(PerformanceService) as jasmine.SpyObj<PerformanceService>;
 
-    // Mock session storage
-    spyOn(sessionStorage, 'getItem').and.returnValue(mockKubeconfig);
+  // Mock local storage
+  spyOn(localStorage, 'getItem').and.returnValue(mockKubeconfig);
   });
 
   afterEach(() => {
@@ -738,10 +739,10 @@ observedGeneration: 1,
       req.flush('Internal Server Error', { status: 500, statusText: 'Internal Server Error' });
     });
 
-    it('should throw error when no kubeconfig in session storage', () => {
+  it('should throw error when no kubeconfig in local storage', () => {
       (sessionStorage.getItem as jasmine.Spy).and.returnValue(null);
 
-      expect(() => service.getClusters().subscribe()).toThrowError('No kubeconfig found in session storage');
+  expect(() => service.getClusters().subscribe()).toThrowError('No kubeconfig found in local storage');
     });
   });
 

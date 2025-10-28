@@ -17,7 +17,16 @@ import { NzEmptyModule } from 'ng-zorro-antd/empty';
 import { NzIconModule } from 'ng-zorro-antd/icon';
 import { Router, ActivatedRoute } from '@angular/router';
 import { ApiService } from '../../services/api.service';
-import { LogPreset, LogsQueryRequest, NormalizedResponse } from '../../models/logs.model';
+import {
+  FacetBucket,
+  LogFacetRequest,
+  LogHistogramRequest,
+  LogItem,
+  LogPreset,
+  LogsPresetList,
+  LogsQueryRequest,
+  NormalizedResponse
+} from '../../models/logs.model';
 import { LoadingService, LoadingKeys } from '../../services/loading.service';
 
 @Component({
@@ -193,7 +202,7 @@ import { LoadingService, LoadingKeys } from '../../services/loading.service';
           <div class="logs-section">
             <h4>日志记录</h4>
             <nz-table 
-              [nzData]="results.items || []" 
+              [nzData]="logItems" 
               [nzShowPagination]="false" 
               nzSize="small">
               <thead>
@@ -202,15 +211,15 @@ import { LoadingService, LoadingKeys } from '../../services/loading.service';
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let item of results.items">
+                <tr *ngFor="let item of logItems">
                   <td *ngFor="let col of itemColumns">
-                    {{ formatLogValue(item[col]) }}
+                    {{ formatLogValue(getItemValue(item, col)) }}
                   </td>
                 </tr>
               </tbody>
             </nz-table>
             
-            <nz-empty *ngIf="!results.items || results.items.length === 0" 
+            <nz-empty *ngIf="logItems.length === 0" 
                       nzNotFoundContent="未找到匹配的日志">
             </nz-empty>
           </div>
@@ -341,10 +350,13 @@ export class LogsQueryComponent implements OnInit {
   form: FormGroup;
   presets: LogPreset[] = [];
   facetOptions: string[] = [];
-  histogramIntervals: string[] = ['30s','1m','5m','10m','30m','1h','3h','6h','12h','1d'];
+  histogramIntervals: string[] = [];
   quickRanges: Record<string, Date[]> = {};
   results: NormalizedResponse | null = null;
+  logItems: LogItem[] = [];
   itemColumns: string[] = [];
+
+  private readonly defaultHistogramIntervals: readonly string[] = ['30s','1m','5m','10m','30m','1h','3h','6h','12h','1d'];
 
   constructor(
     private fb: FormBuilder,
@@ -365,11 +377,15 @@ export class LogsQueryComponent implements OnInit {
       histogramInterval: [null]
     });
     this.quickRanges = this.buildQuickRanges();
+    this.histogramIntervals = Array.from(this.defaultHistogramIntervals);
   }
 
   ngOnInit(): void {
     this.api.getLogPresets().subscribe({
-      next: (res) => { this.presets = res?.items || []; this.applyQueryParams(); },
+      next: (res: LogsPresetList) => {
+        this.presets = Array.from(res?.items ?? []);
+        this.applyQueryParams();
+      },
       error: () => { this.message.error('加载预设失败'); this.applyQueryParams(); }
     });
   }
@@ -438,19 +454,21 @@ export class LogsQueryComponent implements OnInit {
 
   onPresetChange(pattern: string | null): void {
     const preset = this.presets.find(p => p.indexPattern === pattern) || null;
-    this.facetOptions = preset?.facets || [];
-    this.histogramIntervals = preset?.histogram?.intervals || ['30s','1m','5m','10m','30m','1h','3h','6h','12h','1d'];
-    const defaultFacetSelection = (preset?.facets || []).slice(0, Math.min(3, (preset?.facets || []).length));
+    this.facetOptions = preset?.facets ? Array.from(preset.facets) : [];
+    this.histogramIntervals = preset?.histogram?.intervals ? Array.from(preset.histogram.intervals) : Array.from(this.defaultHistogramIntervals);
+    const defaultFacetSelection = preset?.facets ? preset.facets.slice(0, Math.min(3, preset.facets.length)) : [];
     this.form.patchValue({ index: pattern || '', facetFields: defaultFacetSelection, histogramInterval: null });
   }
 
-  private deriveItemColumns(items: any[]): string[] {
+  private deriveItemColumns(items: readonly LogItem[]): string[] {
     if (!Array.isArray(items) || items.length === 0) return [];
     const keys = Object.keys(items[0] || {});
     return keys.slice(0, Math.min(keys.length, 6));
   }
 
-  objectKeys(obj: any): string[] { return Object.keys(obj || {}); }
+  objectKeys(obj: Record<string, unknown> | undefined | null): string[] {
+    return Object.keys(obj || {});
+  }
 
   onSearch(): void {
     const v = this.form.value;
@@ -471,20 +489,26 @@ export class LogsQueryComponent implements OnInit {
         to: end?.toISOString?.() || end
       };
     }
-    const facetFields: string[] = Array.isArray(v.facetFields) ? v.facetFields : [];
+    const facetFields: string[] = Array.isArray(v.facetFields) ? [...v.facetFields] : [];
     if (facetFields.length > 0) {
-      req.facets = facetFields.map(f => ({ name: this.toFacetName(f), field: f, size: 10, order: 'count' }));
+      const facets: LogFacetRequest[] = facetFields.map(f => ({ name: this.toFacetName(f), field: f, size: 10, order: 'count' }));
+      req.facets = facets;
     }
     if (v.histogramEnabled) {
-      req.histogram = { name: 'by_time', field: '@timestamp', interval: (v.histogramInterval || undefined) } as any;
+      const histogram: LogHistogramRequest = {
+        name: 'by_time',
+        field: '@timestamp',
+        interval: v.histogramInterval || undefined
+      };
+      req.histogram = histogram;
     }
 
     this.updateUrl();
     this.api.queryLogs(req).subscribe({
-      next: (res: any) => {
+      next: (res: NormalizedResponse) => {
         this.results = res;
-        const items = (res && res.items) ? res.items : [];
-        this.itemColumns = this.deriveItemColumns(items);
+        this.logItems = Array.from(res?.items ?? []);
+        this.itemColumns = this.deriveItemColumns(this.logItems);
       },
       error: () => { this.message.error('查询失败'); }
     });
@@ -498,14 +522,14 @@ export class LogsQueryComponent implements OnInit {
     return `by_${base}`;
   }
 
-  getMaxFacetCount(facetItems: any[]): number {
+  getMaxFacetCount(facetItems: readonly FacetBucket[] | undefined): number {
     if (!Array.isArray(facetItems) || facetItems.length === 0) return 1;
-    return Math.max(...facetItems.map(item => item.count || 0));
+    return Math.max(...facetItems.map(item => item.count ?? 0));
   }
 
   getMaxHistogramCount(): number {
     if (!this.results?.histogram || this.results.histogram.length === 0) return 1;
-    return Math.max(...this.results.histogram.map(h => h.count || 0));
+    return Math.max(...this.results.histogram.map(h => h.count ?? 0));
   }
 
   formatHistogramTime(key: string): string {
@@ -517,7 +541,11 @@ export class LogsQueryComponent implements OnInit {
     }
   }
 
-  formatLogValue(value: any): string {
+  getItemValue(item: LogItem, column: string): unknown {
+    return item[column];
+  }
+
+  formatLogValue(value: unknown): string {
     if (value === null || value === undefined) return '';
     if (typeof value === 'object') return JSON.stringify(value);
     return String(value);

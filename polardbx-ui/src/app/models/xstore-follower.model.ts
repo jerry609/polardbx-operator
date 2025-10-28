@@ -2,6 +2,36 @@
 // Based on document analysis, this is for 备库重搭 (backup database reconstruction)
 // This addresses the critical gap in fault recovery management identified in the completeness report
 
+type StringMap = Record<string, string>;
+
+interface ResourceRequirements {
+  readonly cpu?: string;
+  readonly memory?: string;
+  readonly storage?: string;
+}
+
+interface SchedulingToleration {
+  readonly key?: string;
+  readonly operator?: string;
+  readonly value?: string;
+  readonly effect?: string;
+  readonly tolerationSeconds?: number;
+}
+
+interface FlowFlagState {
+  readonly name?: string;
+  readonly value?: boolean;
+}
+
+interface RecoveryCondition {
+  readonly type: string;
+  readonly status: string;
+  readonly lastTransitionTime?: string;
+  readonly lastUpdateTime?: string;
+  readonly reason?: string;
+  readonly message?: string;
+}
+
 export interface XStoreFollowerSpec {
   readonly local?: boolean;                      // Build the FromPod locally
   readonly role?: 'learner' | 'logger' | 'follower'; // Role type
@@ -17,25 +47,11 @@ export interface XStoreFollowerSpec {
   readonly forceRecreate?: boolean;              // Force recreation of follower
   readonly priority?: number;                    // Recovery priority
   readonly resources?: {
-    requests?: {
-      cpu?: string;
-      memory?: string;
-      storage?: string;
-    };
-    limits?: {
-      cpu?: string;
-      memory?: string;
-      storage?: string;
-    };
+    requests?: ResourceRequirements;
+    limits?: ResourceRequirements;
   };
-  readonly tolerations?: Array<{
-    key?: string;
-    operator?: string;
-    value?: string;
-    effect?: string;
-    tolerationSeconds?: number;
-  }>;
-  readonly nodeSelector?: { [key: string]: string };
+  readonly tolerations?: readonly SchedulingToleration[];
+  readonly nodeSelector?: StringMap;
 }
 
 export interface XStoreFollowerStatus {
@@ -47,23 +63,13 @@ export interface XStoreFollowerStatus {
   readonly currentJobTask?: string;              // Task name of the current job
   readonly targetPodName?: string;               // Target pod name
   readonly rebuildPodName?: string;              // Temporary pod name
-  readonly toCleanHostPathVolume?: any;          // Host path volume to clean
+  readonly toCleanHostPathVolume?: unknown;      // Host path volume to clean
   readonly rebuildNodeName?: string;             // New node name of the pod (targetNodeName)
-  readonly flowFlags?: Array<{
-    name?: string;
-    value?: boolean;
-  }>;
+  readonly flowFlags?: readonly FlowFlagState[];
   
   // Legacy fields for compatibility
   readonly stage?: string;                       // Current stage within phase
-  readonly conditions?: Array<{
-    type: string;
-    status: string;
-    lastTransitionTime?: string;
-    lastUpdateTime?: string;
-    reason?: string;
-    message?: string;
-  }>;
+  readonly conditions?: readonly RecoveryCondition[];
   readonly observedGeneration?: number;
   readonly primaryXStore?: string;               // Primary XStore being followed
   readonly recoveryProgress?: {
@@ -87,8 +93,8 @@ export interface XStoreFollower {
     generation?: number;
     creationTimestamp?: string;
     deletionTimestamp?: string;
-    labels?: { [key: string]: string };
-    annotations?: { [key: string]: string };
+    labels?: StringMap;
+    annotations?: StringMap;
     finalizers?: string[];
   };
   readonly spec: XStoreFollowerSpec;
@@ -121,7 +127,7 @@ export interface CreateXStoreFollowerRequest {
   readonly forceRecreate?: boolean;
   readonly priority?: number;
   readonly resources?: XStoreFollowerSpec['resources'];
-  readonly nodeSelector?: { [key: string]: string };
+  readonly nodeSelector?: StringMap;
 }
 
 export interface XStoreFollowerRecoveryRequest {

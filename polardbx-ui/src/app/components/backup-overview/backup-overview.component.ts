@@ -181,8 +181,9 @@ import { ApiService } from '../../services/api.service';
     }
     
     .header-content {
-      max-width: 1120px;
-      margin: 0 auto;
+      width: 100%;
+      max-width: none;
+      margin: 0;
     }
     
     .page-title {
@@ -208,8 +209,9 @@ import { ApiService } from '../../services/api.service';
     }
     
     .page-content {
-      max-width: 1120px;
-      margin: 0 auto;
+      width: 100%;
+      max-width: none;
+      margin: 0;
     }
     
     .overview-card {

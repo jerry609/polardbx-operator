@@ -462,26 +462,46 @@ import {
       min-height: 100vh;
     }
 
+    .page-header {
+      margin-bottom: 16px;
+    }
+
+    .header-content {
+      width: 100%;
+      max-width: none;
+      margin: 0;
+    }
+
+    .page-title {
+      font-size: 24px;
+      font-weight: 600;
+      color: rgba(0, 0, 0, 0.88);
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .page-icon {
+      font-size: 28px;
+      color: #1890ff;
+    }
+
     .page-description {
       color: rgba(0, 0, 0, 0.6);
       font-size: 14px;
-      margin: 0;
+      margin: 4px 0 0 36px;
       line-height: 1.5;
     }
 
     .page-content {
-      max-width: 1120px;
-      margin: 0 auto;
+      width: 100%;
+      max-width: none;
+      margin: 0;
     }
 
     .stats-section {
       margin-bottom: 16px;
-    }
-
-    .stat-card {
-      text-align: center;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     }
 
     .main-tabs {
@@ -489,6 +509,10 @@ import {
       border-radius: 8px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.06);
       border: 1px solid #e0e0e0;
+    }
+
+    .main-tabs ::ng-deep .ant-tabs-content-holder {
+      padding: 0 16px 16px;
     }
 
     .tab-content {

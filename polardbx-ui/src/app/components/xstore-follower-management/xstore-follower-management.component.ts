@@ -116,6 +116,10 @@ export class XStoreFollowerManagementComponent implements OnInit {
     }
   }
 
+  goToXStores(): void {
+    this.router.navigate(['/storage/xstores']);
+  }
+
   private initializeForms(): void {
     // Main follower configuration form
     this.followerForm = this.fb.group({

@@ -21,16 +21,16 @@ export interface PolarDBXBackup {
     startTime?: string;
     endTime?: string;
     backupRootPath?: string;
-    backups?: { [key: string]: string };
+  backups?: Record<string, string>;
     xstores?: string[];
-    backupSetTimestamp?: { [key: string]: string };
+  backupSetTimestamp?: Record<string, string>;
     latestRecoverableTimestamp?: string;
-    collectStartIndexMap?: { [key: string]: string };
-    collectEndIndexMap?: { [key: string]: string };
+  collectStartIndexMap?: Record<string, string>;
+  collectEndIndexMap?: Record<string, string>;
     message?: string;
     completionTime?: string;  // 保留兼容性
     heartbeat?: string;  // 心跳时间戳
-    clusterSpecSnapshot?: any;  // 集群快照
+  clusterSpecSnapshot?: unknown;  // 集群快照
   };
 }
 

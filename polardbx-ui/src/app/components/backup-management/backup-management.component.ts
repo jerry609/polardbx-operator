@@ -619,8 +619,9 @@ import { NzDrawerModule } from 'ng-zorro-antd/drawer';
     }
     
     .header-content {
-      max-width: 1120px;
-      margin: 0 auto;
+      width: 100%;
+      max-width: none;
+      margin: 0;
     }
     
     .page-description {
@@ -631,8 +632,9 @@ import { NzDrawerModule } from 'ng-zorro-antd/drawer';
     }
     
     .page-content {
-      max-width: 1120px;
-      margin: 0 auto;
+      width: 100%;
+      max-width: none;
+      margin: 0;
     }
     
     .stats-section {

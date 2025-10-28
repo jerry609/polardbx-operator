@@ -1,15 +1,29 @@
 .rebuild-form-container {
-  padding: 24px;
-  background: #fafafa;
-  min-height: calc(100vh - 64px);
+  padding: 16px 16px 32px;
+  background: #f5f5f5;
+  min-height: 100vh;
+
+  .layout-container {
+    width: 100%;
+    max-width: 1120px;
+    margin: 0 auto;
+  }
+
+  .page-content {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
 
   .form-card {
-    max-width: 800px;
-    margin: 0 auto;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    border-radius: 6px;
-    
+    width: 100%;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
     .form-content {
+      padding: 24px;
+      max-width: 780px;
+      margin: 0 auto;
       .form-section {
         margin-bottom: 24px;
         
@@ -103,29 +117,35 @@
 // 响应式设计
 @media (max-width: 768px) {
   .rebuild-form-container {
-    padding: 16px;
-    
+    padding: 12px 12px 24px;
+
+    .layout-container {
+      max-width: 100%;
+    }
+
     .form-card {
       .form-content {
+        padding: 20px;
+
         .form-section {
           .section-title {
             font-size: 14px;
           }
         }
-        
+
         ::ng-deep nz-form-item {
           .ant-form-item-label {
             flex: 0 0 100% !important;
             max-width: 100% !important;
           }
-          
+
           .ant-form-item-control {
             flex: 0 0 100% !important;
             max-width: 100% !important;
             margin-left: 0 !important;
           }
         }
-        
+
         .submit-buttons {
           ::ng-deep .ant-form-item-control {
             flex: 0 0 100% !important;
