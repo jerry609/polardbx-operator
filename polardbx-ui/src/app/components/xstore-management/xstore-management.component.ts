@@ -18,9 +18,13 @@ import { NzModalService, NzModalModule } from 'ng-zorro-antd/modal';
 import { NzToolTipModule } from 'ng-zorro-antd/tooltip';
 import { NzDividerModule } from 'ng-zorro-antd/divider';
 import { NzPopconfirmModule } from 'ng-zorro-antd/popconfirm';
+import { NzDrawerModule } from 'ng-zorro-antd/drawer';
+import { NzDescriptionsModule } from 'ng-zorro-antd/descriptions';
+import { NzCollapseModule } from 'ng-zorro-antd/collapse';
+import { NzAlertModule } from 'ng-zorro-antd/alert';
 import { ApiService } from '../../services/api.service';
 import { LoadingService, LoadingKeys } from '../../services/loading.service';
-import { XStore } from '../../models/xstore.model';
+import { XStore, XStoreCondition, XStoreNodeSet, XStoreVolume } from '../../models/xstore.model';
 
 @Component({
   selector: 'app-xstore-management',
@@ -43,6 +47,10 @@ import { XStore } from '../../models/xstore.model';
     NzToolTipModule,
     NzDividerModule,
     NzPopconfirmModule,
+    NzDrawerModule,
+    NzDescriptionsModule,
+    NzCollapseModule,
+    NzAlertModule,
     ReactiveFormsModule
   ],
   template: `
@@ -271,6 +279,220 @@ import { XStore } from '../../models/xstore.model';
             </div>
           </nz-tab>
         </nz-tabset>
+
+        <nz-drawer
+          [nzVisible]="detailsDrawerVisible"
+          nzPlacement="right"
+          nzTitle="存储节点详情"
+          [nzWidth]="640"
+          (nzOnClose)="closeDetailsDrawer()">
+          <div *nzDrawerContent class="details-drawer">
+            <nz-spin [nzSpinning]="loadingService.isLoading(loadingKeys.XSTORE_DETAIL)" nzTip="加载中...">
+              <ng-container *ngIf="selectedXStore as detail; else noXStoreSelected">
+                <nz-alert
+                  *ngIf="detailsError"
+                  nzType="error"
+                  nzShowIcon
+                  [nzMessage]="detailsError"
+                  class="details-error">
+                </nz-alert>
+
+                <div class="detail-section">
+                  <div class="section-header">
+                    <h3>基础信息</h3>
+                    <nz-tag [nzColor]="getStatusColor(detail.status?.phase)">
+                      {{ getStatusLabel(detail.status?.phase) }}
+                    </nz-tag>
+                  </div>
+                  <nz-descriptions nzBordered [nzColumn]="1" nzSize="small">
+                    <nz-descriptions-item nzTitle="名称">
+                      {{ detail.metadata.name }}
+                    </nz-descriptions-item>
+                    <nz-descriptions-item nzTitle="命名空间">
+                      <nz-tag nzColor="blue">{{ detail.metadata.namespace }}</nz-tag>
+                    </nz-descriptions-item>
+                    <nz-descriptions-item nzTitle="API 版本">
+                      {{ detail.apiVersion || 'polardbx.aliyun.com/v1' }}
+                    </nz-descriptions-item>
+                    <nz-descriptions-item nzTitle="资源类型">
+                      {{ detail.kind || 'XStore' }}
+                    </nz-descriptions-item>
+                    <nz-descriptions-item nzTitle="引擎">
+                      {{ detail.spec?.engine || '-' }}
+                    </nz-descriptions-item>
+                    <nz-descriptions-item nzTitle="服务名称">
+                      {{ detail.spec?.serviceName || '-' }}
+                    </nz-descriptions-item>
+                    <nz-descriptions-item nzTitle="服务类型">
+                      {{ detail.spec?.serviceType || '-' }}
+                    </nz-descriptions-item>
+                    <nz-descriptions-item nzTitle="创建时间">
+                      {{ formatDate(detail.metadata.creationTimestamp) }}
+                    </nz-descriptions-item>
+                    <nz-descriptions-item nzTitle="升级策略">
+                      {{ detail.spec?.upgradeStrategy || '-' }}
+                    </nz-descriptions-item>
+                    <nz-descriptions-item nzTitle="参数模板">
+                      {{ detail.spec?.parameterTemplate?.name || '-' }}
+                    </nz-descriptions-item>
+                    <nz-descriptions-item nzTitle="所属集群">
+                      {{ detail.spec?.primaryCluster || '-' }}
+                    </nz-descriptions-item>
+                    <nz-descriptions-item nzTitle="主节点">
+                      {{ detail.spec?.primaryXStore || '-' }}
+                    </nz-descriptions-item>
+                    <nz-descriptions-item nzTitle="独占模式">
+                      {{ formatBoolean(detail.spec?.exclusive) }}
+                    </nz-descriptions-item>
+                  </nz-descriptions>
+                </div>
+
+                <div class="detail-section">
+                  <div class="section-header">
+                    <h3>运行状态</h3>
+                  </div>
+                  <nz-descriptions nzBordered [nzColumn]="1" nzSize="small">
+                    <nz-descriptions-item nzTitle="阶段">
+                      {{ detail.status?.phase || '未知' }}
+                    </nz-descriptions-item>
+                    <nz-descriptions-item nzTitle="阶段描述">
+                      {{ detail.status?.stage || '-' }}
+                    </nz-descriptions-item>
+                    <nz-descriptions-item nzTitle="就绪情况">
+                      {{ getReplicaDisplay(detail) }}
+                    </nz-descriptions-item>
+                    <nz-descriptions-item nzTitle="总 Pod">
+                      {{ detail.status?.totalPods != null ? detail.status?.totalPods : '-' }}
+                    </nz-descriptions-item>
+                    <nz-descriptions-item nzTitle="Observed Generation">
+                      {{ detail.status?.observedGeneration != null ? detail.status?.observedGeneration : '-' }}
+                    </nz-descriptions-item>
+                  </nz-descriptions>
+
+                  <div class="conditions-block" *ngIf="getConditionList(detail).length">
+                    <div class="section-subtitle">状态条件</div>
+                    <div class="condition-list">
+                      <div class="condition-item" *ngFor="let condition of getConditionList(detail)">
+                        <div class="condition-header">
+                          <nz-tag [nzColor]="getConditionTagColor(condition.status)">
+                            {{ condition.status || 'Unknown' }}
+                          </nz-tag>
+                          <span class="condition-type">{{ condition.type }}</span>
+                          <span class="condition-time">{{ formatDate(condition.lastTransitionTime) }}</span>
+                        </div>
+                        <div class="condition-body">
+                          <div class="condition-reason" *ngIf="condition.reason">
+                            原因：{{ condition.reason }}
+                          </div>
+                          <div class="condition-message">
+                            {{ condition.message || '无详细信息' }}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="detail-section" *ngIf="getServiceLabelEntries(detail).length">
+                  <div class="section-header">
+                    <h3>服务标签</h3>
+                  </div>
+                  <div class="tag-list">
+                    <nz-tag nzColor="gold" *ngFor="let label of getServiceLabelEntries(detail)">
+                      {{ label.key }}: {{ label.value }}
+                    </nz-tag>
+                  </div>
+                </div>
+
+                <div class="detail-section" *ngIf="getTopologyNodeSets(detail).length">
+                  <div class="section-header">
+                    <h3>拓扑结构</h3>
+                  </div>
+                  <nz-collapse nzBordered>
+                    <nz-collapse-panel
+                      *ngFor="let nodeSet of getTopologyNodeSets(detail); let idx = index"
+                      [nzHeader]="nodeSet.name || ('节点组 ' + (idx + 1))">
+                      <div class="node-set-header">
+                        <nz-tag nzColor="geekblue">{{ nodeSet.role || '未知' }}</nz-tag>
+                        <nz-tag nzColor="blue">副本 {{ nodeSet.replicas || 0 }}</nz-tag>
+                      </div>
+                      <nz-descriptions nzBordered [nzColumn]="1" nzSize="small">
+                        <nz-descriptions-item nzTitle="镜像">
+                          {{ nodeSet.template?.spec?.image || '-' }}
+                        </nz-descriptions-item>
+                        <nz-descriptions-item nzTitle="Host Network">
+                          {{ formatBoolean(nodeSet.template?.spec?.hostNetwork) }}
+                        </nz-descriptions-item>
+                        <nz-descriptions-item nzTitle="资源限制">
+                          {{ formatResourceMap(nodeSet.template?.spec?.resources?.limits) }}
+                        </nz-descriptions-item>
+                        <nz-descriptions-item nzTitle="资源请求">
+                          {{ formatResourceMap(nodeSet.template?.spec?.resources?.requests) }}
+                        </nz-descriptions-item>
+                        <nz-descriptions-item nzTitle="卷">
+                          {{ formatVolumes(nodeSet.template?.spec?.volumes) }}
+                        </nz-descriptions-item>
+                      </nz-descriptions>
+                    </nz-collapse-panel>
+                  </nz-collapse>
+                </div>
+
+                <div class="detail-section" *ngIf="detail.spec?.privileges?.length">
+                  <div class="section-header">
+                    <h3>访问权限</h3>
+                  </div>
+                  <nz-table [nzData]="detail.spec?.privileges" nzSize="small" nzBordered>
+                    <thead>
+                      <tr>
+                        <th>类型</th>
+                        <th>名称</th>
+                        <th>Host</th>
+                        <th>权限</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let privilege of detail.spec?.privileges">
+                        <td>{{ privilege.type }}</td>
+                        <td>{{ privilege.name }}</td>
+                        <td>{{ privilege.host || '-' }}</td>
+                        <td>
+                          <span *ngIf="privilege.privileges?.length; else noPrivileges">
+                            {{ privilege.privileges.join(', ') }}
+                          </span>
+                          <ng-template #noPrivileges>-</ng-template>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </nz-table>
+                </div>
+
+                <div class="detail-section" *ngIf="detail.spec?.config && (detail.spec?.config?.dynamic || detail.spec?.config?.mycnf)">
+                  <div class="section-header">
+                    <h3>配置</h3>
+                  </div>
+                  <nz-collapse nzBordered>
+                    <nz-collapse-panel nzHeader="动态配置" *ngIf="detail.spec?.config?.dynamic">
+                      <pre class="config-json">{{ formatJson(detail.spec?.config?.dynamic) }}</pre>
+                    </nz-collapse-panel>
+                    <nz-collapse-panel nzHeader="MySQL 配置" *ngIf="detail.spec?.config?.mycnf">
+                      <pre class="config-json">{{ formatJson(detail.spec?.config?.mycnf) }}</pre>
+                    </nz-collapse-panel>
+                  </nz-collapse>
+                </div>
+
+                <div class="detail-section">
+                  <div class="section-header">
+                    <h3>原始数据</h3>
+                  </div>
+                  <pre class="config-json">{{ formatJson(detail) }}</pre>
+                </div>
+              </ng-container>
+              <ng-template #noXStoreSelected>
+                <nz-empty nzNotFoundDescription="请选择一个存储节点"></nz-empty>
+              </ng-template>
+            </nz-spin>
+          </div>
+        </nz-drawer>
       </div>
     </div>
   `,
@@ -477,6 +699,115 @@ import { XStore } from '../../models/xstore.model';
       }
     }
 
+    .details-drawer {
+      padding: 0 16px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .details-error {
+      margin-bottom: 12px;
+    }
+
+    .detail-section {
+      margin-bottom: 16px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      gap: 12px;
+    }
+
+    .section-header h3 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: rgba(0, 0, 0, 0.85);
+    }
+
+    .section-subtitle {
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: rgba(0, 0, 0, 0.65);
+    }
+
+    .conditions-block {
+      margin-top: 12px;
+    }
+
+    .condition-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .condition-item {
+      border: 1px solid #f0f0f0;
+      border-radius: 8px;
+      padding: 12px;
+      background: #fafafa;
+    }
+
+    .condition-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 6px;
+      font-size: 12px;
+      color: rgba(0, 0, 0, 0.6);
+    }
+
+    .condition-type {
+      font-weight: 600;
+      color: rgba(0, 0, 0, 0.75);
+    }
+
+    .condition-time {
+      margin-left: auto;
+      font-size: 12px;
+      color: rgba(0, 0, 0, 0.45);
+    }
+
+    .condition-message {
+      color: rgba(0, 0, 0, 0.75);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .condition-reason {
+      font-size: 12px;
+      color: rgba(0, 0, 0, 0.55);
+      margin-bottom: 4px;
+    }
+
+    .tag-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .node-set-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .config-json {
+      background: #0b1020;
+      color: #d6e4ff;
+      padding: 12px;
+      border-radius: 6px;
+      font-family: Menlo, Monaco, Consolas, 'Courier New', monospace;
+      font-size: 12px;
+      max-height: 260px;
+      overflow: auto;
+    }
+
     /* ng-zorro特定样式优化 */
     nz-table {
       border-radius: 6px;
@@ -524,6 +855,9 @@ export class XStoreManagementComponent implements OnInit {
   loadingKeys = LoadingKeys;
   xstores: XStore[] = [];
   createForm!: FormGroup;
+  detailsDrawerVisible = false;
+  selectedXStore: XStore | null = null;
+  detailsError?: string;
 
   private message = inject(NzMessageService);
   private modal = inject(NzModalService);
@@ -566,10 +900,6 @@ export class XStoreManagementComponent implements OnInit {
 
   createNew(): void {
     this.selectedTab = 1;
-  }
-
-  viewXStoreDetails(xstore: XStore): void {
-    this.message.info(`查看存储节点详情: ${xstore.metadata.name}`);
   }
 
   deleteXStore(xstore: XStore): void {
@@ -646,6 +976,15 @@ export class XStoreManagementComponent implements OnInit {
       const total = xstore.status.replicaStatus.total ?? 0;
       return `${ready}/${total}`;
     }
+
+    const readyStatus = xstore.status?.readyStatus;
+    if (readyStatus && typeof readyStatus === 'string') {
+      return readyStatus;
+    }
+
+    if (typeof xstore.status?.readyPods === 'number' && typeof xstore.status.totalPods === 'number') {
+      return `${xstore.status.readyPods}/${xstore.status.totalPods}`;
+    }
     
     // 如果没有状态信息，使用规格中的节点总数
     if (xstore.spec?.topology?.nodeCount) {
@@ -690,8 +1029,120 @@ export class XStoreManagementComponent implements OnInit {
   }
 
   viewDetails(xstore: XStore): void {
-    // 实现查看详情逻辑
-    console.log('View details for:', xstore);
-    this.message.info('功能开发中...');
+    const namespace = xstore.metadata.namespace || 'default';
+    const name = xstore.metadata.name;
+    this.selectedXStore = { ...xstore };
+    this.detailsError = undefined;
+    this.detailsDrawerVisible = true;
+
+    this.apiService.getXStore(namespace, name).subscribe({
+      next: (detail) => {
+        this.selectedXStore = detail;
+      },
+      error: (err) => {
+        const message = `加载存储节点详情失败: ${err.error?.message || err.message}`;
+        this.detailsError = message;
+        this.message.error(message);
+        console.error('[xstore-management] load detail failed', err);
+      }
+    });
+  }
+
+  closeDetailsDrawer(): void {
+    this.detailsDrawerVisible = false;
+    this.selectedXStore = null;
+    this.detailsError = undefined;
+  }
+
+  getServiceLabelEntries(xstore: XStore | null): Array<{ key: string; value: string }> {
+    if (!xstore?.spec?.serviceLabels) {
+      return [];
+    }
+    return Object.entries(xstore.spec.serviceLabels)
+      .filter(([key]) => !!key)
+      .map(([key, value]) => ({ key, value }));
+  }
+
+  getTopologyNodeSets(xstore: XStore | null): XStoreNodeSet[] {
+    if (!xstore?.spec?.topology?.nodeSets || xstore.spec.topology.nodeSets.length === 0) {
+      return [];
+    }
+    return [...xstore.spec.topology.nodeSets];
+  }
+
+  getConditionList(xstore: XStore | null): XStoreCondition[] {
+    if (!xstore?.status?.conditions || xstore.status.conditions.length === 0) {
+      return [];
+    }
+    return [...xstore.status.conditions].sort((a, b) => {
+      const aTime = a?.lastTransitionTime ? Date.parse(a.lastTransitionTime) : 0;
+      const bTime = b?.lastTransitionTime ? Date.parse(b.lastTransitionTime) : 0;
+      return bTime - aTime;
+    });
+  }
+
+  getConditionTagColor(status?: string): string {
+    switch (status) {
+      case 'True':
+        return 'green';
+      case 'False':
+        return 'red';
+      default:
+        return 'orange';
+    }
+  }
+
+  formatBoolean(value?: boolean | null): string {
+    if (value === true) {
+      return '是';
+    }
+    if (value === false) {
+      return '否';
+    }
+    return '未知';
+  }
+
+  formatResourceMap(map?: Record<string, string> | null): string {
+    if (!map || Object.keys(map).length === 0) {
+      return '-';
+    }
+    return Object.entries(map)
+      .map(([key, val]) => `${key}: ${val}`)
+      .join(' · ');
+  }
+
+  formatVolumes(volumes?: readonly XStoreVolume[] | null): string {
+    if (!volumes || volumes.length === 0) {
+      return '-';
+    }
+    return Array.from(volumes)
+      .map(volume => {
+        const parts: string[] = [];
+        if (volume.name) {
+          parts.push(volume.name);
+        }
+        if (volume.size) {
+          parts.push(volume.size);
+        }
+        if (volume.storageClass) {
+          parts.push(`SC:${volume.storageClass}`);
+        }
+        if (volume.hostPath?.path) {
+          parts.push(`hostPath:${volume.hostPath.path}`);
+        }
+        return parts.join(' · ');
+      })
+      .join(' / ');
+  }
+
+  formatJson(value?: unknown): string {
+    if (value == null) {
+      return '-';
+    }
+    try {
+      return JSON.stringify(value, null, 2);
+    } catch (error) {
+      return String(value);
+    }
   }
 }

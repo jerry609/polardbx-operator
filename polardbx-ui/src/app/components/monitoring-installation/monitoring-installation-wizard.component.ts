@@ -32,6 +32,8 @@ import { MonitoringInstallationStateService, InstallPhase, InstallationState, Ch
 import type { components } from '../../models/generated/monitoring-installation';
 import { NamespaceService } from '../../services/namespace.service';
 import { getWizardLocale, translateWizard } from './monitoring-installation-wizard.locale';
+import { containsInstallError } from './monitoring-installation-utils';
+import { getWizardStepTitleKeys, shouldShowRepairPlanBanner, shouldShowRepairQuickJump } from './monitoring-installation-view.utils';
 
 interface ComponentCard {
   name: string;
@@ -51,6 +53,27 @@ type ComponentActionName = components['schemas']['ComponentAction']['action'];
 type PlanActionName = components['schemas']['PlanStep']['action'];
 type ExecutionActionName = components['schemas']['ExecutionStep']['action'];
 type AnyActionName = ComponentActionName | PlanActionName | ExecutionActionName | 'skip';
+
+type AutoFixStage = 'idle' | 'fixing' | 'verifying' | 'success' | 'failed';
+
+interface AutoFixUIState {
+  stage: AutoFixStage;
+  message?: string;
+  lastUpdated: number;
+}
+
+type AutoFixFallbackChoice = 'retry' | 'manual' | 'skip' | 'restart';
+
+interface AutoFixDecisionEntry {
+  choice: AutoFixFallbackChoice;
+  at: number;
+  note?: string;
+}
+
+interface AutoFixDecisionLog {
+  lastChoice: AutoFixFallbackChoice;
+  history: AutoFixDecisionEntry[];
+}
 
 @Component({
   selector: 'app-monitoring-installation-wizard',
@@ -116,7 +139,6 @@ export class MonitoringInstallationWizardComponent implements OnInit {
   private pendingCheckpoint: Checkpoint | null = null;
   private pollTimer: number | null = null;
   resumeInitialPhaseLabel?: string;
-  private autoPlanAfterDetect = false;
 
   t(key: string, params?: Record<string, string | number>): string {
     return translateWizard(this.wizardLocale, key, params);
@@ -133,11 +155,14 @@ export class MonitoringInstallationWizardComponent implements OnInit {
     'blackbox-exporter': 'Blackbox Exporter'
   };
 
-  readonly steps = [
-    { title: this.t('steps.detect.title'), description: this.t('steps.detect.description') },
-    { title: this.t('steps.plan.title'), description: this.t('steps.plan.description') },
-    { title: this.t('steps.progress.title'), description: this.t('steps.progress.description') }
-  ];
+  get steps(): Array<{ title: string; description: string }> {
+    const titles = getWizardStepTitleKeys(this.planIntent);
+    return [
+      { title: this.t(titles.detect), description: this.t('steps.detect.description') },
+      { title: this.t(titles.plan), description: this.t('steps.plan.description') },
+      { title: this.t(titles.progress), description: this.t('steps.progress.description') }
+    ];
+  }
 
   currentStep = 0;
   namespaceOptions: string[] = ['polardbx-monitor'];
@@ -155,6 +180,7 @@ export class MonitoringInstallationWizardComponent implements OnInit {
   planLoading = false;
   planResponse: CreatePlanResponse | null = null;
   planWarnings: string[] = [];
+  private componentPlanActions: Record<string, AnyActionName> = {};
 
   installStatus: InstallStatusResponse | null = null;
   installPolling = false;
@@ -167,8 +193,16 @@ export class MonitoringInstallationWizardComponent implements OnInit {
   diagnosticsError?: string;
   diagnosisResult: DiagnoseResponse | null = null;
   selectedErrorIndex = 0;
-  autoFixStates: Record<string, { status: 'idle' | 'running' | 'success' | 'error'; message?: string }> = {};
+  autoFixStates: Record<string, AutoFixUIState> = {};
+  autoFixDecisions: Record<string, AutoFixDecisionLog> = {};
+  // Allow verifying loops to cover long-running restarts (e.g. Prometheus rolling updates)
+  private readonly autoFixVerificationAttempts = 8;
+  private readonly autoFixVerificationBaseDelay = 5000;
+  private autoFixControllers = new Map<string, AbortController>();
+  private isDestroyed = false;
   private retryCountdownTimer: number | null = null;
+  manualGuidanceVisibility: Record<string, boolean> = {};
+  private repairBannerDismissed = false;
 
   ngOnInit(): void {
     this.namespaceService.namespaces$
@@ -181,7 +215,12 @@ export class MonitoringInstallationWizardComponent implements OnInit {
       });
 
     this.detectEnvironment();
-    this.destroyRef.onDestroy(() => this.clearStatusPolling());
+    this.destroyRef.onDestroy(() => {
+      this.isDestroyed = true;
+      this.clearStatusPolling();
+      this.autoFixControllers.forEach(controller => controller.abort());
+      this.autoFixControllers.clear();
+    });
   }
 
   async detectEnvironment(): Promise<void> {
@@ -189,13 +228,13 @@ export class MonitoringInstallationWizardComponent implements OnInit {
       return;
     }
     this.resumeInitialPhaseLabel = undefined;
+    this.componentPlanActions = {};
+    this.repairBannerDismissed = false;
     const namespace = (this.detectForm.value.namespace ?? 'polardbx-monitor').trim() || 'polardbx-monitor';
     this.detectionLoading = true;
     this.detectionError = undefined;
     this.clearStatusPolling();
     this.cdr.markForCheck();
-
-    const shouldAutoPlan = this.autoPlanAfterDetect && this.planIntent === 'repair';
 
     try {
       await this.state.hydrate({ namespace });
@@ -220,23 +259,66 @@ export class MonitoringInstallationWizardComponent implements OnInit {
       this.state.updateProgress(0);
       this.currentStep = 0;
       this.messages.success(this.t('toasts.detectSuccess'));
-
-      if (shouldAutoPlan) {
-        this.autoPlanAfterDetect = false;
-        setTimeout(() => this.generatePlan(), 0);
-      }
     } catch (error) {
       console.error('[monitoring-installation] detect failed', error);
       this.detectionError = this.extractErrorMessage(error);
       this.state.updatePhase('NotStarted');
       this.messages.error(this.t('toasts.detectFailure'));
     } finally {
-      if (!shouldAutoPlan) {
-        this.autoPlanAfterDetect = false;
-      }
       this.detectionLoading = false;
       this.cdr.markForCheck();
     }
+  }
+
+  get showRepairPlanBanner(): boolean {
+    return shouldShowRepairPlanBanner({
+      planIntent: this.planIntent,
+      detectionSnapshot: this.detectionSnapshot,
+      detectionLoading: this.detectionLoading,
+      planLoading: this.planLoading,
+      installPolling: this.installPolling,
+      detectionError: this.detectionError,
+      hasComponents: this.detectionComponents.length > 0,
+      dismissed: this.repairBannerDismissed
+    });
+  }
+
+  get showRepairQuickJump(): boolean {
+    return shouldShowRepairQuickJump({
+      planIntent: this.planIntent,
+      detectionSnapshot: this.detectionSnapshot,
+      detectionLoading: this.detectionLoading,
+      planLoading: this.planLoading,
+      installPolling: this.installPolling,
+      detectionError: this.detectionError,
+      hasComponents: this.detectionComponents.length > 0
+    });
+  }
+
+  openRepairPlanFromBanner(): void {
+    if (this.repairBannerDismissed) {
+      return;
+    }
+    this.repairBannerDismissed = true;
+    this.cdr.markForCheck();
+    void this.generatePlan();
+  }
+
+  dismissRepairPlanBanner(): void {
+    if (this.repairBannerDismissed) {
+      return;
+    }
+    this.repairBannerDismissed = true;
+    this.cdr.markForCheck();
+  }
+
+  quickJumpToRepairPlan(): void {
+    if (this.planLoading || this.installPolling) {
+      return;
+    }
+    this.repairBannerDismissed = true;
+    this.cdr.markForCheck();
+    void this.generatePlan();
   }
 
   private maybeOpenResumeDialog(state: InstallationState): boolean {
@@ -329,7 +411,6 @@ export class MonitoringInstallationWizardComponent implements OnInit {
     this.planIntent = 'repair';
     this.resumeDialogOpened = false;
     this.resumeBypassOnce = true;
-    this.autoPlanAfterDetect = true;
     this.messages.info(this.t('toasts.resumeRepairMode'));
     await this.detectEnvironment();
   }
@@ -388,6 +469,7 @@ export class MonitoringInstallationWizardComponent implements OnInit {
       const response = await firstValueFrom(this.api.createPlan(request));
       this.planResponse = response;
       this.planWarnings = response.warnings ?? [];
+  this.updateComponentPlanActionsFromPlan(response.plan.steps ?? []);
       this.currentStep = 1;
       this.state.updatePhase('Planning');
       this.messages.success(this.t('toasts.planGenerated'));
@@ -401,7 +483,8 @@ export class MonitoringInstallationWizardComponent implements OnInit {
   }
 
   private normalizeComponents(snapshot: EnvironmentSnapshot): ComponentCard[] {
-    return (snapshot.components ?? []).map<ComponentCard>(component => {
+    const nextActions: Record<string, AnyActionName> = { ...this.componentPlanActions };
+    const cards = (snapshot.components ?? []).map<ComponentCard>(component => {
       const exists = component.exists ?? false;
       const healthy = component.healthy ?? false;
       const action = component.actionRecommendation?.action ?? 'install';
@@ -432,6 +515,8 @@ export class MonitoringInstallationWizardComponent implements OnInit {
         detailSegments.push(reason);
       }
 
+      nextActions[component.name] = action as AnyActionName;
+
       return {
         name: component.name,
         displayName: this.getComponentDisplayName(component.name),
@@ -444,6 +529,8 @@ export class MonitoringInstallationWizardComponent implements OnInit {
         detail: detailSegments.join(' · ')
       };
     });
+    this.componentPlanActions = nextActions;
+    return cards;
   }
 
   getComponentDisplayName(name: components['schemas']['ComponentName'] | string): string {
@@ -492,6 +579,14 @@ export class MonitoringInstallationWizardComponent implements OnInit {
       default:
         return this.t('actions.skip');
     }
+  }
+
+  getComponentPlannedAction(name: components['schemas']['ComponentName'] | string): AnyActionName | null {
+    const action = this.componentPlanActions[name as string];
+    if (!action || action === 'install') {
+      return null;
+    }
+    return action;
   }
 
   getRiskTagColor(level?: components['schemas']['InstallationPlan']['riskLevel'] | null): string {
@@ -596,6 +691,16 @@ export class MonitoringInstallationWizardComponent implements OnInit {
       this.installLoading = false;
       this.cdr.markForCheck();
     }
+  }
+
+  private updateComponentPlanActionsFromPlan(steps: components['schemas']['PlanStep'][]): void {
+    const next = { ...this.componentPlanActions };
+    steps.forEach(step => {
+      if (step?.component) {
+        next[step.component] = step.action as AnyActionName;
+      }
+    });
+    this.componentPlanActions = next;
   }
 
   private clearStatusPolling(): void {
@@ -1067,6 +1172,8 @@ export class MonitoringInstallationWizardComponent implements OnInit {
     this.selectedErrorIndex = index;
     if (previousIndex !== index) {
       this.autoFixStates = {};
+      this.autoFixDecisions = {};
+      this.manualGuidanceVisibility = {};
     }
     this.diagnosticsVisible = true;
     void this.loadDiagnostics(index);
@@ -1082,11 +1189,17 @@ export class MonitoringInstallationWizardComponent implements OnInit {
     }
     this.selectedErrorIndex = index;
     this.autoFixStates = {};
+    this.autoFixDecisions = {};
+    this.manualGuidanceVisibility = {};
     void this.loadDiagnostics(index);
   }
 
-  getAutoFixState(fixId: string): { status: 'idle' | 'running' | 'success' | 'error'; message?: string } {
-    return this.autoFixStates[fixId] ?? { status: 'idle' };
+  getAutoFixState(fixId: string): AutoFixUIState {
+    const existing = this.autoFixStates[fixId];
+    if (existing) {
+      return existing;
+    }
+    return { stage: 'idle', lastUpdated: Date.now() };
   }
 
   getDiagnosisSeverityColor(severity: components['schemas']['Diagnosis']['severity']): string {
@@ -1119,13 +1232,11 @@ export class MonitoringInstallationWizardComponent implements OnInit {
       this.messages.warning(this.t('toasts.autofixNoSession'));
       return;
     }
-    this.autoFixStates = {
-      ...this.autoFixStates,
-      [fixId]: { status: 'running' }
-    };
-    this.cdr.markForCheck();
+    const originalError = this.selectedInstallError ? this.cloneInstallError(this.selectedInstallError) : null;
+    this.recordAutoFixDecision(fixId, 'retry');
+    this.updateAutoFixState(fixId, 'fixing', this.t('diagnostics.autofix.status.fixing'));
 
-    const context = this.buildDiagnosticContext(this.selectedInstallError);
+    const context = this.buildDiagnosticContext(originalError);
 
     try {
       const response: AutoFixResponse = await firstValueFrom(this.api.applyAutoFix({
@@ -1133,30 +1244,302 @@ export class MonitoringInstallationWizardComponent implements OnInit {
         sessionId,
         context: Object.keys(context).length ? context : undefined
       }));
-      const status: 'success' | 'error' = response.success ? 'success' : 'error';
-      this.autoFixStates = {
-        ...this.autoFixStates,
-        [fixId]: { status, message: response.message ?? undefined }
-      };
-      if (response.success) {
-        this.messages.success(response.message ?? this.t('toasts.autofixSuccess'));
-        await this.reloadStatusSilently(sessionId);
-        if (this.diagnosticsVisible && !this.diagnosticsLoading) {
-          await this.loadDiagnostics(this.selectedErrorIndex);
-        }
-      } else {
+
+      if (!response.success) {
+        this.updateAutoFixState(fixId, 'failed', response.message ?? this.t('diagnostics.autofix.status.failed'));
         this.messages.warning(response.message ?? this.t('toasts.autofixWarning'));
+        return;
       }
+
+      const successMessage = response.message ?? this.t('toasts.autofixSuccess');
+      this.messages.success(successMessage);
+      await this.verifyAutoFixOutcome(fixId, originalError, response);
     } catch (error) {
       console.error('[monitoring-installation] auto-fix failed', error);
-      this.autoFixStates = {
-        ...this.autoFixStates,
-        [fixId]: { status: 'error', message: this.extractErrorMessage(error) }
-      };
+      this.updateAutoFixState(fixId, 'failed', this.extractErrorMessage(error));
       this.messages.error(this.t('toasts.autofixFailure'));
+    }
+  }
+
+  private updateAutoFixState(fixId: string, stage: AutoFixStage, message?: string): AutoFixUIState {
+    const previous = this.autoFixStates[fixId];
+    const next: AutoFixUIState = {
+      stage,
+      message: message ?? previous?.message,
+      lastUpdated: Date.now()
+    };
+    if (stage !== 'failed' && this.manualGuidanceVisibility[fixId]) {
+      const rest = { ...this.manualGuidanceVisibility };
+      delete rest[fixId];
+      this.manualGuidanceVisibility = rest;
+    }
+    this.autoFixStates = {
+      ...this.autoFixStates,
+      [fixId]: next
+    };
+    this.cdr.markForCheck();
+    return next;
+  }
+
+  getAutoFixStepIndex(stage: AutoFixStage): number {
+    switch (stage) {
+      case 'idle':
+        return 0;
+      case 'fixing':
+        return 0;
+      case 'verifying':
+        return 1;
+      case 'success':
+      case 'failed':
+        return 2;
+      default:
+        return 0;
+    }
+  }
+
+  isAutoFixBusy(state: AutoFixUIState): boolean {
+    return state.stage === 'fixing' || state.stage === 'verifying';
+  }
+
+  private recordAutoFixDecision(fixId: string, choice: AutoFixFallbackChoice, note?: string): void {
+    const entry: AutoFixDecisionEntry = { choice, at: Date.now(), note };
+    const existing = this.autoFixDecisions[fixId];
+    const history = existing ? [...existing.history, entry] : [entry];
+    this.autoFixDecisions = {
+      ...this.autoFixDecisions,
+      [fixId]: {
+        lastChoice: choice,
+        history
+      }
+    };
+    this.cdr.markForCheck();
+  }
+
+  getAutoFixDecisionSummary(fixId: string): string | null {
+    const entry = this.getLatestAutoFixDecision(fixId);
+    if (!entry) {
+      return null;
+    }
+    const label = this.getAutoFixChoiceLabel(entry.choice);
+    const timestamp = this.formatDecisionTimestamp(entry.at);
+    if (!label) {
+      return timestamp;
+    }
+    return this.t('diagnostics.autofix.decisionLabel', { choice: label, time: timestamp });
+  }
+
+  private getLatestAutoFixDecision(fixId: string): AutoFixDecisionEntry | null {
+    const log = this.autoFixDecisions[fixId];
+    if (!log || !log.history.length) {
+      return null;
+    }
+    return log.history[log.history.length - 1];
+  }
+
+  private getAutoFixChoiceLabel(choice: AutoFixFallbackChoice): string {
+    switch (choice) {
+      case 'retry':
+        return this.t('diagnostics.autofix.choice.retry');
+      case 'manual':
+        return this.t('diagnostics.autofix.choice.manual');
+      case 'skip':
+        return this.t('diagnostics.autofix.choice.skip');
+      case 'restart':
+        return this.t('diagnostics.autofix.choice.restart');
+      default:
+        return choice;
+    }
+  }
+
+  private formatDecisionTimestamp(at: number): string {
+    try {
+      return new Intl.DateTimeFormat(this.localeId, {
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      }).format(new Date(at));
+    } catch {
+      return new Date(at).toLocaleString();
+    }
+  }
+
+  toggleManualGuidance(fixId: string): void {
+    const next = !this.manualGuidanceVisibility[fixId];
+    this.manualGuidanceVisibility = {
+      ...this.manualGuidanceVisibility,
+      [fixId]: next
+    };
+    if (next) {
+      this.recordAutoFixDecision(fixId, 'manual');
+      this.messages.info(this.t('toasts.autofixManualStart'));
+    }
+    this.cdr.markForCheck();
+  }
+
+  isManualGuidanceVisible(fixId: string): boolean {
+    return !!this.manualGuidanceVisibility[fixId];
+  }
+
+  getManualGuidanceSteps(fixId: string): string[] {
+    const steps: string[] = [];
+    const diagnosis = this.diagnosisResult;
+    const autoFix = diagnosis?.autoFixes?.find(item => item.id === fixId);
+    if (autoFix?.description) {
+      steps.push(autoFix.description);
+    }
+    if (diagnosis?.diagnosis?.suggestedFixes?.length) {
+      steps.push(...diagnosis.diagnosis.suggestedFixes);
+    }
+    if (autoFix?.verification) {
+      steps.push(this.t('diagnostics.autofix.manualVerification', { step: autoFix.verification }));
+    }
+    return steps;
+  }
+
+  async markManualInterventionComplete(fixId: string): Promise<void> {
+    const originalError = this.selectedInstallError ? this.cloneInstallError(this.selectedInstallError) : null;
+    this.recordAutoFixDecision(fixId, 'manual', 'completed');
+    await this.verifyAutoFixOutcome(fixId, originalError, {
+      success: true,
+      message: this.t('diagnostics.autofix.status.manualSubmitted')
+    } as AutoFixResponse);
+    this.messages.success(this.t('toasts.autofixManualSubmitted'));
+  }
+
+  skipAutoFixAndContinue(fixId: string): void {
+    const sessionId = this.installStatus?.sessionId;
+    if (!sessionId) {
+      this.messages.warning(this.t('toasts.autofixNoSession'));
+      return;
+    }
+    this.modal.confirm({
+      nzTitle: this.t('diagnostics.autofix.skipConfirmTitle'),
+      nzContent: this.t('diagnostics.autofix.skipConfirmContent'),
+      nzOkDanger: true,
+      nzOkText: this.t('actions.autofix.skip'),
+      nzCancelText: this.t('actions.cancel'),
+      nzOnOk: async () => {
+        this.recordAutoFixDecision(fixId, 'skip');
+        this.updateAutoFixState(fixId, 'failed', this.t('diagnostics.autofix.status.skipped'));
+        await this.requestRetry({ mode: 'manual', force: true, reason: `skip-autofix:${fixId}` });
+        this.messages.warning(this.t('toasts.autofixSkipTriggered'));
+      }
+    });
+  }
+
+  confirmRestartAfterFailure(fixId?: string): void {
+    this.modal.confirm({
+      nzTitle: this.t('diagnostics.autofix.restartConfirmTitle'),
+      nzContent: this.t('diagnostics.autofix.restartConfirmContent'),
+      nzOkDanger: true,
+      nzOkText: this.t('actions.autofix.restart'),
+      nzCancelText: this.t('actions.cancel'),
+      nzOnOk: async () => {
+        if (fixId) {
+          this.recordAutoFixDecision(fixId, 'restart');
+        }
+        this.messages.info(this.t('toasts.autofixRestarting'));
+        await this.onResumeRestart();
+      }
+    });
+  }
+
+  private async verifyAutoFixOutcome(
+    fixId: string,
+    originalError: components['schemas']['InstallError'] | null,
+    response: AutoFixResponse
+  ): Promise<void> {
+    const sessionId = this.installStatus?.sessionId;
+    if (!sessionId || this.isDestroyed) {
+      this.updateAutoFixState(fixId, 'success', response.message ?? this.t('diagnostics.autofix.status.success'));
+      return;
+    }
+
+    const verifyingMessage = response.followupStep?.message ?? response.message ?? this.t('diagnostics.autofix.status.verifying');
+    const controller = new AbortController();
+    const existing = this.autoFixControllers.get(fixId);
+    if (existing) {
+      existing.abort();
+    }
+    this.autoFixControllers.set(fixId, controller);
+    this.updateAutoFixState(fixId, 'verifying', verifyingMessage);
+
+    try {
+      for (let attempt = 0; attempt < this.autoFixVerificationAttempts; attempt += 1) {
+        if (controller.signal.aborted || this.isDestroyed) {
+          return;
+        }
+
+        await this.reloadStatusSilently(sessionId);
+
+        if (controller.signal.aborted || this.isDestroyed) {
+          return;
+        }
+
+        const remainingErrors = this.installStatus?.errors ?? [];
+        const stillFailing = originalError ? containsInstallError(remainingErrors, originalError) : remainingErrors.length > 0;
+
+        if (!stillFailing) {
+          this.updateAutoFixState(fixId, 'success', this.t('diagnostics.autofix.status.success'));
+          this.messages.success(this.t('toasts.autofixResolved'));
+          if (this.diagnosticsVisible && !this.diagnosticsLoading) {
+            await this.loadDiagnostics(Math.min(this.selectedErrorIndex, Math.max((this.installStatus?.errors?.length ?? 1) - 1, 0)));
+          }
+          return;
+        }
+
+        const delayMs = this.autoFixVerificationBaseDelay * (attempt + 1);
+        await this.delay(delayMs, controller.signal);
+      }
+
+      this.updateAutoFixState(fixId, 'failed', this.t('diagnostics.autofix.status.unresolved'));
+      this.messages.warning(this.t('toasts.autofixUnresolved'));
+      if (this.diagnosticsVisible && !this.diagnosticsLoading) {
+        await this.loadDiagnostics(this.selectedErrorIndex);
+      }
+    } catch (error) {
+      if ((error as Error)?.name === 'AbortError' || controller.signal.aborted || this.isDestroyed) {
+        return;
+      }
+      console.error('[monitoring-installation] auto-fix verification failed', error);
+      this.updateAutoFixState(fixId, 'failed', this.t('diagnostics.autofix.status.error'));
+      this.messages.error(this.t('toasts.autofixVerifyFailure'));
     } finally {
+      this.autoFixControllers.delete(fixId);
+      if (!this.isDestroyed && sessionId) {
+        this.startStatusPolling(sessionId);
+      }
       this.cdr.markForCheck();
     }
+  }
+
+  private async delay(ms: number, signal?: AbortSignal): Promise<void> {
+    if (ms <= 0) {
+      return;
+    }
+    await new Promise<void>((resolve, reject) => {
+      if (signal?.aborted) {
+        reject(Object.assign(new Error('Aborted'), { name: 'AbortError' }));
+        return;
+      }
+      const cleanup = (): void => {
+        window.clearTimeout(timer);
+        signal?.removeEventListener('abort', onAbort);
+      };
+
+      const onAbort = (): void => {
+        cleanup();
+        reject(Object.assign(new Error('Aborted'), { name: 'AbortError' }));
+      };
+
+      const timer = window.setTimeout(() => {
+        cleanup();
+        resolve();
+      }, ms);
+
+      signal?.addEventListener('abort', onAbort);
+    });
   }
 
   private async loadDiagnostics(index: number): Promise<void> {
@@ -1166,6 +1549,8 @@ export class MonitoringInstallationWizardComponent implements OnInit {
       this.diagnosticsError = this.t('diagnostics.noneAvailable');
       this.diagnosticsLoading = false;
       this.autoFixStates = {};
+      this.autoFixDecisions = {};
+      this.manualGuidanceVisibility = {};
       this.cdr.markForCheck();
       return;
     }

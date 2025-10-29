@@ -54,6 +54,32 @@
       </div>
 
       <ng-container *ngIf="!detectionLoading && detectionSnapshot as snapshot">
+        <div *ngIf="showRepairPlanBanner" class="repair-plan-banner">
+          <div class="banner-content">
+            <div class="banner-text">
+              <h3>{{ t('repair.banner.title') }}</h3>
+              <p>{{ t('repair.banner.subtitle') }}</p>
+            </div>
+            <div class="banner-actions">
+              <button
+                nz-button
+                nzType="primary"
+                nzSize="large"
+                [disabled]="planLoading"
+                (click)="openRepairPlanFromBanner()">
+                {{ t('repair.banner.primary') }}
+              </button>
+              <button
+                nz-button
+                nzType="default"
+                nzSize="large"
+                (click)="dismissRepairPlanBanner()">
+                {{ t('repair.banner.secondary') }}
+              </button>
+            </div>
+          </div>
+        </div>
+
         <div class="snapshot-summary">
           <nz-card class="summary-card" nzBordered>
             <div class="summary-content">
@@ -105,6 +131,18 @@
 
         <div class="step-actions">
           <button
+            *ngIf="showRepairQuickJump"
+            nz-button
+            nzType="default"
+            nzSize="large"
+            class="repair-quick-jump"
+            [disabled]="planLoading || installPolling"
+            [nzLoading]="planLoading"
+            (click)="quickJumpToRepairPlan()">
+            <i nz-icon nzType="thunderbolt"></i>
+            {{ t('repair.quickJump.cta') }}
+          </button>
+          <button
             nz-button
             nzType="primary"
             nzSize="large"
@@ -120,6 +158,12 @@
     <ng-container *ngSwitchCase="1">
       <nz-spin [nzSpinning]="planLoading" [nzTip]="t('plan.loadingTip')" class="plan-spinner">
         <ng-container *ngIf="planResponse as plan; else planEmpty">
+          <div *ngIf="planIntent === 'repair'" class="repair-mode-tag">
+            <nz-tag nzColor="magenta" nzBordered="false">
+              <i nz-icon nzType="tool"></i>
+              <span>{{ t('repair.mode.tagLabel') }}</span>
+            </nz-tag>
+          </div>
           <div class="plan-summary">
             <nz-card nzBordered>
               <div class="summary-grid">
@@ -213,6 +257,12 @@
         <nz-tag nzColor="blue">{{ resumeInitialPhaseLabel }}</nz-tag>
       </div>
       <ng-container *ngIf="installStatus as status; else noInstall">
+        <div *ngIf="planIntent === 'repair'" class="repair-mode-tag">
+          <nz-tag nzColor="magenta" nzBordered="false">
+            <i nz-icon nzType="tool"></i>
+            <span>{{ t('repair.mode.tagLabel') }}</span>
+          </nz-tag>
+        </div>
         <div class="progress-summary">
           <nz-card nzBordered>
               <div class="summary-head">
@@ -284,6 +334,9 @@
                 </div>
                 <ul>
                   <li>{{ t('component.versionLabel') }}{{ comp.version || t('common.none') }}</li>
+                  <li *ngIf="getComponentPlannedAction(comp.name) as plannedAction">
+                    {{ t('progress.componentPlanLabel') }}{{ getActionLabel(plannedAction) }}
+                  </li>
                   <li *ngIf="comp.installedAt">{{ t('progress.componentInstalledAt', { time: (comp.installedAt | date: 'MM-dd HH:mm') ?? '' }) }}</li>
                   <li *ngIf="comp.errorMessage" class="error-text">{{ t('progress.componentErrorLabel') }}{{ comp.errorMessage }}</li>
                 </ul>
@@ -511,30 +564,103 @@
                           nz-button
                           nzType="primary"
                           nzSize="small"
-                          [disabled]="fixState.status === 'running' || fixState.status === 'success'"
-                          [nzLoading]="fixState.status === 'running'"
+                          [disabled]="isAutoFixBusy(fixState) || fixState.stage === 'success'"
+                          [nzLoading]="isAutoFixBusy(fixState)"
                           (click)="triggerAutoFix(fix.id)">
-                          <ng-container [ngSwitch]="fixState.status">
+                          <ng-container [ngSwitch]="fixState.stage">
                             <ng-container *ngSwitchCase="'success'">{{ t('actions.autofix.done') }}</ng-container>
-                            <ng-container *ngSwitchCase="'error'">{{ t('actions.autofix.retry') }}</ng-container>
+                            <ng-container *ngSwitchCase="'failed'">{{ t('actions.autofix.retry') }}</ng-container>
                             <ng-container *ngSwitchDefault>{{ t('actions.autofix.execute') }}</ng-container>
                           </ng-container>
                         </button>
-                        <nz-tag nzColor="green" *ngIf="fixState.status === 'success'">{{ t('diagnostics.autofix.success') }}</nz-tag>
-                        <nz-tag nzColor="red" *ngIf="fixState.status === 'error'">{{ t('diagnostics.autofix.failure') }}</nz-tag>
+                        <nz-tag nzColor="green" *ngIf="fixState.stage === 'success'">{{ t('diagnostics.autofix.success') }}</nz-tag>
+                        <nz-tag nzColor="red" *ngIf="fixState.stage === 'failed'">{{ t('diagnostics.autofix.failure') }}</nz-tag>
                       </div>
+                      <div class="autofix-progress" *ngIf="fixState.stage !== 'idle'">
+                        <nz-steps
+                          nzSize="small"
+                          [nzCurrent]="getAutoFixStepIndex(fixState.stage)"
+                          [nzStatus]="fixState.stage === 'failed' ? 'error' : (fixState.stage === 'success' ? 'finish' : 'process')">
+                          <nz-step [nzTitle]="t('diagnostics.autofix.step.fix')"></nz-step>
+                          <nz-step [nzTitle]="t('diagnostics.autofix.step.verify')"></nz-step>
+                          <nz-step [nzTitle]="t('diagnostics.autofix.step.complete')"></nz-step>
+                        </nz-steps>
+                        <div class="autofix-progress-message">
+                          <nz-spin nzSize="small" *ngIf="isAutoFixBusy(fixState)"></nz-spin>
+                          <span>{{ fixState.message || t('diagnostics.autofix.stageLabel.' + fixState.stage) }}</span>
+                        </div>
+                        <div class="autofix-recovery" *ngIf="fixState.stage === 'failed'">
+                          <nz-alert
+                            nzType="warning"
+                            nzShowIcon
+                            [nzMessage]="t('diagnostics.autofix.recoveryTitle')"
+                            [nzDescription]="t('diagnostics.autofix.skipWarning')"
+                          ></nz-alert>
+                          <div class="autofix-recovery-actions">
+                            <button
+                              nz-button
+                              nzType="default"
+                              nzSize="small"
+                              (click)="toggleManualGuidance(fix.id)">
+                              <i nz-icon nzType="file-text"></i>
+                              {{ t('actions.autofix.manualGuide') }}
+                            </button>
+                            <button
+                              nz-button
+                              nzType="default"
+                              nzDanger
+                              nzSize="small"
+                              (click)="skipAutoFixAndContinue(fix.id)">
+                              <i nz-icon nzType="stop"></i>
+                              {{ t('actions.autofix.skip') }}
+                            </button>
+                            <button
+                              nz-button
+                              nzType="dashed"
+                              nzDanger
+                              nzSize="small"
+                              (click)="confirmRestartAfterFailure(fix.id)">
+                              <i nz-icon nzType="reload"></i>
+                              {{ t('actions.autofix.restart') }}
+                            </button>
+                          </div>
+                          <p class="autofix-decision" *ngIf="getAutoFixDecisionSummary(fix.id) as summary">{{ summary }}</p>
+                          <div class="autofix-manual" *ngIf="isManualGuidanceVisible(fix.id)">
+                            <h6>{{ t('diagnostics.autofix.manualTitle') }}</h6>
+                            <p class="autofix-manual-hint">{{ t('diagnostics.autofix.manualHint') }}</p>
+                            <ng-container *ngIf="getManualGuidanceSteps(fix.id) as manualSteps">
+                              <ng-container *ngIf="manualSteps.length; else noManualSteps">
+                                <ol>
+                                  <li *ngFor="let step of manualSteps">{{ step }}</li>
+                                </ol>
+                              </ng-container>
+                            </ng-container>
+                            <ng-template #noManualSteps>
+                              <p class="autofix-manual-empty">{{ t('diagnostics.autofix.manualEmpty') }}</p>
+                            </ng-template>
+                            <button
+                              nz-button
+                              nzType="primary"
+                              nzSize="small"
+                              (click)="markManualInterventionComplete(fix.id)">
+                              {{ t('actions.autofix.markManualDone') }}
+                            </button>
+                          </div>
+                        </div>
                         <nz-alert
-                          *ngIf="fixState.status === 'success'"
+                          *ngIf="fixState.stage === 'success'"
                           nzType="success"
                           nzShowIcon
                           [nzMessage]="fixState.message ?? t('diagnostics.autofix.success')"
                         ></nz-alert>
                         <nz-alert
-                          *ngIf="fixState.status === 'error'"
+                          *ngIf="fixState.stage === 'failed'"
                           nzType="error"
                           nzShowIcon
                           [nzMessage]="fixState.message ?? t('diagnostics.autofix.failure')"
                         ></nz-alert>
+                        <p class="autofix-decision" *ngIf="fixState.stage !== 'failed' && getAutoFixDecisionSummary(fix.id) as summary">{{ summary }}</p>
+                      </div>
                     </ng-container>
                   </div>
                 </div>

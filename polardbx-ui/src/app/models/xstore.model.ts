@@ -12,6 +12,8 @@ interface SchedulingToleration {
 }
 
 export interface XStore {
+  apiVersion?: string;
+  kind?: string;
   metadata: {
     name: string;
     namespace: string;
@@ -43,6 +45,9 @@ export interface XStore {
     conditions?: XStoreCondition[];
     stage?: string;
     replicaStatus?: XStoreReplicaStatus;
+    readyStatus?: string;
+    totalPods?: number;
+    readyPods?: number;
     detailedStatus?: unknown;
   };
 }

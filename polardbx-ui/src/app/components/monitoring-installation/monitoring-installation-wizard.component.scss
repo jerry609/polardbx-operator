@@ -83,6 +83,43 @@
   gap: 12px;
 }
 
+.repair-plan-banner {
+  border: 1px solid #adc6ff;
+  background: #f0f5ff;
+  border-radius: 12px;
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+
+  .banner-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    h3 {
+      margin: 0;
+      font-size: 18px;
+      color: rgba(0, 0, 0, 0.88);
+    }
+
+    p {
+      margin: 0;
+      color: rgba(0, 0, 0, 0.6);
+    }
+  }
+
+  .banner-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+}
+
 .snapshot-summary {
   .summary-card {
     border-radius: 12px;
@@ -184,6 +221,32 @@
   display: flex;
   justify-content: flex-end;
   margin-top: 8px;
+  gap: 12px;
+  flex-wrap: wrap;
+
+  .repair-quick-jump {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+}
+
+.repair-mode-tag {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+
+  nz-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    padding: 4px 12px;
+  }
+
+  i[nz-icon] {
+    font-size: 14px;
+  }
 }
 
 .plan-spinner {
@@ -577,7 +640,7 @@
 
   .error-card-header {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-start;
     align-items: center;
     gap: 12px;
 
@@ -625,7 +688,8 @@
   .error-actions {
     margin-top: 8px;
     display: flex;
-    justify-content: flex-end;
+    justify-content: flex-start;
+    gap: 8px;
   }
 }
 
@@ -768,6 +832,98 @@
 
     nz-alert {
       margin-top: 4px;
+    }
+
+    .autofix-progress {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+
+      ::ng-deep .ant-steps-small .ant-steps-item-container {
+        padding-inline-start: 0;
+      }
+
+      .autofix-progress-message {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        color: rgba(0, 0, 0, 0.6);
+
+        nz-spin {
+          margin-right: 4px;
+        }
+      }
+
+      .autofix-recovery {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+
+        nz-alert {
+          margin-top: 0;
+        }
+
+        .autofix-recovery-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+
+          button[nz-button] {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+          }
+        }
+
+        .autofix-manual {
+          background: rgba(24, 144, 255, 0.06);
+          border: 1px solid rgba(24, 144, 255, 0.2);
+          border-radius: 8px;
+          padding: 12px;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+
+          h6 {
+            margin: 0;
+            font-size: 13px;
+            font-weight: 600;
+          }
+
+          .autofix-manual-hint {
+            margin: 0;
+            font-size: 12px;
+            color: rgba(0, 0, 0, 0.6);
+          }
+
+          .autofix-manual-empty {
+            margin: 0;
+            font-size: 12px;
+            color: rgba(0, 0, 0, 0.45);
+          }
+
+          ol {
+            margin: 0;
+            padding-left: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            font-size: 12px;
+            color: rgba(0, 0, 0, 0.75);
+          }
+
+          button[nz-button] {
+            align-self: flex-start;
+          }
+        }
+      }
+
+      .autofix-decision {
+        margin: 0;
+        font-size: 12px;
+        color: rgba(0, 0, 0, 0.45);
+      }
     }
   }
 
