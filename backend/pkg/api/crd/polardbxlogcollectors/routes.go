@@ -1,19 +1,21 @@
 package polardbxlogcollectors
 
 import (
+	"polardbx-ui-backend/pkg/api/crd/common"
 	api_logcollector "polardbx-ui-backend/pkg/api/logcollector"
 
 	"github.com/gin-gonic/gin"
 )
 
 func RegisterRoutes(crd *gin.RouterGroup) {
-	r := crd.Group("/polardbxlogcollectors")
-	r.GET("", api_logcollector.List)
-	r.POST("", api_logcollector.Create)
-	item := r.Group("/:namespace/:name")
-	item.GET("", api_logcollector.Get)
-	item.PUT("", api_logcollector.Update)
-	item.DELETE("", api_logcollector.Delete)
+	r := common.RegisterNamespaceScopedCRUD(crd, "polardbxlogcollectors", common.CRUDHandlers{
+		List:   api_logcollector.List,
+		Create: api_logcollector.Create,
+		Get:    api_logcollector.Get,
+		Update: api_logcollector.Update,
+		Delete: api_logcollector.Delete,
+	})
+	
 	// namespace-scoped extra endpoints
 	ns := r.Group("/:namespace")
 	ns.GET("/pipeline", api_logcollector.GetLogstashPipeline)

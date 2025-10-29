@@ -1,17 +1,18 @@
 package polardbxparametertemplates
 
 import (
+	"polardbx-ui-backend/pkg/api/crd/common"
 	api_parameters "polardbx-ui-backend/pkg/api/parameters"
 
 	"github.com/gin-gonic/gin"
 )
 
 func RegisterRoutes(crd *gin.RouterGroup) {
-	r := crd.Group("/polardbxparametertemplates")
-	r.GET("", api_parameters.ListTemplates)
-	r.POST("", api_parameters.CreateTemplate)
-	item := r.Group("/:namespace/:name")
-	item.GET("", api_parameters.GetTemplate)
-	item.PUT("", api_parameters.UpdateTemplate)
-	item.DELETE("", api_parameters.DeleteTemplate)
+	common.RegisterNamespaceScopedCRUD(crd, "polardbxparametertemplates", common.CRUDHandlers{
+		List:   api_parameters.ListTemplates,
+		Create: api_parameters.CreateTemplate,
+		Get:    api_parameters.GetTemplate,
+		Update: api_parameters.UpdateTemplate,
+		Delete: api_parameters.DeleteTemplate,
+	})
 }
