@@ -28,14 +28,11 @@ import (
 	followersteps "github.com/alibaba/polardbx-operator/pkg/operator/v1/xstore/steps/follower"
 	polarxJson "github.com/alibaba/polardbx-operator/pkg/util/json"
 	"github.com/go-logr/logr"
-	"golang.org/x/time/rate"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"time"
 )
 
 type XStoreFollowerReconciler struct {
@@ -176,11 +173,7 @@ func (r *XStoreFollowerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: r.MaxConcurrency,
-			RateLimiter: workqueue.NewMaxOfRateLimiter(
-				workqueue.NewItemExponentialFailureRateLimiter(5*time.Millisecond, 30*time.Second),
-				// 60 qps, 10 bucket size.  This is only for retry speed. It's only the overall factor (not per item).
-				&workqueue.BucketRateLimiter{Limiter: rate.NewLimiter(rate.Limit(60), 10)},
-			),
+			RateLimiter:             control.NewXStoreFollowerRateLimiter(),
 		}).
 		For(&polardbxv1.XStoreFollower{}).
 		Owns(&corev1.Pod{}).  // Watches owned pods.

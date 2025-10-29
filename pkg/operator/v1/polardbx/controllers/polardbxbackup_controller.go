@@ -18,6 +18,8 @@ package controllers
 
 import (
 	"context"
+	"time"
+
 	polardbxv1 "github.com/alibaba/polardbx-operator/api/v1"
 	"github.com/alibaba/polardbx-operator/pkg/k8s/control"
 	"github.com/alibaba/polardbx-operator/pkg/operator/hint"
@@ -26,15 +28,12 @@ import (
 	polardbxreconcile "github.com/alibaba/polardbx-operator/pkg/operator/v1/polardbx/reconcile"
 	commonsteps "github.com/alibaba/polardbx-operator/pkg/operator/v1/polardbx/steps/backup/common"
 	"github.com/go-logr/logr"
-	"golang.org/x/time/rate"
 	batchv1 "k8s.io/api/batch/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"time"
 )
 
 type PolarDBXBackupReconciler struct {
@@ -167,11 +166,7 @@ func (r *PolarDBXBackupReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: r.MaxConcurrency,
-			RateLimiter: workqueue.NewMaxOfRateLimiter(
-				workqueue.NewItemExponentialFailureRateLimiter(5*time.Millisecond, 300*time.Second),
-				// 60 qps, 10 bucket size.  This is only for retry speed. It's only the overall factor (not per item).
-				&workqueue.BucketRateLimiter{Limiter: rate.NewLimiter(rate.Limit(60), 10)},
-			),
+			RateLimiter:             control.NewStandardRateLimiter(),
 		}).
 		For(&polardbxv1.PolarDBXBackup{}).
 		Owns(&polardbxv1.XStoreBackup{}).

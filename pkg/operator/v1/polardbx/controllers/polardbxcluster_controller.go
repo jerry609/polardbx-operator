@@ -19,10 +19,11 @@ package controllers
 import (
 	"context"
 	"errors"
+	"time"
+
 	"github.com/alibaba/polardbx-operator/pkg/operator/hint"
 	"github.com/alibaba/polardbx-operator/pkg/operator/v1/polardbx/steps/instance/pitr"
 	polarxJson "github.com/alibaba/polardbx-operator/pkg/util/json"
-	"time"
 
 	polardbxv1 "github.com/alibaba/polardbx-operator/api/v1"
 	polardbxv1polardbx "github.com/alibaba/polardbx-operator/api/v1/polardbx"
@@ -42,12 +43,10 @@ import (
 	restartsteps "github.com/alibaba/polardbx-operator/pkg/operator/v1/polardbx/steps/instance/restart"
 	tdesteps "github.com/alibaba/polardbx-operator/pkg/operator/v1/polardbx/steps/instance/tde"
 	"github.com/go-logr/logr"
-	"golang.org/x/time/rate"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -442,11 +441,7 @@ func (r *PolarDBXReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: r.MaxConcurrency,
-			RateLimiter: workqueue.NewMaxOfRateLimiter(
-				workqueue.NewItemExponentialFailureRateLimiter(5*time.Millisecond, 300*time.Second),
-				// 60 qps, 10 bucket size.  This is only for retry speed. It's only the overall factor (not per item).
-				&workqueue.BucketRateLimiter{Limiter: rate.NewLimiter(rate.Limit(60), 10)},
-			),
+			RateLimiter:             control.NewStandardRateLimiter(),
 		}).
 		For(&polardbxv1.PolarDBXCluster{}).
 		// Watches owned XStores.

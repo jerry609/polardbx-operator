@@ -27,15 +27,12 @@ import (
 	"github.com/alibaba/polardbx-operator/pkg/operator/v1/xstore/plugin"
 	xstorev1reconcile "github.com/alibaba/polardbx-operator/pkg/operator/v1/xstore/reconcile"
 	"github.com/go-logr/logr"
-	"golang.org/x/time/rate"
 	batchv1 "k8s.io/api/batch/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"time"
 )
 
 type XStoreBackupReconciler struct {
@@ -108,11 +105,7 @@ func (r *XStoreBackupReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: r.MaxConcurrency,
-			RateLimiter: workqueue.NewMaxOfRateLimiter(
-				workqueue.NewItemExponentialFailureRateLimiter(5*time.Millisecond, 300*time.Second),
-				// 60 qps, 10 bucket size.  This is only for retry speed. It's only the overall factor (not per item).
-				&workqueue.BucketRateLimiter{Limiter: rate.NewLimiter(rate.Limit(60), 10)},
-			),
+			RateLimiter:             control.NewStandardRateLimiter(),
 		}).
 		For(&xstorev1.XStoreBackup{}).
 		Watches(&xstorev1.PolarDBXBackup{}, &handler.EnqueueRequestForObject{}).

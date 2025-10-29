@@ -25,11 +25,8 @@ import (
 	"github.com/alibaba/polardbx-operator/pkg/operator/v1/polardbx/helper"
 	polardbxreconcile "github.com/alibaba/polardbx-operator/pkg/operator/v1/polardbx/reconcile"
 	"k8s.io/apimachinery/pkg/types"
-	"time"
 
 	"github.com/go-logr/logr"
-	"golang.org/x/time/rate"
-	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -119,11 +116,7 @@ func (r *PolarDBXMonitorReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: r.MaxConcurrency,
-			RateLimiter: workqueue.NewMaxOfRateLimiter(
-				workqueue.NewItemExponentialFailureRateLimiter(5*time.Millisecond, 300*time.Second),
-				// 60 qps, 10 bucket size.  This is only for retry speed. It's only the overall factor (not per item).
-				&workqueue.BucketRateLimiter{Limiter: rate.NewLimiter(rate.Limit(60), 10)},
-			),
+			RateLimiter:             control.NewStandardRateLimiter(),
 		}).
 		For(&polardbxv1.PolarDBXMonitor{}).
 		Complete(r)
