@@ -177,7 +177,7 @@ func createFollowerWithRole(c *gin.Context, role polardbxv1xstore.FollowerRole) 
 	name := body.Name
 	if name == "" {
 		log.Printf("rebuild create missing name: ns=%s, xstore=%s", ns, xstoreName)
-		util.NotFound(c)
+		util.DeprecatedNotFound(c)
 		return
 	}
 	if xstoreName == "" {
