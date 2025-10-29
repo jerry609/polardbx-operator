@@ -172,8 +172,8 @@ func InitClientsFromKubeconfigB64(c *gin.Context, kubeconfigB64 string) (client.
 	return ctrlClient, clientset, nil
 }
 
-// NotFound is a helper for deprecated endpoints after migration.
-func NotFound(c *gin.Context) {
+// DeprecatedNotFound is a helper for deprecated endpoints after migration.
+func DeprecatedNotFound(c *gin.Context) {
 	c.JSON(http.StatusNotFound, gin.H{"error": "endpoint deprecated", "details": "use new domain handlers"})
 }
 

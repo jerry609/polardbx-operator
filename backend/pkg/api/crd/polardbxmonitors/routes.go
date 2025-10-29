@@ -1,17 +1,18 @@
 package polardbxmonitors
 
 import (
+	"polardbx-ui-backend/pkg/api/crd/common"
 	api_monitor "polardbx-ui-backend/pkg/api/monitor"
 
 	"github.com/gin-gonic/gin"
 )
 
 func RegisterRoutes(crd *gin.RouterGroup) {
-	r := crd.Group("/polardbxmonitors")
-	r.GET("", api_monitor.List)
-	r.POST("", api_monitor.Create)
-	item := r.Group("/:namespace/:name")
-	item.GET("", api_monitor.Get)
-	item.PUT("", api_monitor.Update)
-	item.DELETE("", api_monitor.Delete)
+	common.RegisterNamespaceScopedCRUD(crd, "polardbxmonitors", common.CRUDHandlers{
+		List:   api_monitor.List,
+		Create: api_monitor.Create,
+		Get:    api_monitor.Get,
+		Update: api_monitor.Update,
+		Delete: api_monitor.Delete,
+	})
 }
