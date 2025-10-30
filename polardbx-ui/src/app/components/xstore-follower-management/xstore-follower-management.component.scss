@@ -1,10 +1,16 @@
 // XStore Follower Management Component Styles
 // 采用中性、低饱和度的设计风格
 
-.xstore-follower-management {
+.management-container {
   padding: 16px;
   background: #f5f5f5;
   min-height: 100vh;
+
+  .layout-container {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+  }
 
   .page-header {
     margin-bottom: 16px;
@@ -49,10 +55,10 @@
     justify-content: flex-end;
   }
 
-  .page-content {
+  .content-wrapper {
     margin-top: 16px;
 
-    .main-tabs {
+    .management-tabs {
       background: white;
       border-radius: 6px;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -322,7 +328,7 @@
 
 // Responsive design
 @media (max-width: 1200px) {
-  .xstore-follower-management {
+  .management-container {
     .form-wrapper {
       ::ng-deep {
         .ant-form-item-label {
@@ -341,8 +347,12 @@
 }
 
 @media (max-width: 768px) {
-  .xstore-follower-management {
+  .management-container {
     padding: 12px;
+
+    .layout-container {
+      max-width: 100%;
+    }
 
     .page-header {
       flex-direction: column;
@@ -380,7 +390,7 @@
 }
 
 // Accessibility improvements
-.xstore-follower-management {
+.management-container {
   ::ng-deep {
     // Focus styles
     .ant-btn:focus,
@@ -401,7 +411,7 @@
 
 // High contrast mode support
 @media (prefers-contrast: high) {
-  .xstore-follower-management {
+  .management-container {
     background: white;
 
     .header-card {
@@ -423,7 +433,7 @@
 
 // Print styles
 @media print {
-  .xstore-follower-management {
+  .management-container {
     .header-actions,
     .form-actions,
     .status-indicators,

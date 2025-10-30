@@ -158,18 +158,14 @@ type AutoFixOverlayConfig struct {
 // GetAutoFixOverlayConfig lazily initializes and returns the auto-fix overlay config.
 func GetAutoFixOverlayConfig() *AutoFixOverlayConfig {
 	autoFixOverlayConfigOnce.Do(func() {
-		enabled := true
-		if strings.TrimSpace(os.Getenv("MONITORING_AUTOFIX_OVERLAY_ENABLED")) != "" {
-			enabled = parseBoolEnv("MONITORING_AUTOFIX_OVERLAY_ENABLED")
-		}
 		autoFixOverlayConfig = &AutoFixOverlayConfig{
-			Enabled:             enabled,
+			Enabled:             parseBoolEnv("MONITORING_AUTOFIX_OVERLAY_ENABLED"),
 			Namespace:           firstNonEmpty(os.Getenv("MONITORING_AUTOFIX_OVERLAY_NAMESPACE"), "polardbx-monitor"),
 			ServiceAccount:      os.Getenv("MONITORING_AUTOFIX_OVERLAY_SERVICE_ACCOUNT"),
 			ClusterRoleName:     firstNonEmpty(os.Getenv("MONITORING_AUTOFIX_OVERLAY_CLUSTER_ROLE"), "polardbx-monitor-autofix"),
 			ClusterRoleBinding:  firstNonEmpty(os.Getenv("MONITORING_AUTOFIX_OVERLAY_CLUSTER_ROLEBINDING"), "polardbx-monitor-autofix"),
 			AnnotationKey:       firstNonEmpty(os.Getenv("MONITORING_AUTOFIX_ANNOTATION_KEY"), "monitoring.polardbx.com/auto-fix-ids"),
-			PrometheusTargets:   parseListEnv("MONITORING_AUTOFIX_PROMETHEUS", []string{"prometheus-k8s", "kube-prometheus-stack-prometheus"}),
+			PrometheusTargets:   parseListEnv("MONITORING_AUTOFIX_PROMETHEUS", []string{"k8s", "kube-prometheus-stack-prometheus"}),
 			GrafanaTargets:      parseListEnv("MONITORING_AUTOFIX_GRAFANA", []string{"grafana", "kube-prometheus-stack-grafana"}),
 			AlertmanagerTargets: parseListEnv("MONITORING_AUTOFIX_ALERTMANAGER", []string{"main", "kube-prometheus-stack-alertmanager"}),
 		}

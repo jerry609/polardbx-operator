@@ -1,0 +1,13 @@
+apiVersion: polardbx.aliyun.com/v1
+kind: XStoreBackup
+metadata:
+  name: test-pitr-gms-backup-1
+  namespace: default
+spec:
+  xstore:
+    name: test-pitr-zw6s-gms
+    uid: ""  # 自动填充
+  engine: galaxy
+  storageProvider:
+    storageName: local
+    sink: local://default/test-pitr-gms-backup-1

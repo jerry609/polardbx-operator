@@ -556,44 +556,6 @@ func TestStartRetryClearsErrorsAndPersists(t *testing.T) {
 	require.Len(t, saved.Plan.Steps, len(plan.Steps))
 }
 
-func TestCompleteStepClearsErrorsForOrder(t *testing.T) {
-	resetStore()
-	ctx := context.Background()
-	plan := spec.InstallationPlan{
-		SessionTemplate: spec.SessionTemplate{Namespace: "complete-ns"},
-		Steps:           []spec.PlanStep{{Order: 1, Component: spec.Prometheus, Action: spec.PlanStepActionInstall}},
-	}
-	_, startResp, err := store.createSession(ctx, spec.StartInstallRequest{Plan: plan}, nil)
-	require.NoError(t, err)
-	sessionID := startResp.SessionId
-
-	persist := newMemoryPersistence()
-	comp := spec.ComponentName(spec.Prometheus)
-	order := int32(1)
-	installErr := spec.InstallError{
-		Category:  spec.Dependency,
-		Message:   "component not healthy",
-		Component: &comp,
-		StepOrder: &order,
-	}
-
-	_, err = store.addError(ctx, sessionID, order, installErr, persist)
-	require.NoError(t, err)
-
-	status, err := store.completeStep(ctx, sessionID, order, persist)
-	require.NoError(t, err)
-	require.NotNil(t, status.Errors)
-	require.Len(t, *status.Errors, 0)
-
-	persist.mu.Lock()
-	saved := persist.sessions[sessionID]
-	persist.mu.Unlock()
-	require.NotNil(t, saved)
-	if saved.Status.Errors != nil {
-		require.Len(t, *saved.Status.Errors, 0)
-	}
-}
-
 func TestActivateDueRetryRespectsSchedule(t *testing.T) {
 	resetStore()
 	ctx := context.Background()

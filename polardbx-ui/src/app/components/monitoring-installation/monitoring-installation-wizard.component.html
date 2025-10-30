@@ -95,7 +95,7 @@
 
         <section *ngIf="detectionRecommendations.length" class="recommendations">
           <h3>
-            <i nz-icon nzType="bulb" nzTheme="outline"></i>
+            <i nz-icon nzType="bulb"></i>
             {{ t('recommendations.title') }}
           </h3>
           <ul>
@@ -494,9 +494,6 @@
                 </ng-template>
               </nz-tab>
               <nz-tab [nzTitle]="t('diagnostics.autofixTab')" *ngIf="diag.autoFixes?.length">
-                <div class="autofix-tip">
-                  <nz-alert nzType="info" nzShowIcon [nzMessage]="t('diagnostics.autofix.tip')"></nz-alert>
-                </div>
                 <div class="autofix-list">
                   <div class="autofix-item" *ngFor="let fix of diag.autoFixes">
                     <div class="autofix-header">
@@ -523,18 +520,7 @@
                         <nz-tag nzColor="green" *ngIf="fixState.status === 'success'">{{ t('diagnostics.autofix.success') }}</nz-tag>
                         <nz-tag nzColor="red" *ngIf="fixState.status === 'error'">{{ t('diagnostics.autofix.failure') }}</nz-tag>
                       </div>
-                        <nz-alert
-                          *ngIf="fixState.status === 'success'"
-                          nzType="success"
-                          nzShowIcon
-                          [nzMessage]="fixState.message ?? t('diagnostics.autofix.success')"
-                        ></nz-alert>
-                        <nz-alert
-                          *ngIf="fixState.status === 'error'"
-                          nzType="error"
-                          nzShowIcon
-                          [nzMessage]="fixState.message ?? t('diagnostics.autofix.failure')"
-                        ></nz-alert>
+                      <p class="autofix-message" *ngIf="fixState.message">{{ fixState.message }}</p>
                     </ng-container>
                   </div>
                 </div>

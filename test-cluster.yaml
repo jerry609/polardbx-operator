@@ -1,0 +1,33 @@
+apiVersion: polardbx.aliyun.com/v1
+kind: PolarDBXCluster
+metadata:
+  name: test-pitr
+  namespace: default
+spec:
+  topology:
+    nodes:
+      cn:
+        replicas: 1
+        template:
+          resources:
+            limits:
+              cpu: "1"
+              memory: 2Gi
+            requests:
+              cpu: "500m"
+              memory: 1Gi
+      dn:
+        replicas: 1
+        template:
+          resources:
+            limits:
+              cpu: "1"
+              memory: 2Gi
+            requests:
+              cpu: "500m"
+              memory: 1Gi
+  config:
+    cn:
+      static:
+        EnableCoroutine: true
+        RPCProtocolVersion: "2"

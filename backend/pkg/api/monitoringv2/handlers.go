@@ -980,13 +980,8 @@ func (s *sessionStore) restoreFromPersisted(snapshot *service.PersistedSession) 
 	}
 
 	plan := clonePlan(snapshot.Plan)
-	// Restore namespace from persisted snapshot first, then fallback
 	if plan.SessionTemplate.Namespace == "" {
-		if snapshot.Namespace != "" {
-			plan.SessionTemplate.Namespace = snapshot.Namespace
-		} else {
-			plan.SessionTemplate.Namespace = namespaceFallback(&plan)
-		}
+		plan.SessionTemplate.Namespace = namespaceFallback(&plan)
 	}
 
 	started := time.Now().UTC()
@@ -1196,27 +1191,6 @@ func (s *sessionStore) completeStep(ctx context.Context, sessionID string, order
 		return spec.InstallStatusResponse{}, fmt.Errorf("session %s not found", sessionID)
 	}
 	rec.lastTouched = now
-	if len(rec.errors) > 0 {
-		var component *spec.ComponentName
-		for idx := range rec.plan.Steps {
-			step := rec.plan.Steps[idx]
-			if step.Order == order {
-				component = &step.Component
-				break
-			}
-		}
-		filtered := make([]spec.InstallError, 0, len(rec.errors))
-		for _, err := range rec.errors {
-			if err.StepOrder != nil && *err.StepOrder == order {
-				continue
-			}
-			if component != nil && err.Component != nil && *err.Component == *component {
-				continue
-			}
-			filtered = append(filtered, err)
-		}
-		rec.errors = filtered
-	}
 	if rec.checkpoint == nil {
 		rec.checkpoint = &spec.Checkpoint{}
 	}

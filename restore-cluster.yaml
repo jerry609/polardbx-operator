@@ -1,0 +1,37 @@
+apiVersion: polardbx.aliyun.com/v1
+kind: PolarDBXCluster
+metadata:
+  name: test-pitr-restored
+  namespace: default
+spec:
+  restore:
+    backupSet: ""  # 不使用备份集，直接从时间点恢复
+    time: "2025-10-19T15:37:56Z"  # 恢复到此时间点（包含 id 1-4，不包含 id 5-7）
+    storageName: ""
+  topology:
+    nodes:
+      cn:
+        replicas: 1
+        template:
+          resources:
+            limits:
+              cpu: "1"
+              memory: 2Gi
+            requests:
+              cpu: "500m"
+              memory: 1Gi
+      dn:
+        replicas: 1
+        template:
+          resources:
+            limits:
+              cpu: "1"
+              memory: 2Gi
+            requests:
+              cpu: "500m"
+              memory: 1Gi
+  config:
+    cn:
+      static:
+        EnableCoroutine: true
+        RPCProtocolVersion: "2"

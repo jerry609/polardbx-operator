@@ -1,0 +1,52 @@
+apiVersion: polardbx.aliyun.com/v1
+kind: PolarDBXCluster
+metadata:
+  name: quick-start
+spec:
+  shareGMS: false
+  serviceType: ClusterIP
+  topology:
+    nodes:
+      gms:
+        template:
+          image: polardbx-opensource-registry.cn-beijing.cr.aliyuncs.com/polardbx/polardbx-engine:v2.4.2_8.4.19
+          resources:
+            requests:
+              cpu: 100m
+              memory: 500Mi
+            limits:
+              cpu: 1
+              memory: 1Gi
+      cn:
+        replicas: 1
+        template:
+          image: polardbx-opensource-registry.cn-beijing.cr.aliyuncs.com/polardbx/polardbx-sql:v2.4.2_5.4.19
+          resources:
+            requests:
+              cpu: 200m
+              memory: 1Gi
+            limits:
+              cpu: 1
+              memory: 2Gi
+      dn:
+        replicas: 1
+        template:
+          image: polardbx-opensource-registry.cn-beijing.cr.aliyuncs.com/polardbx/polardbx-engine:v2.4.2_8.4.19
+          resources:
+            requests:
+              cpu: 200m
+              memory: 1Gi
+            limits:
+              cpu: 1
+              memory: 2Gi
+      cdc:
+        replicas: 1
+        template:
+          image: polardbx-opensource-registry.cn-beijing.cr.aliyuncs.com/polardbx/polardbx-cdc:v2.4.2_5.4.19
+          resources:
+            requests:
+              cpu: 100m
+              memory: 512Mi
+            limits:
+              cpu: 1
+              memory: 1Gi

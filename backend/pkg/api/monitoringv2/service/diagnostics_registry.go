@@ -15,7 +15,7 @@ var defaultDiagnosticProbes = map[string]struct {
 }{
 	"prometheus-health": {
 		Description: "检测 Prometheus StatefulSet、Service 以及核心指标可用性",
-		Factory:     func() DiagnosticProbe { return newPrometheusHealthProbe() },
+		Factory:     func() DiagnosticProbe { return newPlaceholderProbe("prometheus-health") },
 	},
 	"grafana-connectivity": {
 		Description: "验证 Grafana Pod 与数据源连通性",

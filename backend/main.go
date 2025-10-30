@@ -55,15 +55,15 @@ func CORSMiddleware() gin.HandlerFunc {
 }
 
 func monitoringV2Enabled() bool {
-	value := strings.ToLower(strings.TrimSpace(os.Getenv("MONITORING_V2_ENABLED")))
+	value := strings.ToLower(os.Getenv("MONITORING_V2_ENABLED"))
 	if value == "" {
-		return true
+		return false
 	}
 	switch value {
-	case "0", "false", "no", "off", "disabled":
-		return false
-	default:
+	case "1", "true", "yes", "on", "enabled":
 		return true
+	default:
+		return false
 	}
 }
 

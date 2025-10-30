@@ -722,14 +722,6 @@
     font-size: 13px;
   }
 
-  .autofix-tip {
-    margin-bottom: 12px;
-
-    nz-alert {
-      width: 100%;
-    }
-  }
-
   .autofix-list {
     display: grid;
     gap: 12px;
@@ -766,8 +758,10 @@
       gap: 8px;
     }
 
-    nz-alert {
-      margin-top: 4px;
+    .autofix-message {
+      margin: 0;
+      color: rgba(0, 0, 0, 0.55);
+      font-size: 12px;
     }
   }
 

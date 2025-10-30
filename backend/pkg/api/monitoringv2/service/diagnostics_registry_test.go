@@ -23,7 +23,7 @@ func TestListDefaultDiagnosticProbes(t *testing.T) {
 	}
 }
 
-func TestResolveDiagnosticProbePrometheus(t *testing.T) {
+func TestResolveDiagnosticProbePlaceholder(t *testing.T) {
 	probe := ResolveDiagnosticProbe("prometheus-health")
 	if probe == nil {
 		t.Fatal("expected probe instance")
@@ -31,8 +31,12 @@ func TestResolveDiagnosticProbePrometheus(t *testing.T) {
 	if probe.ID() != "prometheus-health" {
 		t.Fatalf("unexpected id: %s", probe.ID())
 	}
-	if _, err := probe.Run(context.Background(), ProbeInput{}); err == nil {
-		t.Fatal("expected error when running without kubernetes client")
+	findings, err := probe.Run(context.Background(), ProbeInput{})
+	if err != nil {
+		t.Fatalf("probe run returned error: %v", err)
+	}
+	if len(findings) != 0 {
+		t.Fatalf("placeholder probe should not produce findings: %d", len(findings))
 	}
 }
 

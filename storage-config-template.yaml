@@ -1,0 +1,83 @@
+# PolarDB-X 存储配置模板
+# 使用方法：填写凭据后执行 kubectl apply -f storage-config-template.yaml
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: polardbx-backup-storage
+  namespace: default
+data:
+  # ============================================================
+  # OSS 存储配置 (阿里云对象存储)
+  # ============================================================
+  oss-config: |
+    {
+      "endpoint": "oss-cn-hangzhou.aliyuncs.com",
+      "bucket": "your-bucket-name",
+      "accessKeyId": "YOUR_ACCESS_KEY_ID",
+      "accessKeySecret": "YOUR_ACCESS_KEY_SECRET"
+    }
+
+  # ============================================================
+  # SFTP 存储配置
+  # ============================================================
+  sftp-config: |
+    {
+      "host": "sftp.example.com",
+      "port": 22,
+      "username": "backup-user",
+      "password": "YOUR_PASSWORD",
+      "privateKey": ""
+    }
+
+  # ============================================================
+  # MINIO/S3 存储配置
+  # ============================================================
+  s3-config: |
+    {
+      "endpoint": "http://minio.example.com:9000",
+      "region": "us-east-1",
+      "bucket": "polardbx-backups",
+      "accessKeyId": "YOUR_ACCESS_KEY",
+      "secretAccessKey": "YOUR_SECRET_KEY",
+      "useSSL": false
+    }
+
+---
+# 可选：为 HPFS 配置存储 Sinks
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hpfs-storage-sinks
+  namespace: default
+data:
+  sinks.yaml: |
+    sinks:
+      # OSS Sink
+      - name: oss
+        type: oss
+        config:
+          endpoint: "oss-cn-hangzhou.aliyuncs.com"
+          bucket: "your-bucket-name"
+          access_key: "YOUR_ACCESS_KEY_ID"
+          access_secret: "YOUR_ACCESS_KEY_SECRET"
+      
+      # SFTP Sink
+      - name: sftp
+        type: sftp
+        config:
+          host: "sftp.example.com"
+          port: 22
+          username: "backup-user"
+          password: "YOUR_PASSWORD"
+      
+      # MINIO/S3 Sink
+      - name: s3
+        type: s3
+        config:
+          endpoint: "http://minio.example.com:9000"
+          region: "us-east-1"
+          bucket: "polardbx-backups"
+          access_key: "YOUR_ACCESS_KEY"
+          secret_key: "YOUR_SECRET_KEY"
+          use_ssl: false

@@ -1,0 +1,21 @@
+apiVersion: polardbx.aliyun.com/v1
+kind: XStoreBackup
+metadata:
+  name: full-backup-dn-1
+  namespace: default
+spec:
+  xstore:
+    name: test-pitr-zw6s-dn-0
+    uid: ce836c44-ac13-4c85-8b9d-4217f1ff316c
+  engine: galaxy
+---
+apiVersion: polardbx.aliyun.com/v1
+kind: XStoreBackup
+metadata:
+  name: full-backup-gms-1
+  namespace: default
+spec:
+  xstore:
+    name: test-pitr-zw6s-gms
+    uid: a4c5206f-31e4-4888-9e7e-8a43d44a9697
+  engine: galaxy

@@ -116,7 +116,6 @@ export class MonitoringInstallationWizardComponent implements OnInit {
   private pendingCheckpoint: Checkpoint | null = null;
   private pollTimer: number | null = null;
   resumeInitialPhaseLabel?: string;
-  private autoPlanAfterDetect = false;
 
   t(key: string, params?: Record<string, string | number>): string {
     return translateWizard(this.wizardLocale, key, params);
@@ -195,8 +194,6 @@ export class MonitoringInstallationWizardComponent implements OnInit {
     this.clearStatusPolling();
     this.cdr.markForCheck();
 
-    const shouldAutoPlan = this.autoPlanAfterDetect && this.planIntent === 'repair';
-
     try {
       await this.state.hydrate({ namespace });
       const currentState = this.state.getSnapshot();
@@ -220,20 +217,12 @@ export class MonitoringInstallationWizardComponent implements OnInit {
       this.state.updateProgress(0);
       this.currentStep = 0;
       this.messages.success(this.t('toasts.detectSuccess'));
-
-      if (shouldAutoPlan) {
-        this.autoPlanAfterDetect = false;
-        setTimeout(() => this.generatePlan(), 0);
-      }
     } catch (error) {
       console.error('[monitoring-installation] detect failed', error);
       this.detectionError = this.extractErrorMessage(error);
       this.state.updatePhase('NotStarted');
       this.messages.error(this.t('toasts.detectFailure'));
     } finally {
-      if (!shouldAutoPlan) {
-        this.autoPlanAfterDetect = false;
-      }
       this.detectionLoading = false;
       this.cdr.markForCheck();
     }
@@ -329,7 +318,6 @@ export class MonitoringInstallationWizardComponent implements OnInit {
     this.planIntent = 'repair';
     this.resumeDialogOpened = false;
     this.resumeBypassOnce = true;
-    this.autoPlanAfterDetect = true;
     this.messages.info(this.t('toasts.resumeRepairMode'));
     await this.detectEnvironment();
   }
@@ -996,7 +984,7 @@ export class MonitoringInstallationWizardComponent implements OnInit {
       return 0;
     }
     const attempts = retry.retries ?? 0;
-    const percent = Math.round((attempts / retry.maxRetries) * 100);
+    const percent = (attempts / retry.maxRetries) * 100;
     return Math.max(0, Math.min(100, percent));
   }
 
