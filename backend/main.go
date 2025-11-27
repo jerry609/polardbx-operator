@@ -23,7 +23,6 @@ import (
 	api_router "polardbx-ui-backend/pkg/api/router"
 	api_settings "polardbx-ui-backend/pkg/api/settings"
 	api_system "polardbx-ui-backend/pkg/api/system"
-	"strings"
 
 	// domain handlers
 	domain_pxc "polardbx-ui-backend/pkg/api/domain/polardbxclusters"
@@ -54,19 +53,7 @@ func CORSMiddleware() gin.HandlerFunc {
 	}
 }
 
-func monitoringV2Enabled() bool {
-	value := strings.ToLower(os.Getenv("MONITORING_V2_ENABLED"))
-	if value == "" {
-		// Default to enabled for development; set MONITORING_V2_ENABLED=false to disable
-		return true
-	}
-	switch value {
-	case "0", "false", "no", "off", "disabled":
-		return false
-	default:
-		return true
-	}
-}
+// monitoringV2Enabled removed: v2 endpoints are now always enabled
 
 func main() {
 	// 设置controller-runtime日志器
@@ -267,16 +254,15 @@ func main() {
 		v1.GET("/monitoring/preflight", api_monitoring.Preflight)
 		v1.DELETE("/monitoring/uninstall", api_monitoring.Uninstall)
 
-		if monitoringV2Enabled() {
-			// Monitoring v2 workflow endpoints (guarded for gradual rollout)
-			v1.GET("/monitoring/detect", api_monitoring_v2.DetectEnvironment)
-			v1.POST("/monitoring/plan", api_monitoring_v2.CreatePlan)
-			v1.POST("/monitoring/install", api_monitoring_v2.StartInstallation)
-			v1.GET("/monitoring/install/:sessionId/status", api_monitoring_v2.GetInstallStatus)
-			v1.POST("/monitoring/install/:sessionId/retry", api_monitoring_v2.TriggerRetry)
-			v1.POST("/monitoring/diagnose", api_monitoring_v2.DiagnoseFailure)
-			v1.POST("/monitoring/auto-fix", api_monitoring_v2.ApplyAutoFix)
-		}
+		// Monitoring v2 workflow endpoints (always enabled)
+		v1.GET("/monitoring/detect", api_monitoring_v2.DetectEnvironment)
+		v1.POST("/monitoring/plan", api_monitoring_v2.CreatePlan)
+		v1.POST("/monitoring/install", api_monitoring_v2.StartInstallation)
+		v1.GET("/monitoring/install/:sessionId/status", api_monitoring_v2.GetInstallStatus)
+		v1.POST("/monitoring/install/:sessionId/retry", api_monitoring_v2.TriggerRetry)
+		v1.POST("/monitoring/diagnose", api_monitoring_v2.DiagnoseFailure)
+		v1.POST("/monitoring/auto-fix", api_monitoring_v2.ApplyAutoFix)
+
 		v1.GET("/monitoring/grafana/config", api_grafana.GetConfig)
 		v1.PUT("/monitoring/grafana/config", api_grafana.PutConfig)
 		v1.POST("/monitoring/grafana/dashboards/sync", api_grafana.SyncDashboards)
