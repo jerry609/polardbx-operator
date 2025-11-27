@@ -37,5 +37,8 @@ const (
 	ErrorCodeAutoFixContextFailed ErrorCode = "monitoring/autofix-context-failed"
 	ErrorCodeAutoFixFailed        ErrorCode = "monitoring/autofix-failed"
 
+	ErrorCodeInstallFailed   ErrorCode = "monitoring/install-failed"
+	ErrorCodeUninstallFailed ErrorCode = "monitoring/uninstall-failed"
+
 	ErrorCodeUnknown ErrorCode = "monitoring/unknown-error"
 )

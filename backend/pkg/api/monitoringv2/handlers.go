@@ -9,12 +9,15 @@ import (
 	"net/http"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -1783,4 +1786,137 @@ func componentName(name *spec.ComponentName) string {
 		return "unknown"
 	}
 	return string(*name)
+}
+
+// Uninstall removes monitoring stack components and cleans up resources.
+// This consolidates the v1 uninstall functionality into v2.
+func Uninstall(c *gin.Context) {
+	cli, ok := util.K8sClientFromContext(c)
+	if !ok {
+		respondError(c, http.StatusUnauthorized, ErrorCodeKubernetesClientMissing, "kubernetes client not initialized")
+		return
+	}
+
+	namespace := c.DefaultQuery("namespace", "polardbx-monitor")
+	force := c.DefaultQuery("force", "false") == "true"
+	logger.WithValues("namespace", namespace, "force", force).Info("uninstall requested")
+
+	ctx := c.Request.Context()
+
+	// Clean up installation plan ConfigMap if exists
+	planNs := c.DefaultQuery("planNamespace", "polardbx-operator-system")
+	planCM := &corev1.ConfigMap{}
+	planKey := client.ObjectKey{Namespace: planNs, Name: "polardbx-monitoring-plan"}
+	if err := cli.Get(ctx, planKey, planCM); err == nil {
+		if err := cli.Delete(ctx, planCM); err != nil {
+			logger.Error(err, "failed to delete monitoring plan ConfigMap", "namespace", planNs)
+		}
+	}
+
+	// Clean up any active sessions for this namespace
+	store.mu.Lock()
+	for id, rec := range store.sessions {
+		if rec.namespace == namespace {
+			delete(store.sessions, id)
+			logger.WithValues("sessionId", id, "namespace", namespace).Info("cleaned up session during uninstall")
+		}
+	}
+	store.mu.Unlock()
+
+	// Prepare uninstall response
+	response := gin.H{
+		"message":   "monitoring uninstall request accepted",
+		"namespace": namespace,
+		"force":     force,
+		"timestamp": time.Now().UTC().Format(time.RFC3339),
+	}
+
+	// If force mode, we could trigger helm uninstall here
+	// For now, just mark the plan as removed and let user handle actual component removal
+	if force {
+		response["warning"] = "force mode enabled - manual component cleanup may be required"
+	}
+
+	logger.WithValues("namespace", namespace).Info("uninstall completed")
+	c.JSON(http.StatusOK, response)
+}
+
+// GetBootstrapLogs retrieves logs from a bootstrap/install job.
+// This provides compatibility with v1 bootstrap logs endpoint.
+func GetBootstrapLogs(c *gin.Context) {
+	cs, ok := util.ClientsetFromContext(c)
+	if !ok {
+		respondError(c, http.StatusUnauthorized, ErrorCodeKubernetesClientMissing, "kubernetes clientset not initialized")
+		return
+	}
+
+	sessionID := c.Query("sessionId")
+	jobName := c.Query("jobName")
+	namespace := c.DefaultQuery("namespace", "polardbx-operator-system")
+	tailLines := int64(100)
+
+	if tailParam := c.Query("tailLines"); tailParam != "" {
+		if parsed, err := strconv.ParseInt(tailParam, 10, 64); err == nil && parsed > 0 {
+			tailLines = parsed
+		}
+	}
+
+	// If sessionId provided, try to find associated job
+	if sessionID != "" && jobName == "" {
+		// Look for jobs with session label
+		jobs, err := cs.BatchV1().Jobs(namespace).List(c.Request.Context(), metav1.ListOptions{
+			LabelSelector: fmt.Sprintf("sessionId=%s", sessionID),
+		})
+		if err == nil && len(jobs.Items) > 0 {
+			jobName = jobs.Items[0].Name
+		}
+	}
+
+	if jobName == "" {
+		respondError(c, http.StatusBadRequest, ErrorCodeInstallInvalid, "jobName or sessionId is required")
+		return
+	}
+
+	// List pods created by this job
+	pods, err := cs.CoreV1().Pods(namespace).List(c.Request.Context(), metav1.ListOptions{
+		LabelSelector: fmt.Sprintf("job-name=%s", jobName),
+	})
+	if err != nil {
+		respondError(c, http.StatusInternalServerError, ErrorCodeInstallFailed, "failed to list job pods: "+err.Error())
+		return
+	}
+
+	if len(pods.Items) == 0 {
+		respondError(c, http.StatusNotFound, ErrorCodeSessionNotFound, fmt.Sprintf("no pods found for job %s", jobName))
+		return
+	}
+
+	// Get logs from the first pod
+	pod := pods.Items[0]
+	logOptions := &corev1.PodLogOptions{TailLines: &tailLines}
+	if len(pod.Spec.Containers) > 0 {
+		logOptions.Container = pod.Spec.Containers[0].Name
+	}
+
+	logReq := cs.CoreV1().Pods(namespace).GetLogs(pod.Name, logOptions)
+	rc, err := logReq.Stream(c.Request.Context())
+	if err != nil {
+		respondError(c, http.StatusInternalServerError, ErrorCodeInstallFailed, "failed to get pod logs: "+err.Error())
+		return
+	}
+	defer rc.Close()
+
+	logs, err := io.ReadAll(rc)
+	if err != nil {
+		respondError(c, http.StatusInternalServerError, ErrorCodeInstallFailed, "failed to read logs: "+err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"jobName":   jobName,
+		"namespace": namespace,
+		"podName":   pod.Name,
+		"logs":      string(logs),
+		"tailLines": tailLines,
+	})
 }

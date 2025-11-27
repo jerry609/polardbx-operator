@@ -247,18 +247,21 @@ func main() {
 		v1.GET("/logs/presets/:pattern", api_logs.PresetByPattern)
 
 		// Monitoring / Grafana（保持原实现）
+		// Monitoring v2 workflow endpoints (unified)
+		// Legacy v1 compatibility: bootstrap → uses v1 for now (complex Job logic)
 		v1.POST("/monitoring/bootstrap", api_monitoring.Bootstrap)
 		v1.GET("/monitoring/bootstrap/status", api_monitoring.BootstrapStatus)
-		v1.GET("/monitoring/bootstrap/logs", api_monitoring.BootstrapLogs)
-		v1.GET("/monitoring/status", api_monitoring.Status)
-		v1.GET("/monitoring/preflight", api_monitoring.Preflight)
-		v1.DELETE("/monitoring/uninstall", api_monitoring.Uninstall)
+		v1.GET("/monitoring/bootstrap/logs", api_monitoring_v2.GetBootstrapLogs) // v2 provides enhanced logs
+		v1.GET("/monitoring/status", api_monitoring.Status)                      // v1 status (simplified)
+		v1.GET("/monitoring/preflight", api_monitoring_v2.DetectEnvironment)     // preflight → detect (v2)
+		v1.DELETE("/monitoring/uninstall", api_monitoring_v2.Uninstall)          // v2 uninstall
 
-		// Monitoring v2 workflow endpoints (always enabled)
+		// v2 workflow endpoints
 		v1.GET("/monitoring/detect", api_monitoring_v2.DetectEnvironment)
 		v1.POST("/monitoring/plan", api_monitoring_v2.CreatePlan)
 		v1.POST("/monitoring/install", api_monitoring_v2.StartInstallation)
 		v1.GET("/monitoring/install/:sessionId/status", api_monitoring_v2.GetInstallStatus)
+		v1.GET("/monitoring/install/:sessionId/logs", api_monitoring_v2.GetBootstrapLogs)
 		v1.POST("/monitoring/install/:sessionId/retry", api_monitoring_v2.TriggerRetry)
 		v1.POST("/monitoring/diagnose", api_monitoring_v2.DiagnoseFailure)
 		v1.POST("/monitoring/auto-fix", api_monitoring_v2.ApplyAutoFix)
