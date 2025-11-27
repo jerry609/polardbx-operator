@@ -1,54 +1,25 @@
+// Package diagnostics 提供集群诊断的 API 端点
+// 实际业务逻辑已迁移到 domain/platform/diagnostics
 package diagnostics
 
 import (
-	"net/http"
-	"time"
+	"polardbx-ui-backend/pkg/api/domain/platform/diagnostics/handler"
 
 	"github.com/gin-gonic/gin"
 )
 
-// StartDiagnosis triggers a diagnosis job for a cluster (placeholder implementation)
-func Start(c *gin.Context) {
-	namespace := c.Param("namespace")
-	cluster := c.Param("cluster")
-	c.JSON(http.StatusAccepted, gin.H{
-		"id":        time.Now().UnixNano(),
-		"namespace": namespace,
-		"cluster":   cluster,
-		"status":    "running",
-		"startedAt": time.Now().Format(time.RFC3339),
-		"message":   "pending_implementation",
-	})
-}
+// 委托给 domain handler
+var (
+	Start       = handler.Start
+	GetStatus   = handler.GetStatus
+	ListReports = handler.ListReports
+	Download    = handler.Download
+)
 
-// GetStatus returns progress/status of a diagnosis task (placeholder)
-func GetStatus(c *gin.Context) {
-	namespace := c.Param("namespace")
-	id := c.Param("id")
-	c.JSON(http.StatusOK, gin.H{
-		"id":        id,
-		"namespace": namespace,
-		"status":    "pending_implementation",
-		"progress":  0,
-	})
-}
-
-// ListReports lists diagnosis reports for a namespace (placeholder)
-func ListReports(c *gin.Context) {
-	namespace := c.DefaultQuery("namespace", "")
-	c.JSON(http.StatusOK, gin.H{
-		"namespace": namespace,
-		"reports":   []any{},
-	})
-}
-
-// Download returns a download placeholder for a report (placeholder)
-func Download(c *gin.Context) {
-	namespace := c.Param("namespace")
-	id := c.Param("id")
-	c.JSON(http.StatusOK, gin.H{
-		"id":        id,
-		"namespace": namespace,
-		"download":  "pending_implementation",
-	})
+// RegisterRoutes 注册诊断相关路由
+func RegisterRoutes(r *gin.RouterGroup) {
+	r.POST("/diagnostics/:namespace/:cluster/start", Start)
+	r.GET("/diagnostics/:namespace/:id/status", GetStatus)
+	r.GET("/diagnostics/reports", ListReports)
+	r.GET("/diagnostics/:namespace/:id/download", Download)
 }

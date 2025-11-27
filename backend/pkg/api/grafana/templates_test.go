@@ -3,10 +3,12 @@ package grafana
 import (
 	"encoding/json"
 	"testing"
+
+	"polardbx-ui-backend/pkg/api/domain/platform/grafana/handler"
 )
 
 func TestResolveTemplatesDir(t *testing.T) {
-	dir, err := resolveTemplatesDir()
+	dir, err := handler.ResolveTemplatesDir()
 	if err != nil {
 		t.Fatalf("resolveTemplatesDir returned error: %v", err)
 	}
@@ -16,12 +18,12 @@ func TestResolveTemplatesDir(t *testing.T) {
 }
 
 func TestLoadTemplateSummaries(t *testing.T) {
-	dir, err := resolveTemplatesDir()
+	dir, err := handler.ResolveTemplatesDir()
 	if err != nil {
 		t.Fatalf("resolveTemplatesDir returned error: %v", err)
 	}
 
-	summaries, err := loadTemplateSummaries(dir)
+	summaries, err := handler.LoadTemplateSummaries(dir)
 	if err != nil {
 		t.Fatalf("loadTemplateSummaries returned error: %v", err)
 	}
@@ -39,12 +41,12 @@ func TestLoadTemplateSummaries(t *testing.T) {
 }
 
 func TestLoadTemplateDetail(t *testing.T) {
-	dir, err := resolveTemplatesDir()
+	dir, err := handler.ResolveTemplatesDir()
 	if err != nil {
 		t.Fatalf("resolveTemplatesDir returned error: %v", err)
 	}
 
-	summaries, err := loadTemplateSummaries(dir)
+	summaries, err := handler.LoadTemplateSummaries(dir)
 	if err != nil {
 		t.Fatalf("loadTemplateSummaries returned error: %v", err)
 	}
@@ -53,7 +55,7 @@ func TestLoadTemplateDetail(t *testing.T) {
 	}
 
 	name := summaries[0].Name
-	detail, err := loadTemplateDetail(dir, name)
+	detail, err := handler.LoadTemplateDetail(dir, name)
 	if err != nil {
 		t.Fatalf("loadTemplateDetail returned error: %v", err)
 	}

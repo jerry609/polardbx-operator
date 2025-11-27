@@ -184,55 +184,57 @@
     nzPlacement="right"
     nzWidth="720"
     (nzOnClose)="closeDrawer()">
-    <div class="drawer-content" *ngIf="activeTemplate">
-      <div class="drawer-header">
-        <div class="info">
-          <div class="name">{{ activeTemplate.title }}</div>
-          <div class="meta">
-            <span>命名空间</span>
-            <input nz-input [(ngModel)]="applyNamespace" placeholder="polardbx-monitor" />
-            <span>资源名称</span>
-            <input nz-input [(ngModel)]="applyName" placeholder="{{ activeTemplate.name }}" />
+    <ng-container *nzDrawerContent>
+      <div class="drawer-content" *ngIf="activeTemplate">
+        <div class="drawer-header">
+          <div class="info">
+            <div class="name">{{ activeTemplate.title }}</div>
+            <div class="meta">
+              <span>命名空间</span>
+              <input nz-input [(ngModel)]="applyNamespace" placeholder="polardbx-monitor" />
+              <span>资源名称</span>
+              <input nz-input [(ngModel)]="applyName" placeholder="{{ activeTemplate.name }}" />
+            </div>
+          </div>
+          <div class="drawer-actions">
+            <button nz-button nzType="default" nzSize="small" (click)="dryRun()" [disabled]="applying">
+              <i nz-icon nzType="experiment"></i>
+              Dry Run
+            </button>
+            <button nz-button nzType="primary" nzSize="small" (click)="applyFromDrawer()" [nzLoading]="applying">
+              <i nz-icon nzType="check"></i>
+              应用模板
+            </button>
           </div>
         </div>
-        <div class="drawer-actions">
-          <button nz-button nzType="default" nzSize="small" (click)="dryRun()" [disabled]="applying">
-            <i nz-icon nzType="experiment"></i>
-            Dry Run
-          </button>
-          <button nz-button nzType="primary" nzSize="small" (click)="applyFromDrawer()" [nzLoading]="applying">
-            <i nz-icon nzType="check"></i>
-            应用模板
-          </button>
+
+        <div class="warnings" *ngIf="dryRunWarnings.length">
+          <nz-alert
+            nzType="warning"
+            nzMessage="Dry-run 返回警告"
+            [nzDescription]="warningsTpl"
+            nzShowIcon>
+          </nz-alert>
+          <ng-template #warningsTpl>
+            <ul>
+              <li *ngFor="let warning of dryRunWarnings">{{ warning }}</li>
+            </ul>
+          </ng-template>
         </div>
+
+        <app-yaml-preview
+          [yamlContent]="previewContent"
+          [filename]="previewFilename"
+          [loading]="previewLoading"
+          [readonly]="false"
+          [showValidateButton]="true"
+          [validateFunction]="validateYaml">
+        </app-yaml-preview>
       </div>
 
-      <div class="warnings" *ngIf="dryRunWarnings.length">
-        <nz-alert
-          nzType="warning"
-          nzMessage="Dry-run 返回警告"
-          [nzDescription]="warningsTpl"
-          nzShowIcon>
-        </nz-alert>
-        <ng-template #warningsTpl>
-          <ul>
-            <li *ngFor="let warning of dryRunWarnings">{{ warning }}</li>
-          </ul>
-        </ng-template>
+      <div *ngIf="!activeTemplate" class="empty-preview">
+        <nz-empty nzNotFoundContent="请选择模板"></nz-empty>
       </div>
-
-      <app-yaml-preview
-        [yamlContent]="previewContent"
-        [filename]="previewFilename"
-        [loading]="previewLoading"
-        [readonly]="false"
-        [showValidateButton]="true"
-        [validateFunction]="validateYaml">
-      </app-yaml-preview>
-    </div>
-
-    <div *ngIf="!activeTemplate" class="empty-preview">
-      <nz-empty nzNotFoundContent="请选择模板"></nz-empty>
-    </div>
+    </ng-container>
   </nz-drawer>
 </div>

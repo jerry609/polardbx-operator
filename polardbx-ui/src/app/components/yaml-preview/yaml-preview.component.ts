@@ -445,27 +445,56 @@ export class YamlPreviewComponent implements OnChanges, OnDestroy {
       return Promise.resolve();
     }
 
+    // Monaco 编辑器新版本已经内置了基础语言支持
+    // 首先检查 YAML 语言是否已经可用
+    const languages = monacoGlobal.languages.getLanguages();
+    if (languages.some(lang => lang.id === 'yaml')) {
+      this.yamlLanguageLoaded = true;
+      return Promise.resolve();
+    }
+
+    // 如果不可用，尝试通过 AMD loader 加载（仅适用于旧版本）
     const loaderWindow = window as unknown as MonacoWindow;
     const amdRequire = loaderWindow.require;
     if (amdRequire) {
-      return new Promise((resolve, reject) => {
-        amdRequire(
-          ['vs/basic-languages/yaml/yaml.contribution'],
-          () => {
-            this.yamlLanguageLoaded = true;
+      return new Promise((resolve) => {
+        // 尝试新的模块路径格式
+        const possiblePaths = [
+          'vs/basic-languages/yaml/yaml.contribution',
+          'vs/language/yaml/monaco.contribution'
+        ];
+        
+        let tried = 0;
+        const tryNext = (): void => {
+          if (tried >= possiblePaths.length) {
+            // 所有路径都失败了，但 Monaco 基础功能可能仍然可用
+            // 检查语言是否已注册（可能在尝试加载过程中被注册）
+            if (monacoGlobal.languages.getLanguages().some(lang => lang.id === 'yaml')) {
+              this.yamlLanguageLoaded = true;
+            }
             resolve();
-          },
-          (err: unknown) => {
-            reject(err);
+            return;
           }
-        );
+          
+          amdRequire(
+            [possiblePaths[tried]],
+            () => {
+              this.yamlLanguageLoaded = true;
+              resolve();
+            },
+            () => {
+              tried++;
+              tryNext();
+            }
+          );
+        };
+        
+        tryNext();
       });
     }
 
-    if (monacoGlobal.languages.getLanguages().some(lang => lang.id === 'yaml')) {
-      this.yamlLanguageLoaded = true;
-    }
-
+    // AMD loader 不可用，假设语言支持已经内置
+    this.yamlLanguageLoaded = true;
     return Promise.resolve();
   }
 

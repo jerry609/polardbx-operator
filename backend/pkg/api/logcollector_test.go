@@ -73,12 +73,13 @@ func TestPolarDBXLogCollectorEndpoints(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, resp.Code)
 
-		var collectors []polardbxv1.PolarDBXLogCollector
-		err := json.Unmarshal(resp.Body.Bytes(), &collectors)
+		// API 返回 PolarDBXLogCollectorList 结构（包含 Items 字段）
+		var collectorList polardbxv1.PolarDBXLogCollectorList
+		err := json.Unmarshal(resp.Body.Bytes(), &collectorList)
 		assert.NoError(t, err)
-		assert.Len(t, collectors, 1)
-		assert.Equal(t, "test-log-collector", collectors[0].Name)
-		assert.Equal(t, "filebeat-cluster-1", collectors[0].Spec.FileBeatName)
+		assert.Len(t, collectorList.Items, 1)
+		assert.Equal(t, "test-log-collector", collectorList.Items[0].Name)
+		assert.Equal(t, "filebeat-cluster-1", collectorList.Items[0].Spec.FileBeatName)
 	})
 
 	t.Run("GetLogCollector", func(t *testing.T) {

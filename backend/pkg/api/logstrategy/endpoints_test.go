@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"polardbx-ui-backend/pkg/api/domain/platform/logstrategy/handler"
+
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
@@ -17,6 +19,17 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	crfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
+
+// 使用 handler 包导出的常量
+var (
+	recordsCMName = handler.RecordsCMName
+	recordsKey    = handler.RecordsKey
+	cmNamespace   = handler.CMNamespace
+)
+
+// 使用 handler 包导出的函数
+var addApplyRecord = handler.AddApplyRecord
+var generateRecordID = handler.GenerateRecordID
 
 func setupTestRouter() *gin.Engine {
 	gin.SetMode(gin.TestMode)
