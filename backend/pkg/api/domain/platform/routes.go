@@ -1,6 +1,8 @@
 package platform
 
 import (
+	domain_monitoring "polardbx-ui-backend/pkg/api/domain/monitoring"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -11,12 +13,12 @@ func RegisterRoutes(v1 *gin.RouterGroup) {
 	p.GET("/system/context", SystemContext)
 	p.GET("/system/namespaces", ListNamespaces)
 	// Monitoring
-	p.POST("/monitoring/bootstrap", MonitoringBootstrap)
-	p.GET("/monitoring/bootstrap/status", MonitoringBootstrapStatus)
-	p.GET("/monitoring/bootstrap/logs", MonitoringBootstrapLogs)
-	p.GET("/monitoring/status", MonitoringStatus)
-	p.GET("/monitoring/preflight", MonitoringPreflight)
-	p.DELETE("/monitoring/uninstall", MonitoringUninstall)
+	p.POST("/monitoring/bootstrap", domain_monitoring.Bootstrap)
+	p.GET("/monitoring/bootstrap/status", domain_monitoring.BootstrapStatus)
+	p.GET("/monitoring/bootstrap/logs", domain_monitoring.GetBootstrapLogs)
+	p.GET("/monitoring/status", domain_monitoring.Status)
+	p.GET("/monitoring/preflight", domain_monitoring.DetectEnvironment)
+	p.DELETE("/monitoring/uninstall", domain_monitoring.Uninstall)
 	// Grafana
 	p.GET("/grafana/config", GrafanaGetConfig)
 	p.PUT("/grafana/config", GrafanaPutConfig)

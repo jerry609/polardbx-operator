@@ -14,7 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/client-go/kubernetes"
 
-	spec "polardbx-ui-backend/pkg/api/monitoring/spec"
+	spec "polardbx-ui-backend/pkg/api/domain/monitoring/spec"
 )
 
 const (

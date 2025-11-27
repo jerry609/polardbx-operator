@@ -15,7 +15,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	spec "polardbx-ui-backend/pkg/api/monitoring/spec"
+	spec "polardbx-ui-backend/pkg/api/domain/monitoring/spec"
 )
 
 var ErrDetectionNotImplemented = errors.New("monitoring environment detection not implemented")

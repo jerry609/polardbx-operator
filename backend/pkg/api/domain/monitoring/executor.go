@@ -1,4 +1,4 @@
-package monitoring
+package domain_monitoring
 
 import (
 	"context"
@@ -9,8 +9,8 @@ import (
 
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 
-	"polardbx-ui-backend/pkg/api/monitoring/service"
-	spec "polardbx-ui-backend/pkg/api/monitoring/spec"
+	"polardbx-ui-backend/pkg/api/domain/monitoring/service"
+	spec "polardbx-ui-backend/pkg/api/domain/monitoring/spec"
 )
 
 type installationExecutor struct {
