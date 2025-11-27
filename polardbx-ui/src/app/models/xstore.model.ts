@@ -18,6 +18,8 @@ export interface XStore {
     creationTimestamp: string;
     uid?: string;
     resourceVersion?: string;
+    labels?: Record<string, string>;
+    annotations?: Record<string, string>;
   };
   spec: {
     engine?: string;

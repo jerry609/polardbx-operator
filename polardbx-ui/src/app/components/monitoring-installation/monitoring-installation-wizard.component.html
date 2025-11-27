@@ -362,10 +362,6 @@
                 <i nz-icon nzType="warning"></i>
                 {{ t('errors.sectionTitle', { count: status.errors?.length ?? 0 }) }}
               </h3>
-              <button nz-button nzType="default" nzSize="small" (click)="openDiagnostics(0)">
-                <i nz-icon nzType="tool"></i>
-                {{ t('errors.openDiagnostics') }}
-              </button>
             </div>
             <nz-list nzItemLayout="vertical" nzSize="small">
               <nz-list-item *ngFor="let err of status.errors || []; index as i">

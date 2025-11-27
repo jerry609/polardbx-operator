@@ -21,6 +21,7 @@ import { NzEmptyModule } from 'ng-zorro-antd/empty';
 import { NzStepsModule } from 'ng-zorro-antd/steps';
 import { NzPopconfirmModule } from 'ng-zorro-antd/popconfirm';
 import { NzSpinModule } from 'ng-zorro-antd/spin';
+import { NzStatisticModule } from 'ng-zorro-antd/statistic';
 import { LoadingKeys, LoadingService } from '../../services/loading.service';
 import { PolarDBXBackupBinlog, CreateBackupBinlogRequest } from '../../models/backup-binlog.model';
 import { NamespaceService } from '../../services/namespace.service';
@@ -50,7 +51,8 @@ import { takeUntil } from 'rxjs/operators';
     NzEmptyModule,
     NzStepsModule,
     NzPopconfirmModule,
-    NzSpinModule
+    NzSpinModule,
+    NzStatisticModule
   ],
   template: `
     <div class="backup-binlog-container">
@@ -65,6 +67,62 @@ import { takeUntil } from 'rxjs/operators';
       </div>
 
       <div class="page-content">
+        <!-- 统计概览 -->
+        <div class="stats-section">
+          <nz-card class="overview-card" [nzBodyStyle]="{ padding: '16px' }" nzBordered="false">
+            <div nz-row [nzGutter]="16">
+            <div nz-col [nzSpan]="6">
+              <nz-card class="stat-card">
+                <nz-statistic
+                  nzTitle="总配置数"
+                  [nzValue]="backupBinlogs.length"
+                  [nzValueStyle]="{ color: '#1890ff' }">
+                  <ng-template #nzPrefix>
+                    <i nz-icon nzType="file-done"></i>
+                  </ng-template>
+                </nz-statistic>
+              </nz-card>
+            </div>
+            <div nz-col [nzSpan]="6">
+              <nz-card class="stat-card">
+                <nz-statistic
+                  nzTitle="运行中"
+                  [nzValue]="getRunningCount()"
+                  [nzValueStyle]="{ color: '#52c41a' }">
+                  <ng-template #nzPrefix>
+                    <i nz-icon nzType="sync" nzSpin></i>
+                  </ng-template>
+                </nz-statistic>
+              </nz-card>
+            </div>
+            <div nz-col [nzSpan]="6">
+              <nz-card class="stat-card">
+                <nz-statistic
+                  nzTitle="已启用PITR"
+                  [nzValue]="getPitrEnabledCount()"
+                  [nzValueStyle]="{ color: '#722ed1' }">
+                  <ng-template #nzPrefix>
+                    <i nz-icon nzType="clock-circle"></i>
+                  </ng-template>
+                </nz-statistic>
+              </nz-card>
+            </div>
+            <div nz-col [nzSpan]="6">
+              <nz-card class="stat-card">
+                <nz-statistic
+                  nzTitle="失败"
+                  [nzValue]="getFailedCount()"
+                  [nzValueStyle]="{ color: '#ff4d4f' }">
+                  <ng-template #nzPrefix>
+                    <i nz-icon nzType="close-circle"></i>
+                  </ng-template>
+                </nz-statistic>
+              </nz-card>
+            </div>
+            </div>
+          </nz-card>
+        </div>
+
         <nz-tabset class="main-tabs" [nzTabPosition]="'top'">
           <!-- 日志备份列表 -->
           <nz-tab nzTitle="日志备份列表">
@@ -454,6 +512,23 @@ import { takeUntil } from 'rxjs/operators';
       max-width: none;
       margin: 0;
     }
+
+    .stats-section {
+      margin-bottom: 16px;
+    }
+
+    .overview-card {
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+      border: 1px solid #e0e0e0;
+    }
+
+    .stat-card {
+      text-align: center;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
     
     .main-tabs {
       background: #fff;
@@ -744,6 +819,21 @@ export class BackupBinlogManagementComponent implements OnInit, OnDestroy {
   formatDate(dateString?: string): string {
     if (!dateString) return '-';
     return new Date(dateString).toLocaleString('zh-CN');
+  }
+
+  // 统计方法
+  getRunningCount(): number {
+    return this.backupBinlogs.filter(b => 
+      b.status?.phase === 'running' || b.status?.phase === 'checkExpiredFile'
+    ).length;
+  }
+
+  getPitrEnabledCount(): number {
+    return this.backupBinlogs.filter(b => b.spec.pointInTimeRecover === true).length;
+  }
+
+  getFailedCount(): number {
+    return this.backupBinlogs.filter(b => b.status?.phase === 'deleting').length;
   }
 
   private markFormGroupTouched(formGroup: FormGroup): void {

@@ -983,6 +983,22 @@ export class LogCollectorInstallComponent implements OnInit, AfterViewInit, OnDe
     return raw?.error || raw?.message || error?.message || '未知错误';
   }
 
+  /**
+   * 检查环境预检是否有阻塞性错误 (error 状态)
+   * 只有 error 状态会阻止继续，warning 状态可以继续（用户确认后）
+   */
+  hasBlockingPreflightError(): boolean {
+    return this.preflightChecks.some(check => check.status === 'error');
+  }
+
+  /**
+   * 检查环境预检是否已完成（所有检查都不是 pending 状态）
+   */
+  isPreflightComplete(): boolean {
+    return this.preflightChecks.length > 0 && 
+           this.preflightChecks.every(check => check.status !== 'pending');
+  }
+
   private summarizeComponentStatus(components: any): string {
     if (!components) {
       return '';
@@ -1016,10 +1032,12 @@ export class LogCollectorInstallComponent implements OnInit, AfterViewInit, OnDe
 
     switch (this.currentStep) {
       case 0:
+        // 环境检查步骤：必须完成检查且无阻塞性错误才能继续
+        const canProceedFromPrecheck = this.isPreflightComplete() && !this.hasBlockingPreflightError();
         actions.push({
           text: '下一步：配置参数',
           type: 'primary',
-          disabled: this.checkingEnvironment,
+          disabled: this.checkingEnvironment || !canProceedFromPrecheck,
           handler: () => this.nextStep()
         });
         break;

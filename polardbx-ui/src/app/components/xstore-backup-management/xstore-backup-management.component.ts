@@ -27,6 +27,7 @@ import { NzCollapseModule } from 'ng-zorro-antd/collapse';
 import { NzEmptyModule } from 'ng-zorro-antd/empty';
 import { NzDrawerModule } from 'ng-zorro-antd/drawer';
 import { NzDescriptionsModule } from 'ng-zorro-antd/descriptions';
+import { NzStatisticModule } from 'ng-zorro-antd/statistic';
 import { ApiService } from '../../services/api.service';
 import { LoadingService, LoadingKeys } from '../../services/loading.service';
 import { XStoreBackup, XStoreBackupWithStatus, CreateXStoreBackupRequest } from '../../models/xstore-backup.model';
@@ -77,6 +78,7 @@ import { BackupType } from '../../utils/backup-progress-strategies';
     NzEmptyModule,
     NzDrawerModule,
     NzDescriptionsModule,
+    NzStatisticModule,
     BackupProgressIndicatorComponent,
   ],
   template: `
@@ -93,6 +95,62 @@ import { BackupType } from '../../utils/backup-progress-strategies';
       </div>
 
       <div class="page-content">
+        <!-- 统计概览 -->
+        <div class="stats-section">
+          <nz-card class="overview-card" [nzBodyStyle]="{ padding: '16px' }" nzBordered="false">
+            <div nz-row [nzGutter]="16">
+              <div nz-col [nzSpan]="6">
+                <nz-card class="stat-card">
+                  <nz-statistic
+                    nzTitle="总备份数"
+                    [nzValue]="backups.length"
+                    [nzValueStyle]="{ color: '#1890ff' }">
+                    <ng-template #nzPrefix>
+                      <i nz-icon nzType="hdd"></i>
+                    </ng-template>
+                  </nz-statistic>
+                </nz-card>
+              </div>
+              <div nz-col [nzSpan]="6">
+                <nz-card class="stat-card">
+                  <nz-statistic
+                    nzTitle="运行中"
+                    [nzValue]="getRunningBackupsCount()"
+                    [nzValueStyle]="{ color: '#52c41a' }">
+                    <ng-template #nzPrefix>
+                      <i nz-icon nzType="sync" nzSpin></i>
+                    </ng-template>
+                  </nz-statistic>
+                </nz-card>
+              </div>
+              <div nz-col [nzSpan]="6">
+                <nz-card class="stat-card">
+                  <nz-statistic
+                    nzTitle="已完成"
+                    [nzValue]="getCompletedBackupsCount()"
+                    [nzValueStyle]="{ color: '#1890ff' }">
+                    <ng-template #nzPrefix>
+                      <i nz-icon nzType="check-circle"></i>
+                    </ng-template>
+                  </nz-statistic>
+                </nz-card>
+              </div>
+              <div nz-col [nzSpan]="6">
+                <nz-card class="stat-card">
+                  <nz-statistic
+                    nzTitle="日志备份配置"
+                    [nzValue]="binlogBackups.length"
+                    [nzValueStyle]="{ color: '#722ed1' }">
+                    <ng-template #nzPrefix>
+                      <i nz-icon nzType="file-text"></i>
+                    </ng-template>
+                  </nz-statistic>
+                </nz-card>
+              </div>
+            </div>
+          </nz-card>
+        </div>
+
         <nz-tabset class="main-tabs" [nzTabPosition]="'top'" [(nzSelectedIndex)]="selectedTab">
           <nz-tab nzTitle="存储备份任务">
               <ng-template nz-tab>
@@ -1067,6 +1125,23 @@ import { BackupType } from '../../utils/backup-progress-strategies';
       max-width: none;
       margin: 0;
     }
+
+    .stats-section {
+      margin-bottom: 16px;
+    }
+
+    .overview-card {
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+      border: 1px solid #e0e0e0;
+    }
+
+    .stat-card {
+      text-align: center;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
     
     .main-tabs {
       background: #fff;
@@ -1080,8 +1155,8 @@ import { BackupType } from '../../utils/backup-progress-strategies';
     }
     
     .list-card {
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      border: none;
+      box-shadow: none;
     }
     
     .extra-actions {
@@ -2004,6 +2079,15 @@ export class XStoreBackupManagementComponent implements OnInit, OnDestroy {
   formatDate(dateString?: string): string {
     if (!dateString) return '-';
     return new Date(dateString).toLocaleString('zh-CN');
+  }
+
+  // 统计方法
+  getRunningBackupsCount(): number {
+    return this.backups.filter(b => isBackupRunning(b.status?.phase)).length;
+  }
+
+  getCompletedBackupsCount(): number {
+    return this.backups.filter(b => isBackupCompletedStatus(b.status?.phase)).length;
   }
 
   getFieldError(formGroup: FormGroup, fieldName: string): string {

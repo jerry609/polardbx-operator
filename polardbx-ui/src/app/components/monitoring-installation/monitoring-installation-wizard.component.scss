@@ -341,14 +341,19 @@
 .progress-summary {
   margin-bottom: 16px;
 
+  ::ng-deep .ant-card-body {
+    padding: 16px;
+  }
+
   .summary-head {
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-bottom: 12px;
+    margin-bottom: 16px;
 
     .session-id {
       color: rgba(0, 0, 0, 0.55);
+      font-size: 13px;
     }
   }
 
@@ -356,11 +361,18 @@
     display: flex;
     align-items: center;
     gap: 16px;
+    flex-wrap: wrap;
+
+    ::ng-deep .ant-progress {
+      flex: 1;
+      min-width: 200px;
+    }
 
     .summary-actions {
       display: flex;
       gap: 8px;
       align-items: center;
+      flex-shrink: 0;
     }
   }
 
@@ -570,16 +582,22 @@
 
 .error-section {
   .error-card {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
+    border-radius: 12px;
+    
+    ::ng-deep .ant-card-body {
+      padding: 16px;
+    }
   }
 
   .error-card-header {
     display: flex;
-    justify-content: space-between;
+    flex-wrap: wrap;
     align-items: center;
+    justify-content: space-between;
     gap: 12px;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #f0f0f0;
 
     h3 {
       display: flex;
@@ -587,6 +605,33 @@
       gap: 8px;
       margin: 0;
       color: #d4380d;
+      font-size: 16px;
+      flex: 1;
+      min-width: 200px;
+    }
+
+    button {
+      flex-shrink: 0;
+    }
+  }
+
+  // 修复 nz-list 的布局
+  ::ng-deep {
+    .ant-list-vertical .ant-list-item {
+      padding: 12px;
+      margin-bottom: 8px;
+      background: #fafafa;
+      border-radius: 8px;
+      border: 1px solid #f0f0f0;
+    }
+    
+    .ant-list-item-content {
+      display: block;
+      width: 100%;
+    }
+    
+    .ant-list-item-meta {
+      margin-bottom: 0;
     }
   }
 
@@ -595,6 +640,7 @@
     align-items: center;
     gap: 8px;
     flex-wrap: wrap;
+    margin-bottom: 8px;
 
     .error-component {
       font-weight: 600;
@@ -609,12 +655,13 @@
   }
 
   .error-message {
-    margin: 8px 0 0;
+    margin: 0 0 8px;
     color: rgba(0, 0, 0, 0.75);
+    line-height: 1.5;
   }
 
   .error-meta {
-    margin-top: 6px;
+    margin-bottom: 8px;
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
@@ -623,9 +670,11 @@
   }
 
   .error-actions {
-    margin-top: 8px;
     display: flex;
-    justify-content: flex-end;
+    align-items: center;
+    gap: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed #e8e8e8;
   }
 }
 
@@ -633,34 +682,46 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  padding: 4px;
 
   .diagnostics-error-switcher {
     h4 {
-      margin: 0 0 8px;
+      margin: 0 0 12px;
       font-size: 14px;
-      color: rgba(0, 0, 0, 0.75);
+      font-weight: 600;
+      color: rgba(0, 0, 0, 0.85);
     }
 
-    .ant-list-item {
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 8px;
-      border-radius: 6px;
+    ::ng-deep {
+      .ant-list-item {
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 8px;
+        margin-bottom: 4px;
+        transition: background 0.2s;
 
-      &.active,
-      &:hover {
-        background: #f5f5f5;
-      }
+        &.active {
+          background: #e6f7ff;
+          border: 1px solid #1890ff;
+        }
+        
+        &:hover:not(.active) {
+          background: #f5f5f5;
+        }
 
-      .error-index {
-        color: rgba(0, 0, 0, 0.45);
-        font-size: 12px;
-      }
+        .error-index {
+          color: rgba(0, 0, 0, 0.45);
+          font-size: 12px;
+          font-weight: 500;
+        }
 
-      .error-title {
-        flex: 1;
+        .error-title {
+          flex: 1;
+          font-weight: 500;
+        }
       }
     }
   }
@@ -669,7 +730,7 @@
     background: #fafafa;
     border: 1px solid #f0f0f0;
     border-radius: 12px;
-    padding: 12px;
+    padding: 16px;
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -677,13 +738,15 @@
     h4 {
       margin: 0;
       font-size: 14px;
-      color: rgba(0, 0, 0, 0.75);
+      font-weight: 600;
+      color: rgba(0, 0, 0, 0.85);
     }
 
     .error-summary {
       margin: 0;
-      color: rgba(0, 0, 0, 0.85);
+      color: rgba(0, 0, 0, 0.75);
       font-weight: 500;
+      line-height: 1.5;
     }
   }
 
@@ -691,13 +754,17 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
+    padding: 12px;
+    background: #f6ffed;
+    border: 1px solid #b7eb8f;
+    border-radius: 8px;
 
     h4 {
       margin: 0;
       display: flex;
       align-items: center;
       gap: 8px;
-      font-size: 16px;
+      font-size: 15px;
       color: rgba(0, 0, 0, 0.85);
     }
 
@@ -713,13 +780,16 @@
     margin: 0;
     padding-left: 20px;
     display: grid;
-    gap: 6px;
+    gap: 8px;
     color: rgba(0, 0, 0, 0.75);
+    line-height: 1.6;
   }
 
   .empty-tip {
     color: rgba(0, 0, 0, 0.45);
     font-size: 13px;
+    text-align: center;
+    padding: 20px;
   }
 
   .autofix-list {
@@ -734,6 +804,7 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
+    background: #fff;
 
     .autofix-header {
       display: flex;
@@ -743,6 +814,7 @@
       h5 {
         margin: 0;
         font-size: 15px;
+        font-weight: 600;
         color: rgba(0, 0, 0, 0.85);
       }
     }
@@ -756,6 +828,7 @@
       display: flex;
       align-items: center;
       gap: 8px;
+      padding-top: 8px;
     }
 
     .autofix-message {
@@ -766,13 +839,26 @@
   }
 
   .diagnosis-json {
-    max-height: 240px;
+    max-height: 300px;
     overflow: auto;
-    background: #151515;
-    color: #f6f8fa;
-    padding: 12px;
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 16px;
     border-radius: 8px;
     font-size: 12px;
+    font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+    line-height: 1.5;
+  }
+
+  // 修复 tabs 样式
+  ::ng-deep {
+    .ant-tabs-nav {
+      margin-bottom: 16px;
+    }
+    
+    .ant-tabs-content {
+      padding: 0;
+    }
   }
 }
 

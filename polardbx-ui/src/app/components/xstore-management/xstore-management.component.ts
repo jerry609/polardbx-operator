@@ -18,6 +18,9 @@ import { NzModalService, NzModalModule } from 'ng-zorro-antd/modal';
 import { NzToolTipModule } from 'ng-zorro-antd/tooltip';
 import { NzDividerModule } from 'ng-zorro-antd/divider';
 import { NzPopconfirmModule } from 'ng-zorro-antd/popconfirm';
+import { NzDrawerModule } from 'ng-zorro-antd/drawer';
+import { NzDescriptionsModule } from 'ng-zorro-antd/descriptions';
+import { NzCollapseModule } from 'ng-zorro-antd/collapse';
 import { ApiService } from '../../services/api.service';
 import { LoadingService, LoadingKeys } from '../../services/loading.service';
 import { XStore } from '../../models/xstore.model';
@@ -43,6 +46,9 @@ import { XStore } from '../../models/xstore.model';
     NzToolTipModule,
     NzDividerModule,
     NzPopconfirmModule,
+    NzDrawerModule,
+    NzDescriptionsModule,
+    NzCollapseModule,
     ReactiveFormsModule
   ],
   template: `
@@ -272,6 +278,107 @@ import { XStore } from '../../models/xstore.model';
           </nz-tab>
         </nz-tabset>
       </div>
+
+      <!-- XStore 详情抽屉 -->
+      <nz-drawer
+        [nzVisible]="detailsDrawerVisible"
+        nzPlacement="right"
+        nzTitle="XStore 详情"
+        [nzWidth]="640"
+        (nzOnClose)="closeDetailsDrawer()">
+        <div *nzDrawerContent>
+          <nz-spin [nzSpinning]="detailsLoading" nzTip="加载中...">
+            <ng-container *ngIf="selectedXStore as xstore; else noXStoreSelected">
+              <nz-descriptions nzBordered [nzColumn]="1" nzSize="small">
+                <nz-descriptions-item nzTitle="名称">
+                  {{ xstore.metadata.name }}
+                </nz-descriptions-item>
+                <nz-descriptions-item nzTitle="命名空间">
+                  <nz-tag nzColor="blue">{{ xstore.metadata.namespace }}</nz-tag>
+                </nz-descriptions-item>
+                <nz-descriptions-item nzTitle="UID">
+                  <span style="font-family: monospace; font-size: 12px;">{{ xstore.metadata.uid }}</span>
+                </nz-descriptions-item>
+                <nz-descriptions-item nzTitle="状态">
+                  <nz-tag [nzColor]="getStatusColor(xstore.status?.phase)">
+                    {{ getStatusLabel(xstore.status?.phase) }}
+                  </nz-tag>
+                </nz-descriptions-item>
+                <nz-descriptions-item nzTitle="副本状态">
+                  {{ getReplicaDisplay(xstore) }}
+                </nz-descriptions-item>
+                <nz-descriptions-item nzTitle="创建时间">
+                  {{ formatDate(xstore.metadata.creationTimestamp) }}
+                </nz-descriptions-item>
+              </nz-descriptions>
+
+              <nz-divider nzText="规格配置"></nz-divider>
+              
+              <nz-descriptions nzBordered [nzColumn]="2" nzSize="small">
+                <nz-descriptions-item nzTitle="引擎">
+                  {{ xstore.spec?.engine || 'galaxy' }}
+                </nz-descriptions-item>
+                <nz-descriptions-item nzTitle="节点数">
+                  {{ xstore.spec?.topology?.nodeCount || '-' }}
+                </nz-descriptions-item>
+                <nz-descriptions-item nzTitle="CPU (limits)">
+                  {{ getResourceLimit(xstore, 'cpu') }}
+                </nz-descriptions-item>
+                <nz-descriptions-item nzTitle="内存 (limits)">
+                  {{ getResourceLimit(xstore, 'memory') }}
+                </nz-descriptions-item>
+                <nz-descriptions-item nzTitle="存储大小">
+                  {{ getStorageSize(xstore) }}
+                </nz-descriptions-item>
+                <nz-descriptions-item nzTitle="存储类">
+                  {{ getStorageClass(xstore) }}
+                </nz-descriptions-item>
+              </nz-descriptions>
+
+              <nz-divider nzText="节点拓扑"></nz-divider>
+
+              <nz-collapse>
+                <nz-collapse-panel 
+                  *ngFor="let nodeSet of xstore.spec?.topology?.nodeSets || []; let i = index"
+                  [nzHeader]="'节点集 ' + (i + 1) + ' (' + nodeSet.role + ')'">
+                  <nz-descriptions nzBordered [nzColumn]="2" nzSize="small">
+                    <nz-descriptions-item nzTitle="角色">
+                      <nz-tag [nzColor]="getNodeRoleColor(nodeSet.role)">{{ nodeSet.role }}</nz-tag>
+                    </nz-descriptions-item>
+                    <nz-descriptions-item nzTitle="副本数">
+                      {{ nodeSet.replicas }}
+                    </nz-descriptions-item>
+                  </nz-descriptions>
+                </nz-collapse-panel>
+              </nz-collapse>
+
+              <div *ngIf="!xstore.spec?.topology?.nodeSets?.length" style="text-align: center; padding: 16px; color: rgba(0,0,0,0.45);">
+                暂无节点集信息
+              </div>
+
+              <nz-divider nzText="标签"></nz-divider>
+              
+              <div class="labels-container">
+                <ng-container *ngIf="xstore.metadata.labels as labels">
+                  <nz-tag *ngFor="let label of getLabelsArray(labels)" nzColor="default">
+                    {{ label.key }}: {{ label.value }}
+                  </nz-tag>
+                </ng-container>
+                <span *ngIf="!xstore.metadata.labels" style="color: rgba(0,0,0,0.45);">无标签</span>
+              </div>
+
+              <div class="drawer-actions">
+                <button nz-button nzType="default" (click)="closeDetailsDrawer()">
+                  关闭
+                </button>
+              </div>
+            </ng-container>
+            <ng-template #noXStoreSelected>
+              <nz-empty nzNotFoundContent="请选择一个存储节点查看详情"></nz-empty>
+            </ng-template>
+          </nz-spin>
+        </div>
+      </nz-drawer>
     </div>
   `,
   styles: [`
@@ -517,6 +624,23 @@ import { XStore } from '../../models/xstore.model';
     .ant-tabs-card > .ant-tabs-content > .ant-tabs-tabpane {
       background: transparent;
     }
+
+    /* 抽屉样式 */
+    .labels-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 8px 0;
+    }
+
+    .drawer-actions {
+      margin-top: 24px;
+      padding-top: 16px;
+      border-top: 1px solid #f0f0f0;
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
   `]
 })
 export class XStoreManagementComponent implements OnInit {
@@ -524,6 +648,11 @@ export class XStoreManagementComponent implements OnInit {
   loadingKeys = LoadingKeys;
   xstores: XStore[] = [];
   createForm!: FormGroup;
+  
+  // 详情抽屉相关
+  detailsDrawerVisible = false;
+  detailsLoading = false;
+  selectedXStore: XStore | null = null;
 
   private message = inject(NzMessageService);
   private modal = inject(NzModalService);
@@ -690,8 +819,81 @@ export class XStoreManagementComponent implements OnInit {
   }
 
   viewDetails(xstore: XStore): void {
-    // 实现查看详情逻辑
-    console.log('View details for:', xstore);
-    this.message.info('功能开发中...');
+    this.selectedXStore = xstore;
+    this.detailsDrawerVisible = true;
+    this.detailsLoading = true;
+    
+    // 尝试获取最新的详情
+    this.apiService.getXStore(xstore.metadata.namespace || 'default', xstore.metadata.name).subscribe({
+      next: (detail) => {
+        this.selectedXStore = detail;
+        this.detailsLoading = false;
+      },
+      error: (err) => {
+        console.warn('Failed to load XStore detail, using cached data:', err);
+        this.detailsLoading = false;
+      }
+    });
+  }
+
+  closeDetailsDrawer(): void {
+    this.detailsDrawerVisible = false;
+    this.selectedXStore = null;
+  }
+
+  getStorageSize(xstore: XStore): string {
+    // 从 nodeSets 中获取存储配置
+    const nodeSets = xstore.spec?.topology?.nodeSets;
+    if (nodeSets && nodeSets.length > 0) {
+      const volumes = nodeSets[0]?.template?.spec?.volumes;
+      if (volumes && volumes.length > 0) {
+        return volumes[0].size || '-';
+      }
+    }
+    return '-';
+  }
+
+  getStorageClass(xstore: XStore): string {
+    // 从 nodeSets 中获取存储类
+    const nodeSets = xstore.spec?.topology?.nodeSets;
+    if (nodeSets && nodeSets.length > 0) {
+      const volumes = nodeSets[0]?.template?.spec?.volumes;
+      if (volumes && volumes.length > 0 && volumes[0].storageClass) {
+        return volumes[0].storageClass;
+      }
+    }
+    return '(默认)';
+  }
+
+  getResourceLimit(xstore: XStore, resource: 'cpu' | 'memory'): string {
+    const nodeSets = xstore.spec?.topology?.nodeSets;
+    if (nodeSets && nodeSets.length > 0) {
+      const limits = nodeSets[0]?.template?.spec?.resources?.limits;
+      if (limits && limits[resource]) {
+        return limits[resource];
+      }
+    }
+    return '-';
+  }
+
+  getNodeRoleColor(role?: string): string {
+    switch (role?.toLowerCase()) {
+      case 'candidate':
+      case 'leader':
+        return 'blue';
+      case 'voter':
+        return 'green';
+      case 'learner':
+        return 'orange';
+      case 'logger':
+        return 'purple';
+      default:
+        return 'default';
+    }
+  }
+
+  getLabelsArray(labels: Record<string, string>): Array<{key: string, value: string}> {
+    if (!labels) return [];
+    return Object.entries(labels).map(([key, value]) => ({ key, value }));
   }
 }

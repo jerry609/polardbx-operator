@@ -95,7 +95,8 @@ import { NzDrawerModule } from 'ng-zorro-antd/drawer';
       <div class="page-content">
         <!-- 统计概览 -->
         <div class="stats-section">
-          <div nz-row [nzGutter]="16">
+          <nz-card class="overview-card" [nzBodyStyle]="{ padding: '16px' }" nzBordered="false">
+            <div nz-row [nzGutter]="16">
             <div nz-col [nzSpan]="6">
               <nz-card class="stat-card">
                 <nz-statistic 
@@ -144,7 +145,8 @@ import { NzDrawerModule } from 'ng-zorro-antd/drawer';
                 </nz-statistic>
               </nz-card>
             </div>
-          </div>
+            </div>
+          </nz-card>
         </div>
 
         <nz-tabset class="main-tabs" [nzTabPosition]="'top'" [nzSelectedIndex]="selectedTabIndex" (nzSelectedIndexChange)="onTabIndexChange($event)">
@@ -639,6 +641,13 @@ import { NzDrawerModule } from 'ng-zorro-antd/drawer';
     
     .stats-section {
       margin-bottom: 16px;
+    }
+
+    .overview-card {
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+      border: 1px solid #e0e0e0;
     }
     
     .stat-card {
