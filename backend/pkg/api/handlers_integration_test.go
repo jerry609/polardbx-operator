@@ -25,7 +25,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	crfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	monitor "polardbx-ui-backend/pkg/api/monitor"
+	api_monitoring "polardbx-ui-backend/pkg/api/monitoring"
 	parameters "polardbx-ui-backend/pkg/api/parameters"
 	restore "polardbx-ui-backend/pkg/api/restore"
 	"polardbx-ui-backend/pkg/k8s"
@@ -98,11 +98,11 @@ func setupIntegrationTestRouter(k8sClientProvider k8s.ClientProvider) *gin.Engin
 		v1.DELETE("/xstores/:namespace/:name", domain_xs.Delete)
 
 		// Monitor routes
-		v1.GET("/monitors", monitor.List)
-		v1.POST("/monitors", monitor.Create)
-		v1.GET("/monitors/:namespace/:name", monitor.Get)
-		v1.PUT("/monitors/:namespace/:name", monitor.Update)
-		v1.DELETE("/monitors/:namespace/:name", monitor.Delete)
+		v1.GET("/monitors", api_monitoring.List)
+		v1.POST("/monitors", api_monitoring.Create)
+		v1.GET("/monitors/:namespace/:name", api_monitoring.Get)
+		v1.PUT("/monitors/:namespace/:name", api_monitoring.Update)
+		v1.DELETE("/monitors/:namespace/:name", api_monitoring.Delete)
 
 		// Parameter routes
 		v1.GET("/parameters", parameters.List)
@@ -226,11 +226,11 @@ func (suite *IntegrationTestSuite) TestAPICRUDOperations() {
 	assert.NotNil(suite.T(), domain_xs.Delete)
 
 	// Test Monitor handlers
-	assert.NotNil(suite.T(), monitor.List)
-	assert.NotNil(suite.T(), monitor.Create)
-	assert.NotNil(suite.T(), monitor.Get)
-	assert.NotNil(suite.T(), monitor.Update)
-	assert.NotNil(suite.T(), monitor.Delete)
+	assert.NotNil(suite.T(), api_monitoring.List)
+	assert.NotNil(suite.T(), api_monitoring.Create)
+	assert.NotNil(suite.T(), api_monitoring.Get)
+	assert.NotNil(suite.T(), api_monitoring.Update)
+	assert.NotNil(suite.T(), api_monitoring.Delete)
 
 	// Test Parameter handlers
 	assert.NotNil(suite.T(), parameters.List)
@@ -413,11 +413,11 @@ func TestXStoreHandlerExists(t *testing.T) {
 
 func TestMonitorHandlerExists(t *testing.T) {
 	// Test that monitor handlers are properly defined
-	assert.NotNil(t, monitor.List)
-	assert.NotNil(t, monitor.Create)
-	assert.NotNil(t, monitor.Get)
-	assert.NotNil(t, monitor.Update)
-	assert.NotNil(t, monitor.Delete)
+	assert.NotNil(t, api_monitoring.List)
+	assert.NotNil(t, api_monitoring.Create)
+	assert.NotNil(t, api_monitoring.Get)
+	assert.NotNil(t, api_monitoring.Update)
+	assert.NotNil(t, api_monitoring.Delete)
 }
 
 func TestAllCRDHandlersExist(t *testing.T) {
@@ -426,7 +426,7 @@ func TestAllCRDHandlersExist(t *testing.T) {
 		// XStore
 		domain_xs.List, domain_xs.Create, domain_xs.Get, domain_xs.Update, domain_xs.Delete,
 		// Monitor
-		monitor.List, monitor.Create, monitor.Get, monitor.Update, monitor.Delete,
+		api_monitoring.List, api_monitoring.Create, api_monitoring.Get, api_monitoring.Update, api_monitoring.Delete,
 		// Parameters
 		parameters.List, parameters.Create, parameters.Get, parameters.Update, parameters.Delete,
 		// BackupBinlog
