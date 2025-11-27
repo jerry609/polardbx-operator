@@ -19,7 +19,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	api_systemtask "polardbx-ui-backend/pkg/api/systemtask"
+	domain_st "polardbx-ui-backend/pkg/api/domain/systemtasks"
 )
 
 func setupSystemTaskTest() (*gin.Engine, client.Client) {
@@ -339,10 +339,10 @@ func TestSystemTaskBusinessLogic(t *testing.T) {
 func RegisterSystemTaskRoutes(router *gin.Engine) {
 	api := router.Group("/api/v1")
 	{
-		api.GET("/system-tasks", api_systemtask.List)
-		api.POST("/system-tasks", api_systemtask.Create)
-		api.GET("/system-tasks/:namespace/:name", api_systemtask.Get)
-		api.PUT("/system-tasks/:namespace/:name", api_systemtask.Update)
-		api.DELETE("/system-tasks/:namespace/:name", api_systemtask.Delete)
+		api.GET("/system-tasks", domain_st.List)
+		api.POST("/system-tasks", domain_st.Create)
+		api.GET("/system-tasks/:namespace/:name", domain_st.Get)
+		api.PUT("/system-tasks/:namespace/:name", domain_st.Update)
+		api.DELETE("/system-tasks/:namespace/:name", domain_st.Delete)
 	}
 }
