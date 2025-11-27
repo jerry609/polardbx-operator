@@ -1,245 +1,375 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MatCardModule } from '@angular/material/card';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatTableModule } from '@angular/material/table';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { Router } from '@angular/router';
-import { MatChipsModule } from '@angular/material/chips';
+
+import { NzCardModule } from 'ng-zorro-antd/card';
+import { NzButtonModule } from 'ng-zorro-antd/button';
+import { NzIconModule } from 'ng-zorro-antd/icon';
+import { NzTableModule } from 'ng-zorro-antd/table';
+import { NzInputModule } from 'ng-zorro-antd/input';
+import { NzSelectModule } from 'ng-zorro-antd/select';
+import { NzTagModule } from 'ng-zorro-antd/tag';
+import { NzToolTipModule } from 'ng-zorro-antd/tooltip';
+import { NzModalModule, NzModalService } from 'ng-zorro-antd/modal';
+import { NzMessageModule, NzMessageService } from 'ng-zorro-antd/message';
+import { NzSpinModule } from 'ng-zorro-antd/spin';
+import { NzStatisticModule } from 'ng-zorro-antd/statistic';
+import { NzGridModule } from 'ng-zorro-antd/grid';
+import { NzEmptyModule } from 'ng-zorro-antd/empty';
+import { NzDividerModule } from 'ng-zorro-antd/divider';
+import { NzBadgeModule } from 'ng-zorro-antd/badge';
 
 import { ApiService } from '../../services/api.service';
+import { NamespaceService } from '../../services/namespace.service';
 import { Pod } from '../../models/pod.model';
 import { PodRoleDetector, PodRoleInfo } from '../../utils/pod-role-detector';
+import { Subject, takeUntil, interval } from 'rxjs';
+
+interface NodeItem {
+  name: string;
+  role: string;
+  roleInfo: PodRoleInfo;
+  status: string;
+  ip: string;
+  nodeName: string;
+  restarts: number;
+  age: string;
+  pod: Pod;
+}
+
+interface RoleSummary {
+  role: string;
+  ready: number;
+  total: number;
+  category: string;
+  color: string;
+}
 
 @Component({
   selector: 'app-nodes',
   standalone: true,
   imports: [
-    CommonModule, FormsModule,
-    MatCardModule, MatButtonModule, MatIconModule, MatTableModule,
-    MatFormFieldModule, MatInputModule, MatSelectModule, MatTooltipModule,
-    MatDialogModule, MatChipsModule
+    CommonModule,
+    FormsModule,
+    NzCardModule,
+    NzButtonModule,
+    NzIconModule,
+    NzTableModule,
+    NzInputModule,
+    NzSelectModule,
+    NzTagModule,
+    NzToolTipModule,
+    NzModalModule,
+    NzMessageModule,
+    NzSpinModule,
+    NzStatisticModule,
+    NzGridModule,
+    NzEmptyModule,
+    NzDividerModule,
+    NzBadgeModule
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-  <div class="page">
-    <div class="header">
-      <h2>节点</h2>
-      <div class="actions">
-        <mat-form-field appearance="outline" class="w-160">
-          <mat-label>命名空间</mat-label>
-          <input matInput [(ngModel)]="namespace" placeholder="default"/>
-        </mat-form-field>
-        <mat-form-field appearance="outline" class="w-200">
-          <mat-label>搜索名称/IP</mat-label>
-          <input matInput [(ngModel)]="keyword"/>
-        </mat-form-field>
-        <mat-form-field appearance="outline" class="w-160">
-          <mat-label>角色</mat-label>
-          <mat-select [(ngModel)]="roleFilter">
-            <mat-option value="">全部</mat-option>
-            <mat-option value="CN">CN (计算节点)</mat-option>
-            <mat-option value="DN">DN (数据节点)</mat-option>
-            <mat-option value="GMS">GMS (元服务)</mat-option>
-            <mat-option value="CDC">CDC (数据捕获)</mat-option>
-            <mat-option value="MinIO">MinIO (存储)</mat-option>
-            <mat-option value="SFTP">SFTP (文件服务)</mat-option>
-            <mat-option value="HPFS">HPFS (文件服务)</mat-option>
-            <mat-option value="Unknown">未知</mat-option>
-          </mat-select>
-        </mat-form-field>
-        <button mat-stroked-button (click)="load()"><mat-icon>refresh</mat-icon> 刷新</button>
+    <div class="nodes-page">
+      <div class="page-header">
+        <div class="header-content">
+          <h1 class="page-title">
+            <i nz-icon nzType="apartment" class="page-icon"></i>
+            节点管理
+          </h1>
+          <p class="subtitle">查看和管理 PolarDB-X 集群中的所有 Pod 节点</p>
+        </div>
+        <div class="header-actions">
+          <button nz-button nzType="default" (click)="load()" [nzLoading]="loading">
+            <i nz-icon nzType="reload"></i>
+            刷新
+          </button>
+        </div>
       </div>
-    </div>
 
-    <div class="summary">
-      <mat-card class="sum-card" *ngFor="let s of summary">
-        <div class="title">{{ s.role }}</div>
-        <div class="num">{{ s.ready }}/{{ s.total }}</div>
-      </mat-card>
-    </div>
+      <nz-card class="stats-card" [nzBordered]="false">
+        <div nz-row [nzGutter]="16">
+          <div nz-col [nzSpan]="6" *ngFor="let s of summary | slice:0:4">
+            <nz-card class="stat-item" [nzBordered]="true" [nzBodyStyle]="{ padding: '16px' }">
+              <nz-statistic [nzValue]="s.ready" [nzTitle]="s.role" [nzSuffix]="'/ ' + s.total" [nzValueStyle]="{ color: getStatColor(s) }"></nz-statistic>
+            </nz-card>
+          </div>
+        </div>
+        <div nz-row [nzGutter]="16" style="margin-top: 16px;" *ngIf="summary.length > 4">
+          <div nz-col [nzSpan]="6" *ngFor="let s of summary | slice:4:8">
+            <nz-card class="stat-item" [nzBordered]="true" [nzBodyStyle]="{ padding: '16px' }">
+              <nz-statistic [nzValue]="s.ready" [nzTitle]="s.role" [nzSuffix]="'/ ' + s.total" [nzValueStyle]="{ color: getStatColor(s) }"></nz-statistic>
+            </nz-card>
+          </div>
+        </div>
+      </nz-card>
 
-    <div class="table">
-      <table mat-table [dataSource]="filtered" class="mat-elevation-z1">
-        <ng-container matColumnDef="name">
-          <th mat-header-cell *matHeaderCellDef>名称</th>
-          <td mat-cell *matCellDef="let n">{{ n.name }}</td>
-        </ng-container>
-        <ng-container matColumnDef="role">
-          <th mat-header-cell *matHeaderCellDef>角色</th>
-          <td mat-cell *matCellDef="let n"><mat-chip [color]="roleColor(n.role)">{{ n.role }}</mat-chip></td>
-        </ng-container>
-        <ng-container matColumnDef="status">
-          <th mat-header-cell *matHeaderCellDef>状态</th>
-          <td mat-cell *matCellDef="let n"><mat-chip [color]="statusColor(n.status)">{{ n.status }}</mat-chip></td>
-        </ng-container>
-        <ng-container matColumnDef="ip">
-          <th mat-header-cell *matHeaderCellDef>IP</th>
-          <td mat-cell *matCellDef="let n">{{ n.ip }}</td>
-        </ng-container>
-        <ng-container matColumnDef="actions">
-          <th mat-header-cell *matHeaderCellDef>操作</th>
-          <td mat-cell *matCellDef="let n">
-            <button mat-icon-button matTooltip="查看详情" (click)="openDetail(n)"><mat-icon>info</mat-icon></button>
-            <button mat-icon-button matTooltip="终端" (click)="openTerminal(n)"><mat-icon>computer</mat-icon></button>
-            <button mat-icon-button matTooltip="执行命令" (click)="openExec(n)"><mat-icon>play_arrow</mat-icon></button>
-          </td>
-        </ng-container>
-        <tr mat-header-row *matHeaderRowDef="cols"></tr>
-        <tr mat-row *matRowDef="let row; columns: cols"></tr>
-      </table>
+      <nz-card class="filter-card" [nzBordered]="false">
+        <div class="filter-row">
+          <div class="filter-item">
+            <label>命名空间</label>
+            <nz-select [(ngModel)]="namespace" (ngModelChange)="onNamespaceChange($event)" nzShowSearch nzAllowClear [nzPlaceHolder]="'选择命名空间'" style="width: 200px;">
+              <nz-option *ngFor="let ns of namespaceOptions" [nzValue]="ns" [nzLabel]="ns"></nz-option>
+            </nz-select>
+          </div>
+          <div class="filter-item">
+            <label>角色筛选</label>
+            <nz-select [(ngModel)]="roleFilter" (ngModelChange)="applyFilter()" nzAllowClear [nzPlaceHolder]="'全部角色'" style="width: 180px;">
+              <nz-option nzValue="" nzLabel="全部角色"></nz-option>
+              <nz-option nzValue="CN" nzLabel="CN (计算节点)"></nz-option>
+              <nz-option nzValue="DN" nzLabel="DN (数据节点)"></nz-option>
+              <nz-option nzValue="GMS" nzLabel="GMS (元服务)"></nz-option>
+              <nz-option nzValue="CDC" nzLabel="CDC (数据捕获)"></nz-option>
+              <nz-option nzValue="MinIO" nzLabel="MinIO (存储)"></nz-option>
+              <nz-option nzValue="Unknown" nzLabel="未知"></nz-option>
+            </nz-select>
+          </div>
+          <div class="filter-item">
+            <label>搜索</label>
+            <nz-input-group [nzPrefix]="prefixIcon" style="width: 280px;">
+              <input nz-input [(ngModel)]="keyword" (ngModelChange)="applyFilter()" placeholder="搜索名称或 IP..." />
+            </nz-input-group>
+            <ng-template #prefixIcon><i nz-icon nzType="search"></i></ng-template>
+          </div>
+        </div>
+      </nz-card>
+
+      <nz-card class="table-card" [nzBordered]="false">
+        <nz-spin [nzSpinning]="loading">
+          <nz-table #nodeTable [nzData]="filtered" [nzPageSize]="20" [nzShowSizeChanger]="true" [nzPageSizeOptions]="[10, 20, 50, 100]" nzSize="middle" [nzScroll]="{ x: '1200px' }">
+            <thead>
+              <tr>
+                <th nzWidth="280px">名称</th>
+                <th nzWidth="100px">角色</th>
+                <th nzWidth="100px">状态</th>
+                <th nzWidth="140px">IP</th>
+                <th nzWidth="180px">节点</th>
+                <th nzWidth="80px">重启</th>
+                <th nzWidth="100px">运行时间</th>
+                <th nzWidth="160px" nzRight>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let node of nodeTable.data">
+                <td><a (click)="openDetail(node)" class="node-name">{{ node.name }}</a></td>
+                <td><nz-tag [nzColor]="getRoleColor(node.roleInfo)">{{ node.role }}</nz-tag></td>
+                <td><nz-badge [nzStatus]="getStatusBadge(node.status)" [nzText]="node.status"></nz-badge></td>
+                <td><code class="ip-code">{{ node.ip || '-' }}</code></td>
+                <td><span class="node-host" nz-tooltip [nzTooltipTitle]="node.nodeName">{{ node.nodeName | slice:0:24 }}{{ node.nodeName.length > 24 ? '...' : '' }}</span></td>
+                <td><span [class.restart-warning]="node.restarts > 0">{{ node.restarts }}</span></td>
+                <td>{{ node.age }}</td>
+                <td nzRight>
+                  <button nz-button nzType="link" nzSize="small" (click)="openDetail(node)" nz-tooltip nzTooltipTitle="查看详情"><i nz-icon nzType="eye"></i></button>
+                  <nz-divider nzType="vertical"></nz-divider>
+                  <button nz-button nzType="link" nzSize="small" (click)="openTerminal(node)" nz-tooltip nzTooltipTitle="终端"><i nz-icon nzType="code"></i></button>
+                  <nz-divider nzType="vertical"></nz-divider>
+                  <button nz-button nzType="link" nzSize="small" (click)="openExec(node)" nz-tooltip nzTooltipTitle="执行命令"><i nz-icon nzType="play-circle"></i></button>
+                </td>
+              </tr>
+            </tbody>
+          </nz-table>
+          <nz-empty *ngIf="!loading && filtered.length === 0" nzNotFoundContent="暂无节点数据"></nz-empty>
+        </nz-spin>
+      </nz-card>
     </div>
-  </div>
   `,
   styles: [`
-    .page { padding: 16px; }
-    .header { display:flex; align-items:center; justify-content: space-between; }
-    .actions { display:flex; gap:8px; align-items:center; }
-    .w-160 { width:160px; }
-    .w-200 { width:200px; }
-    .summary { display:grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 12px 0; }
-    .sum-card { padding: 12px; display:flex; justify-content: space-between; align-items: center; }
-    .sum-card .title { color:#666; }
-    .sum-card .num { font-size: 20px; font-weight: 600; }
-    .table { border: 1px solid var(--pd-border); border-radius: var(--pd-radius); overflow: hidden; }
+    .nodes-page { padding: 24px; background: #f0f2f5; min-height: 100vh; }
+    .page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
+    .page-title { font-size: 24px; font-weight: 600; color: rgba(0, 0, 0, 0.88); margin: 0; display: flex; align-items: center; gap: 12px; }
+    .page-icon { font-size: 28px; color: #1890ff; }
+    .subtitle { color: rgba(0, 0, 0, 0.45); font-size: 14px; margin: 8px 0 0 40px; }
+    .stats-card { margin-bottom: 24px; border-radius: 8px; }
+    .stat-item { text-align: center; border-radius: 8px; transition: box-shadow 0.3s; }
+    .stat-item:hover { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
+    .filter-card { margin-bottom: 24px; border-radius: 8px; }
+    .filter-row { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-end; }
+    .filter-item { display: flex; flex-direction: column; gap: 8px; }
+    .filter-item label { font-size: 13px; color: rgba(0, 0, 0, 0.65); font-weight: 500; }
+    .table-card { border-radius: 8px; }
+    .node-name { color: #1890ff; cursor: pointer; font-weight: 500; }
+    .node-name:hover { text-decoration: underline; }
+    .ip-code { font-family: monospace; font-size: 12px; background: #f5f5f5; padding: 2px 6px; border-radius: 4px; }
+    .node-host { font-size: 12px; color: rgba(0, 0, 0, 0.65); }
+    .restart-warning { color: #faad14; font-weight: 600; }
+    ::ng-deep .ant-table-thead > tr > th { background: #fafafa; font-weight: 600; }
+    ::ng-deep .ant-statistic-content { font-size: 24px; }
+    ::ng-deep .ant-statistic-content-suffix { font-size: 14px; color: rgba(0, 0, 0, 0.45); }
   `]
 })
-export class NodesComponent implements OnInit {
-  private api = inject(ApiService);
-  private dialog = inject(MatDialog);
-  private router = inject(Router);
+export class NodesComponent implements OnInit, OnDestroy {
+  private readonly api = inject(ApiService);
+  private readonly nsService = inject(NamespaceService);
+  private readonly modal = inject(NzModalService);
+  private readonly message = inject(NzMessageService);
+  private readonly router = inject(Router);
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly destroy$ = new Subject<void>();
 
   namespace = 'default';
+  namespaceOptions: string[] = [];
   keyword = '';
   roleFilter = '';
+  loading = false;
 
-  all: Array<{ name: string; role: string; roleInfo: PodRoleInfo; status: string; ip: string; pod: Pod }>=[];
-  filtered: typeof this.all = [];
-  summary: Array<{ role: string; ready: number; total: number; category: string }>=[];
-  cols = ['name','role','status','ip','actions'];
+  all: NodeItem[] = [];
+  filtered: NodeItem[] = [];
+  summary: RoleSummary[] = [];
 
   ngOnInit(): void {
+    this.nsService.namespaces$.pipe(takeUntil(this.destroy$)).subscribe(list => {
+      this.namespaceOptions = list || [];
+      this.cdr.markForCheck();
+    });
+    this.nsService.activeNamespace$.pipe(takeUntil(this.destroy$)).subscribe(ns => {
+      if (ns && ns !== this.namespace) {
+        this.namespace = ns;
+        this.load();
+      }
+    });
+    this.load();
+    interval(30000).pipe(takeUntil(this.destroy$)).subscribe(() => this.load());
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  onNamespaceChange(ns: string): void {
+    this.namespace = ns || 'default';
+    this.nsService.setActive(this.namespace);
     this.load();
   }
 
   load(): void {
-    // 改为按命名空间列出所有 Pod，避免 "*" 触发 400
+    this.loading = true;
+    this.cdr.markForCheck();
     this.api.listPods(this.namespace).subscribe({
       next: (pods: Pod[]) => {
-        const items: typeof this.all = [];
+        const items: NodeItem[] = [];
         const roleStats = new Map<string, { ready: number; total: number; category: string }>();
-        
         for (const p of pods) {
           const name = p.metadata?.name || '';
           const roleInfo = PodRoleDetector.detectRole(p);
           const phase = p.status?.phase || '未知';
           const ip = p.status?.podIP || '';
-          
-          items.push({ 
-            name, 
-            role: roleInfo.role, 
-            roleInfo,
-            status: phase, 
-            ip, 
-            pod: p 
-          });
-          
-          // 统计角色分布
+          const nodeName = p.spec?.nodeName || '';
+          const restarts = this.getRestartCount(p);
+          const age = this.calculateAge(p.metadata?.creationTimestamp);
+          items.push({ name, role: roleInfo.role, roleInfo, status: phase, ip, nodeName, restarts, age, pod: p });
           const key = roleInfo.role;
-          if (!roleStats.has(key)) {
-            roleStats.set(key, { 
-              ready: 0, 
-              total: 0, 
-              category: roleInfo.category 
-            });
-          }
+          if (!roleStats.has(key)) roleStats.set(key, { ready: 0, total: 0, category: roleInfo.category });
           const stats = roleStats.get(key)!;
           stats.total++;
-          if (phase?.toLowerCase() === 'running') {
-            stats.ready++;
-          }
+          if (phase?.toLowerCase() === 'running') stats.ready++;
         }
-        
         this.all = items;
         this.applyFilter();
-        
-        // 生成摘要，按类别和重要性排序
         this.summary = Array.from(roleStats.entries())
-          .map(([role, stats]) => ({ 
-            role, 
-            ready: stats.ready, 
-            total: stats.total,
-            category: stats.category
-          }))
+          .map(([role, stats]) => ({ role, ready: stats.ready, total: stats.total, category: stats.category, color: this.getCategoryColor(stats.category) }))
           .sort((a, b) => {
-            // 排序优先级：计算 > 存储 > 服务 > 监控 > 未知
             const priorityOrder = ['compute', 'storage', 'service', 'monitor', 'unknown'];
-            const aPriority = priorityOrder.indexOf(a.category);
-            const bPriority = priorityOrder.indexOf(b.category);
-            if (aPriority !== bPriority) {
-              return aPriority - bPriority;
-            }
-            // 同类别按角色名称排序
-            return a.role.localeCompare(b.role);
+            return priorityOrder.indexOf(a.category) - priorityOrder.indexOf(b.category) || a.role.localeCompare(b.role);
           });
+        this.loading = false;
+        this.cdr.markForCheck();
       },
       error: () => {
         this.all = []; this.filtered = []; this.summary = [];
+        this.loading = false;
+        this.message.error('加载节点列表失败');
+        this.cdr.markForCheck();
       }
     });
   }
 
   applyFilter(): void {
-    const kw = (this.keyword||'').toLowerCase();
-    this.filtered = this.all.filter(n =>
-      (!this.roleFilter || n.role === this.roleFilter) &&
-      (!kw || n.name.toLowerCase().includes(kw) || n.ip.toLowerCase().includes(kw))
-    );
+    const kw = (this.keyword || '').toLowerCase();
+    this.filtered = this.all.filter(n => (!this.roleFilter || n.role === this.roleFilter) && (!kw || n.name.toLowerCase().includes(kw) || n.ip.toLowerCase().includes(kw)));
+    this.cdr.markForCheck();
   }
 
-  roleColor(role: string): 'primary'|'accent'|'warn'|'basic' {
-    // 为了兼容性，先尝试从当前项目中找到roleInfo
-    const item = this.all.find(n => n.role === role);
-    if (item?.roleInfo) {
-      return PodRoleDetector.getRoleColor(item.roleInfo) as any;
-    }
-    // 回退到简单映射
-    switch(role){ 
-      case 'CN': return 'primary'; 
-      case 'DN': return 'accent'; 
-      case 'GMS': return 'warn'; 
-      case 'CDC': return 'basic';
-      case 'MinIO': return 'accent';
-      case 'SFTP': case 'HPFS': return 'basic';
-      default: return 'basic'; 
-    }
-  }
-  statusColor(status: string): 'primary'|'accent'|'warn'|'basic' {
-    const result = PodRoleDetector.getStatusColor(status);
-    return result as 'primary'|'accent'|'warn'|'basic';
+  getRestartCount(pod: Pod): number {
+    return (pod.status?.containerStatuses || []).reduce((sum, cs) => sum + (cs.restartCount || 0), 0);
   }
 
-  openDetail(n: {pod: Pod}): void {
-    const podName = n.pod?.metadata?.name || '';
-    if (!podName) return;
-    this.router.navigate(['/operations','nodes', this.namespace, podName]);
+  calculateAge(timestamp: string | undefined): string {
+    if (!timestamp) return '-';
+    const diffMs = Date.now() - new Date(timestamp).getTime();
+    const diffDays = Math.floor(diffMs / 86400000);
+    const diffHours = Math.floor((diffMs % 86400000) / 3600000);
+    if (diffDays > 0) return diffDays + 'd ' + diffHours + 'h';
+    const diffMinutes = Math.floor((diffMs % 3600000) / 60000);
+    if (diffHours > 0) return diffHours + 'h ' + diffMinutes + 'm';
+    return diffMinutes + 'm';
   }
-  openTerminal(n: {pod: Pod}): void {
+
+  getRoleColor(roleInfo: PodRoleInfo): string {
+    switch (roleInfo.category) {
+      case 'compute': return 'blue';
+      case 'storage': return 'green';
+      case 'service': return 'orange';
+      case 'monitor': return 'purple';
+      default: return 'default';
+    }
+  }
+
+  getCategoryColor(category: string): string {
+    switch (category) {
+      case 'compute': return '#1890ff';
+      case 'storage': return '#52c41a';
+      case 'service': return '#fa8c16';
+      case 'monitor': return '#722ed1';
+      default: return '#8c8c8c';
+    }
+  }
+
+  getStatusBadge(status: string): 'success' | 'processing' | 'error' | 'default' | 'warning' {
+    switch (status?.toLowerCase()) {
+      case 'running': return 'success';
+      case 'pending': return 'processing';
+      case 'failed': return 'error';
+      case 'succeeded': return 'default';
+      default: return 'warning';
+    }
+  }
+
+  getStatColor(s: RoleSummary): string {
+    if (s.ready === s.total && s.total > 0) return '#52c41a';
+    if (s.ready === 0) return '#ff4d4f';
+    return '#faad14';
+  }
+
+  openDetail(node: NodeItem): void {
+    this.router.navigate(['/operations/nodes', this.namespace, node.name]);
+  }
+
+  openTerminal(node: NodeItem): void {
     import('../../components/webshell-dialog/webshell-dialog.component').then(m => {
-      const containers = (n.pod.spec?.containers||[]).map(c=>c.name);
-      this.dialog.open(m.WebShellDialogComponent, { width:'900px', height:'600px', data: { namespace: this.namespace, pod: n.pod.metadata!.name, container: containers[0]||'', containers } });
+      const containers = (node.pod.spec?.containers || []).map(c => c.name);
+      this.modal.create({
+        nzTitle: '终端 - ' + node.name,
+        nzContent: m.WebShellDialogComponent,
+        nzWidth: 900,
+        nzData: { namespace: this.namespace, pod: node.name, container: containers[0] || '', containers },
+        nzFooter: null,
+        nzBodyStyle: { padding: '0', height: '500px' }
+      });
     });
   }
-  openExec(n: {pod: Pod}): void {
+
+  openExec(node: NodeItem): void {
     import('../../components/exec-command-dialog/exec-command-dialog.component').then(m => {
-      const containers = (n.pod.spec?.containers||[]).map(c=>c.name);
-      this.dialog.open(m.ExecCommandDialogComponent, { width:'700px', data: { namespace: this.namespace, pod: n.pod.metadata!.name, containers, defaultContainer: containers[0]||'' } });
+      const containers = (node.pod.spec?.containers || []).map(c => c.name);
+      this.modal.create({
+        nzTitle: '执行命令 - ' + node.name,
+        nzContent: m.ExecCommandDialogComponent,
+        nzWidth: 700,
+        nzData: { namespace: this.namespace, pod: node.name, containers, defaultContainer: containers[0] || '' },
+        nzFooter: null
+      });
     });
   }
 }
-

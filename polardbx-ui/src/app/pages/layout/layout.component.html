@@ -124,6 +124,15 @@
             </ul>
           </li>
 
+          <li nz-submenu nzTitle="资源管理" nzIcon="cluster">
+            <ul>
+              <li nz-menu-item routerLink="/operations/nodes" nzMatchRouter [nzMatchRouterExact]="true">
+                <nz-icon nzType="apartment"></nz-icon>
+                <span>节点管理</span>
+              </li>
+            </ul>
+          </li>
+
           <li nz-menu-item routerLink="/operations/settings" nzMatchRouter [nzMatchRouterExact]="true">
             <nz-icon nzType="control"></nz-icon>
             <span>阈值与设置</span>

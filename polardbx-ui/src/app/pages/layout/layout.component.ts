@@ -38,7 +38,8 @@ import {
   ContainerOutline,
   ControlOutline,
   ApiOutline,
-  BookOutline
+  BookOutline,
+  ApartmentOutline
 } from '@ant-design/icons-angular/icons';
 import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -87,7 +88,8 @@ const icons = [
   ContainerOutline,
   ControlOutline,
   ApiOutline,
-  BookOutline
+  BookOutline,
+  ApartmentOutline
 ];
 
 @Component({

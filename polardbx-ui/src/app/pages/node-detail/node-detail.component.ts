@@ -1,222 +1,190 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { MatTabsModule } from '@angular/material/tabs';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatSelectModule } from '@angular/material/select';
-import { MatInputModule } from '@angular/material/input';
-import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatCardModule } from '@angular/material/card';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+
+import { NzTabsModule } from 'ng-zorro-antd/tabs';
+import { NzButtonModule } from 'ng-zorro-antd/button';
+import { NzIconModule } from 'ng-zorro-antd/icon';
+import { NzSelectModule } from 'ng-zorro-antd/select';
+import { NzInputModule } from 'ng-zorro-antd/input';
+import { NzInputNumberModule } from 'ng-zorro-antd/input-number';
+import { NzToolTipModule } from 'ng-zorro-antd/tooltip';
+import { NzCardModule } from 'ng-zorro-antd/card';
+import { NzMessageModule, NzMessageService } from 'ng-zorro-antd/message';
+import { NzModalModule, NzModalService } from 'ng-zorro-antd/modal';
+import { NzDescriptionsModule } from 'ng-zorro-antd/descriptions';
+import { NzTagModule } from 'ng-zorro-antd/tag';
+import { NzSpinModule } from 'ng-zorro-antd/spin';
+import { NzDividerModule } from 'ng-zorro-antd/divider';
+import { NzBadgeModule } from 'ng-zorro-antd/badge';
+import { NzGridModule } from 'ng-zorro-antd/grid';
+import { NzAlertModule } from 'ng-zorro-antd/alert';
 
 import { ApiService } from '../../services/api.service';
 import { WebShellInlineComponent } from '../../components/webshell-inline/webshell-inline.component';
 import { Pod } from '../../models/pod.model';
+import { Subject, takeUntil } from 'rxjs';
 
 @Component({
   selector: 'app-node-detail-page',
   standalone: true,
   imports: [
     CommonModule, RouterModule, FormsModule,
-    MatTabsModule, MatButtonModule, MatIconModule,
-    MatFormFieldModule, MatSelectModule, MatInputModule, MatTooltipModule,
-    MatCardModule, MatSnackBarModule, MatDialogModule,
+    NzTabsModule, NzButtonModule, NzIconModule, NzSelectModule, NzInputModule, NzInputNumberModule,
+    NzToolTipModule, NzCardModule, NzMessageModule, NzModalModule, NzDescriptionsModule,
+    NzTagModule, NzSpinModule, NzDividerModule, NzBadgeModule, NzGridModule, NzAlertModule,
     WebShellInlineComponent
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-  <div class="page">
-    <div class="header">
-      <div class="title">
-        <button mat-icon-button (click)="goBack()" matTooltip="返回列表"><mat-icon>arrow_back</mat-icon></button>
-        <div class="texts">
-          <div class="h1">节点详情</div>
-          <div class="sub">{{ namespace }} / {{ podName }}</div>
+    <div class="node-detail-page">
+      <div class="page-header">
+        <div class="header-left">
+          <button nz-button nzType="text" (click)="goBack()" nz-tooltip nzTooltipTitle="返回列表">
+            <i nz-icon nzType="arrow-left"></i>
+          </button>
+          <div class="header-title">
+            <h1>节点详情</h1>
+            <p class="breadcrumb">{{ namespace }} / {{ podName }}</p>
+          </div>
+        </div>
+        <div class="header-actions">
+          <button nz-button nzType="primary" (click)="openTerminal()"><i nz-icon nzType="code"></i> 打开终端</button>
+          <button nz-button nzType="default" (click)="openExec()"><i nz-icon nzType="play-circle"></i> 执行命令</button>
         </div>
       </div>
-      <div class="header-actions">
-        <button mat-stroked-button color="primary" (click)="openTerminal()"><mat-icon>computer</mat-icon> 打开终端</button>
-        <button mat-stroked-button (click)="openExec()"><mat-icon>play_arrow</mat-icon> 执行命令</button>
-      </div>
+
+      <nz-spin [nzSpinning]="loading">
+        <nz-tabset [nzAnimated]="true" [nzTabPosition]="'top'">
+          <nz-tab nzTitle="概览">
+            <nz-card class="detail-card" *ngIf="pod as p">
+              <nz-descriptions nzTitle="基本信息" nzBordered [nzColumn]="2">
+                <nz-descriptions-item nzTitle="命名空间">{{ namespace }}</nz-descriptions-item>
+                <nz-descriptions-item nzTitle="Pod 名称">{{ p.metadata?.name }}</nz-descriptions-item>
+                <nz-descriptions-item nzTitle="Pod IP"><code class="code-text">{{ p.status?.podIP || '未分配' }}</code></nz-descriptions-item>
+                <nz-descriptions-item nzTitle="节点">{{ p.spec?.nodeName || '未知' }}</nz-descriptions-item>
+                <nz-descriptions-item nzTitle="状态"><nz-badge [nzStatus]="getStatusBadge(p.status?.phase)" [nzText]="p.status?.phase || '未知'"></nz-badge></nz-descriptions-item>
+                <nz-descriptions-item nzTitle="重启次数"><span [class.restart-warning]="getRestartCount() > 0">{{ getRestartCount() }}</span></nz-descriptions-item>
+                <nz-descriptions-item nzTitle="创建时间" [nzSpan]="2">{{ p.metadata?.creationTimestamp | date:'yyyy-MM-dd HH:mm:ss' }}</nz-descriptions-item>
+              </nz-descriptions>
+              <nz-divider></nz-divider>
+              <nz-descriptions nzTitle="容器列表" nzBordered [nzColumn]="1">
+                <nz-descriptions-item nzTitle="容器"><nz-tag *ngFor="let c of containers" [nzColor]="'blue'">{{ c }}</nz-tag></nz-descriptions-item>
+              </nz-descriptions>
+            </nz-card>
+            <nz-alert *ngIf="!pod && !loading" nzType="warning" nzMessage="无法加载 Pod 信息"></nz-alert>
+          </nz-tab>
+
+          <nz-tab nzTitle="日志">
+            <nz-card class="logs-card">
+              <div class="logs-toolbar">
+                <div class="toolbar-item">
+                  <label>容器</label>
+                  <nz-select [(ngModel)]="selectedContainer" (ngModelChange)="loadLogs()" style="width: 200px;">
+                    <nz-option *ngFor="let c of containers" [nzValue]="c" [nzLabel]="c"></nz-option>
+                  </nz-select>
+                </div>
+                <div class="toolbar-item">
+                  <label>行数</label>
+                  <nz-input-number [(ngModel)]="tailLines" [nzMin]="100" [nzMax]="10000" [nzStep]="100" style="width: 120px;"></nz-input-number>
+                </div>
+                <div class="toolbar-actions">
+                  <button nz-button nzType="default" nzSize="small" (click)="loadLogs()" nz-tooltip nzTooltipTitle="刷新"><i nz-icon nzType="reload"></i></button>
+                  <button nz-button nzType="default" nzSize="small" (click)="copyLogs()" nz-tooltip nzTooltipTitle="复制"><i nz-icon nzType="copy"></i></button>
+                  <button nz-button nzType="default" nzSize="small" (click)="downloadLogs()" nz-tooltip nzTooltipTitle="下载"><i nz-icon nzType="download"></i></button>
+                </div>
+              </div>
+              <pre class="logs-content">{{ logs || '无日志或未选择容器' }}</pre>
+            </nz-card>
+          </nz-tab>
+
+          <nz-tab nzTitle="JSON">
+            <nz-card class="inspect-card">
+              <div class="inspect-toolbar">
+                <button nz-button nzType="default" nzSize="small" (click)="copyInspect()" nz-tooltip nzTooltipTitle="复制 JSON"><i nz-icon nzType="copy"></i> 复制</button>
+              </div>
+              <pre class="inspect-content">{{ inspectJson }}</pre>
+            </nz-card>
+          </nz-tab>
+
+          <nz-tab nzTitle="Kubectl">
+            <nz-card class="kubectl-card">
+              <div class="cmd-section">
+                <h4>Describe Pod</h4>
+                <div class="cmd-row">
+                  <code class="cmd-code">kubectl describe pod {{ podName }} -n {{ namespace }}</code>
+                  <button nz-button nzType="link" nzSize="small" (click)="copy('kubectl describe pod ' + podName + ' -n ' + namespace)"><i nz-icon nzType="copy"></i></button>
+                </div>
+              </div>
+              <nz-divider></nz-divider>
+              <div class="cmd-section">
+                <h4>查看日志</h4>
+                <div class="cmd-row">
+                  <code class="cmd-code">kubectl logs {{ podName }} -n {{ namespace }} -c {{ selectedContainer || containers[0] }}</code>
+                  <button nz-button nzType="link" nzSize="small" (click)="copy('kubectl logs ' + podName + ' -n ' + namespace + ' -c ' + (selectedContainer || containers[0]))"><i nz-icon nzType="copy"></i></button>
+                </div>
+              </div>
+              <nz-divider></nz-divider>
+              <div class="cmd-section">
+                <h4>进入容器</h4>
+                <div class="cmd-row">
+                  <code class="cmd-code">kubectl exec -it {{ podName }} -n {{ namespace }} -c {{ selectedContainer || containers[0] }} -- /bin/sh</code>
+                  <button nz-button nzType="link" nzSize="small" (click)="copy('kubectl exec -it ' + podName + ' -n ' + namespace + ' -c ' + (selectedContainer || containers[0]) + ' -- /bin/sh')"><i nz-icon nzType="copy"></i></button>
+                </div>
+              </div>
+              <nz-divider></nz-divider>
+              <div class="cmd-section">
+                <h4>删除 Pod (重启)</h4>
+                <div class="cmd-row">
+                  <code class="cmd-code cmd-danger">kubectl delete pod {{ podName }} -n {{ namespace }}</code>
+                  <button nz-button nzType="link" nzSize="small" nzDanger (click)="copy('kubectl delete pod ' + podName + ' -n ' + namespace)"><i nz-icon nzType="copy"></i></button>
+                </div>
+              </div>
+            </nz-card>
+          </nz-tab>
+
+          <nz-tab nzTitle="终端">
+            <nz-card class="terminal-card">
+              <app-webshell-inline [namespace]="namespace" [pod]="podName" [containers]="containers" [container]="selectedContainer"></app-webshell-inline>
+            </nz-card>
+          </nz-tab>
+        </nz-tabset>
+      </nz-spin>
     </div>
-
-    <mat-tab-group animationDuration="0ms">
-      <mat-tab label="Summary">
-        <div class="kv-grid" *ngIf="pod as p; else loading">
-          <div class="k">命名空间</div><div class="v">{{ namespace }}</div>
-          <div class="k">Pod</div><div class="v">{{ p.metadata.name }}</div>
-          <div class="k">IP</div><div class="v">{{ p.status?.podIP || '未知' }}</div>
-          <div class="k">节点</div><div class="v">{{ p.spec.nodeName || '未知' }}</div>
-          <div class="k">Phase</div><div class="v">{{ p.status?.phase }}</div>
-          <div class="k">容器</div><div class="v">
-            <span class="chip" *ngFor="let c of containers">{{ c }}</span>
-          </div>
-        </div>
-        <ng-template #loading>
-          <div class="loading">加载中...</div>
-        </ng-template>
-      </mat-tab>
-
-      <mat-tab label="Logs">
-        <div class="toolbar">
-          <mat-form-field appearance="outline" class="w-200">
-            <mat-label>容器</mat-label>
-            <mat-select [(ngModel)]="selectedContainer" [disableOptionCentering]="true" panelClass="force-above-panel">
-              <mat-option *ngFor="let c of containers" [value]="c">{{ c }}</mat-option>
-            </mat-select>
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="w-140">
-            <mat-label>Tail</mat-label>
-            <input matInput type="number" [(ngModel)]="tailLines"/>
-          </mat-form-field>
-          <button mat-icon-button (click)="loadLogs()" matTooltip="刷新"><mat-icon>refresh</mat-icon></button>
-          <button mat-icon-button (click)="copyLogs()" matTooltip="复制"><mat-icon>content_copy</mat-icon></button>
-          <button mat-icon-button (click)="downloadLogs()" matTooltip="下载"><mat-icon>download</mat-icon></button>
-        </div>
-        <pre class="logs">{{ logs || '无日志或未选择容器' }}</pre>
-      </mat-tab>
-
-      <mat-tab label="Inspect">
-        <pre class="inspect">{{ inspectJson }}</pre>
-      </mat-tab>
-
-      <mat-tab label="Kube">
-        <div class="cmds">
-          <div class="cmd-row">
-            <div class="label">Describe</div>
-            <div class="code">kubectl describe pod {{ podName }} -n {{ namespace }}</div>
-            <button mat-mini-button (click)="copy('kubectl describe pod ' + podName + ' -n ' + namespace)"><mat-icon>content_copy</mat-icon></button>
-          </div>
-          <div class="cmd-row">
-            <div class="label">Logs</div>
-            <div class="code">kubectl logs {{ podName }} -n {{ namespace }} -c {{ selectedContainer || containers[0] }}</div>
-            <button mat-mini-button (click)="copy('kubectl logs ' + podName + ' -n ' + namespace + ' -c ' + (selectedContainer || containers[0]))"><mat-icon>content_copy</mat-icon></button>
-          </div>
-          <div class="cmd-row">
-            <div class="label">Exec</div>
-            <div class="code">kubectl exec -it {{ podName }} -n {{ namespace }} -c {{ selectedContainer || containers[0] }} -- /bin/sh</div>
-            <button mat-mini-button (click)="copy('kubectl exec -it ' + podName + ' -n ' + namespace + ' -c ' + (selectedContainer || containers[0]) + ' -- /bin/sh')"><mat-icon>content_copy</mat-icon></button>
-          </div>
-        </div>
-      </mat-tab>
-
-      <mat-tab label="Terminal">
-        <app-webshell-inline [namespace]="namespace" [pod]="podName" [containers]="containers" [container]="selectedContainer" />
-      </mat-tab>
-    </mat-tab-group>
-  </div>
   `,
   styles: [`
-    .page { padding: 16px; }
-    .header { display:flex; align-items:center; justify-content: space-between; margin-bottom: 12px; }
-    .title { display:flex; align-items:center; gap:8px; }
-    .texts .h1 { font-size: 20px; font-weight: 600; }
-    .texts .sub { color:#666; font-size: 12px; margin-top:2px; }
-    .header-actions { display:flex; gap:8px; }
-    .kv-grid { display:grid; grid-template-columns: 120px 1fr; row-gap:8px; column-gap:12px; font-size:13px; }
-    .k { color:#666; }
-    .chip { display:inline-block; background:#eef2f7; padding:2px 8px; border-radius:10px; margin-right:6px; }
-    .toolbar { 
-      display:flex; 
-      align-items:center; 
-      gap:8px; 
-      margin: 8px 0; 
-      position: relative; 
-      z-index: 10; 
-    }
-    .w-200 { width:200px; }
-    .w-140 { width:140px; }
-    .logs, .inspect { 
-      background:#0b1020; 
-      color:#d6e4ff; 
-      padding:12px; 
-      border-radius:6px; 
-      min-height:320px; 
-      max-height:520px; 
-      overflow:auto; 
-      position: relative; 
-      z-index: 1; 
-    }
-    .cmds { display:flex; flex-direction:column; gap:8px; }
-    .cmd-row { display:grid; grid-template-columns: 90px 1fr auto; align-items:center; gap:8px; }
-    .code { font-family: Menlo, monospace; font-size: 12px; background:#f6f8fa; padding:6px 8px; border-radius:4px; }
-    .hint { font-size:12px; color:#666; margin-top:12px; }
-    .loading { padding: 24px; color:#666; }
-
-    /* 强制下拉面板显示在上方，避免被遮挡 */
-    ::ng-deep .force-above-panel {
-      z-index: 100000 !important;
-      position: fixed !important;
-      pointer-events: auto !important;
-    }
-    
-    /* 确保在此页面内，下拉列表始终显示在最上层 */
-    ::ng-deep .cdk-overlay-container {
-      z-index: 100000 !important;
-      pointer-events: none !important;
-    }
-    ::ng-deep .cdk-overlay-pane {
-      z-index: 100000 !important;
-      position: fixed !important;
-      pointer-events: auto !important;
-    }
-    ::ng-deep .mat-mdc-select-panel {
-      z-index: 100000 !important;
-      position: fixed !important;
-      pointer-events: auto !important;
-      background: white !important;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.3) !important;
-    }
-    ::ng-deep .mat-mdc-option {
-      z-index: 100000 !important;
-      pointer-events: auto !important;
-    }
-    
-    /* 专门针对 Logs 和 Terminal 标签页中的下拉框 */
-    ::ng-deep mat-tab-group .mat-mdc-select-panel {
-      z-index: 100000 !important;
-      background: white !important;
-      border: 1px solid #ddd !important;
-    }
-    
-    /* 特别处理容器选择下拉框 */
-    ::ng-deep .toolbar .mat-mdc-form-field {
-      z-index: 50 !important;
-      position: relative !important;
-    }
-    ::ng-deep .toolbar .mat-mdc-form-field .cdk-overlay-pane {
-      z-index: 100000 !important;
-      position: fixed !important;
-      pointer-events: auto !important;
-    }
-    
-    /* 确保深色背景区域不会覆盖下拉框 */
-    .logs, .inspect {
-      position: relative;
-      z-index: 1 !important;
-    }
-    
-    /* WebShell 组件的 z-index 控制 */
-    ::ng-deep app-webshell-inline {
-      position: relative;
-      z-index: 1 !important;
-    }
-    ::ng-deep app-webshell-inline .mat-mdc-select-panel {
-      z-index: 100000 !important;
-      background: white !important;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.3) !important;
-    }
+    .node-detail-page { padding: 24px; background: #f0f2f5; min-height: 100vh; }
+    .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; background: white; padding: 16px 24px; border-radius: 8px; }
+    .header-left { display: flex; align-items: center; gap: 16px; }
+    .header-title h1 { font-size: 20px; font-weight: 600; margin: 0; color: rgba(0, 0, 0, 0.88); }
+    .breadcrumb { font-size: 13px; color: rgba(0, 0, 0, 0.45); margin: 4px 0 0 0; }
+    .header-actions { display: flex; gap: 12px; }
+    .detail-card, .logs-card, .inspect-card, .kubectl-card, .terminal-card { border-radius: 8px; }
+    .code-text { font-family: monospace; background: #f5f5f5; padding: 2px 8px; border-radius: 4px; }
+    .restart-warning { color: #faad14; font-weight: 600; }
+    .logs-toolbar, .inspect-toolbar { display: flex; align-items: flex-end; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
+    .toolbar-item { display: flex; flex-direction: column; gap: 6px; }
+    .toolbar-item label { font-size: 13px; color: rgba(0, 0, 0, 0.65); }
+    .toolbar-actions { display: flex; gap: 8px; margin-left: auto; }
+    .logs-content, .inspect-content { background: #0d1117; color: #c9d1d9; padding: 16px; border-radius: 8px; min-height: 400px; max-height: 600px; overflow: auto; font-family: monospace; font-size: 13px; line-height: 1.5; white-space: pre-wrap; word-break: break-all; }
+    .cmd-section h4 { font-size: 14px; font-weight: 500; color: rgba(0, 0, 0, 0.85); margin: 0 0 12px 0; }
+    .cmd-row { display: flex; align-items: center; gap: 12px; }
+    .cmd-code { flex: 1; font-family: monospace; font-size: 13px; background: #f6f8fa; padding: 8px 12px; border-radius: 6px; border: 1px solid #e1e4e8; }
+    .cmd-danger { background: #fff2f0; border-color: #ffccc7; }
+    .terminal-card { min-height: 500px; }
+    ::ng-deep .ant-tabs-nav { margin-bottom: 0; background: white; padding: 0 16px; border-radius: 8px 8px 0 0; }
+    ::ng-deep .ant-tabs-content { background: white; padding: 24px; border-radius: 0 0 8px 8px; }
   `]
 })
-export class NodeDetailComponent implements OnInit {
-  private route = inject(ActivatedRoute);
-  private router = inject(Router);
-  private api = inject(ApiService);
-  private snack = inject(MatSnackBar);
-  private dialog = inject(MatDialog);
+export class NodeDetailComponent implements OnInit, OnDestroy {
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly api = inject(ApiService);
+  private readonly message = inject(NzMessageService);
+  private readonly modal = inject(NzModalService);
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly destroy$ = new Subject<void>();
 
   namespace = 'default';
   podName = '';
@@ -226,13 +194,19 @@ export class NodeDetailComponent implements OnInit {
   tailLines = 1000;
   logs = '';
   inspectJson = '';
+  loading = false;
 
   ngOnInit(): void {
-    this.route.params.subscribe(p => {
+    this.route.params.pipe(takeUntil(this.destroy$)).subscribe(p => {
       this.namespace = p['namespace'] || 'default';
       this.podName = p['name'] || '';
       this.load();
     });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   goBack(): void {
@@ -240,16 +214,22 @@ export class NodeDetailComponent implements OnInit {
   }
 
   load(): void {
+    this.loading = true;
+    this.cdr.markForCheck();
     this.api.getPod(this.namespace, this.podName).subscribe({
       next: (pod) => {
         this.pod = pod;
-        this.containers = (pod.spec.containers || []).map(c => c.name);
-        this.selectedContainer = this.pickBestContainerFromList(this.containers, this.selectedContainer);
+        this.containers = (pod.spec?.containers || []).map(c => c.name);
+        this.selectedContainer = this.pickBestContainer(this.containers, this.selectedContainer);
         this.inspectJson = JSON.stringify(pod, null, 2);
+        this.loading = false;
+        this.cdr.markForCheck();
         this.loadLogs();
       },
       error: (err) => {
-        this.snack.open(`加载 Pod 失败: ${err.message}`, '关闭', { duration: 4000 });
+        this.loading = false;
+        this.message.error('加载 Pod 失败: ' + err.message);
+        this.cdr.markForCheck();
       }
     });
   }
@@ -257,61 +237,75 @@ export class NodeDetailComponent implements OnInit {
   loadLogs(): void {
     if (!this.selectedContainer) { this.logs = ''; return; }
     this.api.getPodLogs(this.namespace, this.podName, this.selectedContainer, this.tailLines).subscribe({
-      next: (text) => this.logs = text || '',
-      error: () => this.logs = '(获取日志失败)'
+      next: (text) => { this.logs = text || ''; this.cdr.markForCheck(); },
+      error: () => { this.logs = '(获取日志失败)'; this.cdr.markForCheck(); }
     });
   }
 
-  copy(text: string): void { navigator.clipboard.writeText(text).catch(() => {}); }
-  copyLogs(): void { if (this.logs) navigator.clipboard.writeText(this.logs).catch(()=>{}); }
+  getRestartCount(): number {
+    return (this.pod?.status?.containerStatuses || []).reduce((sum, cs) => sum + (cs.restartCount || 0), 0);
+  }
+
+  getStatusBadge(status: string | undefined): 'success' | 'processing' | 'error' | 'default' | 'warning' {
+    switch (status?.toLowerCase()) {
+      case 'running': return 'success';
+      case 'pending': return 'processing';
+      case 'failed': return 'error';
+      case 'succeeded': return 'default';
+      default: return 'warning';
+    }
+  }
+
+  copy(text: string): void {
+    navigator.clipboard.writeText(text).then(() => this.message.success('已复制到剪贴板')).catch(() => this.message.error('复制失败'));
+  }
+
+  copyLogs(): void { if (this.logs) this.copy(this.logs); }
+  copyInspect(): void { if (this.inspectJson) this.copy(this.inspectJson); }
+
   downloadLogs(): void {
     const blob = new Blob([this.logs || ''], { type: 'text/plain;charset=utf-8' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `${this.podName}-${this.selectedContainer||'container'}.log`;
+    a.download = this.podName + '-' + (this.selectedContainer || 'container') + '.log';
     a.click();
     URL.revokeObjectURL(a.href);
   }
 
-  private pickBestContainerFromList(list: string[], prefer?: string): string {
+  private pickBestContainer(list: string[], prefer?: string): string {
     const items = (list || []).filter(Boolean);
     if (items.length === 0) return '';
     const lower = (s: string) => (s || '').toLowerCase();
-    const negatives = ['prober','probe','exporter','agent','sidecar','pause','proxy','reloader','metrics','prom','istio','linkerd','kube-rbac-proxy','configmap-reload','reloader'];
-    const positivesExact = ['engine','mysql','xstore','server','main','app','dn','cn','gms','cdc'];
-    const positivesContains = ['engine','mysql','xstore','server','main','app','dn-','cn-','gms','cdc'];
-
-    if (prefer && items.some(c => c === prefer) && !negatives.some(n => lower(prefer).includes(n))) {
-      return prefer;
-    }
-    for (const p of positivesExact) {
-      const hit = items.find(c => lower(c) === p);
-      if (hit) return hit;
-    }
-    for (const p of positivesContains) {
-      const hit = items.find(c => lower(c).includes(p));
-      if (hit) return hit;
-    }
+    const negatives = ['prober', 'probe', 'exporter', 'agent', 'sidecar', 'pause', 'proxy', 'reloader', 'metrics', 'prom', 'istio', 'linkerd'];
+    const positivesExact = ['engine', 'mysql', 'xstore', 'server', 'main', 'app', 'dn', 'cn', 'gms', 'cdc'];
+    if (prefer && items.includes(prefer) && !negatives.some(n => lower(prefer).includes(n))) return prefer;
+    for (const p of positivesExact) { const hit = items.find(c => lower(c) === p); if (hit) return hit; }
     const nonNeg = items.find(c => !negatives.some(n => lower(c).includes(n)));
-    if (nonNeg) return nonNeg;
-    return items[0];
+    return nonNeg || items[0];
   }
 
   openTerminal(): void {
     import('../../components/webshell-dialog/webshell-dialog.component').then(m => {
-      this.dialog.open(m.WebShellDialogComponent, {
-        width: '900px', height: '600px',
-        data: { namespace: this.namespace, pod: this.podName, container: this.selectedContainer, containers: this.containers }
+      this.modal.create({
+        nzTitle: '终端 - ' + this.podName,
+        nzContent: m.WebShellDialogComponent,
+        nzWidth: 900,
+        nzData: { namespace: this.namespace, pod: this.podName, container: this.selectedContainer, containers: this.containers },
+        nzFooter: null,
+        nzBodyStyle: { padding: '0', height: '500px' }
       });
     });
   }
 
   openExec(): void {
     import('../../components/exec-command-dialog/exec-command-dialog.component').then(m => {
-      this.dialog.open(m.ExecCommandDialogComponent, {
-        width: '700px', data: { namespace: this.namespace, pod: this.podName, containers: this.containers, defaultContainer: this.selectedContainer }
+      this.modal.create({
+        nzTitle: '执行命令 - ' + this.podName,
+        nzContent: m.ExecCommandDialogComponent,
+        nzWidth: 700,
+        nzData: { namespace: this.namespace, pod: this.podName, containers: this.containers, defaultContainer: this.selectedContainer },
+        nzFooter: null
       });
     });
   }
 }
-
