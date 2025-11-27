@@ -14,7 +14,6 @@ import (
 	api_logs "polardbx-ui-backend/pkg/api/logs"
 	api_logservice "polardbx-ui-backend/pkg/api/logservice"
 	api_logstrategy "polardbx-ui-backend/pkg/api/logstrategy"
-	api_monitor "polardbx-ui-backend/pkg/api/monitor"
 	api_monitoring "polardbx-ui-backend/pkg/api/monitoring"
 	api_pod "polardbx-ui-backend/pkg/api/pod"
 	api_prometheusrule "polardbx-ui-backend/pkg/api/prometheusrule"
@@ -171,12 +170,12 @@ func main() {
 		v1.PUT("/parameters/:name", domain_pxc.UpdateParameter)
 		v1.DELETE("/parameters/:name", domain_pxc.DeleteParameter)
 
-		// Monitor routes (保持原实现)
-		v1.GET("/monitors", api_monitor.List)
-		v1.POST("/monitors", api_monitor.Create)
-		v1.GET("/monitors/:namespace/:name", api_monitor.Get)
-		v1.PUT("/monitors/:namespace/:name", api_monitor.Update)
-		v1.DELETE("/monitors/:namespace/:name", api_monitor.Delete)
+		// Monitor CRD routes (统一到 api_monitoring)
+		v1.GET("/monitors", api_monitoring.List)
+		v1.POST("/monitors", api_monitoring.Create)
+		v1.GET("/monitors/:namespace/:name", api_monitoring.Get)
+		v1.PUT("/monitors/:namespace/:name", api_monitoring.Update)
+		v1.DELETE("/monitors/:namespace/:name", api_monitoring.Delete)
 
 		// BackupSchedule routes → domain
 		v1.GET("/backup-schedules", domain_pxc.ListSchedules)

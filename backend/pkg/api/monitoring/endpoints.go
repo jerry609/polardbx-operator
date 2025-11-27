@@ -11,6 +11,19 @@ import (
 // RegisterRoutes 注册所有监控相关的 API 路由
 // 这是推荐的路由注册方式，可以在 main.go 中调用
 func RegisterRoutes(rg *gin.RouterGroup) {
+	// ========================================
+	// PolarDBXMonitor CRD CRUD (/monitors)
+	// ========================================
+	rg.GET("/monitors", domain_monitoring.ListMonitors)
+	rg.POST("/monitors", domain_monitoring.CreateMonitor)
+	rg.GET("/monitors/:namespace/:name", domain_monitoring.GetMonitor)
+	rg.PUT("/monitors/:namespace/:name", domain_monitoring.UpdateMonitor)
+	rg.DELETE("/monitors/:namespace/:name", domain_monitoring.DeleteMonitor)
+
+	// ========================================
+	// 监控栈安装工作流 (/monitoring/*)
+	// ========================================
+
 	// Bootstrap endpoints (传统安装)
 	rg.POST("/monitoring/bootstrap", domain_monitoring.Bootstrap)
 	rg.GET("/monitoring/bootstrap/status", domain_monitoring.BootstrapStatus)
@@ -36,8 +49,9 @@ func RegisterRoutes(rg *gin.RouterGroup) {
 	rg.POST("/monitoring/auto-fix", domain_monitoring.ApplyAutoFix)
 }
 
-// 以下为兼容性导出，允许 main.go 继续使用原有的调用方式
-// 推荐逐步迁移到使用 RegisterRoutes
+// ========================================
+// 兼容性导出 - 安装工作流
+// ========================================
 
 var (
 	Bootstrap         = domain_monitoring.Bootstrap
@@ -52,4 +66,16 @@ var (
 	TriggerRetry      = domain_monitoring.TriggerRetry
 	DiagnoseFailure   = domain_monitoring.DiagnoseFailure
 	ApplyAutoFix      = domain_monitoring.ApplyAutoFix
+)
+
+// ========================================
+// 兼容性导出 - CRD CRUD (原 api_monitor)
+// ========================================
+
+var (
+	List   = domain_monitoring.ListMonitors
+	Create = domain_monitoring.CreateMonitor
+	Get    = domain_monitoring.GetMonitor
+	Update = domain_monitoring.UpdateMonitor
+	Delete = domain_monitoring.DeleteMonitor
 )

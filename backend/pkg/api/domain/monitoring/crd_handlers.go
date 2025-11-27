@@ -1,4 +1,4 @@
-package monitor
+package domain_monitoring
 
 import (
 	"net/http"
@@ -10,7 +10,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func List(c *gin.Context) {
+// ========================================
+// PolarDBXMonitor CRD CRUD Handlers
+// ========================================
+
+// ListMonitors 列出所有 PolarDBXMonitor 资源
+func ListMonitors(c *gin.Context) {
 	k8sClient, ok := util.K8sClientFromContext(c)
 	if !ok {
 		return
@@ -24,7 +29,8 @@ func List(c *gin.Context) {
 	c.JSON(http.StatusOK, monitors)
 }
 
-func Create(c *gin.Context) {
+// CreateMonitor 创建 PolarDBXMonitor 资源
+func CreateMonitor(c *gin.Context) {
 	k8sClient, ok := util.K8sClientFromContext(c)
 	if !ok {
 		return
@@ -43,7 +49,8 @@ func Create(c *gin.Context) {
 	c.JSON(http.StatusCreated, created)
 }
 
-func Get(c *gin.Context) {
+// GetMonitor 获取 PolarDBXMonitor 资源
+func GetMonitor(c *gin.Context) {
 	k8sClient, ok := util.K8sClientFromContext(c)
 	if !ok {
 		return
@@ -58,7 +65,8 @@ func Get(c *gin.Context) {
 	c.JSON(http.StatusOK, m)
 }
 
-func Update(c *gin.Context) {
+// UpdateMonitor 更新 PolarDBXMonitor 资源
+func UpdateMonitor(c *gin.Context) {
 	k8sClient, ok := util.K8sClientFromContext(c)
 	if !ok {
 		return
@@ -78,7 +86,8 @@ func Update(c *gin.Context) {
 	c.JSON(http.StatusOK, um)
 }
 
-func Delete(c *gin.Context) {
+// DeleteMonitor 删除 PolarDBXMonitor 资源
+func DeleteMonitor(c *gin.Context) {
 	k8sClient, ok := util.K8sClientFromContext(c)
 	if !ok {
 		return
