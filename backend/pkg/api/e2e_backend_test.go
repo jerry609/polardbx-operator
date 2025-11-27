@@ -9,7 +9,7 @@ import (
 
 	api_alerts "polardbx-ui-backend/pkg/api/alerts"
 	api_logs "polardbx-ui-backend/pkg/api/logs"
-	api_monitoring "polardbx-ui-backend/pkg/api/monitoring"
+	api_monitoring_v2 "polardbx-ui-backend/pkg/api/monitoringv2"
 	"polardbx-ui-backend/pkg/api/util"
 
 	"github.com/gin-gonic/gin"
@@ -48,7 +48,7 @@ func setupRouterE2E(t *testing.T, objs ...runtime.Object) *gin.Engine {
 
 	// minimal routes under test
 	v1.GET("/alerts", api_alerts.List)
-	v1.GET("/monitoring/bootstrap/status", api_monitoring.BootstrapStatus)
+	v1.GET("/monitoring/bootstrap/status", api_monitoring_v2.BootstrapStatus)
 	v1.GET("/logs/bootstrap/status", api_logs.BootstrapStatus)
 
 	return r

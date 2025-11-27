@@ -16,7 +16,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
@@ -24,6 +27,7 @@ import (
 	"polardbx-ui-backend/pkg/api/monitoringv2/service"
 	spec "polardbx-ui-backend/pkg/api/monitoringv2/spec"
 	"polardbx-ui-backend/pkg/api/util"
+	"polardbx-ui-backend/pkg/config"
 )
 
 var (
@@ -1918,5 +1922,364 @@ func GetBootstrapLogs(c *gin.Context) {
 		"podName":   pod.Name,
 		"logs":      string(logs),
 		"tailLines": tailLines,
+	})
+}
+
+// ============================================================================
+// Legacy v1 handlers migrated to v2
+// ============================================================================
+
+// Bootstrap installs or registers monitoring stack via Helm job.
+// Migrated from pkg/api/monitoring/endpoints.go
+func Bootstrap(c *gin.Context) {
+	type req struct {
+		Mode string `json:"mode"` // managed|assisted|byo
+		Dry  bool   `json:"dryRun"`
+		NS   string `json:"namespace"`
+		Name string `json:"releaseName"`
+	}
+	cli, ok := util.K8sClientFromContext(c)
+	if !ok {
+		respondError(c, http.StatusUnauthorized, ErrorCodeKubernetesClientMissing, "kubernetes client not initialized")
+		return
+	}
+	var r req
+	_ = c.ShouldBindJSON(&r)
+	if r.NS == "" {
+		r.NS = "polardbx-operator-system"
+	}
+
+	logger.WithValues("namespace", r.NS, "mode", r.Mode, "dryRun", r.Dry).Info("bootstrap requested")
+
+	// Check for existing ongoing bootstrap jobs (idempotent)
+	if !r.Dry {
+		existingJobs := &batchv1.JobList{}
+		labelSelector := client.MatchingLabels{
+			"app":       "polardbx-monitor-bootstrap",
+			"createdBy": "dashboard",
+		}
+		if err := cli.List(c.Request.Context(), existingJobs, client.InNamespace(r.NS), labelSelector); err == nil {
+			for _, job := range existingJobs.Items {
+				isComplete := false
+				isFailed := false
+				for _, condition := range job.Status.Conditions {
+					if condition.Type == batchv1.JobComplete && condition.Status == corev1.ConditionTrue {
+						isComplete = true
+						break
+					}
+					if condition.Type == batchv1.JobFailed && condition.Status == corev1.ConditionTrue {
+						isFailed = true
+						break
+					}
+				}
+				if !isComplete && !isFailed {
+					c.JSON(http.StatusAccepted, gin.H{
+						"message":      "monitoring bootstrap already in progress",
+						"namespace":    r.NS,
+						"targetNs":     "polardbx-monitor",
+						"mode":         r.Mode,
+						"releaseName":  r.Name,
+						"jobName":      job.Name,
+						"instructions": "Use kubectl logs -n " + r.NS + " job/" + job.Name + " to see progress",
+						"existing":     true,
+					})
+					return
+				}
+			}
+		}
+	}
+
+	// Persist plan (idempotent)
+	cm := corev1.ConfigMap{}
+	key := client.ObjectKey{Namespace: r.NS, Name: "polardbx-monitoring-plan"}
+	if err := cli.Get(c.Request.Context(), key, &cm); err != nil {
+		cm = corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: r.NS, Name: "polardbx-monitoring-plan"}, Data: map[string]string{}}
+		_ = cli.Create(c.Request.Context(), &cm)
+	}
+	if cm.Data == nil {
+		cm.Data = map[string]string{}
+	}
+	cm.Data["mode"] = r.Mode
+	cm.Data["releaseName"] = r.Name
+	cm.Data["dryRun"] = map[bool]string{true: "true", false: "false"}[r.Dry]
+	_ = cli.Update(c.Request.Context(), &cm)
+
+	if r.Dry {
+		c.JSON(http.StatusAccepted, gin.H{"message": "monitoring bootstrap accepted (dry-run)", "namespace": r.NS, "mode": r.Mode, "releaseName": r.Name, "dryRun": r.Dry})
+		return
+	}
+
+	// Ensure target monitoring namespace exists
+	monitorNS := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "polardbx-monitor"}}
+	if err := cli.Create(c.Request.Context(), monitorNS); err != nil && !apierrors.IsAlreadyExists(err) {
+		respondError(c, http.StatusInternalServerError, ErrorCodeInstallFailed, "failed to create namespace polardbx-monitor: "+err.Error())
+		return
+	}
+
+	// Create Helm install Job
+	jobName := fmt.Sprintf("polardbx-monitor-bootstrap-%d", time.Now().Unix())
+	correlationId := fmt.Sprintf("monitor-%d", time.Now().UnixNano())
+	command := strings.Join([]string{
+		"set -e",
+		"helm version || (echo 'helm not found in image' && exit 1)",
+		"helm repo add polardbx https://polardbx-charts.oss-cn-beijing.aliyuncs.com || true",
+		"helm repo update",
+		"helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace polardbx-monitor --create-namespace",
+	}, " && ")
+
+	backoff := int32(0)
+	ttl := int32(600)
+	job := &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: r.NS,
+			Name:      jobName,
+			Labels: map[string]string{
+				"app":           "polardbx-monitor-bootstrap",
+				"createdBy":     "dashboard",
+				"correlationId": correlationId,
+			},
+		},
+		Spec: batchv1.JobSpec{
+			BackoffLimit:            &backoff,
+			TTLSecondsAfterFinished: &ttl,
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					RestartPolicy:                corev1.RestartPolicyNever,
+					AutomountServiceAccountToken: boolPtr(true),
+					Containers: []corev1.Container{{
+						Name:            "helm",
+						Image:           config.GetGlobalConfig().GetHelmImage(),
+						ImagePullPolicy: corev1.PullIfNotPresent,
+						Command:         []string{"sh", "-c", command},
+					}},
+				},
+			},
+		},
+	}
+	if err := cli.Create(c.Request.Context(), job); err != nil {
+		respondError(c, http.StatusInternalServerError, ErrorCodeInstallFailed, "failed to create helm install job: "+err.Error())
+		return
+	}
+
+	logger.WithValues("jobName", jobName, "namespace", r.NS).Info("bootstrap job created")
+
+	c.JSON(http.StatusAccepted, gin.H{
+		"message":       "monitoring bootstrap started",
+		"namespace":     r.NS,
+		"targetNs":      "polardbx-monitor",
+		"mode":          r.Mode,
+		"releaseName":   r.Name,
+		"jobName":       jobName,
+		"correlationId": correlationId,
+		"instructions":  "Use kubectl logs -n " + r.NS + " job/" + jobName + " to see progress",
+	})
+}
+
+// BootstrapStatus returns the status of a monitoring bootstrap job.
+// Migrated from pkg/api/monitoring/endpoints.go
+func BootstrapStatus(c *gin.Context) {
+	cli, ok := util.K8sClientFromContext(c)
+	if !ok {
+		respondError(c, http.StatusUnauthorized, ErrorCodeKubernetesClientMissing, "kubernetes client not initialized")
+		return
+	}
+
+	jobName := c.Query("jobName")
+	namespace := c.DefaultQuery("namespace", "polardbx-operator-system")
+
+	if jobName == "" {
+		respondError(c, http.StatusBadRequest, ErrorCodeInstallInvalid, "jobName parameter is required")
+		return
+	}
+
+	job := &batchv1.Job{}
+	key := client.ObjectKey{Namespace: namespace, Name: jobName}
+	if err := cli.Get(c.Request.Context(), key, job); err != nil {
+		if apierrors.IsNotFound(err) {
+			respondError(c, http.StatusNotFound, ErrorCodeSessionNotFound, fmt.Sprintf("job %s not found in namespace %s", jobName, namespace))
+			return
+		}
+		respondError(c, http.StatusInternalServerError, ErrorCodeInstallFailed, "failed to get job: "+err.Error())
+		return
+	}
+
+	phase := "Running"
+	var completionTime *metav1.Time
+	var failureReason string
+
+	for _, condition := range job.Status.Conditions {
+		if condition.Type == batchv1.JobComplete && condition.Status == corev1.ConditionTrue {
+			phase = "Succeeded"
+			completionTime = &condition.LastTransitionTime
+			break
+		}
+		if condition.Type == batchv1.JobFailed && condition.Status == corev1.ConditionTrue {
+			phase = "Failed"
+			failureReason = condition.Message
+			completionTime = &condition.LastTransitionTime
+			break
+		}
+	}
+
+	if phase == "Running" && job.Status.Active == 0 && job.Status.Succeeded == 0 && job.Status.Failed == 0 {
+		phase = "Pending"
+	}
+
+	response := gin.H{
+		"jobName":   jobName,
+		"namespace": namespace,
+		"phase":     phase,
+		"startTime": job.Status.StartTime,
+		"active":    job.Status.Active,
+		"succeeded": job.Status.Succeeded,
+		"failed":    job.Status.Failed,
+	}
+
+	if completionTime != nil {
+		response["completionTime"] = completionTime
+	}
+	if failureReason != "" {
+		response["failureReason"] = failureReason
+	}
+	response["conditions"] = job.Status.Conditions
+
+	c.JSON(http.StatusOK, response)
+}
+
+// Status summarizes discovered monitoring components readiness.
+// Migrated from pkg/api/monitoring/endpoints.go
+func Status(c *gin.Context) {
+	cli, ok := util.K8sClientFromContext(c)
+	if !ok {
+		respondError(c, http.StatusUnauthorized, ErrorCodeKubernetesClientMissing, "kubernetes client not initialized")
+		return
+	}
+
+	ns := c.DefaultQuery("namespace", "polardbx-monitor")
+
+	namespaceExists := true
+	namespaceError := ""
+	if err := cli.Get(c.Request.Context(), client.ObjectKey{Name: ns}, &corev1.Namespace{}); err != nil {
+		if apierrors.IsNotFound(err) {
+			namespaceExists = false
+		} else {
+			namespaceExists = false
+			namespaceError = err.Error()
+		}
+	}
+
+	checkDeploy := func(name string) (ready, desired int32, ok bool) {
+		dep := appsv1.Deployment{}
+		if err := cli.Get(c.Request.Context(), client.ObjectKey{Namespace: ns, Name: name}, &dep); err == nil {
+			return dep.Status.ReadyReplicas, dep.Status.Replicas, true
+		}
+		return 0, 0, false
+	}
+	checkStateful := func(name string) (ready, desired int32, ok bool) {
+		sts := appsv1.StatefulSet{}
+		if err := cli.Get(c.Request.Context(), client.ObjectKey{Namespace: ns, Name: name}, &sts); err == nil {
+			if sts.Spec.Replicas != nil {
+				return sts.Status.ReadyReplicas, *sts.Spec.Replicas, true
+			}
+			return sts.Status.ReadyReplicas, sts.Status.Replicas, true
+		}
+		return 0, 0, false
+	}
+	checkService := func(name string) (*corev1.Service, bool) {
+		svc := &corev1.Service{}
+		ok := cli.Get(c.Request.Context(), client.ObjectKey{Namespace: ns, Name: name}, svc) == nil
+		return svc, ok
+	}
+
+	generateServiceAccessURL := func(svcName string) string {
+		svc, ok := checkService(svcName)
+		if !ok {
+			return ""
+		}
+		if svc.Spec.Type == corev1.ServiceTypeLoadBalancer {
+			if len(svc.Status.LoadBalancer.Ingress) > 0 {
+				ingress := svc.Status.LoadBalancer.Ingress[0]
+				if ingress.Hostname != "" {
+					return fmt.Sprintf("http://%s", ingress.Hostname)
+				}
+				if ingress.IP != "" {
+					return fmt.Sprintf("http://%s", ingress.IP)
+				}
+			}
+		}
+		if svc.Spec.Type == corev1.ServiceTypeNodePort {
+			for _, port := range svc.Spec.Ports {
+				if port.NodePort > 0 {
+					return fmt.Sprintf("NodePort: %d (需要使用 <node-ip>:%d 访问)", port.NodePort, port.NodePort)
+				}
+			}
+		}
+		if svc.Spec.Type == corev1.ServiceTypeClusterIP {
+			for _, port := range svc.Spec.Ports {
+				return fmt.Sprintf("port-forward svc/%s -n %s %d:3000", svcName, ns, port.Port)
+			}
+		}
+		return ""
+	}
+
+	prom := gin.H{"ready": false, "readyReplicas": nil, "replicas": nil, "service": false, "exists": false}
+	if r, d, ok := checkStateful("prometheus-k8s"); ok {
+		prom["ready"] = r == d
+		prom["readyReplicas"] = r
+		prom["replicas"] = d
+	} else if r, d, ok := checkStateful("kube-prometheus-stack-prometheus"); ok {
+		prom["ready"] = r == d
+		prom["readyReplicas"] = r
+		prom["replicas"] = d
+	}
+	promSvc, promExists := checkService("prometheus-k8s")
+	if !promExists {
+		_, promExists = checkService("kube-prometheus-stack-prometheus")
+		promSvc, _ = checkService("kube-prometheus-stack-prometheus")
+	}
+	prom["service"] = promExists
+	prom["exists"] = prom["readyReplicas"] != nil || promExists
+	if promExists && promSvc != nil {
+		prom["accessUrl"] = generateServiceAccessURL(promSvc.Name)
+	}
+
+	graf := gin.H{"ready": false, "readyReplicas": nil, "replicas": nil, "service": false, "exists": false}
+	if r, d, ok := checkDeploy("grafana"); ok {
+		graf["ready"] = r == d
+		graf["readyReplicas"] = r
+		graf["replicas"] = d
+	} else if r, d, ok := checkDeploy("kube-prometheus-stack-grafana"); ok {
+		graf["ready"] = r == d
+		graf["readyReplicas"] = r
+		graf["replicas"] = d
+	}
+	grafSvc, grafExists := checkService("grafana")
+	if !grafExists {
+		_, grafExists = checkService("kube-prometheus-stack-grafana")
+		grafSvc, _ = checkService("kube-prometheus-stack-grafana")
+	}
+	graf["service"] = grafExists
+	graf["exists"] = graf["readyReplicas"] != nil || grafExists
+	if grafExists && grafSvc != nil {
+		graf["accessUrl"] = generateServiceAccessURL(grafSvc.Name)
+	}
+
+	am := gin.H{"configured": false, "exists": false}
+	_, amExists := checkService("alertmanager-main")
+	if !amExists {
+		_, amExists = checkService("kube-prometheus-stack-alertmanager")
+	}
+	am["configured"] = amExists
+	am["exists"] = amExists
+
+	c.JSON(http.StatusOK, gin.H{
+		"namespace":       ns,
+		"namespaceExists": namespaceExists,
+		"namespaceError":  namespaceError,
+		"components": gin.H{
+			"prometheus":   prom,
+			"grafana":      graf,
+			"alertmanager": am,
+		},
 	})
 }
