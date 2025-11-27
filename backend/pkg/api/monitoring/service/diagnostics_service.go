@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	spec "polardbx-ui-backend/pkg/api/monitoringv2/spec"
+	spec "polardbx-ui-backend/pkg/api/monitoring/spec"
 )
 
 // FailureDiagnosticService runs registered probes and aggregates their findings into an API response.

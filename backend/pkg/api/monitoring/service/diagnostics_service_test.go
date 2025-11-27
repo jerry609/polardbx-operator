@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	spec "polardbx-ui-backend/pkg/api/monitoringv2/spec"
+	spec "polardbx-ui-backend/pkg/api/monitoring/spec"
 )
 
 type stubProbe struct {

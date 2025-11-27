@@ -1,4 +1,4 @@
-package monitoringv2
+package monitoring
 
 import (
 	"bytes"
@@ -13,8 +13,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 
-	"polardbx-ui-backend/pkg/api/monitoringv2/service"
-	spec "polardbx-ui-backend/pkg/api/monitoringv2/spec"
+	"polardbx-ui-backend/pkg/api/monitoring/service"
+	spec "polardbx-ui-backend/pkg/api/monitoring/spec"
 )
 
 func init() {

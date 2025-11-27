@@ -15,7 +15,7 @@ import (
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	spec "polardbx-ui-backend/pkg/api/monitoringv2/spec"
+	spec "polardbx-ui-backend/pkg/api/monitoring/spec"
 	"polardbx-ui-backend/pkg/config"
 )
 

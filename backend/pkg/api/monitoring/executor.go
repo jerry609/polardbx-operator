@@ -1,4 +1,4 @@
-package monitoringv2
+package monitoring
 
 import (
 	"context"
@@ -9,8 +9,8 @@ import (
 
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 
-	"polardbx-ui-backend/pkg/api/monitoringv2/service"
-	spec "polardbx-ui-backend/pkg/api/monitoringv2/spec"
+	"polardbx-ui-backend/pkg/api/monitoring/service"
+	spec "polardbx-ui-backend/pkg/api/monitoring/spec"
 )
 
 type installationExecutor struct {
@@ -19,7 +19,7 @@ type installationExecutor struct {
 	detector func() service.DetectionService
 }
 
-var executorLogger = ctrllog.Log.WithName("monitoringv2").WithName("executor")
+var executorLogger = ctrllog.Log.WithName("monitoring").WithName("executor")
 
 func newInstallationExecutor(store *sessionStore) *installationExecutor {
 	return &installationExecutor{

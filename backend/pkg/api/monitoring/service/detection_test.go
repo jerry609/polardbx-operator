@@ -13,7 +13,7 @@ import (
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	spec "polardbx-ui-backend/pkg/api/monitoringv2/spec"
+	spec "polardbx-ui-backend/pkg/api/monitoring/spec"
 )
 
 func newScheme(t *testing.T) *runtime.Scheme {

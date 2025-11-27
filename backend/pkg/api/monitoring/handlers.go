@@ -1,4 +1,4 @@
-package monitoringv2
+package monitoring
 
 import (
 	"context"
@@ -24,8 +24,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 
-	"polardbx-ui-backend/pkg/api/monitoringv2/service"
-	spec "polardbx-ui-backend/pkg/api/monitoringv2/spec"
+	"polardbx-ui-backend/pkg/api/monitoring/service"
+	spec "polardbx-ui-backend/pkg/api/monitoring/spec"
 	"polardbx-ui-backend/pkg/api/util"
 	"polardbx-ui-backend/pkg/config"
 )
@@ -39,7 +39,7 @@ var (
 	customDiagnostics bool
 	autoFixSvc        = service.NewAutoFixService()
 	customAutoFix     bool
-	logger            = ctrllog.Log.WithName("monitoringv2")
+	logger            = ctrllog.Log.WithName("monitoring")
 )
 
 var (

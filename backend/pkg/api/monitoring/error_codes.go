@@ -1,4 +1,4 @@
-package monitoringv2
+package monitoring
 
 // ErrorCode represents a stable identifier for errors returned by the
 // monitoring installation APIs. Codes are shared with the Angular frontend so

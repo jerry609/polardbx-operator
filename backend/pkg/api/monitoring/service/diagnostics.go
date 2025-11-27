@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 
-	spec "polardbx-ui-backend/pkg/api/monitoringv2/spec"
+	spec "polardbx-ui-backend/pkg/api/monitoring/spec"
 )
 
 // SuggestedFixType标识推荐修复的形态，用于区分自动执行、脚本化或手动操作步骤。

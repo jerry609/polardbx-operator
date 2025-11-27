@@ -15,7 +15,7 @@ import (
 	api_logservice "polardbx-ui-backend/pkg/api/logservice"
 	api_logstrategy "polardbx-ui-backend/pkg/api/logstrategy"
 	api_monitor "polardbx-ui-backend/pkg/api/monitor"
-	api_monitoring_v2 "polardbx-ui-backend/pkg/api/monitoringv2"
+	api_monitoring "polardbx-ui-backend/pkg/api/monitoring"
 	api_pod "polardbx-ui-backend/pkg/api/pod"
 	api_prometheusrule "polardbx-ui-backend/pkg/api/prometheusrule"
 	api_restore "polardbx-ui-backend/pkg/api/restore"
@@ -246,22 +246,22 @@ func main() {
 		v1.GET("/logs/presets/:pattern", api_logs.PresetByPattern)
 
 		// Monitoring v2 workflow endpoints (unified - all v1 logic migrated to v2)
-		v1.POST("/monitoring/bootstrap", api_monitoring_v2.Bootstrap)
-		v1.GET("/monitoring/bootstrap/status", api_monitoring_v2.BootstrapStatus)
-		v1.GET("/monitoring/bootstrap/logs", api_monitoring_v2.GetBootstrapLogs)
-		v1.GET("/monitoring/status", api_monitoring_v2.Status)
-		v1.GET("/monitoring/preflight", api_monitoring_v2.DetectEnvironment) // preflight → detect
-		v1.DELETE("/monitoring/uninstall", api_monitoring_v2.Uninstall)
+		v1.POST("/monitoring/bootstrap", api_monitoring.Bootstrap)
+		v1.GET("/monitoring/bootstrap/status", api_monitoring.BootstrapStatus)
+		v1.GET("/monitoring/bootstrap/logs", api_monitoring.GetBootstrapLogs)
+		v1.GET("/monitoring/status", api_monitoring.Status)
+		v1.GET("/monitoring/preflight", api_monitoring.DetectEnvironment) // preflight → detect
+		v1.DELETE("/monitoring/uninstall", api_monitoring.Uninstall)
 
 		// v2 workflow endpoints
-		v1.GET("/monitoring/detect", api_monitoring_v2.DetectEnvironment)
-		v1.POST("/monitoring/plan", api_monitoring_v2.CreatePlan)
-		v1.POST("/monitoring/install", api_monitoring_v2.StartInstallation)
-		v1.GET("/monitoring/install/:sessionId/status", api_monitoring_v2.GetInstallStatus)
-		v1.GET("/monitoring/install/:sessionId/logs", api_monitoring_v2.GetBootstrapLogs)
-		v1.POST("/monitoring/install/:sessionId/retry", api_monitoring_v2.TriggerRetry)
-		v1.POST("/monitoring/diagnose", api_monitoring_v2.DiagnoseFailure)
-		v1.POST("/monitoring/auto-fix", api_monitoring_v2.ApplyAutoFix)
+		v1.GET("/monitoring/detect", api_monitoring.DetectEnvironment)
+		v1.POST("/monitoring/plan", api_monitoring.CreatePlan)
+		v1.POST("/monitoring/install", api_monitoring.StartInstallation)
+		v1.GET("/monitoring/install/:sessionId/status", api_monitoring.GetInstallStatus)
+		v1.GET("/monitoring/install/:sessionId/logs", api_monitoring.GetBootstrapLogs)
+		v1.POST("/monitoring/install/:sessionId/retry", api_monitoring.TriggerRetry)
+		v1.POST("/monitoring/diagnose", api_monitoring.DiagnoseFailure)
+		v1.POST("/monitoring/auto-fix", api_monitoring.ApplyAutoFix)
 
 		v1.GET("/monitoring/grafana/config", api_grafana.GetConfig)
 		v1.PUT("/monitoring/grafana/config", api_grafana.PutConfig)

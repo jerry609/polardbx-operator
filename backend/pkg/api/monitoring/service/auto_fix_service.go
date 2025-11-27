@@ -15,7 +15,7 @@ import (
 
 	"github.com/google/uuid"
 
-	spec "polardbx-ui-backend/pkg/api/monitoringv2/spec"
+	spec "polardbx-ui-backend/pkg/api/monitoring/spec"
 )
 
 const (
