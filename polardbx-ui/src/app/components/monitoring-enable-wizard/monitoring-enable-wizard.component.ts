@@ -953,7 +953,7 @@ const MAX_STATE_AGE_HOURS = 24;
                     nzShowIcon
                     style="margin-top: 16px;">
                     <div nz-alert-message>
-                      <i nz-icon nzType="bulb" style="margin-right: 4px;"></i>
+                      <i nz-icon nzType="bulb" nzTheme="outline" style="margin-right: 4px;"></i>
                       提示
                     </div>
                     <div nz-alert-description>
@@ -1031,7 +1031,7 @@ const MAX_STATE_AGE_HOURS = 24;
               
               <div class="recommendations" *ngIf="verificationResult.recommendations.length > 0">
                 <h5>
-                  <i nz-icon nzType="bulb" style="margin-right: 4px; color: #1890ff;"></i>
+                  <i nz-icon nzType="bulb" nzTheme="outline" style="margin-right: 4px; color: #1890ff;"></i>
                   建议
                 </h5>
                 <ul>
@@ -1118,7 +1118,7 @@ const MAX_STATE_AGE_HOURS = 24;
                   style="margin-top: 24px;"
                   *ngIf="failureDiagnosis.possibleCauses[0]?.autoFixable">
                   <div nz-alert-message>
-                    <i nz-icon nzType="bulb" style="margin-right: 4px;"></i>
+                    <i nz-icon nzType="bulb" nzTheme="outline" style="margin-right: 4px;"></i>
                     <strong>智能建议</strong>
                   </div>
                   <div nz-alert-description>

@@ -65,7 +65,7 @@ interface PrometheusRule {
       <div class="page-header">
         <div class="header-content">
           <h1 class="page-title">
-            <i nz-icon nzType="alert" class="page-icon"></i>
+            <i nz-icon nzType="alert" nzTheme="outline" class="page-icon"></i>
             PrometheusRule 规则查看
           </h1>
           <p class="page-description">查看和校验 Prometheus 告警规则配置</p>

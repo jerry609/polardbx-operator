@@ -412,7 +412,7 @@ interface DingTalkConfig {
 
             <div nz-result-extra *ngIf="applyResult?.success">
               <button nz-button nzType="primary" (click)="goToAlertManager()">
-                <i nz-icon nzType="alert"></i>
+                <i nz-icon nzType="alert" nzTheme="outline"></i>
                 查看 Alertmanager
               </button>
               <button nz-button nzType="default" (click)="goToAlertsManagement()">

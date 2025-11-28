@@ -93,7 +93,7 @@ import {
   DesktopOutline,
   ControlOutline
 } from '@ant-design/icons-angular/icons';
-import { PauseOutline, ExperimentOutline, LineChartOutline, BarChartOutline, FileAddOutline, HeartOutline } from '@ant-design/icons-angular/icons';
+import { PauseOutline, ExperimentOutline, LineChartOutline, BarChartOutline, FileAddOutline, HeartOutline, BulbOutline, AlertOutline } from '@ant-design/icons-angular/icons';
 
 import { routes } from './app.routes';
 import { authInterceptor } from './interceptors/auth.interceptor';
@@ -199,7 +199,9 @@ export const appConfig: ApplicationConfig = {
       LineChartOutline,
       BarChartOutline,
       FileAddOutline,
-      HeartOutline
+      HeartOutline,
+      BulbOutline,
+      AlertOutline
     ])
   ]
 };

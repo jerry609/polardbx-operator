@@ -58,7 +58,7 @@ import { filter } from 'rxjs/operators';
         </nz-tab>
         <nz-tab nzTitle="告警管理">
           <ng-template #nzTabHeading>
-            <i nz-icon nzType="alert"></i>
+            <i nz-icon nzType="alert" nzTheme="outline"></i>
             <span>告警管理</span>
           </ng-template>
         </nz-tab>
