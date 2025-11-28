@@ -4,6 +4,7 @@ import (
 	"context"
 
 	corev1 "k8s.io/api/core/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -24,4 +25,13 @@ func (r *K8sSystemRepository) ListNamespaces(ctx context.Context) ([]corev1.Name
 		return nil, err
 	}
 	return nsList.Items, nil
+}
+
+// ListStorageClasses 列出所有存储类
+func (r *K8sSystemRepository) ListStorageClasses(ctx context.Context) ([]storagev1.StorageClass, error) {
+	var scList storagev1.StorageClassList
+	if err := r.client.List(ctx, &scList, &client.ListOptions{}); err != nil {
+		return nil, err
+	}
+	return scList.Items, nil
 }

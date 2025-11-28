@@ -1,7 +1,10 @@
 package services
 
 import (
+	"fmt"
 	"net/http"
+	"regexp"
+	"strings"
 
 	polardbxv1 "github.com/alibaba/polardbx-operator/api/v1"
 	polardbxcommon "github.com/alibaba/polardbx-operator/api/v1/common"
@@ -15,6 +18,146 @@ import (
 	"polardbx-ui-backend/pkg/api/domain/polardbxclusters/k8srepo"
 	"polardbx-ui-backend/pkg/api/util"
 )
+
+// ValidationError 校验错误
+type ValidationError struct {
+	Field   string `json:"field"`
+	Message string `json:"message"`
+}
+
+// ValidateClusterCreationConfig 校验集群创建配置
+func ValidateClusterCreationConfig(config *ClusterCreationConfig) []ValidationError {
+	var errors []ValidationError
+
+	// 1. 名称校验
+	if config.Name == "" {
+		errors = append(errors, ValidationError{Field: "name", Message: "集群名称不能为空"})
+	} else if !isValidK8sName(config.Name) {
+		errors = append(errors, ValidationError{Field: "name", Message: "集群名称只能包含小写字母、数字和连字符，且必须以字母开头"})
+	} else if len(config.Name) > 63 {
+		errors = append(errors, ValidationError{Field: "name", Message: "集群名称不能超过63个字符"})
+	}
+
+	// 2. 命名空间校验
+	if config.Namespace != "" && !isValidK8sName(config.Namespace) {
+		errors = append(errors, ValidationError{Field: "namespace", Message: "命名空间格式不正确"})
+	}
+
+	// 3. 版本校验
+	if config.Version != "" && !isValidVersion(config.Version) {
+		errors = append(errors, ValidationError{Field: "version", Message: "版本格式不正确，应为 x.y.z 格式"})
+	}
+
+	// 4. 拓扑校验
+	if err := validateNodeConfig("topology.cn", config.Topology.CN, 100); err != nil {
+		errors = append(errors, *err)
+	}
+	if err := validateNodeConfig("topology.dn", config.Topology.DN, 100); err != nil {
+		errors = append(errors, *err)
+	}
+	if err := validateNodeConfig("topology.gms", config.Topology.GMS, 3); err != nil {
+		errors = append(errors, *err)
+	}
+	if config.Topology.CDC != nil {
+		if err := validateNodeConfig("topology.cdc", *config.Topology.CDC, 10); err != nil {
+			errors = append(errors, *err)
+		}
+	}
+
+	// 5. 存储校验
+	if config.Storage.Size != "" && !isValidStorageSize(config.Storage.Size) {
+		errors = append(errors, ValidationError{Field: "storage.size", Message: "存储大小格式不正确，应为如 10Gi, 100Gi, 1Ti 格式"})
+	}
+
+	// 6. 网络校验
+	if config.Network != nil {
+		if config.Network.ServiceType != "" &&
+			config.Network.ServiceType != "ClusterIP" &&
+			config.Network.ServiceType != "NodePort" &&
+			config.Network.ServiceType != "LoadBalancer" {
+			errors = append(errors, ValidationError{Field: "network.serviceType", Message: "服务类型必须是 ClusterIP, NodePort 或 LoadBalancer"})
+		}
+	}
+
+	// 7. 安全配置校验
+	if config.Security != nil {
+		if config.Security.EnableTLS && config.Security.SecretName == "" {
+			errors = append(errors, ValidationError{Field: "security.secretName", Message: "启用 TLS 时必须指定 Secret 名称"})
+		}
+	}
+
+	// 8. 镜像配置校验
+	if config.Image != nil {
+		if config.Image.PullPolicy != "" &&
+			config.Image.PullPolicy != "Always" &&
+			config.Image.PullPolicy != "IfNotPresent" &&
+			config.Image.PullPolicy != "Never" {
+			errors = append(errors, ValidationError{Field: "image.pullPolicy", Message: "拉取策略必须是 Always, IfNotPresent 或 Never"})
+		}
+	}
+
+	return errors
+}
+
+// isValidK8sName 检查是否是有效的 Kubernetes 名称
+func isValidK8sName(name string) bool {
+	pattern := regexp.MustCompile(`^[a-z][a-z0-9-]*[a-z0-9]$|^[a-z]$`)
+	return pattern.MatchString(name)
+}
+
+// isValidVersion 检查版本格式
+func isValidVersion(version string) bool {
+	pattern := regexp.MustCompile(`^\d+\.\d+\.\d+(-[a-zA-Z0-9]+)?$`)
+	return pattern.MatchString(version)
+}
+
+// isValidStorageSize 检查存储大小格式
+func isValidStorageSize(size string) bool {
+	pattern := regexp.MustCompile(`^\d+(\.\d+)?(Ki|Mi|Gi|Ti|Pi|Ei)?$`)
+	return pattern.MatchString(size)
+}
+
+// isValidResourceQuantity 检查资源数量格式 (CPU/Memory)
+func isValidResourceQuantity(quantity string) bool {
+	if quantity == "" {
+		return true
+	}
+	cpuPattern := regexp.MustCompile(`^\d+(\.\d+)?(m)?$`)
+	memPattern := regexp.MustCompile(`^\d+(\.\d+)?(Ki|Mi|Gi|Ti|Pi|Ei|K|M|G|T|P|E)?$`)
+	return cpuPattern.MatchString(quantity) || memPattern.MatchString(quantity)
+}
+
+// validateNodeConfig 校验节点配置
+func validateNodeConfig(fieldPrefix string, node ClusterNodeConfig, maxReplicas int) *ValidationError {
+	if node.Replicas < 1 {
+		return &ValidationError{
+			Field:   fieldPrefix + ".replicas",
+			Message: fmt.Sprintf("%s 副本数必须至少为 1", fieldPrefix),
+		}
+	}
+
+	if node.Replicas > maxReplicas {
+		return &ValidationError{
+			Field:   fieldPrefix + ".replicas",
+			Message: fmt.Sprintf("%s 副本数不能超过 %d", fieldPrefix, maxReplicas),
+		}
+	}
+
+	if node.Resources.CPU != "" && !isValidResourceQuantity(node.Resources.CPU) {
+		return &ValidationError{
+			Field:   fieldPrefix + ".resources.cpu",
+			Message: "CPU 资源格式不正确",
+		}
+	}
+	if node.Resources.Memory != "" && !isValidResourceQuantity(node.Resources.Memory) {
+		return &ValidationError{
+			Field:   fieldPrefix + ".resources.memory",
+			Message: "内存资源格式不正确",
+		}
+	}
+
+	return nil
+}
 
 // --- Cluster CRUD (行为保持不变) ---
 
@@ -73,7 +216,16 @@ func (s *ClusterService) CreateFromConfig(c *gin.Context) {
 
 	var config ClusterCreationConfig
 	if err := c.ShouldBindJSON(&config); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse cluster config", "details": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "配置解析失败", "details": err.Error()})
+		return
+	}
+
+	// 参数校验
+	if validationErrors := ValidateClusterCreationConfig(&config); len(validationErrors) > 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":            "配置校验失败",
+			"validationErrors": validationErrors,
+		})
 		return
 	}
 
@@ -84,7 +236,13 @@ func (s *ClusterService) CreateFromConfig(c *gin.Context) {
 	defer cancel()
 	created, err := k8srepo.NewClusterRepository().Create(ctx, cli, ns, cluster)
 	if err != nil {
-		util.HandleK8sError(c, "failed to create cluster", err)
+		// 提取更有意义的错误信息
+		errMsg := err.Error()
+		if strings.Contains(errMsg, "already exists") {
+			c.JSON(http.StatusConflict, gin.H{"error": "集群已存在", "details": fmt.Sprintf("名为 %s 的集群在命名空间 %s 中已存在", config.Name, ns)})
+			return
+		}
+		util.HandleK8sError(c, "创建集群失败", err)
 		return
 	}
 	c.JSON(http.StatusCreated, created)

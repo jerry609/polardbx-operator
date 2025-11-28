@@ -1420,6 +1420,17 @@ export class ApiService {
     );
   }
 
+  // 获取各集群备份状态（最近备份、下次计划、RPO）
+  getClusterBackupState(namespace?: string): Observable<{ namespace: string; total: number; clusters: any[] }> {
+    const params = namespace ? `?namespace=${encodeURIComponent(namespace)}` : '';
+    return this.handleRequest(
+      this.http.get<{ namespace: string; total: number; clusters: any[] }>(`${this.baseUrl}/backups/cluster-state${params}`, { headers: this.getHeaders() }),
+      LoadingKeys.BACKUPS_LIST,
+      '/backups/cluster-state',
+      'GET'
+    );
+  }
+
   // 获取 Binlog 聚合指标（可选估算吞吐、时间窗、返回列表）
   getBinlogMetrics(namespace: string, estimateThroughput = false, windowSeconds = 300): Observable<any> {
     const url = `${this.baseUrl}/backups/binlog/metrics`;
@@ -1517,6 +1528,16 @@ export class ApiService {
       LoadingKeys.CLUSTER_DETAIL,
       `/diagnostics/${namespace}/${id}/download`,
       'GET'
+    );
+  }
+
+  deleteDiagnosisReport(namespace: string, id: string): Observable<any> {
+    const url = `${this.baseUrl}/diagnostics/${encodeURIComponent(namespace)}/${encodeURIComponent(id)}`;
+    return this.handleRequest(
+      this.http.delete(url, { headers: this.getHeaders() }),
+      LoadingKeys.CLUSTER_DETAIL,
+      `/diagnostics/${namespace}/${id}`,
+      'DELETE'
     );
   }
 
@@ -2223,4 +2244,65 @@ export class ApiService {
     );
   }
 
+  // ==================== 系统配置 API (用于集群创建向导) ====================
+
+  /**
+   * 获取 Kubernetes 集群中可用的 StorageClass 列表
+   */
+  getStorageClasses(): Observable<any[]> {
+    const req = this.http.get<any>(`${this.baseUrl}/platform/system/storage-classes`, { headers: this.getHeaders() })
+      .pipe(
+        map((res: any) => {
+          if (Array.isArray(res)) return res;
+          if (Array.isArray(res?.items)) return res.items;
+          return [];
+        })
+      );
+    return this.handleRequest(
+      req,
+      LoadingKeys.SYSTEM,
+      '/platform/system/storage-classes',
+      'GET'
+    );
+  }
+
+  /**
+   * 获取支持的 PolarDB-X 版本列表
+   */
+  getPolarDBXVersions(): Observable<any[]> {
+    const req = this.http.get<any>(`${this.baseUrl}/platform/system/polardbx-versions`, { headers: this.getHeaders() })
+      .pipe(
+        map((res: any) => {
+          if (Array.isArray(res)) return res;
+          if (Array.isArray(res?.items)) return res.items;
+          return [];
+        })
+      );
+    return this.handleRequest(
+      req,
+      LoadingKeys.SYSTEM,
+      '/platform/system/polardbx-versions',
+      'GET'
+    );
+  }
+
+  /**
+   * 获取平台命名空间列表（用于集群创建向导）
+   */
+  getPlatformNamespaces(): Observable<any[]> {
+    const req = this.http.get<any>(`${this.baseUrl}/platform/system/namespaces`, { headers: this.getHeaders() })
+      .pipe(
+        map((res: any) => {
+          if (Array.isArray(res)) return res;
+          if (Array.isArray(res?.items)) return res.items;
+          return [];
+        })
+      );
+    return this.handleRequest(
+      req,
+      LoadingKeys.SYSTEM,
+      '/platform/system/namespaces',
+      'GET'
+    );
+  }
 }

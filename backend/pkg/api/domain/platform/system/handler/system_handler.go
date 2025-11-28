@@ -70,3 +70,37 @@ func (h *SystemHandler) listNamespaces(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"items": items, "count": len(items)})
 }
+
+// ListStorageClasses 返回所有可用的存储类
+func ListStorageClasses(c *gin.Context) {
+	h, ok := NewSystemHandlerFromClient(c)
+	if !ok {
+		c.JSON(http.StatusOK, gin.H{"items": []any{}, "count": 0, "warning": "k8s client not initialized"})
+		return
+	}
+	h.listStorageClasses(c)
+}
+
+// listStorageClasses 实例方法处理存储类列表
+func (h *SystemHandler) listStorageClasses(c *gin.Context) {
+	items, err := h.service.ListStorageClasses(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{"items": []any{}, "count": 0, "warning": "failed to list storage classes", "details": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"items": items, "count": len(items)})
+}
+
+// ListPolarDBXVersions 返回支持的 PolarDB-X 版本列表
+func ListPolarDBXVersions(c *gin.Context) {
+	h, ok := NewSystemHandlerFromClient(c)
+	if !ok {
+		// 即使没有 k8s client，版本列表也可以返回
+		svc := service.NewSystemService(nil)
+		versions := svc.GetPolarDBXVersions()
+		c.JSON(http.StatusOK, gin.H{"items": versions, "count": len(versions)})
+		return
+	}
+	versions := h.service.GetPolarDBXVersions()
+	c.JSON(http.StatusOK, gin.H{"items": versions, "count": len(versions)})
+}

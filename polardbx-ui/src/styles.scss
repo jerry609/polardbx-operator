@@ -101,6 +101,15 @@ body {
   z-index: 99999 !important; 
 }
 
+/* mat-tooltip 确保显示在最上层 */
+.mat-mdc-tooltip {
+  z-index: 100001 !important;
+}
+
+.mat-mdc-tooltip-surface {
+  z-index: 100001 !important;
+}
+
 /* 特殊类：强制面板向上展开 */
 .force-above-panel {
   z-index: 100000 !important;

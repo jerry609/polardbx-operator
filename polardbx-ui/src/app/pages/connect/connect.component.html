@@ -1,91 +1,103 @@
 <div class="connect-container">
-  <div class="background-animation">
-    <div class="bg-shape shape-1"></div>
-    <div class="bg-shape shape-2"></div>
-    <div class="bg-shape shape-3"></div>
-  </div>
-  
-  <mat-card class="connect-card">
-    <mat-card-header class="text-center">
-      <div class="brand-logo">
-        <div class="logo-wrapper">
-          <mat-icon class="brand-icon">cloud_queue</mat-icon>
-          <div class="logo-pulse"></div>
+  <!-- 左侧品牌区域 -->
+  <div class="brand-section">
+    <div class="brand-content">
+      <div class="brand-logo-large">
+        <div class="logo-icon-container">
+          <span nz-icon nzType="cloud-server" nzTheme="outline" class="logo-icon"></span>
         </div>
       </div>
-      <mat-card-title>连接至 Kubernetes 集群</mat-card-title>
-      <mat-card-subtitle>请提供您的 kubeconfig 配置文件以开始管理 PolarDB-X 集群</mat-card-subtitle>
-    </mat-card-header>
-    
-    <mat-card-content>
-      <!-- 状态指示器 -->
-      <div class="connection-status" [class.valid]="validateKubeconfig()" [class.invalid]="kubeconfig.trim() && !validateKubeconfig()">
-        <mat-icon>{{ validateKubeconfig() ? 'check_circle' : (kubeconfig.trim() ? 'error' : 'info') }}</mat-icon>
-        <span>
-          {{ validateKubeconfig() ? 'Kubeconfig 格式验证通过' : 
-             (kubeconfig.trim() ? 'Kubeconfig 格式不正确' : '请输入有效的 kubeconfig 配置') }}
-        </span>
+      <h1 class="brand-title">PolarDB-X 管理平台</h1>
+      <p class="brand-subtitle">
+        企业级云原生分布式数据库管理控制台，提供集群运维、备份恢复、监控告警等全方位管理能力
+      </p>
+      <div class="brand-features">
+        <div class="feature-item">
+          <div class="feature-icon">
+            <span nz-icon nzType="database" nzTheme="outline"></span>
+          </div>
+          <div class="feature-text">
+            <h4>集群管理</h4>
+            <p>一站式管理多个 PolarDB-X 集群</p>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">
+            <span nz-icon nzType="sync" nzTheme="outline"></span>
+          </div>
+          <div class="feature-text">
+            <h4>备份恢复</h4>
+            <p>全量备份、增量备份、时间点恢复</p>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">
+            <span nz-icon nzType="dashboard" nzTheme="outline"></span>
+          </div>
+          <div class="feature-text">
+            <h4>监控告警</h4>
+            <p>实时监控集群状态与性能指标</p>
+          </div>
+        </div>
       </div>
+    </div>
+  </div>
+
+  <!-- 右侧表单区域 -->
+  <div class="form-section">
+    <nz-card class="connect-card" [nzBordered]="false">
+      <div class="card-header">
+        <h2 class="card-title">连接 Kubernetes 集群</h2>
+        <p class="card-subtitle">请提供您的 kubeconfig 配置以开始管理 PolarDB-X</p>
+      </div>
+      
+      <!-- 状态指示器 -->
+      <nz-alert
+        class="connection-status"
+        [nzType]="validateKubeconfig() ? 'success' : (kubeconfig.trim() ? 'error' : 'info')"
+        [nzMessage]="validateKubeconfig() ? 'Kubeconfig 格式验证通过' : (kubeconfig.trim() ? 'Kubeconfig 格式不正确' : '请输入有效的 kubeconfig 配置')"
+        nzShowIcon>
+      </nz-alert>
 
       <!-- 输入方式选择 -->
-      <mat-button-toggle-group 
-        [(value)]="inputMethod" 
-        (change)="onInputMethodChange()"
-        class="input-method-selector"
-        aria-label="选择输入方式">
-        <mat-button-toggle value="text" class="method-toggle">
-          <mat-icon>edit_note</mat-icon>
-          <span>文本输入</span>
-        </mat-button-toggle>
-        <mat-button-toggle value="file" class="method-toggle">
-          <mat-icon>upload_file</mat-icon>
-          <span>文件上传</span>
-        </mat-button-toggle>
-      </mat-button-toggle-group>
+      <nz-segmented 
+        [nzOptions]="inputOptions"
+        [(ngModel)]="inputMethod"
+        (nzValueChange)="onInputMethodChange($event)"
+        class="input-method-selector">
+      </nz-segmented>
 
       <!-- 文本输入方式 -->
       <div *ngIf="inputMethod === 'text'" class="input-section text-input-section">
-        <mat-form-field appearance="outline" class="full-width kubeconfig-field">
-          <mat-label>Kubeconfig 内容</mat-label>
+        <nz-input-group [nzSuffix]="suffixTemplate" class="kubeconfig-input-group">
           <textarea 
-            matInput 
-            [(ngModel)]="kubeconfig" 
+            nz-input 
+            [(ngModel)]="kubeconfig"
             placeholder="apiVersion: v1
 kind: Config
 clusters:
 - name: my-cluster
   cluster:
     server: https://kubernetes.example.com
-    certificate-authority-data: LS0t...
-users:
-- name: my-user
-  user:
-    client-certificate-data: LS0t...
-    client-key-data: LS0t...
-contexts:
-- name: my-context
-  context:
-    cluster: my-cluster
-    user: my-user
-current-context: my-context"
-            rows="16"
+..."
+            [nzAutosize]="{ minRows: 12, maxRows: 16 }"
             class="kubeconfig-textarea">
           </textarea>
-          <mat-hint>
-            <mat-icon class="hint-icon">lightbulb</mat-icon>
-            请确保 kubeconfig 包含 clusters、users、contexts 等完整配置信息
-          </mat-hint>
-        </mat-form-field>
+        </nz-input-group>
+        <ng-template #suffixTemplate>
+          <span nz-icon nzType="bulb" nzTheme="outline" class="hint-icon"></span>
+        </ng-template>
+        <p class="input-hint">
+          <span nz-icon nzType="info-circle" nzTheme="outline"></span>
+          请确保包含 clusters、users、contexts 等完整配置
+        </p>
       </div>
 
       <!-- 文件上传方式 -->
       <div *ngIf="inputMethod === 'file'" class="input-section file-input-section">
         <div
           class="file-upload-area"
-          role="button"
-          tabindex="0"
           (click)="fileInput.click()"
-          (keydown.enter)="fileInput.click()"
           (dragover)="onDragOver($event)"
           (dragleave)="onDragLeave($event)"
           (drop)="onDrop($event)"
@@ -94,8 +106,7 @@ current-context: my-context"
           
           <div class="upload-content">
             <div class="upload-icon-wrapper">
-              <mat-icon class="upload-icon">{{ selectedFile ? 'check_circle' : 'cloud_upload' }}</mat-icon>
-              <div class="upload-ripple" [class.active]="isDragOver"></div>
+              <span nz-icon [nzType]="selectedFile ? 'check-circle' : 'cloud-upload'" nzTheme="outline" class="upload-icon"></span>
             </div>
             
             <div class="upload-text-wrapper">
@@ -103,7 +114,7 @@ current-context: my-context"
                 <span *ngIf="!selectedFile">拖拽文件到此处或点击选择</span>
                 <span *ngIf="selectedFile" class="selected-file-text">已选择: {{ selectedFile.name }}</span>
               </p>
-              <p class="upload-hint">支持 .yaml、.yml、.config 文件或无扩展名的 kubeconfig 文件</p>
+              <p class="upload-hint">支持 .yaml, .yml, .config 或 kubeconfig 文件</p>
             </div>
           </div>
           
@@ -118,96 +129,123 @@ current-context: my-context"
         <!-- 文件信息显示 -->
         <div *ngIf="selectedFile" class="file-info">
           <div class="file-icon-wrapper">
-            <mat-icon class="file-icon">description</mat-icon>
+            <span nz-icon nzType="file-text" nzTheme="outline" class="file-icon"></span>
           </div>
           <div class="file-details">
             <p class="file-name">{{ selectedFile.name }}</p>
             <p class="file-size">{{ getFileSize(selectedFile.size) }}</p>
           </div>
-          <button mat-icon-button (click)="clearFile()" matTooltip="清除已选文件" class="clear-button">
-            <mat-icon>close</mat-icon>
+          <button nz-button nzType="text" nzShape="circle" nz-tooltip nzTooltipTitle="清除文件" (click)="clearFile()" class="clear-button">
+            <span nz-icon nzType="close" nzTheme="outline"></span>
           </button>
         </div>
 
-        <!-- 文件内容预览 -->
-        <div *ngIf="kubeconfig && inputMethod === 'file'" class="file-preview">
-          <mat-expansion-panel class="preview-panel">
-            <mat-expansion-panel-header>
-              <mat-panel-title>
-                <mat-icon>visibility</mat-icon>
-                <span class="panel-title-text">文件内容预览</span>
-              </mat-panel-title>
-              <mat-panel-description>
-                点击展开查看 kubeconfig 内容
-              </mat-panel-description>
-            </mat-expansion-panel-header>
-            <div class="config-preview-wrapper">
-              <pre class="config-preview">{{ kubeconfig }}</pre>
-              <button mat-icon-button matTooltip="复制到剪贴板" class="copy-button" (click)="copyToClipboard()">
-                <mat-icon>content_copy</mat-icon>
-              </button>
+        <!-- Docker Desktop 风格的文件内容预览 -->
+        <div *ngIf="kubeconfig && inputMethod === 'file'" class="file-preview docker-style">
+          <div class="code-editor-container">
+            <!-- 工具栏 -->
+            <div class="editor-toolbar">
+              <div class="toolbar-left">
+                <span class="file-badge">
+                  <span nz-icon nzType="file-text" nzTheme="outline"></span>
+                  {{ selectedFile?.name || 'kubeconfig' }}
+                </span>
+                <nz-tag nzColor="processing">YAML</nz-tag>
+                <span class="line-count">{{ getLineCount() }} 行</span>
+              </div>
+              <div class="toolbar-right">
+                <button nz-button nzType="text" nzShape="circle" 
+                        nz-tooltip nzTooltipTitle="复制到剪贴板" nzTooltipPlacement="top"
+                        (click)="copyToClipboard()"
+                        class="toolbar-btn copy-btn">
+                  <span nz-icon nzType="copy" nzTheme="outline"></span>
+                </button>
+                <button nz-button nzType="text" nzShape="circle"
+                        nz-tooltip nzTooltipTitle="在新窗口中查看" nzTooltipPlacement="top"
+                        (click)="openInModal()"
+                        class="toolbar-btn">
+                  <span nz-icon nzType="expand" nzTheme="outline"></span>
+                </button>
+              </div>
             </div>
-          </mat-expansion-panel>
+            
+            <!-- 代码区域 -->
+            <div class="code-content">
+              <div class="line-numbers">
+                <span *ngFor="let line of getLineNumbers()" class="line-number">{{ line }}</span>
+              </div>
+              <div class="code-area">
+                <pre class="code-text"><code [innerHTML]="getHighlightedYaml()"></code></pre>
+              </div>
+            </div>
+            
+            <!-- 底部状态栏 -->
+            <div class="editor-statusbar">
+              <span class="status-item">
+                <span nz-icon nzType="check-circle" nzTheme="outline"></span>
+                格式有效
+              </span>
+              <span class="status-item">
+                {{ getFileSize(selectedFile?.size || kubeconfig.length) }}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- 快速连接示例 -->
-      <div class="quick-connect-section">
-        <mat-expansion-panel class="example-panel">
-          <mat-expansion-panel-header>
-            <mat-panel-title>
-              <mat-icon>help_outline</mat-icon>
-              <span class="panel-title-text">需要帮助？</span>
-            </mat-panel-title>
-            <mat-panel-description>
-              查看 kubeconfig 获取方法和示例
-            </mat-panel-description>
-          </mat-expansion-panel-header>
+      <!-- 帮助信息 -->
+      <nz-collapse class="help-section" nzGhost>
+        <nz-collapse-panel 
+          nzHeader="如何获取 kubeconfig？" 
+          [nzExtra]="helpIcon"
+          [nzActive]="false">
           <div class="help-content">
-            <h4>如何获取 kubeconfig？</h4>
             <div class="help-item">
-              <mat-icon>terminal</mat-icon>
+              <span nz-icon nzType="code" nzTheme="outline"></span>
               <div class="help-text">
-                <strong>命令行获取：</strong>
+                <strong>命令行获取</strong>
                 <code>kubectl config view --raw</code>
               </div>
             </div>
             <div class="help-item">
-              <mat-icon>folder</mat-icon>
+              <span nz-icon nzType="folder-open" nzTheme="outline"></span>
               <div class="help-text">
-                <strong>文件位置：</strong>
+                <strong>默认文件路径</strong>
                 <code>~/.kube/config</code>
               </div>
             </div>
             <div class="help-item">
-              <mat-icon>cloud</mat-icon>
+              <span nz-icon nzType="cloud" nzTheme="outline"></span>
               <div class="help-text">
-                <strong>云平台：</strong>
-                从阿里云等控制台下载 kubeconfig 文件
+                <strong>云平台控制台</strong>
+                <code>从阿里云 ACK 控制台下载</code>
               </div>
             </div>
           </div>
-        </mat-expansion-panel>
+        </nz-collapse-panel>
+      </nz-collapse>
+      <ng-template #helpIcon>
+        <span nz-icon nzType="question-circle" nzTheme="outline"></span>
+      </ng-template>
+
+      <!-- 连接按钮 -->
+      <div class="card-actions">
+        <button 
+          nz-button 
+          nzType="primary"
+          nzSize="large"
+          [nzLoading]="isConnecting"
+          [disabled]="!kubeconfig.trim() || !validateKubeconfig()"
+          (click)="onConnect()"
+          class="connect-button">
+          <span nz-icon [nzType]="validateKubeconfig() ? 'login' : 'stop'" nzTheme="outline" *ngIf="!isConnecting"></span>
+          {{ isConnecting ? '正在连接...' : (validateKubeconfig() ? '连接集群' : '格式验证失败') }}
+        </button>
       </div>
-    </mat-card-content>
-    
-    <mat-card-actions align="end" class="card-actions">
-      <button 
-        mat-raised-button 
-        color="primary" 
-        (click)="onConnect()"
-        [disabled]="isConnecting || !kubeconfig.trim() || !validateKubeconfig()"
-        class="connect-button">
-        <mat-progress-spinner 
-          *ngIf="isConnecting" 
-          mode="indeterminate" 
-          diameter="20"
-          class="button-spinner">
-        </mat-progress-spinner>
-        <mat-icon *ngIf="!isConnecting">{{ validateKubeconfig() ? 'link' : 'link_off' }}</mat-icon>
-        <span *ngIf="!isConnecting">{{ validateKubeconfig() ? '连接集群' : '格式不正确' }}</span>
-        <span *ngIf="isConnecting">正在连接...</span>
-      </button>
-    </mat-card-actions>
-  </mat-card>
+
+      <div class="footer-text">
+        <p>PolarDB-X Operator 管理平台 · <a href="https://doc.polardbx.com" target="_blank">查看文档</a></p>
+      </div>
+    </nz-card>
+  </div>
 </div>

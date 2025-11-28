@@ -123,6 +123,7 @@ func main() {
 		v1.DELETE("/backups/:namespace/:name", domain_pxc.DeleteBackup)
 		v1.POST("/backups/:namespace/:name/force-delete", domain_pxc.ForceDeleteBackup)
 		v1.GET("/backups/overview", domain_pxc.GetBackupOverview)
+		v1.GET("/backups/cluster-state", domain_pxc.GetClusterBackupState)
 		v1.GET("/backups/binlog/metrics", domain_pxc.GetBinlogMetrics)
 
 		// Settings for dashboard thresholds
@@ -194,6 +195,8 @@ func main() {
 		v1.GET("/diagnostics/:namespace/:id/status", domain_diagnostics.GetStatus)
 		v1.GET("/diagnostics/reports", domain_diagnostics.ListReports)
 		v1.GET("/diagnostics/:namespace/:id/download", domain_diagnostics.Download)
+		v1.GET("/diagnostics/:namespace/:id/file", domain_diagnostics.GetFile)
+		v1.DELETE("/diagnostics/:namespace/:id", domain_diagnostics.DeleteJob)
 
 		// ParameterTemplate routes → domain
 		v1.GET("/parameter-templates", domain_pxc.ListTemplates)

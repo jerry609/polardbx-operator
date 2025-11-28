@@ -21,6 +21,8 @@ func RegisterRoutes(v1 *gin.RouterGroup) {
 	// System info
 	p.GET("/system/context", domain_system.ContextInfo)
 	p.GET("/system/namespaces", domain_system.ListNamespaces)
+	p.GET("/system/storage-classes", domain_system.ListStorageClasses)
+	p.GET("/system/polardbx-versions", domain_system.ListPolarDBXVersions)
 	// Monitoring
 	p.POST("/monitoring/bootstrap", domain_monitoring.Bootstrap)
 	p.GET("/monitoring/bootstrap/status", domain_monitoring.BootstrapStatus)

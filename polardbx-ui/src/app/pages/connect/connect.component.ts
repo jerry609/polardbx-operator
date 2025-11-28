@@ -1,20 +1,74 @@
 import { Component, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatButtonToggleModule } from '@angular/material/button-toggle';
-import { MatIconModule } from '@angular/material/icon';
-import { MatExpansionModule } from '@angular/material/expansion';
-import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { ApiService } from '../../services/api.service';
-import { AuthService } from '../../services/auth.service';
 import { CommonModule } from '@angular/common';
 import { finalize } from 'rxjs/operators';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+
+// NG-ZORRO 组件
+import { NzCardModule } from 'ng-zorro-antd/card';
+import { NzButtonModule } from 'ng-zorro-antd/button';
+import { NzInputModule } from 'ng-zorro-antd/input';
+import { NzIconModule, NzIconService } from 'ng-zorro-antd/icon';
+import { NzMessageService } from 'ng-zorro-antd/message';
+import { NzToolTipModule } from 'ng-zorro-antd/tooltip';
+import { NzSpinModule } from 'ng-zorro-antd/spin';
+import { NzCollapseModule } from 'ng-zorro-antd/collapse';
+import { NzSegmentedModule } from 'ng-zorro-antd/segmented';
+import { NzAlertModule } from 'ng-zorro-antd/alert';
+import { NzTagModule } from 'ng-zorro-antd/tag';
+import { NzDividerModule } from 'ng-zorro-antd/divider';
+
+// 图标导入
+import {
+  CloudServerOutline,
+  DatabaseOutline,
+  SyncOutline,
+  DashboardOutline,
+  CloudUploadOutline,
+  CheckCircleOutline,
+  FileTextOutline,
+  CloseOutline,
+  CopyOutline,
+  ExpandOutline,
+  CodeOutline,
+  FolderOpenOutline,
+  CloudOutline,
+  QuestionCircleOutline,
+  LoginOutline,
+  StopOutline,
+  InfoCircleOutline,
+  BulbOutline,
+  UploadOutline,
+  EditOutline
+} from '@ant-design/icons-angular/icons';
+
+import { ApiService } from '../../services/api.service';
+import { AuthService } from '../../services/auth.service';
+
+// 需要使用的图标列表
+const icons = [
+  CloudServerOutline,
+  DatabaseOutline,
+  SyncOutline,
+  DashboardOutline,
+  CloudUploadOutline,
+  CheckCircleOutline,
+  FileTextOutline,
+  CloseOutline,
+  CopyOutline,
+  ExpandOutline,
+  CodeOutline,
+  FolderOpenOutline,
+  CloudOutline,
+  QuestionCircleOutline,
+  LoginOutline,
+  StopOutline,
+  InfoCircleOutline,
+  BulbOutline,
+  UploadOutline,
+  EditOutline
+];
 
 @Component({
   selector: 'app-connect',
@@ -22,16 +76,17 @@ import { finalize } from 'rxjs/operators';
   imports: [
     CommonModule,
     FormsModule,
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatSnackBarModule,
-    MatButtonToggleModule,
-    MatIconModule,
-    MatExpansionModule,
-    MatTooltipModule,
-    MatProgressSpinnerModule
+    NzCardModule,
+    NzButtonModule,
+    NzInputModule,
+    NzIconModule,
+    NzToolTipModule,
+    NzSpinModule,
+    NzCollapseModule,
+    NzSegmentedModule,
+    NzAlertModule,
+    NzTagModule,
+    NzDividerModule
   ],
   templateUrl: './connect.component.html',
   styleUrls: ['./connect.component.scss']
@@ -39,14 +94,26 @@ import { finalize } from 'rxjs/operators';
 export class ConnectComponent {
   private apiService = inject(ApiService);
   private router = inject(Router);
-  private snackBar = inject(MatSnackBar);
+  private message = inject(NzMessageService);
   private authService = inject(AuthService);
+  private sanitizer = inject(DomSanitizer);
+  private iconService = inject(NzIconService);
+
+  constructor() {
+    // 注册图标
+    this.iconService.addIcon(...icons);
+  }
 
   kubeconfig = '';
-  inputMethod: 'text' | 'file' = 'file';
+  inputMethod: 'file' | 'text' = 'file';
+  inputOptions = [
+    { label: '上传文件', value: 'file', icon: 'upload' },
+    { label: '文本输入', value: 'text', icon: 'edit' }
+  ];
   selectedFile: File | null = null;
   isConnecting = false;
   isDragOver = false;
+  previewExpanded = true;
 
   onFileSelected(event: any): void {
     const file: File = event.target.files[0];
@@ -86,10 +153,8 @@ export class ConnectComponent {
     }
   }
 
-  onInputMethodChange(method?: 'text' | 'file'): void {
-    if (method) {
-      this.inputMethod = method;
-    }
+  onInputMethodChange(value: string | number): void {
+    this.inputMethod = value as 'file' | 'text';
     this.kubeconfig = '';
     this.selectedFile = null;
   }
@@ -100,7 +165,7 @@ export class ConnectComponent {
   }
 
   getFileSize(bytes: number): string {
-    if (bytes === 0) return '0 Bytes';
+    if (!bytes || bytes === 0) return '0 Bytes';
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
@@ -112,9 +177,7 @@ export class ConnectComponent {
       return false;
     }
     
-    // 基本的 YAML 格式检查
     try {
-      // 检查是否包含基本的 kubeconfig 字段
       const hasApiVersion = this.kubeconfig.includes('apiVersion');
       const hasClusters = this.kubeconfig.includes('clusters');
       const hasUsers = this.kubeconfig.includes('users');
@@ -129,32 +192,143 @@ export class ConnectComponent {
   copyToClipboard(): void {
     if (this.kubeconfig) {
       navigator.clipboard.writeText(this.kubeconfig).then(() => {
-        this.snackBar.open('已复制到剪贴板', '关闭', {
-          duration: 2000
-        });
+        this.message.success('已复制到剪贴板');
       }).catch(err => {
         console.error('复制失败:', err);
-        this.snackBar.open('复制失败', '关闭', {
-          duration: 2000
-        });
+        this.message.error('复制失败');
       });
     }
   }
 
-  onConnect() {
+  getLineCount(): number {
+    if (!this.kubeconfig) return 0;
+    return this.kubeconfig.split('\n').length;
+  }
+
+  getLineNumbers(): number[] {
+    const count = this.getLineCount();
+    return Array.from({ length: count }, (_, i) => i + 1);
+  }
+
+  getHighlightedYaml(): SafeHtml {
+    if (!this.kubeconfig) return '';
+    
+    const lines = this.kubeconfig.split('\n');
+    const highlightedLines = lines.map(line => this.highlightYamlLine(line));
+    return this.sanitizer.bypassSecurityTrustHtml(highlightedLines.join('\n'));
+  }
+
+  private highlightYamlLine(line: string): string {
+    if (!line.trim()) return line;
+
+    if (line.trim().startsWith('#')) {
+      return `<span class="yaml-comment">${this.escapeHtml(line)}</span>`;
+    }
+
+    const colonIndex = line.indexOf(':');
+    if (colonIndex !== -1) {
+      const key = line.substring(0, colonIndex);
+      const rest = line.substring(colonIndex);
+      
+      const listMatch = key.match(/^(\s*-\s*)/);
+      if (listMatch) {
+        const prefix = listMatch[1];
+        const actualKey = key.substring(prefix.length);
+        return `<span class="yaml-list">${this.escapeHtml(prefix)}</span><span class="yaml-key">${this.escapeHtml(actualKey)}</span>${this.highlightValue(rest)}`;
+      }
+      
+      return `<span class="yaml-key">${this.escapeHtml(key)}</span>${this.highlightValue(rest)}`;
+    }
+
+    const listOnlyMatch = line.match(/^(\s*-\s*)(.*)$/);
+    if (listOnlyMatch) {
+      return `<span class="yaml-list">${this.escapeHtml(listOnlyMatch[1])}</span>${this.highlightValue(': ' + listOnlyMatch[2]).substring(1)}`;
+    }
+
+    return this.escapeHtml(line);
+  }
+
+  private highlightValue(rest: string): string {
+    const colonMatch = rest.match(/^(:\s*)(.*)/);
+    if (!colonMatch) return this.escapeHtml(rest);
+    
+    const colon = colonMatch[1];
+    const value = colonMatch[2];
+    
+    if (!value.trim()) {
+      return `<span class="yaml-colon">${this.escapeHtml(colon)}</span>`;
+    }
+    
+    if (value.startsWith('"') || value.startsWith("'")) {
+      return `<span class="yaml-colon">${this.escapeHtml(colon)}</span><span class="yaml-string">${this.escapeHtml(value)}</span>`;
+    }
+    
+    if (/^(true|false)$/i.test(value.trim())) {
+      return `<span class="yaml-colon">${this.escapeHtml(colon)}</span><span class="yaml-boolean">${this.escapeHtml(value)}</span>`;
+    }
+    
+    if (/^-?\d+(\.\d+)?$/.test(value.trim())) {
+      return `<span class="yaml-colon">${this.escapeHtml(colon)}</span><span class="yaml-number">${this.escapeHtml(value)}</span>`;
+    }
+    
+    if (/^https?:\/\//.test(value.trim())) {
+      return `<span class="yaml-colon">${this.escapeHtml(colon)}</span><span class="yaml-url">${this.escapeHtml(value)}</span>`;
+    }
+    
+    return `<span class="yaml-colon">${this.escapeHtml(colon)}</span><span class="yaml-value">${this.escapeHtml(value)}</span>`;
+  }
+
+  private escapeHtml(text: string): string {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  openInModal(): void {
+    const newWindow = window.open('', '_blank', 'width=900,height=700');
+    if (newWindow) {
+      newWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Kubeconfig - ${this.selectedFile?.name || 'config'}</title>
+          <style>
+            body {
+              margin: 0;
+              padding: 24px;
+              background: #1e1e1e;
+              color: #d4d4d4;
+              font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+              font-size: 13px;
+              line-height: 1.6;
+            }
+            pre {
+              margin: 0;
+              white-space: pre-wrap;
+              word-wrap: break-word;
+            }
+          </style>
+        </head>
+        <body>
+          <pre>${this.escapeHtml(this.kubeconfig)}</pre>
+        </body>
+        </html>
+      `);
+      newWindow.document.close();
+    }
+  }
+
+  onConnect(): void {
     if (!this.kubeconfig.trim()) {
-      this.snackBar.open('请输入 kubeconfig 内容', '关闭', {
-        duration: 3000,
-        panelClass: ['error-snackbar']
-      });
+      this.message.warning('请输入 kubeconfig 内容');
       return;
     }
 
     if (!this.validateKubeconfig()) {
-      this.snackBar.open('kubeconfig 格式不正确，请检查配置', '关闭', {
-        duration: 4000,
-        panelClass: ['error-snackbar']
-      });
+      this.message.error('kubeconfig 格式不正确，请检查配置');
       return;
     }
 
@@ -164,34 +338,21 @@ export class ConnectComponent {
         this.isConnecting = false;
       }))
       .subscribe({
-      next: () => {
-        console.log('API连接成功，开始保存kubeconfig和跳转...');
-        // 保存 kubeconfig 到 localStorage
-        this.authService.saveKubeconfig(this.kubeconfig);
-        console.log('kubeconfig已保存，认证状态:', this.authService.isAuthenticated());
-        this.snackBar.open('🎉 连接成功！正在跳转到集群管理页面...', '关闭', {
-          duration: 3000,
-          panelClass: ['success-snackbar']
-        });
-        // 跳转到集群列表页
-        console.log('准备跳转到 /clusters');
-        this.router.navigate(['/clusters']).then(success => {
-          console.log('路由跳转结果:', success);
-        });
-      },
-      error: (error) => {
-        console.error('连接失败:', error);
-        let errorMessage = '连接失败，请检查 kubeconfig 配置';
-        if (error.status === 401) {
-          errorMessage = '认证失败，请检查 kubeconfig 中的凭据信息';
-        } else if (error.status === 0) {
-          errorMessage = '无法连接到 Kubernetes API 服务器，请检查网络和配置';
+        next: () => {
+          this.authService.saveKubeconfig(this.kubeconfig);
+          this.message.success('🎉 连接成功！正在跳转到集群管理页面...');
+          this.router.navigate(['/clusters']);
+        },
+        error: (error) => {
+          console.error('连接失败:', error);
+          let errorMessage = '连接失败，请检查 kubeconfig 配置';
+          if (error.status === 401) {
+            errorMessage = '认证失败，请检查 kubeconfig 中的凭据信息';
+          } else if (error.status === 0) {
+            errorMessage = '无法连接到 Kubernetes API 服务器，请检查网络和配置';
+          }
+          this.message.error(errorMessage);
         }
-        this.snackBar.open(errorMessage, '关闭', {
-          duration: 6000,
-          panelClass: ['error-snackbar']
-        });
-      }
-    });
+      });
   }
 }

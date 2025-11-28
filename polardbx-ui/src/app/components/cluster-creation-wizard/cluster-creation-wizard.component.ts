@@ -1,9 +1,9 @@
 import { Component, OnInit, OnDestroy, Optional } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { Router } from '@angular/router';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, forkJoin, of } from 'rxjs';
+import { takeUntil, catchError } from 'rxjs/operators';
 
 import { NzStepsModule } from 'ng-zorro-antd/steps';
 import { NzCardModule } from 'ng-zorro-antd/card';
@@ -36,7 +36,13 @@ import {
   ClusterTemplate,
   CLUSTER_TEMPLATES,
   STORAGE_CLASSES,
-  SERVICE_TYPES
+  SERVICE_TYPES,
+  STORAGE_SIZES,
+  DEFAULT_POLARDBX_VERSIONS,
+  StorageClassOption,
+  NamespaceOption,
+  PolarDBXVersionInfo,
+  ValidationError
 } from '../../models/cluster-creation.model';
 
 @Component({
@@ -82,12 +88,22 @@ export class ClusterCreationWizardComponent implements OnInit, OnDestroy {
   networkForm!: FormGroup;
   advancedForm!: FormGroup;
   
+  // 模板和静态选项
   clusterTemplates = CLUSTER_TEMPLATES;
-  storageClasses = STORAGE_CLASSES;
   serviceTypes = SERVICE_TYPES;
+  storageSizes = STORAGE_SIZES;
+  
+  // 动态加载的选项
+  storageClasses: StorageClassOption[] = [...STORAGE_CLASSES];
+  namespaces: NamespaceOption[] = [];
+  polardbxVersions: PolarDBXVersionInfo[] = [...DEFAULT_POLARDBX_VERSIONS];
   
   selectedTemplate: ClusterTemplate | null = null;
   isCreating = false;
+  isLoadingOptions = false;
+  
+  // 后端校验错误
+  validationErrors: ValidationError[] = [];
 
   constructor(
     private fb: FormBuilder,
@@ -100,11 +116,72 @@ export class ClusterCreationWizardComponent implements OnInit, OnDestroy {
     this.initializeForms();
   }
 
-  ngOnInit(): void {}
+  ngOnInit(): void {
+    this.loadDynamicOptions();
+  }
 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  /**
+   * 从后端加载动态选项（存储类、命名空间、版本）
+   */
+  private loadDynamicOptions(): void {
+    this.isLoadingOptions = true;
+    
+    forkJoin({
+      storageClasses: this.apiService.getStorageClasses().pipe(catchError(() => of([]))),
+      namespaces: this.apiService.getPlatformNamespaces().pipe(catchError(() => of([]))),
+      versions: this.apiService.getPolarDBXVersions().pipe(catchError(() => of([])))
+    }).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (result) => {
+        // 处理存储类
+        if (result.storageClasses && result.storageClasses.length > 0) {
+          this.storageClasses = result.storageClasses.map((sc: any) => ({
+            value: sc.name,
+            label: sc.name,
+            description: sc.provisioner || '',
+            isDefault: sc.isDefault || false,
+            provisioner: sc.provisioner
+          }));
+          // 设置默认存储类
+          const defaultSc = this.storageClasses.find(sc => sc.isDefault);
+          if (defaultSc) {
+            this.storageForm.patchValue({ storageClassName: defaultSc.value });
+          } else if (this.storageClasses.length > 0) {
+            this.storageForm.patchValue({ storageClassName: this.storageClasses[0].value });
+          }
+        }
+        
+        // 处理命名空间
+        if (result.namespaces && result.namespaces.length > 0) {
+          this.namespaces = result.namespaces
+            .filter((ns: any) => ns.status === 'Active')
+            .map((ns: any) => ({
+              name: ns.name,
+              status: ns.status
+            }));
+        }
+        
+        // 处理版本
+        if (result.versions && result.versions.length > 0) {
+          this.polardbxVersions = result.versions.map((v: any) => ({
+            version: v.version,
+            label: v.label || v.version,
+            description: v.description,
+            recommended: v.recommended || false,
+            deprecated: v.deprecated || false
+          }));
+        }
+        
+        this.isLoadingOptions = false;
+      },
+      error: () => {
+        this.isLoadingOptions = false;
+      }
+    });
   }
 
   private initializeForms(): void {
@@ -113,7 +190,7 @@ export class ClusterCreationWizardComponent implements OnInit, OnDestroy {
     });
 
     this.basicForm = this.fb.group({
-      name: ['', [Validators.required, Validators.pattern(/^[a-z0-9-]+$/)]],
+      name: ['', [Validators.required, Validators.pattern(/^[a-z][a-z0-9-]*[a-z0-9]$|^[a-z]$/), Validators.maxLength(63)]],
       namespace: ['default', Validators.required],
       version: ['8.0.18', Validators.required],
       description: [''],
@@ -127,31 +204,31 @@ export class ClusterCreationWizardComponent implements OnInit, OnDestroy {
     this.topologyForm = this.fb.group({
       enableCdc: [false],
       cn: this.fb.group({
-        replicas: [1, [Validators.required, Validators.min(1)]],
+        replicas: [1, [Validators.required, Validators.min(1), Validators.max(100)]],
         resources: this.fb.group({
-          cpu: ['500m', Validators.required],
-          memory: ['1Gi', Validators.required]
+          cpu: ['500m', [Validators.required, this.resourceValidator()]],
+          memory: ['1Gi', [Validators.required, this.resourceValidator()]]
         })
       }),
       dn: this.fb.group({
-        replicas: [1, [Validators.required, Validators.min(1)]],
+        replicas: [1, [Validators.required, Validators.min(1), Validators.max(100)]],
         resources: this.fb.group({
-          cpu: ['500m', Validators.required],
-          memory: ['1Gi', Validators.required]
+          cpu: ['500m', [Validators.required, this.resourceValidator()]],
+          memory: ['1Gi', [Validators.required, this.resourceValidator()]]
         })
       }),
       gms: this.fb.group({
-        replicas: [1, [Validators.required, Validators.min(1)]],
+        replicas: [1, [Validators.required, Validators.min(1), Validators.max(3)]],
         resources: this.fb.group({
-          cpu: ['500m', Validators.required],
-          memory: ['1Gi', Validators.required]
+          cpu: ['500m', [Validators.required, this.resourceValidator()]],
+          memory: ['1Gi', [Validators.required, this.resourceValidator()]]
         })
       }),
       cdc: this.fb.group({
-        replicas: [1],
+        replicas: [1, [Validators.min(1), Validators.max(10)]],
         resources: this.fb.group({
-          cpu: ['2'],
-          memory: ['4Gi']
+          cpu: ['2', [this.resourceValidator()]],
+          memory: ['4Gi', [this.resourceValidator()]]
         })
       })
     });
@@ -169,16 +246,59 @@ export class ClusterCreationWizardComponent implements OnInit, OnDestroy {
       enableTLS: [false],
       tlsSecretName: ['']
     });
+    
+    // 监听 enableTLS 变化，动态添加/移除 tlsSecretName 的必填验证
+    this.networkForm.get('enableTLS')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(enabled => {
+        const tlsSecretControl = this.networkForm.get('tlsSecretName');
+        if (enabled) {
+          tlsSecretControl?.setValidators([Validators.required]);
+        } else {
+          tlsSecretControl?.clearValidators();
+        }
+        tlsSecretControl?.updateValueAndValidity();
+      });
 
     this.advancedForm = this.fb.group({
       enableMonitoring: [true],
       enableBackup: [false],
       enableLogCollection: [false],
       shareGMS: [false],
-      nodeSelector: [''],
-      customLabels: [''],
-      customAnnotations: ['']
+      nodeSelector: ['', this.jsonValidator()],
+      customLabels: ['', this.jsonValidator()],
+      customAnnotations: ['', this.jsonValidator()]
     });
+  }
+
+  /**
+   * 资源格式验证器 (CPU/Memory)
+   */
+  private resourceValidator() {
+    return (control: AbstractControl): ValidationErrors | null => {
+      if (!control.value) return null;
+      const cpuPattern = /^\d+(\.\d+)?(m)?$/;
+      const memPattern = /^\d+(\.\d+)?(Ki|Mi|Gi|Ti|Pi|Ei|K|M|G|T|P|E)?$/;
+      if (cpuPattern.test(control.value) || memPattern.test(control.value)) {
+        return null;
+      }
+      return { invalidResource: true };
+    };
+  }
+
+  /**
+   * JSON 格式验证器
+   */
+  private jsonValidator() {
+    return (control: AbstractControl): ValidationErrors | null => {
+      if (!control.value?.trim()) return null;
+      try {
+        JSON.parse(control.value);
+        return null;
+      } catch {
+        return { invalidJson: true };
+      }
+    };
   }
 
   getIconType(icon: string): string {
@@ -271,6 +391,15 @@ export class ClusterCreationWizardComponent implements OnInit, OnDestroy {
     return adv.shareGMS || adv.enableMonitoring || adv.enableBackup || adv.enableLogCollection;
   }
 
+  hasImageConfig(): boolean {
+    const img = this.basicForm.value.image;
+    return !!(img?.repository || img?.tag);
+  }
+
+  hasCdcConfig(): boolean {
+    return this.topologyForm.value.enableCdc;
+  }
+
   createCluster(): void {
     if (!this.isAllFormsValid()) {
       this.message.error('请检查表单配置');
@@ -278,6 +407,7 @@ export class ClusterCreationWizardComponent implements OnInit, OnDestroy {
     }
 
     this.isCreating = true;
+    this.validationErrors = [];
     const clusterConfig = this.buildClusterConfig();
 
     this.apiService.createClusterFromConfig(clusterConfig.namespace!, clusterConfig)
@@ -295,10 +425,54 @@ export class ClusterCreationWizardComponent implements OnInit, OnDestroy {
         },
         error: (error) => {
           console.error('创建集群失败:', error);
-          this.message.error('创建集群失败: ' + (error.message || '未知错误'));
           this.isCreating = false;
+          this.handleCreateError(error);
         }
       });
+  }
+
+  /**
+   * 处理创建错误，提取更有意义的错误信息
+   */
+  private handleCreateError(error: any): void {
+    let errorMessage = '创建集群失败';
+    
+    if (error.error) {
+      // 处理后端返回的结构化错误
+      if (error.error.validationErrors && Array.isArray(error.error.validationErrors)) {
+        this.validationErrors = error.error.validationErrors;
+        const firstError = this.validationErrors[0];
+        errorMessage = `配置校验失败: ${firstError.message}`;
+      } else if (error.error.error) {
+        errorMessage = error.error.error;
+        if (error.error.details) {
+          errorMessage += `: ${error.error.details}`;
+        }
+      } else if (typeof error.error === 'string') {
+        errorMessage = error.error;
+      }
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    
+    // 特殊错误处理
+    if (error.status === 409) {
+      errorMessage = '集群名称已存在，请使用其他名称';
+    } else if (error.status === 403) {
+      errorMessage = '权限不足，无法创建集群';
+    } else if (error.status === 0) {
+      errorMessage = '网络连接失败，请检查后端服务是否正常运行';
+    }
+    
+    this.message.error(errorMessage);
+  }
+
+  /**
+   * 获取指定字段的验证错误
+   */
+  getFieldError(field: string): string | null {
+    const error = this.validationErrors.find(e => e.field === field);
+    return error ? error.message : null;
   }
 
   cancelCreation(): void {

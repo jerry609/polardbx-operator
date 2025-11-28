@@ -158,14 +158,57 @@ export const RESOURCE_PRESETS: readonly ResourcePreset[] = [
   { cpu: '2', memory: '4Gi' }
 ];
 
+// 存储类选项（从API动态加载时使用）
 export interface StorageClassOption {
   value: string;
   label: string;
   description?: string;
+  isDefault?: boolean;
+  provisioner?: string;
 }
 
+// 默认的存储类列表（当API不可用时的后备）
 export const STORAGE_CLASSES: readonly StorageClassOption[] = [
   { value: 'standard', label: 'standard', description: '默认存储类' }
+];
+
+// 命名空间选项
+export interface NamespaceOption {
+  name: string;
+  status: string;
+}
+
+// PolarDB-X 版本信息
+export interface PolarDBXVersionInfo {
+  version: string;
+  label: string;
+  description?: string;
+  recommended?: boolean;
+  deprecated?: boolean;
+}
+
+// 默认版本列表（当API不可用时的后备）
+export const DEFAULT_POLARDBX_VERSIONS: readonly PolarDBXVersionInfo[] = [
+  { version: '8.0.18', label: '8.0.18 (最新稳定版)', recommended: true },
+  { version: '8.0.17', label: '8.0.17' },
+  { version: '8.0.16', label: '8.0.16' },
+  { version: '5.7.14', label: '5.7.14 (旧版本)', deprecated: true }
+];
+
+// 存储大小选项
+export interface StorageSizeOption {
+  value: string;
+  label: string;
+}
+
+export const STORAGE_SIZES: readonly StorageSizeOption[] = [
+  { value: '10Gi', label: '10 GB' },
+  { value: '20Gi', label: '20 GB' },
+  { value: '50Gi', label: '50 GB' },
+  { value: '100Gi', label: '100 GB' },
+  { value: '200Gi', label: '200 GB' },
+  { value: '500Gi', label: '500 GB' },
+  { value: '1Ti', label: '1 TB' }
 ];
 
 export interface ServiceTypeOption {
@@ -180,5 +223,18 @@ export const SERVICE_TYPES: readonly ServiceTypeOption[] = [
   { value: 'NodePort', label: 'NodePort', icon: 'upload', description: '通过节点端口访问' },
   { value: 'LoadBalancer', label: 'LoadBalancer', icon: 'cloud', description: '通过云负载均衡访问' }
 ];
+
+// 后端验证错误
+export interface ValidationError {
+  field: string;
+  message: string;
+}
+
+// API 响应格式
+export interface ClusterCreationResponse {
+  error?: string;
+  details?: string;
+  validationErrors?: ValidationError[];
+}
 
 

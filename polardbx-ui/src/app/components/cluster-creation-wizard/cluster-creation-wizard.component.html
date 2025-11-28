@@ -49,7 +49,7 @@
         <form nz-form [formGroup]="basicForm" nzLayout="vertical">
           <nz-form-item>
             <nz-form-label nzRequired>集群名称</nz-form-label>
-            <nz-form-control nzErrorTip="请输入有效的集群名称(小写字母、数字和连字符)">
+            <nz-form-control nzErrorTip="集群名称只能包含小写字母、数字和连字符，必须以字母开头，最多63个字符">
               <input nz-input formControlName="name" placeholder="例如: my-polardb-cluster" />
             </nz-form-control>
           </nz-form-item>
@@ -57,18 +57,22 @@
           <nz-form-item>
             <nz-form-label nzRequired>命名空间</nz-form-label>
             <nz-form-control>
-              <input nz-input formControlName="namespace" placeholder="default" />
+              <nz-select formControlName="namespace" nzPlaceHolder="选择命名空间" [nzLoading]="isLoadingOptions">
+                <nz-option *ngIf="namespaces.length === 0" nzValue="default" nzLabel="default"></nz-option>
+                <nz-option *ngFor="let ns of namespaces" [nzValue]="ns.name" [nzLabel]="ns.name"></nz-option>
+              </nz-select>
             </nz-form-control>
           </nz-form-item>
 
           <nz-form-item>
             <nz-form-label nzRequired>PolarDB-X 版本</nz-form-label>
             <nz-form-control>
-              <nz-select formControlName="version" nzPlaceHolder="选择版本">
-                <nz-option nzValue="8.0.18" nzLabel="8.0.18 (最新稳定版)"></nz-option>
-                <nz-option nzValue="8.0.17" nzLabel="8.0.17"></nz-option>
-                <nz-option nzValue="8.0.16" nzLabel="8.0.16"></nz-option>
-                <nz-option nzValue="5.7.14" nzLabel="5.7.14 (旧版本)"></nz-option>
+              <nz-select formControlName="version" nzPlaceHolder="选择版本" [nzLoading]="isLoadingOptions">
+                <nz-option *ngFor="let v of polardbxVersions" 
+                           [nzValue]="v.version" 
+                           [nzLabel]="v.label"
+                           [nzDisabled]="v.deprecated">
+                </nz-option>
               </nz-select>
             </nz-form-control>
           </nz-form-item>
@@ -334,8 +338,8 @@
           </nz-form-item>
 
           <nz-form-item *ngIf="networkForm.value.enableTLS">
-            <nz-form-label>TLS Secret 名称</nz-form-label>
-            <nz-form-control>
+            <nz-form-label nzRequired>TLS Secret 名称</nz-form-label>
+            <nz-form-control nzErrorTip="启用 TLS 时必须指定 Secret 名称">
               <input nz-input formControlName="tlsSecretName" placeholder="my-tls-secret" />
             </nz-form-control>
           </nz-form-item>
@@ -393,7 +397,8 @@
           <nz-collapse>
             <nz-collapse-panel nzHeader="节点选择器 (可选)" [nzActive]="false">
               <nz-form-item>
-                <nz-form-control nzExtra="JSON 格式的节点选择器，例如: {&quot;disktype&quot;: &quot;ssd&quot;}">
+                <nz-form-control nzExtra="JSON 格式的节点选择器，例如: {&quot;disktype&quot;: &quot;ssd&quot;}" 
+                                 nzErrorTip="JSON 格式不正确">
                   <textarea nz-input formControlName="nodeSelector" rows="3" 
                             placeholder='{"node-type": "database"}'></textarea>
                 </nz-form-control>
@@ -402,7 +407,7 @@
 
             <nz-collapse-panel nzHeader="自定义标签 (可选)" [nzActive]="false">
               <nz-form-item>
-                <nz-form-control nzExtra="JSON 格式的标签">
+                <nz-form-control nzExtra="JSON 格式的标签" nzErrorTip="JSON 格式不正确">
                   <textarea nz-input formControlName="customLabels" rows="3" 
                             placeholder='{"env": "production"}'></textarea>
                 </nz-form-control>
@@ -411,7 +416,7 @@
 
             <nz-collapse-panel nzHeader="自定义注解 (可选)" [nzActive]="false">
               <nz-form-item>
-                <nz-form-control nzExtra="JSON 格式的注解">
+                <nz-form-control nzExtra="JSON 格式的注解" nzErrorTip="JSON 格式不正确">
                   <textarea nz-input formControlName="customAnnotations" rows="3" 
                             placeholder='{"description": "..."}'></textarea>
                 </nz-form-control>
@@ -426,14 +431,44 @@
         <h3 class="step-title">确认创建</h3>
         <p class="step-description">请检查以下配置信息，确认无误后点击创建按钮</p>
 
+        <!-- 后端验证错误显示 -->
+        <nz-alert *ngIf="validationErrors.length > 0"
+                  nzType="error"
+                  [nzMessage]="'配置校验失败'"
+                  [nzDescription]="validationErrorsTpl"
+                  [nzShowIcon]="true"
+                  class="mb-4">
+        </nz-alert>
+        <ng-template #validationErrorsTpl>
+          <ul>
+            <li *ngFor="let err of validationErrors">{{ err.field }}: {{ err.message }}</li>
+          </ul>
+        </ng-template>
+
         <nz-descriptions nzTitle="基础信息" nzBordered [nzColumn]="2">
           <nz-descriptions-item nzTitle="集群名称">{{ basicForm.value.name }}</nz-descriptions-item>
           <nz-descriptions-item nzTitle="命名空间">{{ basicForm.value.namespace }}</nz-descriptions-item>
           <nz-descriptions-item nzTitle="版本">{{ basicForm.value.version }}</nz-descriptions-item>
           <nz-descriptions-item nzTitle="模板">{{ selectedTemplate?.name }}</nz-descriptions-item>
+          <nz-descriptions-item *ngIf="basicForm.value.description" nzTitle="描述" [nzSpan]="2">
+            {{ basicForm.value.description }}
+          </nz-descriptions-item>
         </nz-descriptions>
 
-        <nz-descriptions nzTitle="拓扑配置" nzBordered [nzColumn]="3" class="mt-4">
+        <!-- 镜像配置（如果有） -->
+        <nz-descriptions *ngIf="hasImageConfig()" nzTitle="镜像配置" nzBordered [nzColumn]="2" class="mt-4">
+          <nz-descriptions-item *ngIf="basicForm.value.image?.repository" nzTitle="镜像仓库">
+            {{ basicForm.value.image.repository }}
+          </nz-descriptions-item>
+          <nz-descriptions-item *ngIf="basicForm.value.image?.tag" nzTitle="镜像标签">
+            {{ basicForm.value.image.tag }}
+          </nz-descriptions-item>
+          <nz-descriptions-item nzTitle="拉取策略">
+            {{ basicForm.value.image?.pullPolicy || 'IfNotPresent' }}
+          </nz-descriptions-item>
+        </nz-descriptions>
+
+        <nz-descriptions nzTitle="拓扑配置" nzBordered [nzColumn]="2" class="mt-4">
           <nz-descriptions-item nzTitle="CN 节点">
             {{ topologyForm.value.cn.replicas }} 副本, 
             {{ topologyForm.value.cn.resources.cpu }} CPU, 
@@ -449,20 +484,53 @@
             {{ topologyForm.value.gms.resources.cpu }} CPU, 
             {{ topologyForm.value.gms.resources.memory }} 内存
           </nz-descriptions-item>
+          <!-- CDC 节点（如果启用） -->
+          <nz-descriptions-item *ngIf="hasCdcConfig()" nzTitle="CDC 节点">
+            {{ topologyForm.value.cdc.replicas }} 副本, 
+            {{ topologyForm.value.cdc.resources.cpu }} CPU, 
+            {{ topologyForm.value.cdc.resources.memory }} 内存
+          </nz-descriptions-item>
         </nz-descriptions>
 
         <nz-descriptions nzTitle="存储与网络" nzBordered [nzColumn]="2" class="mt-4">
           <nz-descriptions-item nzTitle="存储类">{{ storageForm.value.storageClassName }}</nz-descriptions-item>
           <nz-descriptions-item nzTitle="存储大小">{{ storageForm.value.size }}</nz-descriptions-item>
+          <nz-descriptions-item nzTitle="访问模式">{{ storageForm.value.accessMode }}</nz-descriptions-item>
           <nz-descriptions-item nzTitle="服务类型">{{ networkForm.value.serviceType }}</nz-descriptions-item>
-          <nz-descriptions-item nzTitle="主机网络">{{ networkForm.value.hostNetwork ? '是' : '否' }}</nz-descriptions-item>
+          <nz-descriptions-item nzTitle="主机网络">
+            <nz-tag [nzColor]="networkForm.value.hostNetwork ? 'warning' : 'default'">
+              {{ networkForm.value.hostNetwork ? '是' : '否' }}
+            </nz-tag>
+          </nz-descriptions-item>
+          <nz-descriptions-item nzTitle="TLS 加密">
+            <nz-tag [nzColor]="networkForm.value.enableTLS ? 'success' : 'default'">
+              {{ networkForm.value.enableTLS ? '是' : '否' }}
+            </nz-tag>
+            <span *ngIf="networkForm.value.enableTLS"> ({{ networkForm.value.tlsSecretName }})</span>
+          </nz-descriptions-item>
         </nz-descriptions>
 
         <nz-descriptions *ngIf="hasAdvancedConfig()" nzTitle="高级选项" nzBordered [nzColumn]="2" class="mt-4">
-          <nz-descriptions-item nzTitle="ShareGMS">{{ advancedForm.value.shareGMS ? '是' : '否' }}</nz-descriptions-item>
-          <nz-descriptions-item nzTitle="监控">{{ advancedForm.value.enableMonitoring ? '是' : '否' }}</nz-descriptions-item>
-          <nz-descriptions-item nzTitle="备份">{{ advancedForm.value.enableBackup ? '是' : '否' }}</nz-descriptions-item>
-          <nz-descriptions-item nzTitle="日志">{{ advancedForm.value.enableLogCollection ? '是' : '否' }}</nz-descriptions-item>
+          <nz-descriptions-item nzTitle="ShareGMS">
+            <nz-tag [nzColor]="advancedForm.value.shareGMS ? 'warning' : 'default'">
+              {{ advancedForm.value.shareGMS ? '是' : '否' }}
+            </nz-tag>
+          </nz-descriptions-item>
+          <nz-descriptions-item nzTitle="监控">
+            <nz-tag [nzColor]="advancedForm.value.enableMonitoring ? 'success' : 'default'">
+              {{ advancedForm.value.enableMonitoring ? '已启用' : '未启用' }}
+            </nz-tag>
+          </nz-descriptions-item>
+          <nz-descriptions-item nzTitle="备份">
+            <nz-tag [nzColor]="advancedForm.value.enableBackup ? 'success' : 'default'">
+              {{ advancedForm.value.enableBackup ? '已启用' : '未启用' }}
+            </nz-tag>
+          </nz-descriptions-item>
+          <nz-descriptions-item nzTitle="日志收集">
+            <nz-tag [nzColor]="advancedForm.value.enableLogCollection ? 'success' : 'default'">
+              {{ advancedForm.value.enableLogCollection ? '已启用' : '未启用' }}
+            </nz-tag>
+          </nz-descriptions-item>
         </nz-descriptions>
       </div>
       </div>
