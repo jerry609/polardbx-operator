@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"polardbx-ui-backend/pkg/api"
+	"polardbx-ui-backend/pkg/api/middleware"
 
 	// domain handlers - platform
 	domain_alerts "polardbx-ui-backend/pkg/api/domain/platform/alerts/handler"
@@ -62,7 +63,19 @@ func main() {
 	logger := zap.New(zap.UseDevMode(true))
 	ctrllog.SetLogger(logger)
 
-	r := gin.Default()
+	r := gin.New() // 使用 gin.New() 代替 gin.Default() 以便自定义中间件
+
+	// Recovery 中间件（带日志）
+	r.Use(middleware.RecoveryWithLogger())
+
+	// 请求日志中间件
+	r.Use(middleware.RequestLogger(middleware.RequestLogConfig{
+		LogRequestBody:  true,
+		LogResponseBody: true,
+		MaxBodyLogSize:  4096,
+		SkipPaths:       []string{"/ping", "/health"},
+		SensitiveFields: []string{"password", "token", "secret", "kubeconfig"},
+	}))
 
 	// CORS middleware
 	r.Use(CORSMiddleware())

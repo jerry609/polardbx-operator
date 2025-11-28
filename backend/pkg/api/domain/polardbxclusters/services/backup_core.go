@@ -11,6 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"polardbx-ui-backend/pkg/api/middleware"
 	"polardbx-ui-backend/pkg/api/util"
 	"polardbx-ui-backend/pkg/k8s"
 )
@@ -22,50 +23,72 @@ func NewBackupService() *BackupService { return &BackupService{} }
 
 // List 列出集群的备份
 func (s *BackupService) List(c *gin.Context) {
+	logger := middleware.NewBusinessLogger(c, "BackupService")
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
+		logger.Error(nil, "failed to get k8s client from context")
 		return
 	}
 	clusterName := c.Param("name")
 	namespace := c.Param("namespace")
+	logger.Info("listing backups for cluster=%s namespace=%s", clusterName, namespace)
+
 	backups, err := k8s.ListPolarDBXBackupsWithContext(c.Request.Context(), cli, namespace, clusterName)
 	if err != nil {
+		logger.Error(err, "failed to list backups for cluster=%s namespace=%s", clusterName, namespace)
+		middleware.LogK8sError(c, "List", "PolarDBXBackup", namespace, clusterName, err)
 		util.HandleK8sError(c, "failed to list backups", err)
 		return
 	}
+	logger.Info("listed %d backups for cluster=%s", len(backups), clusterName)
 	c.JSON(http.StatusOK, backups)
 }
 
 // Create 为集群创建备份
 func (s *BackupService) Create(c *gin.Context) {
+	logger := middleware.NewBusinessLogger(c, "BackupService")
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
+		logger.Error(nil, "failed to get k8s client from context")
 		return
 	}
 	var backup polardbxv1.PolarDBXBackup
 	if err := c.ShouldBindJSON(&backup); err != nil {
+		logger.Error(err, "failed to parse backup data")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse backup data", "details": err.Error()})
 		return
 	}
 	clusterName := c.Param("name")
 	namespace := c.Param("namespace")
 	backup.Spec.Cluster.Name = clusterName
+
+	logger.Info("creating backup for cluster=%s namespace=%s backupName=%s",
+		clusterName, namespace, backup.Name)
+
 	created, err := k8s.CreatePolarDBXBackupWithContext(c.Request.Context(), cli, namespace, &backup)
 	if err != nil {
+		logger.Error(err, "failed to create backup for cluster=%s namespace=%s", clusterName, namespace)
+		middleware.LogK8sError(c, "Create", "PolarDBXBackup", namespace, backup.Name, err)
+		middleware.LogAudit(c, "CREATE", "PolarDBXBackup", namespace, backup.Name, false)
 		util.HandleK8sError(c, "failed to create backup", err)
 		return
 	}
+	logger.Info("backup created successfully name=%s for cluster=%s", created.Name, clusterName)
+	middleware.LogAudit(c, "CREATE", "PolarDBXBackup", namespace, created.Name, true)
 	c.JSON(http.StatusCreated, created)
 }
 
 // Validate 通过 dry-run 校验备份
 func (s *BackupService) Validate(c *gin.Context) {
+	logger := middleware.NewBusinessLogger(c, "BackupService")
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
+		logger.Error(nil, "failed to get k8s client from context")
 		return
 	}
 	var backup polardbxv1.PolarDBXBackup
 	if err := c.ShouldBindJSON(&backup); err != nil {
+		logger.Error(err, "failed to parse backup data for validation")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse backup data", "details": err.Error()})
 		return
 	}
@@ -76,10 +99,14 @@ func (s *BackupService) Validate(c *gin.Context) {
 	if ns == "" {
 		ns = "default"
 	}
+	logger.Info("validating backup name=%s namespace=%s", backup.Name, ns)
+
 	if _, err := k8s.CreatePolarDBXBackupDryRunWithContext(c.Request.Context(), cli, ns, &backup); err != nil {
+		logger.Warn("backup validation failed name=%s namespace=%s: %v", backup.Name, ns, err)
 		util.HandleK8sError(c, "backup validation failed", err)
 		return
 	}
+	logger.Info("backup validation passed name=%s namespace=%s", backup.Name, ns)
 	c.JSON(http.StatusOK, gin.H{"valid": true})
 }
 
@@ -192,29 +219,49 @@ func (s *BackupService) GetMetrics(c *gin.Context) {
 
 // ForceDelete 移除 PolarDBXBackup 的 finalizers 并触发删除
 func (s *BackupService) ForceDelete(c *gin.Context) {
+	logger := middleware.NewBusinessLogger(c, "BackupService")
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
+		logger.Error(nil, "failed to get k8s client from context")
 		return
 	}
 	ns := c.Param("namespace")
 	name := c.Param("name")
 
+	logger.Warn("force deleting backup name=%s namespace=%s (removing finalizers)", name, ns)
+
 	var bk polardbxv1.PolarDBXBackup
 	if err := cli.Get(c.Request.Context(), client.ObjectKey{Namespace: ns, Name: name}, &bk); err != nil {
+		logger.Error(err, "failed to get backup for force delete name=%s namespace=%s", name, ns)
+		middleware.LogK8sError(c, "Get", "PolarDBXBackup", ns, name, err)
 		util.HandleK8sError(c, "failed to get backup", err)
 		return
 	}
+
+	// 记录原有 finalizers
+	originalFinalizers := bk.GetFinalizers()
+	logger.Info("removing %d finalizers from backup name=%s: %v", len(originalFinalizers), name, originalFinalizers)
+
 	// 清空 finalizers
 	bk.SetFinalizers([]string{})
 	if err := cli.Update(c.Request.Context(), &bk); err != nil {
+		logger.Error(err, "failed to remove finalizers from backup name=%s namespace=%s", name, ns)
+		middleware.LogK8sError(c, "Update", "PolarDBXBackup", ns, name, err)
 		util.HandleK8sError(c, "failed to remove finalizers", err)
 		return
 	}
+	logger.Info("finalizers removed successfully from backup name=%s", name)
+
 	// 触发删除
 	if err := k8s.DeletePolarDBXBackupWithContext(c.Request.Context(), cli, ns, name); err != nil {
+		logger.Error(err, "failed to delete backup after removing finalizers name=%s namespace=%s", name, ns)
+		middleware.LogK8sError(c, "Delete", "PolarDBXBackup", ns, name, err)
+		middleware.LogAudit(c, "FORCE_DELETE", "PolarDBXBackup", ns, name, false)
 		util.HandleK8sError(c, "failed to delete backup", err)
 		return
 	}
+	logger.Info("backup force deleted successfully name=%s namespace=%s", name, ns)
+	middleware.LogAudit(c, "FORCE_DELETE", "PolarDBXBackup", ns, name, true)
 	c.JSON(http.StatusOK, gin.H{"message": "backup finalizers removed and deletion triggered"})
 }
 
@@ -480,15 +527,25 @@ func isBackupNewer(a, b polardbxv1.PolarDBXBackup) bool {
 
 // Delete 删除备份
 func (s *BackupService) Delete(c *gin.Context) {
+	logger := middleware.NewBusinessLogger(c, "BackupService")
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
+		logger.Error(nil, "failed to get k8s client from context")
 		return
 	}
 	ns := c.Param("namespace")
 	name := c.Param("name")
+
+	logger.Info("deleting backup name=%s namespace=%s", name, ns)
+
 	if err := k8s.DeletePolarDBXBackupWithContext(c.Request.Context(), cli, ns, name); err != nil {
+		logger.Error(err, "failed to delete backup name=%s namespace=%s", name, ns)
+		middleware.LogK8sError(c, "Delete", "PolarDBXBackup", ns, name, err)
+		middleware.LogAudit(c, "DELETE", "PolarDBXBackup", ns, name, false)
 		util.HandleK8sError(c, "failed to delete backup", err)
 		return
 	}
+	logger.Info("backup deleted successfully name=%s namespace=%s", name, ns)
+	middleware.LogAudit(c, "DELETE", "PolarDBXBackup", ns, name, true)
 	c.JSON(http.StatusOK, gin.H{"message": "backup deleted successfully"})
 }

@@ -16,6 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	"polardbx-ui-backend/pkg/api/domain/polardbxclusters/k8srepo"
+	"polardbx-ui-backend/pkg/api/middleware"
 	"polardbx-ui-backend/pkg/api/util"
 )
 
@@ -162,28 +163,38 @@ func validateNodeConfig(fieldPrefix string, node ClusterNodeConfig, maxReplicas 
 // --- Cluster CRUD (行为保持不变) ---
 
 func (s *ClusterService) List(c *gin.Context) {
+	logger := middleware.NewBusinessLogger(c, "ClusterService")
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
+		logger.Error(nil, "failed to get k8s client from context")
 		return
 	}
 	ns := c.DefaultQuery("namespace", "")
+	logger.Info("listing clusters in namespace=%s", ns)
+
 	ctx, cancel := util.ListCtx(c)
 	defer cancel()
 	clusters, err := k8srepo.NewClusterRepository().List(ctx, cli, ns)
 	if err != nil {
+		logger.Error(err, "failed to list clusters")
+		middleware.LogK8sError(c, "List", "PolarDBXCluster", ns, "*", err)
 		util.HandleK8sError(c, "failed to list clusters", err)
 		return
 	}
+	logger.Info("listed %d clusters", len(clusters))
 	c.JSON(http.StatusOK, clusters)
 }
 
 func (s *ClusterService) Create(c *gin.Context) {
+	logger := middleware.NewBusinessLogger(c, "ClusterService")
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
+		logger.Error(nil, "failed to get k8s client from context")
 		return
 	}
 	var obj polardbxv1.PolarDBXCluster
 	if err := c.ShouldBindJSON(&obj); err != nil {
+		logger.Error(err, "failed to parse cluster data")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse cluster data", "details": err.Error()})
 		return
 	}
@@ -191,20 +202,29 @@ func (s *ClusterService) Create(c *gin.Context) {
 	if ns == "" {
 		ns = "default"
 	}
+	logger.Info("creating cluster name=%s namespace=%s", obj.GetName(), ns)
+
 	ctx, cancel := util.CrudCtx(c)
 	defer cancel()
 	created, err := k8srepo.NewClusterRepository().Create(ctx, cli, ns, &obj)
 	if err != nil {
+		logger.Error(err, "failed to create cluster name=%s namespace=%s", obj.GetName(), ns)
+		middleware.LogK8sError(c, "Create", "PolarDBXCluster", ns, obj.GetName(), err)
+		middleware.LogAudit(c, "CREATE", "PolarDBXCluster", ns, obj.GetName(), false)
 		util.HandleK8sError(c, "failed to create cluster", err)
 		return
 	}
+	logger.Info("cluster created successfully name=%s namespace=%s", obj.GetName(), ns)
+	middleware.LogAudit(c, "CREATE", "PolarDBXCluster", ns, obj.GetName(), true)
 	c.JSON(http.StatusCreated, created)
 }
 
 // CreateFromConfig 从用户友好的配置格式创建集群
 func (s *ClusterService) CreateFromConfig(c *gin.Context) {
+	logger := middleware.NewBusinessLogger(c, "ClusterService")
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
+		logger.Error(nil, "failed to get k8s client from context")
 		return
 	}
 
@@ -216,12 +236,19 @@ func (s *ClusterService) CreateFromConfig(c *gin.Context) {
 
 	var config ClusterCreationConfig
 	if err := c.ShouldBindJSON(&config); err != nil {
+		logger.Error(err, "failed to parse cluster creation config")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "配置解析失败", "details": err.Error()})
 		return
 	}
 
+	logger.Info("creating cluster from config name=%s namespace=%s", config.Name, ns)
+
 	// 参数校验
 	if validationErrors := ValidateClusterCreationConfig(&config); len(validationErrors) > 0 {
+		for _, ve := range validationErrors {
+			middleware.LogValidationError(c, "ClusterService", ve.Field, ve.Message)
+		}
+		logger.Warn("cluster config validation failed with %d errors", len(validationErrors))
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":            "配置校验失败",
 			"validationErrors": validationErrors,
@@ -231,6 +258,8 @@ func (s *ClusterService) CreateFromConfig(c *gin.Context) {
 
 	// 转换为 PolarDBXCluster 对象
 	cluster := convertConfigToCluster(&config, ns)
+	logger.Debug("converted config to PolarDBXCluster: CN=%d DN=%d",
+		config.Topology.CN.Replicas, config.Topology.DN.Replicas)
 
 	ctx, cancel := util.CrudCtx(c)
 	defer cancel()
@@ -239,12 +268,18 @@ func (s *ClusterService) CreateFromConfig(c *gin.Context) {
 		// 提取更有意义的错误信息
 		errMsg := err.Error()
 		if strings.Contains(errMsg, "already exists") {
+			logger.Warn("cluster already exists name=%s namespace=%s", config.Name, ns)
 			c.JSON(http.StatusConflict, gin.H{"error": "集群已存在", "details": fmt.Sprintf("名为 %s 的集群在命名空间 %s 中已存在", config.Name, ns)})
 			return
 		}
+		logger.Error(err, "failed to create cluster from config name=%s namespace=%s", config.Name, ns)
+		middleware.LogK8sError(c, "Create", "PolarDBXCluster", ns, config.Name, err)
+		middleware.LogAudit(c, "CREATE", "PolarDBXCluster", ns, config.Name, false)
 		util.HandleK8sError(c, "创建集群失败", err)
 		return
 	}
+	logger.Info("cluster created successfully from config name=%s namespace=%s", config.Name, ns)
+	middleware.LogAudit(c, "CREATE", "PolarDBXCluster", ns, config.Name, true)
 	c.JSON(http.StatusCreated, created)
 }
 
@@ -441,62 +476,91 @@ func buildResourceRequirements(res NodeResources) corev1.ResourceRequirements {
 }
 
 func (s *ClusterService) Get(c *gin.Context) {
+	logger := middleware.NewBusinessLogger(c, "ClusterService")
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
+		logger.Error(nil, "failed to get k8s client from context")
 		return
 	}
 	ns := c.Param("namespace")
 	name := c.Param("name")
+	logger.Debug("getting cluster name=%s namespace=%s", name, ns)
+
 	ctx, cancel := util.ListCtx(c)
 	defer cancel()
 	cluster, err := k8srepo.NewClusterRepository().Get(ctx, cli, ns, name)
 	if err != nil {
+		logger.Error(err, "cluster not found name=%s namespace=%s", name, ns)
+		middleware.LogK8sError(c, "Get", "PolarDBXCluster", ns, name, err)
 		util.HandleK8sError(c, "cluster not found", err)
 		return
 	}
+	logger.Debug("cluster retrieved successfully name=%s namespace=%s phase=%s",
+		name, ns, cluster.Status.Phase)
 	c.JSON(http.StatusOK, cluster)
 }
 
 func (s *ClusterService) Update(c *gin.Context) {
+	logger := middleware.NewBusinessLogger(c, "ClusterService")
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
+		logger.Error(nil, "failed to get k8s client from context")
 		return
 	}
 	ns := c.Param("namespace")
 	name := c.Param("name")
 	var body polardbxv1.PolarDBXCluster
 	if err := c.ShouldBindJSON(&body); err != nil {
+		logger.Error(err, "failed to parse cluster data for update")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse cluster data", "details": err.Error()})
 		return
 	}
+	logger.Info("updating cluster name=%s namespace=%s", name, ns)
+
 	ctx, cancel := util.CrudCtx(c)
 	defer cancel()
 	existing, err := k8srepo.NewClusterRepository().Get(ctx, cli, ns, name)
 	if err != nil {
+		logger.Error(err, "cluster not found for update name=%s namespace=%s", name, ns)
+		middleware.LogK8sError(c, "Get", "PolarDBXCluster", ns, name, err)
 		util.HandleK8sError(c, "cluster not found", err)
 		return
 	}
 	body.SetResourceVersion(existing.GetResourceVersion())
 	updated, err := k8srepo.NewClusterRepository().Update(ctx, cli, ns, &body)
 	if err != nil {
+		logger.Error(err, "failed to update cluster name=%s namespace=%s", name, ns)
+		middleware.LogK8sError(c, "Update", "PolarDBXCluster", ns, name, err)
+		middleware.LogAudit(c, "UPDATE", "PolarDBXCluster", ns, name, false)
 		util.HandleK8sError(c, "failed to update cluster", err)
 		return
 	}
+	logger.Info("cluster updated successfully name=%s namespace=%s", name, ns)
+	middleware.LogAudit(c, "UPDATE", "PolarDBXCluster", ns, name, true)
 	c.JSON(http.StatusOK, updated)
 }
 
 func (s *ClusterService) Delete(c *gin.Context) {
+	logger := middleware.NewBusinessLogger(c, "ClusterService")
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
+		logger.Error(nil, "failed to get k8s client from context")
 		return
 	}
 	ns := c.Param("namespace")
 	name := c.Param("name")
+	logger.Info("deleting cluster name=%s namespace=%s", name, ns)
+
 	ctx, cancel := util.CrudCtx(c)
 	defer cancel()
 	if err := k8srepo.NewClusterRepository().Delete(ctx, cli, ns, name); err != nil {
+		logger.Error(err, "failed to delete cluster name=%s namespace=%s", name, ns)
+		middleware.LogK8sError(c, "Delete", "PolarDBXCluster", ns, name, err)
+		middleware.LogAudit(c, "DELETE", "PolarDBXCluster", ns, name, false)
 		util.HandleK8sError(c, "failed to delete cluster", err)
 		return
 	}
+	logger.Info("cluster deletion initiated successfully name=%s namespace=%s", name, ns)
+	middleware.LogAudit(c, "DELETE", "PolarDBXCluster", ns, name, true)
 	c.JSON(http.StatusOK, gin.H{"message": "cluster deletion initiated successfully"})
 }
