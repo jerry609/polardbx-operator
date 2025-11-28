@@ -15,6 +15,8 @@ import (
 	"strings"
 	"sync"
 
+	"polardbx-ui-backend/pkg/api/util"
+
 	"github.com/gin-gonic/gin"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -1145,4 +1147,69 @@ func (h *PrometheusRuleHandler) ApplyTemplateWithContext(ctx context.Context, te
 	}
 
 	return err
+}
+
+// ======================== Package-level Functions (for main.go) ========================
+
+// getHandler 从 context 获取 handler
+func getHandler(c *gin.Context) (*PrometheusRuleHandler, bool) {
+	dynClient, ok := util.DynamicClientFromContext(c)
+	if !ok {
+		return nil, false
+	}
+	return NewPrometheusRuleHandler(dynClient), true
+}
+
+// List 包级别函数，用于 main.go 注册路由
+func List(c *gin.Context) {
+	h, ok := getHandler(c)
+	if !ok {
+		return
+	}
+	h.List(c)
+}
+
+// GetYAML 包级别函数，用于 main.go 注册路由
+func GetYAML(c *gin.Context) {
+	h, ok := getHandler(c)
+	if !ok {
+		return
+	}
+	h.GetYAML(c)
+}
+
+// ValidateRule 包级别函数，用于 main.go 注册路由
+func ValidateRule(c *gin.Context) {
+	h, ok := getHandler(c)
+	if !ok {
+		return
+	}
+	h.ValidateRule(c)
+}
+
+// ListTemplates 包级别函数，用于 main.go 注册路由
+func ListTemplates(c *gin.Context) {
+	h, ok := getHandler(c)
+	if !ok {
+		return
+	}
+	h.ListTemplates(c)
+}
+
+// GetTemplate 包级别函数，用于 main.go 注册路由
+func GetTemplate(c *gin.Context) {
+	h, ok := getHandler(c)
+	if !ok {
+		return
+	}
+	h.GetTemplate(c)
+}
+
+// ApplyTemplate 包级别函数，用于 main.go 注册路由
+func ApplyTemplate(c *gin.Context) {
+	h, ok := getHandler(c)
+	if !ok {
+		return
+	}
+	h.ApplyTemplate(c)
 }

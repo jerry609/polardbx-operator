@@ -10,20 +10,38 @@
 
 // 自定义主题采用 CSS 变量 + 现有 _shared.scss 配色，不再引入预构建主题
 
-// :root 变量已在 _shared.scss 中定义，此处注释掉
-/*
+// 统一主色调 - 低饱和度专业蓝色
 :root {
-  --primary-color: #3f51b5;
-  --accent-color: #ff4081;
-  --warn-color: #f44336;
-  --background-color: #f5f5f5;
-  --text-color: #333;
+  // 主色调 - 降低饱和度的专业蓝色
+  --primary-color: #4a7c9b;        // 柔和的蓝灰色
+  --primary-color-hover: #3d6a87;  // 悬停色
+  --primary-color-active: #2f5670; // 激活色
+  --primary-color-light: #e8f0f5;  // 浅色背景
+  
+  // 功能色 - 低饱和度
+  --accent-color: #6b8fa8;         // 柔和强调色
+  --warn-color: #c75d5d;           // 柔和警告红
+  --success-color: #5a9e5a;        // 柔和成功绿
+  --warning-color: #c4944f;        // 柔和警告橙
+  --info-color: #5a8ab4;           // 柔和信息蓝
+  
+  // 背景色
+  --background-color: #f5f6f8;
   --container-bg-color: #ffffff;
-  --border-color: #e0e0e0;
-  --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  --border-radius: 8px;
+  
+  // 文本色
+  --text-color: #333333;
+  --text-secondary: #666666;
+  --text-placeholder: #999999;
+  
+  // 边框色
+  --border-color: #e0e3e8;
+  --border-color-light: #ebeef2;
+  
+  // 阴影
+  --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --border-radius: 6px;
 }
-*/
 
 html, body {
   height: 100%;
@@ -40,13 +58,13 @@ body {
 /* Unified page header styles */
 .page-icon {
   font-size: 24px !important;
-  color: #1890ff !important;
+  color: var(--primary-color, #4a7c9b) !important;
 }
 
 .page-title {
   font-size: 20px !important;
   font-weight: 600 !important;
-  color: rgba(0, 0, 0, 0.88) !important;
+  color: var(--text-color, #333333) !important;
   margin: 0 !important;
 }
 

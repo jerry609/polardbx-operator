@@ -23,8 +23,8 @@
   overflow: hidden;
   white-space: nowrap;
   
-  .logo-full { color: #1890ff; font-size: 20px; line-height: 32px; font-weight: 600; }
-  .logo-mini { color: #1890ff; font-size: 18px; line-height: 32px; font-weight: 700; letter-spacing: .5px; display: none; }
+  .logo-full { color: var(--primary-color, #4a7c9b); font-size: 20px; line-height: 32px; font-weight: 600; }
+  .logo-mini { color: var(--primary-color, #4a7c9b); font-size: 18px; line-height: 32px; font-weight: 700; letter-spacing: .5px; display: none; }
 }
 
 .sider-menu { height: calc(100vh - 64px); border-right: 0; }
@@ -69,8 +69,8 @@
 
 .login-btn {
   &:hover {
-    color: #1890ff;
-    border-color: #1890ff;
+    color: var(--primary-color, #4a7c9b);
+    border-color: var(--primary-color, #4a7c9b);
   }
 }
 
@@ -78,15 +78,15 @@
   margin-right: 8px;
   
   &:hover {
-    color: #52c41a;
-    border-color: #52c41a;
+    color: var(--success-color, #5a9e5a);
+    border-color: var(--success-color, #5a9e5a);
   }
 }
 
 .logout-btn {
   &:hover {
-    background-color: #ff4d4f;
-    border-color: #ff4d4f;
+    background-color: var(--warn-color, #c75d5d);
+    border-color: var(--warn-color, #c75d5d);
     color: white;
   }
 }
@@ -136,16 +136,16 @@
 
 :host ::ng-deep .ant-menu-item:hover,
 :host ::ng-deep .ant-menu-submenu-title:hover {
-  color: #1890ff;
+  color: var(--primary-color, #4a7c9b);
 }
 
 :host ::ng-deep .ant-menu-item-selected {
-  background-color: #e6f7ff;
+  background-color: var(--primary-color-light, #e8f0f5);
   border-radius: 6px;
 }
 
 :host ::ng-deep .ant-menu-submenu-selected .ant-menu-submenu-title {
-  color: #1890ff;
+  color: var(--primary-color, #4a7c9b);
 }
 
 /* 响应式布局 */

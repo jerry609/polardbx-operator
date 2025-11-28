@@ -1,17 +1,17 @@
 package polardbxmonitors
 
 import (
-	api_monitoring "polardbx-ui-backend/pkg/api/monitoring"
+	domain_monitoring "polardbx-ui-backend/pkg/api/domain/monitoring"
 
 	"github.com/gin-gonic/gin"
 )
 
 func RegisterRoutes(crd *gin.RouterGroup) {
 	r := crd.Group("/polardbxmonitors")
-	r.GET("", api_monitoring.List)
-	r.POST("", api_monitoring.Create)
+	r.GET("", domain_monitoring.ListMonitors)
+	r.POST("", domain_monitoring.CreateMonitor)
 	item := r.Group("/:namespace/:name")
-	item.GET("", api_monitoring.Get)
-	item.PUT("", api_monitoring.Update)
-	item.DELETE("", api_monitoring.Delete)
+	item.GET("", domain_monitoring.GetMonitor)
+	item.PUT("", domain_monitoring.UpdateMonitor)
+	item.DELETE("", domain_monitoring.DeleteMonitor)
 }

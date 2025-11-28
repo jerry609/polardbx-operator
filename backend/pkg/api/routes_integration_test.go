@@ -7,9 +7,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	api_logstrategy "polardbx-ui-backend/pkg/api/logstrategy"
-	api_prometheusrule "polardbx-ui-backend/pkg/api/prometheusrule"
-	api_system "polardbx-ui-backend/pkg/api/system"
+	domain_logstrategy "polardbx-ui-backend/pkg/api/domain/platform/logstrategy/handler"
+	domain_prometheusrule "polardbx-ui-backend/pkg/api/domain/platform/prometheusrule/handler"
+	domain_system "polardbx-ui-backend/pkg/api/domain/platform/system/handler"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -42,16 +42,16 @@ func setupIntegrationRouter() *gin.Engine {
 	})
 
 	// Direct routes for frontend compatibility (the ones we added)
-	v1.GET("/namespaces", api_system.ListNamespaces)
-	v1.GET("/prometheus-rules", api_prometheusrule.List)
-	v1.GET("/prometheus-rules/:namespace/:name/yaml", api_prometheusrule.GetYAML)
-	v1.POST("/prometheus-rules/validate", api_prometheusrule.ValidateRule)
-	v1.GET("/log-strategies/apply-records", api_logstrategy.ListApplyRecords)
+	v1.GET("/namespaces", domain_system.ListNamespaces)
+	v1.GET("/prometheus-rules", domain_prometheusrule.List)
+	v1.GET("/prometheus-rules/:namespace/:name/yaml", domain_prometheusrule.GetYAML)
+	v1.POST("/prometheus-rules/validate", domain_prometheusrule.ValidateRule)
+	v1.GET("/log-strategies/apply-records", domain_logstrategy.ListApplyRecords)
 
 	// Include some existing routes for comparison
-	v1.GET("/system/namespaces", api_system.ListNamespaces)
-	v1.GET("/log-strategies", api_logstrategy.List)
-	v1.POST("/log-strategies", api_logstrategy.Create)
+	v1.GET("/system/namespaces", domain_system.ListNamespaces)
+	v1.GET("/log-strategies", domain_logstrategy.List)
+	v1.POST("/log-strategies", domain_logstrategy.Create)
 
 	return r
 }
@@ -292,9 +292,9 @@ func TestEndpointSecurity(t *testing.T) {
 	v1 := r.Group("/api/v1")
 
 	// Add routes without auth middleware
-	v1.GET("/namespaces", api_system.ListNamespaces)
-	v1.GET("/prometheus-rules", api_prometheusrule.List)
-	v1.GET("/log-strategies/apply-records", api_logstrategy.ListApplyRecords)
+	v1.GET("/namespaces", domain_system.ListNamespaces)
+	v1.GET("/prometheus-rules", domain_prometheusrule.List)
+	v1.GET("/log-strategies/apply-records", domain_logstrategy.ListApplyRecords)
 
 	securityTests := []struct {
 		name           string

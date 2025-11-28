@@ -2,6 +2,15 @@ package platform
 
 import (
 	domain_monitoring "polardbx-ui-backend/pkg/api/domain/monitoring"
+	domain_alerts "polardbx-ui-backend/pkg/api/domain/platform/alerts/handler"
+	domain_grafana "polardbx-ui-backend/pkg/api/domain/platform/grafana/handler"
+	domain_logs "polardbx-ui-backend/pkg/api/domain/platform/logs/handler"
+	domain_logservice "polardbx-ui-backend/pkg/api/domain/platform/logservice/handler"
+	domain_logstrategy "polardbx-ui-backend/pkg/api/domain/platform/logstrategy/handler"
+	domain_pod "polardbx-ui-backend/pkg/api/domain/platform/pod/handler"
+	domain_prometheusrule "polardbx-ui-backend/pkg/api/domain/platform/prometheusrule/handler"
+	domain_settings "polardbx-ui-backend/pkg/api/domain/platform/settings/handler"
+	domain_system "polardbx-ui-backend/pkg/api/domain/platform/system/handler"
 
 	"github.com/gin-gonic/gin"
 )
@@ -10,8 +19,8 @@ import (
 func RegisterRoutes(v1 *gin.RouterGroup) {
 	p := v1.Group("/platform")
 	// System info
-	p.GET("/system/context", SystemContext)
-	p.GET("/system/namespaces", ListNamespaces)
+	p.GET("/system/context", domain_system.ContextInfo)
+	p.GET("/system/namespaces", domain_system.ListNamespaces)
 	// Monitoring
 	p.POST("/monitoring/bootstrap", domain_monitoring.Bootstrap)
 	p.GET("/monitoring/bootstrap/status", domain_monitoring.BootstrapStatus)
@@ -20,56 +29,56 @@ func RegisterRoutes(v1 *gin.RouterGroup) {
 	p.GET("/monitoring/preflight", domain_monitoring.DetectEnvironment)
 	p.DELETE("/monitoring/uninstall", domain_monitoring.Uninstall)
 	// Grafana
-	p.GET("/grafana/config", GrafanaGetConfig)
-	p.PUT("/grafana/config", GrafanaPutConfig)
-	p.POST("/grafana/dashboards/sync", GrafanaSyncDashboards)
-	p.GET("/grafana/dashboards", GrafanaListDashboards)
-	p.GET("/grafana/dashboards/:name/versions", GrafanaListVersions)
-	p.POST("/grafana/dashboards/:name/rollback", GrafanaRollback)
-	p.GET("/grafana/templates", GrafanaListTemplates)
-	p.GET("/grafana/templates/:name", GrafanaGetTemplate)
+	p.GET("/grafana/config", domain_grafana.GetConfig)
+	p.PUT("/grafana/config", domain_grafana.PutConfig)
+	p.POST("/grafana/dashboards/sync", domain_grafana.SyncDashboards)
+	p.GET("/grafana/dashboards", domain_grafana.ListDashboards)
+	p.GET("/grafana/dashboards/:name/versions", domain_grafana.ListDashboardVersions)
+	p.POST("/grafana/dashboards/:name/rollback", domain_grafana.RollbackDashboard)
+	p.GET("/grafana/templates", domain_grafana.ListTemplates)
+	p.GET("/grafana/templates/:name", domain_grafana.GetTemplate)
 	// PrometheusRule templates
-	p.GET("/prometheus-rules/templates", PrometheusRuleListTemplates)
-	p.GET("/prometheus-rules/templates/:name", PrometheusRuleGetTemplate)
-	p.POST("/prometheus-rules/templates/apply", PrometheusRuleApplyTemplate)
+	p.GET("/prometheus-rules/templates", domain_prometheusrule.ListTemplates)
+	p.GET("/prometheus-rules/templates/:name", domain_prometheusrule.GetTemplate)
+	p.POST("/prometheus-rules/templates/apply", domain_prometheusrule.ApplyTemplate)
 	// Logs
-	p.POST("/logs/query", LogsQuery)
-	p.GET("/logs/presets", LogsPresets)
-	p.GET("/logs/presets/:pattern", LogsPresetByPattern)
+	p.POST("/logs/query", domain_logs.Query)
+	p.GET("/logs/presets", domain_logs.Presets)
+	p.GET("/logs/presets/:pattern", domain_logs.PresetByPattern)
 	// Log collection bootstrap
-	p.POST("/logs/bootstrap", LogsBootstrap)
-	p.GET("/logs/bootstrap/status", LogsBootstrapStatus)
-	p.GET("/logs/bootstrap/logs", LogsBootstrapLogs)
+	p.POST("/logs/bootstrap", domain_logs.Bootstrap)
+	p.GET("/logs/bootstrap/status", domain_logs.BootstrapStatus)
+	p.GET("/logs/bootstrap/logs", domain_logs.BootstrapLogs)
 	// Log service / strategy
-	p.GET("/log-service/status", LogServiceStatus)
-	p.GET("/log-strategies", LogStrategyList)
-	p.POST("/log-strategies", LogStrategyCreate)
-	p.POST("/log-strategies/precheck", LogStrategyPrecheck)
-	p.GET("/log-strategies/:name", LogStrategyGet)
-	p.PUT("/log-strategies/:name", LogStrategyUpdate)
-	p.DELETE("/log-strategies/:name", LogStrategyDelete)
-	p.POST("/log-strategies/:name/apply", LogStrategyApply)
+	p.GET("/log-service/status", domain_logservice.Status)
+	p.GET("/log-strategies", domain_logstrategy.List)
+	p.POST("/log-strategies", domain_logstrategy.Create)
+	p.POST("/log-strategies/precheck", domain_logstrategy.Precheck)
+	p.GET("/log-strategies/:name", domain_logstrategy.Get)
+	p.PUT("/log-strategies/:name", domain_logstrategy.Update)
+	p.DELETE("/log-strategies/:name", domain_logstrategy.Delete)
+	p.POST("/log-strategies/:name/apply", domain_logstrategy.Apply)
 	// Pods
-	p.GET("/pods", PodList)
-	p.GET("/pods/:namespace/:name", PodGet)
-	p.GET("/pods/:namespace/:name/exec", PodExecWS)
-	p.DELETE("/pods/:namespace/:name", PodDelete)
-	p.GET("/logs/:namespace/:pod_name", PodGetLogs)
+	p.GET("/pods", domain_pod.List)
+	p.GET("/pods/:namespace/:name", domain_pod.Get)
+	p.GET("/pods/:namespace/:name/exec", domain_pod.ExecWS)
+	p.DELETE("/pods/:namespace/:name", domain_pod.Delete)
+	p.GET("/logs/:namespace/:pod_name", domain_pod.GetLogs)
 	// Alerts
-	p.GET("/alerts", AlertsList)
-	p.GET("/alerts/profiles", AlertsListProfiles)
-	p.POST("/alerts/profiles", AlertsCreateProfile)
-	p.GET("/alerts/profiles/:name", AlertsGetProfile)
-	p.PUT("/alerts/profiles/:name", AlertsUpdateProfile)
-	p.DELETE("/alerts/profiles/:name", AlertsDeleteProfile)
-	p.POST("/alerts/profiles/dry-run", AlertsDryRunProfile)
-	p.GET("/alerts/routes", AlertsGetRoutes)
-	p.PUT("/alerts/routes", AlertsPutRoutes)
-	p.GET("/alerts/silences", AlertsListSilences)
-	p.POST("/alerts/silences", AlertsCreateSilence)
-	p.DELETE("/alerts/silences/:id", AlertsDeleteSilence)
-	p.POST("/alerts/test", AlertsTest)
+	p.GET("/alerts", domain_alerts.List)
+	p.GET("/alerts/profiles", domain_alerts.ListProfiles)
+	p.POST("/alerts/profiles", domain_alerts.CreateProfile)
+	p.GET("/alerts/profiles/:name", domain_alerts.GetProfile)
+	p.PUT("/alerts/profiles/:name", domain_alerts.UpdateProfile)
+	p.DELETE("/alerts/profiles/:name", domain_alerts.DeleteProfile)
+	p.POST("/alerts/profiles/dry-run", domain_alerts.DryRunProfile)
+	p.GET("/alerts/routes", domain_alerts.GetRoutes)
+	p.PUT("/alerts/routes", domain_alerts.PutRoutes)
+	p.GET("/alerts/silences", domain_alerts.ListSilences)
+	p.POST("/alerts/silences", domain_alerts.CreateSilence)
+	p.DELETE("/alerts/silences/:id", domain_alerts.DeleteSilence)
+	p.POST("/alerts/test", domain_alerts.TestAlert)
 	// Settings
-	p.GET("/settings/backup-dashboard", GetBackupDashboard)
-	p.PUT("/settings/backup-dashboard", PutBackupDashboard)
+	p.GET("/settings/backup-dashboard", domain_settings.Get)
+	p.PUT("/settings/backup-dashboard", domain_settings.Update)
 }

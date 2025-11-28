@@ -13,7 +13,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	api_settings "polardbx-ui-backend/pkg/api/settings"
+	domain_settings "polardbx-ui-backend/pkg/api/domain/platform/settings/handler"
+	settings_service "polardbx-ui-backend/pkg/api/domain/platform/settings/service"
 )
 
 func TestBackupDashboardSettings_DefaultsAndUpdate(t *testing.T) {
@@ -23,8 +24,8 @@ func TestBackupDashboardSettings_DefaultsAndUpdate(t *testing.T) {
 
 	r := gin.Default()
 	r.Use(func(c *gin.Context) { c.Set("k8sClient", fakeClient) })
-	r.GET("/api/v1/settings/backup-dashboard", api_settings.Get)
-	r.PUT("/api/v1/settings/backup-dashboard", api_settings.Update)
+	r.GET("/api/v1/settings/backup-dashboard", domain_settings.Get)
+	r.PUT("/api/v1/settings/backup-dashboard", domain_settings.Update)
 
 	// Defaults: expect empty map when no config present
 	w := httptest.NewRecorder()
@@ -36,7 +37,7 @@ func TestBackupDashboardSettings_DefaultsAndUpdate(t *testing.T) {
 	// no predefined keys assumed
 
 	// Update: write settings and read back
-	payload := api_settings.BackupDashboardSettings{RPOThresholdSeconds: 7200, ThroughputLowerBoundMBps: 2.5, DiagnosisRetentionDays: 14}
+	payload := settings_service.BackupDashboardSettings{RPOThresholdSeconds: 7200, ThroughputLowerBoundMBps: 2.5, DiagnosisRetentionDays: 14}
 	b, _ := json.Marshal(payload)
 	w2 := httptest.NewRecorder()
 	req2, _ := http.NewRequest(http.MethodPut, "/api/v1/settings/backup-dashboard", bytes.NewReader(b))

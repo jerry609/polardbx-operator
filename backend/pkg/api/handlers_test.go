@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	api_logcollector "polardbx-ui-backend/pkg/api/logcollector"
+	domain_logcollector "polardbx-ui-backend/pkg/api/domain/platform/logcollector/handler"
 
 	polardbxv1 "github.com/alibaba/polardbx-operator/api/v1"
 	"github.com/gin-gonic/gin"
@@ -34,13 +34,13 @@ func setupRouter() *gin.Engine {
 		// stub middleware: do not set k8s client to trigger 401 in handlers expecting kubeconfig
 		v1.Use(func(c *gin.Context) { c.Next() })
 
-		v1.GET("/log-collectors/:namespace/pipeline", api_logcollector.GetLogstashPipeline)
-		v1.PUT("/log-collectors/:namespace/pipeline", api_logcollector.UpdateLogstashPipeline)
-		v1.GET("/log-collectors/:namespace/elastic-certs", api_logcollector.GetElasticsearchCert)
-		v1.PUT("/log-collectors/:namespace/elastic-certs", api_logcollector.UpdateElasticsearchCert)
-		v1.GET("/log-collectors/:namespace/:name/status", api_logcollector.GetLogCollectorStatus)
-		v1.GET("/log-collectors/:namespace/logstash/logs", api_logcollector.StreamLogstashLogs)
-		v1.POST("/log-collectors/:namespace/test", api_logcollector.TestLogCollector)
+		v1.GET("/log-collectors/:namespace/pipeline", domain_logcollector.GetLogstashPipeline)
+		v1.PUT("/log-collectors/:namespace/pipeline", domain_logcollector.UpdateLogstashPipeline)
+		v1.GET("/log-collectors/:namespace/elastic-certs", domain_logcollector.GetElasticsearchCert)
+		v1.PUT("/log-collectors/:namespace/elastic-certs", domain_logcollector.UpdateElasticsearchCert)
+		v1.GET("/log-collectors/:namespace/:name/status", domain_logcollector.GetLogCollectorStatus)
+		v1.GET("/log-collectors/:namespace/logstash/logs", domain_logcollector.StreamLogstashLogs)
+		v1.POST("/log-collectors/:namespace/test", domain_logcollector.TestLogCollector)
 	}
 	return r
 }
@@ -96,11 +96,11 @@ func setupRouterWithClientset(cs *k8sfake.Clientset) *gin.Engine {
 	v1 := r.Group("/api/v1")
 	{
 		v1.Use(func(c *gin.Context) { c.Set("clientset", cs) })
-		v1.GET("/log-collectors/:namespace/pipeline", api_logcollector.GetLogstashPipeline)
-		v1.PUT("/log-collectors/:namespace/pipeline", api_logcollector.UpdateLogstashPipeline)
-		v1.GET("/log-collectors/:namespace/elastic-certs", api_logcollector.GetElasticsearchCert)
-		v1.PUT("/log-collectors/:namespace/elastic-certs", api_logcollector.UpdateElasticsearchCert)
-		v1.GET("/log-collectors/:namespace/logstash/logs", api_logcollector.StreamLogstashLogs)
+		v1.GET("/log-collectors/:namespace/pipeline", domain_logcollector.GetLogstashPipeline)
+		v1.PUT("/log-collectors/:namespace/pipeline", domain_logcollector.UpdateLogstashPipeline)
+		v1.GET("/log-collectors/:namespace/elastic-certs", domain_logcollector.GetElasticsearchCert)
+		v1.PUT("/log-collectors/:namespace/elastic-certs", domain_logcollector.UpdateElasticsearchCert)
+		v1.GET("/log-collectors/:namespace/logstash/logs", domain_logcollector.StreamLogstashLogs)
 	}
 	return r
 }
@@ -111,7 +111,7 @@ func setupRouterWithClients(kc crclient.Client, cs *k8sfake.Clientset) *gin.Engi
 	v1 := r.Group("/api/v1")
 	{
 		v1.Use(func(c *gin.Context) { c.Set("k8sClient", kc); c.Set("clientset", cs) })
-		v1.GET("/log-collectors/:namespace/:name/status", api_logcollector.GetLogCollectorStatus)
+		v1.GET("/log-collectors/:namespace/:name/status", domain_logcollector.GetLogCollectorStatus)
 	}
 	return r
 }

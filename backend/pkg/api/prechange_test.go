@@ -14,7 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	api_prechange "polardbx-ui-backend/pkg/api/prechange"
+	domain_prechange "polardbx-ui-backend/pkg/api/domain/platform/prechange/handler"
 )
 
 func TestGetPrechangeChecklist(t *testing.T) {
@@ -43,7 +43,7 @@ func TestGetPrechangeChecklist(t *testing.T) {
 
 	r := gin.Default()
 	r.Use(func(c *gin.Context) { c.Set("k8sClient", fakeClient) })
-	r.GET("/api/v1/clusters/:namespace/:name/prechange-check", api_prechange.GetPrechangeChecklist)
+	r.GET("/api/v1/clusters/:namespace/:name/prechange-check", domain_prechange.GetPrechangeChecklist)
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest(http.MethodGet, "/api/v1/clusters/ns1/c1/prechange-check?now=2024-05-01T04:00:00Z", nil)

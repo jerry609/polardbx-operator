@@ -22,7 +22,7 @@
         <span>集群管理</span>
       </li>
       
-      <li nz-submenu nzTitle="备份管理" nzIcon="cloud-upload">
+      <li nz-submenu nzTitle="备份管理" nzIcon="cloud-upload" [(nzOpen)]="submenuOpenMap['backup']">
         <ul>
           <li nz-menu-item routerLink="/backup/overview" nzMatchRouter>
             <nz-icon nzType="pie-chart"></nz-icon>
@@ -47,7 +47,7 @@
         </ul>
       </li>
       
-      <li nz-submenu nzTitle="恢复管理" nzIcon="undo">
+      <li nz-submenu nzTitle="恢复管理" nzIcon="undo" [(nzOpen)]="submenuOpenMap['recovery']">
         <ul>
           <li nz-menu-item routerLink="/recovery/restore-wizard" nzMatchRouter>
             <nz-icon nzType="build"></nz-icon>
@@ -60,13 +60,13 @@
         </ul>
       </li>
       
-      <li nz-submenu nzTitle="存储管理" nzIcon="database">
+      <li nz-submenu nzTitle="存储管理" nzIcon="database" [(nzOpen)]="submenuOpenMap['storage']">
         <ul>
           <li nz-menu-item routerLink="/storage/xstores" nzMatchRouter>
             <nz-icon nzType="cluster"></nz-icon>
             <span>存储节点</span>
           </li>
-          <li nz-submenu nzTitle="备库重搭" nzIcon="deployment-unit">
+          <li nz-submenu nzTitle="备库重搭" nzIcon="deployment-unit" [(nzOpen)]="submenuOpenMap['rebuild']">
             <ul>
               <li nz-menu-item routerLink="/storage/xstore-rebuild/rebuild/tasks" nzMatchRouter>
                 <nz-icon nzType="bars"></nz-icon>
@@ -91,7 +91,7 @@
       
       <!-- 移除单独的“监控与告警”一级模块，合并到运维管理下 -->
       
-      <li nz-submenu nzTitle="运维管理" nzIcon="setting">
+      <li nz-submenu nzTitle="运维管理" nzIcon="setting" [(nzOpen)]="submenuOpenMap['operations']">
         <ul>
           <li nz-menu-item routerLink="/operations/monitoring/enable-wizard" nzMatchRouter [nzMatchRouterExact]="true">
             <nz-icon nzType="dashboard"></nz-icon>
@@ -102,7 +102,7 @@
             <span>日志采集安装向导</span>
           </li>
  
-          <li nz-submenu nzTitle="参数与调优" nzIcon="sliders">
+          <li nz-submenu nzTitle="参数与调优" nzIcon="sliders" [(nzOpen)]="submenuOpenMap['parameters']">
             <ul>
               <li nz-menu-item routerLink="/operations/parameter-templates" nzMatchRouter [nzMatchRouterExact]="true">
                 <nz-icon nzType="control"></nz-icon>
@@ -111,7 +111,7 @@
             </ul>
           </li>
 
-          <li nz-submenu nzTitle="运维助手" nzIcon="tool">
+          <li nz-submenu nzTitle="运维助手" nzIcon="tool" [(nzOpen)]="submenuOpenMap['opsHelper']">
             <ul>
               <li nz-menu-item routerLink="/operations/diagnostics" nzMatchRouter [nzMatchRouterExact]="true">
                 <nz-icon nzType="file-search"></nz-icon>
@@ -124,7 +124,7 @@
             </ul>
           </li>
 
-          <li nz-submenu nzTitle="资源管理" nzIcon="cluster">
+          <li nz-submenu nzTitle="资源管理" nzIcon="cluster" [(nzOpen)]="submenuOpenMap['resources']">
             <ul>
               <li nz-menu-item routerLink="/operations/nodes" nzMatchRouter [nzMatchRouterExact]="true">
                 <nz-icon nzType="apartment"></nz-icon>

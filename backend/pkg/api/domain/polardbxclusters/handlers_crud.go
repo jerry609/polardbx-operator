@@ -10,7 +10,7 @@ import (
 
 func List(c *gin.Context)             { services.NewClusterService().List(c) }
 func Create(c *gin.Context)           { services.NewClusterService().Create(c) }
-func CreateFromConfig(c *gin.Context) { services.NewClusterService().Create(c) }
+func CreateFromConfig(c *gin.Context) { services.NewClusterService().CreateFromConfig(c) }
 func Get(c *gin.Context)              { services.NewClusterService().Get(c) }
 func Update(c *gin.Context)           { services.NewClusterService().Update(c) }
 func Delete(c *gin.Context)           { services.NewClusterService().Delete(c) }

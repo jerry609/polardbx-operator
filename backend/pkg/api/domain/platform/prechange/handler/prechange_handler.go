@@ -1,26 +1,68 @@
-package prechange
+// Package handler 提供预变更检查的 HTTP 处理器package handler
+
+// 遵循 Clean Architecture 设计模式
+package handler
 
 import (
-	"fmt"
-	"net/http"
-	"strconv"
-	"time"
-
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
+	"net/http"
+	"strconv"
 	"strings"
+	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 
 	polardbxv1 "github.com/alibaba/polardbx-operator/api/v1"
 	polardbx "github.com/alibaba/polardbx-operator/api/v1/polardbx"
+	systemtask "github.com/alibaba/polardbx-operator/api/v1/systemtask"
 	"github.com/gin-gonic/gin"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	systemtask "github.com/alibaba/polardbx-operator/api/v1/systemtask"
 )
+
+// ======================== Types ========================
+
+// PrecheckRequest 预检请求
+type PrecheckRequest struct {
+	Operation  string         `json:"operation"`  // scale|upgrade|config
+	TargetSpec map[string]any `json:"targetSpec"` // optional, reserved
+}
+
+// Checklist 汇总预变更检查的关键结果
+type Checklist struct {
+	HasRecentBackup     bool   `json:"hasRecentBackup"`
+	RpoLagSeconds       int    `json:"rpoLagSeconds"`
+	StorageConnectivity string `json:"storageConnectivity"`
+	RpoOk               bool   `json:"rpoOk"`
+}
+
+// ======================== Helper Functions ========================
+
+func getK8sClient(c *gin.Context) (client.Client, bool) {
+	v, ok := c.Get("k8sClient")
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "kubernetes client not initialized"})
+		return nil, false
+	}
+	cli, ok := v.(client.Client)
+	if !ok || cli == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid kubernetes client in context"})
+		return nil, false
+	}
+	return cli, true
+}
+
+func ternary[T any](cond bool, a T, b T) T {
+	if cond {
+		return a
+	}
+	return b
+}
+
+// ======================== Core Logic ========================
 
 func computePrechangeChecklist(c *gin.Context, k8sClient client.Client, namespace, name string, windowHours int, now time.Time) (hasRecent bool, lastBackupTime *time.Time, rpoLagSeconds int, storageConnectivity string, rpoOk bool, err error) {
 	var backupList polardbxv1.PolarDBXBackupList
@@ -76,14 +118,12 @@ func computePrechangeChecklist(c *gin.Context, k8sClient client.Client, namespac
 
 // evaluateClusterState checks cluster CR status and underlying workloads/pods readiness
 func evaluateClusterState(c *gin.Context, k8sClient client.Client, namespace, name string) (phase string, clusterReady bool, controllersReady bool, podsReady bool, err error) {
-	// Get cluster CR
 	var cluster polardbxv1.PolarDBXCluster
 	if e := k8sClient.Get(c.Request.Context(), client.ObjectKey{Namespace: namespace, Name: name}, &cluster); e != nil {
 		err = e
 		return
 	}
 	phase = string(cluster.Status.Phase)
-	// ClusterReady condition
 	for _, cond := range cluster.Status.Conditions {
 		if string(cond.Type) == "ClusterReady" && cond.Status == corev1.ConditionTrue {
 			clusterReady = true
@@ -91,7 +131,6 @@ func evaluateClusterState(c *gin.Context, k8sClient client.Client, namespace, na
 		}
 	}
 
-	// Controllers: Deployments and StatefulSets
 	controllersReady = true
 	var depList appsv1.DeploymentList
 	if e := k8sClient.List(c.Request.Context(), &depList, client.InNamespace(namespace), client.MatchingLabels(map[string]string{"polardbx/name": name})); e == nil {
@@ -121,12 +160,10 @@ func evaluateClusterState(c *gin.Context, k8sClient client.Client, namespace, na
 		}
 	}
 
-	// Pods readiness
 	podsReady = true
 	var podList corev1.PodList
 	if e := k8sClient.List(c.Request.Context(), &podList, client.InNamespace(namespace), client.MatchingLabels(map[string]string{"polardbx/name": name})); e == nil {
 		for _, p := range podList.Items {
-			// Need Ready condition True
 			isReady := false
 			for _, cs := range p.Status.Conditions {
 				if cs.Type == corev1.PodReady && cs.Status == corev1.ConditionTrue {
@@ -148,7 +185,6 @@ func scanConflicts(c *gin.Context, k8sClient client.Client, namespace, name stri
 	conflicts = []map[string]any{}
 	ctx := c.Request.Context()
 
-	// 1) 进行中的备份（非 Finished/Failed/Deleting）
 	var backupList polardbxv1.PolarDBXBackupList
 	if err := k8sClient.List(ctx, &backupList, client.InNamespace(namespace)); err == nil {
 		for _, b := range backupList.Items {
@@ -162,7 +198,6 @@ func scanConflicts(c *gin.Context, k8sClient client.Client, namespace, name stri
 		}
 	}
 
-	// 2) 系统任务进行中（非 Success）
 	var taskList polardbxv1.SystemTaskList
 	if err := k8sClient.List(ctx, &taskList, client.InNamespace(namespace)); err == nil {
 		for _, t := range taskList.Items {
@@ -175,7 +210,6 @@ func scanConflicts(c *gin.Context, k8sClient client.Client, namespace, name stri
 		}
 	}
 
-	// 3) 升级在途：Cluster Phase Upgrading
 	var cluster polardbxv1.PolarDBXCluster
 	if err := k8sClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, &cluster); err == nil {
 		if cluster.Status.Phase == polardbx.PhaseUpgrading {
@@ -190,7 +224,6 @@ func scanConflicts(c *gin.Context, k8sClient client.Client, namespace, name stri
 func evaluateCapacityAndDeps(c *gin.Context, k8sClient client.Client, namespace, name string) (unschedulablePods bool, nodeDiskPressure bool, quotaOk bool, binlogOk bool, rbacOk bool) {
 	ctx := c.Request.Context()
 
-	// Pods scheduling state
 	var podList corev1.PodList
 	if err := k8sClient.List(ctx, &podList, client.InNamespace(namespace), client.MatchingLabels(map[string]string{"polardbx/name": name})); err == nil {
 		for _, p := range podList.Items {
@@ -206,7 +239,6 @@ func evaluateCapacityAndDeps(c *gin.Context, k8sClient client.Client, namespace,
 		}
 	}
 
-	// Node disk pressure (cluster-wide signal that may affect scheduling)
 	var nodes corev1.NodeList
 	if err := k8sClient.List(ctx, &nodes); err == nil {
 		for _, n := range nodes.Items {
@@ -222,14 +254,12 @@ func evaluateCapacityAndDeps(c *gin.Context, k8sClient client.Client, namespace,
 		}
 	}
 
-	// ResourceQuota sanity check (namespace-level)
 	quotaOk = true
 	var rqList corev1.ResourceQuotaList
 	if err := k8sClient.List(ctx, &rqList, client.InNamespace(namespace)); err == nil {
 		for _, rq := range rqList.Items {
 			for resName, hard := range rq.Status.Hard {
 				used := rq.Status.Used[resName]
-				// Consider near-exhausted when usage exceeds 95%
 				var hardF float64
 				var usedF float64
 				if hard.Format == "DecimalSI" || hard.Format == "BinarySI" || hard.Format == "DecimalExponent" {
@@ -250,20 +280,17 @@ func evaluateCapacityAndDeps(c *gin.Context, k8sClient client.Client, namespace,
 		}
 	}
 
-	// Binlog availability (presence of BackupBinlog resource for the cluster)
 	binlogOk = false
 	var binlogList polardbxv1.PolarDBXBackupBinlogList
 	if err := k8sClient.List(ctx, &binlogList, client.InNamespace(namespace)); err == nil {
 		for _, b := range binlogList.Items {
 			if b.Spec.PxcName == name {
-				// Treat existence as basic availability; stricter checks can be added later
 				binlogOk = true
 				break
 			}
 		}
 	}
 
-	// RBAC/CRD presence probing via list calls; if any of these return a NoMatch-like error, mark false
 	rbacOk = true
 	{
 		var x polardbxv1.PolarDBXBackupList
@@ -299,7 +326,6 @@ func evaluateVersionCompat(c *gin.Context, k8sClient client.Client, namespace, n
 	if op != "upgrade" {
 		return currentVersion, "", true, "非升级操作"
 	}
-	// extract targetVersion from targetSpec
 	if v, ok := targetSpec["targetVersion"].(string); ok {
 		targetVersion = v
 	}
@@ -314,11 +340,9 @@ func evaluateVersionCompat(c *gin.Context, k8sClient client.Client, namespace, n
 	if tmj != cmj {
 		return currentVersion, targetVersion, false, "不支持跨主版本升级"
 	}
-	// equal
 	if tmn == cmn && tpt == cpt {
 		return currentVersion, targetVersion, false, "目标版本与当前版本一致，无需升级"
 	}
-	// require target > current
 	if tmn < cmn || (tmn == cmn && tpt < cpt) {
 		return currentVersion, targetVersion, false, "不支持降级到更低版本"
 	}
@@ -327,10 +351,8 @@ func evaluateVersionCompat(c *gin.Context, k8sClient client.Client, namespace, n
 
 // parseVersion accepts strings like "8.0.18" or "8.0.18-xxx" and returns major/minor/patch
 func parseVersion(s string) (major int, minor int, patch int, ok bool) {
-	// keep only digits and dots before first non [0-9A-Za-z_.-] char (simple tolerant parser)
-	// split by '.' and parse numeric prefix of each token
 	parts := strings.Split(s, ".")
-	if len(parts) < 2 { // at least major.minor
+	if len(parts) < 2 {
 		return 0, 0, 0, false
 	}
 	num := func(tok string) (int, bool) {
@@ -355,7 +377,7 @@ func parseVersion(s string) (major int, minor int, patch int, ok bool) {
 	if len(parts) >= 3 {
 		pt, ok3 = num(parts[2])
 	} else {
-		ok3 = true // allow missing patch
+		ok3 = true
 	}
 	if !(ok1 && ok2 && ok3) {
 		return 0, 0, 0, false
@@ -363,20 +385,41 @@ func parseVersion(s string) (major int, minor int, patch int, ok bool) {
 	return mj, mn, pt, true
 }
 
+// ======================== Token Functions ========================
+
+func getPrecheckSecret(c *gin.Context, cli client.Client) string {
+	cm := corev1.ConfigMap{}
+	if err := cli.Get(c.Request.Context(), client.ObjectKey{Namespace: "polardbx-operator-system", Name: "polardbx-ui-backend-config"}, &cm); err == nil {
+		if cm.Data != nil && cm.Data["precheck.secret"] != "" {
+			return cm.Data["precheck.secret"]
+		}
+	}
+	return ""
+}
+
+func signPrecheckToken(secret, plain string) string {
+	if secret == "" {
+		return ""
+	}
+	h := hmac.New(sha256.New, []byte(secret))
+	h.Write([]byte(plain))
+	mac := h.Sum(nil)
+	return hex.EncodeToString(mac)
+}
+
+func verifyPrecheckToken(secret, plain, sig string) bool {
+	if secret == "" || sig == "" {
+		return false
+	}
+	expected := signPrecheckToken(secret, plain)
+	return hmac.Equal([]byte(expected), []byte(sig))
+}
+
+// ======================== HTTP Handlers ========================
+
+// GetPrechangeChecklist 获取预变更检查清单
 func GetPrechangeChecklist(c *gin.Context) {
-	k8sClient, ok := func() (client.Client, bool) {
-		v, ok := c.Get("k8sClient")
-		if !ok {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "kubernetes client not initialized"})
-			return nil, false
-		}
-		cli, ok := v.(client.Client)
-		if !ok || cli == nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid kubernetes client in context"})
-			return nil, false
-		}
-		return cli, true
-	}()
+	k8sClient, ok := getK8sClient(c)
 	if !ok {
 		return
 	}
@@ -419,28 +462,9 @@ func GetPrechangeChecklist(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
-// ---- Unified Precheck API (operation-aware) ----
-
-type PrecheckRequest struct {
-	Operation  string         `json:"operation"`  // scale|upgrade|config
-	TargetSpec map[string]any `json:"targetSpec"` // optional, reserved
-}
-
-// Precheck returns pass/warnings/errors and a lightweight token
+// Precheck 执行预检并返回 pass/warnings/errors 和轻量 token
 func Precheck(c *gin.Context) {
-	k8sClient, ok := func() (client.Client, bool) {
-		v, ok := c.Get("k8sClient")
-		if !ok {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "kubernetes client not initialized"})
-			return nil, false
-		}
-		cli, ok := v.(client.Client)
-		if !ok || cli == nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid kubernetes client in context"})
-			return nil, false
-		}
-		return cli, true
-	}()
+	k8sClient, ok := getK8sClient(c)
 	if !ok {
 		return
 	}
@@ -453,7 +477,6 @@ func Precheck(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid precheck request", "details": err.Error()})
 		return
 	}
-	// normalize op
 	op := req.Operation
 	switch op {
 	case "", "scale", "upgrade", "config":
@@ -475,11 +498,11 @@ func Precheck(c *gin.Context) {
 	warnings := []string{}
 	errorsArr := []string{}
 
-	// cluster state
 	phase, clusterReady, controllersReady, podsReady, _ := evaluateClusterState(c, k8sClient, ns, name)
 	unsched, diskPressure, quotaOk, binlogOk, rbacOk := evaluateCapacityAndDeps(c, k8sClient, ns, name)
 	curVer, tgtVer, verOk, verMsg := evaluateVersionCompat(c, k8sClient, ns, name, op, req.TargetSpec)
 	conflicts := scanConflicts(c, k8sClient, ns, name)
+
 	if len(conflicts) > 0 {
 		warnings = append(warnings, fmt.Sprintf("存在可能冲突的作业 %d 项", len(conflicts)))
 	}
@@ -515,7 +538,6 @@ func Precheck(c *gin.Context) {
 	if !podsReady {
 		warnings = append(warnings, "存在未就绪的 Pod，请关注")
 	}
-
 	if storageConnectivity != "configured" {
 		warnings = append(warnings, "未检测到 HPFS 配置，建议配置以保障回退点")
 	}
@@ -526,7 +548,6 @@ func Precheck(c *gin.Context) {
 		warnings = append(warnings, fmt.Sprintf("RPO 滞后 %d 秒超出阈值", rpoLagSeconds))
 	}
 
-	// 升级场景更严格
 	if op == "upgrade" {
 		if storageConnectivity != "configured" {
 			errorsArr = append(errorsArr, "升级前必须配置 HPFS 以保证回退能力")
@@ -536,7 +557,6 @@ func Precheck(c *gin.Context) {
 		}
 	}
 
-	// Build plan items
 	tStr := func(t *time.Time) string {
 		if t == nil {
 			return ""
@@ -596,13 +616,13 @@ func Precheck(c *gin.Context) {
 	})
 }
 
+// ======================== Exported Validation Functions ========================
+
 // ValidatePrecheckToken parses and validates token: ts:op:ns/name.
-// Lightweight guard to reduce TOCTOU; not a hard security barrier.
 func ValidatePrecheckToken(token, expectOp, ns, name string, maxSkew time.Duration) bool {
 	if token == "" {
 		return false
 	}
-	// split ts:op:ns/name
 	first := -1
 	second := -1
 	for i, ch := range token {
@@ -633,49 +653,6 @@ func ValidatePrecheckToken(token, expectOp, ns, name string, maxSkew time.Durati
 	}
 	t := time.Unix(0, ts)
 	return time.Since(t) <= maxSkew
-}
-
-func ternary[T any](cond bool, a T, b T) T {
-	if cond {
-		return a
-	}
-	return b
-}
-
-// Checklist 汇总预变更检查的关键结果
-type Checklist struct {
-	HasRecentBackup     bool   `json:"hasRecentBackup"`
-	RpoLagSeconds       int    `json:"rpoLagSeconds"`
-	StorageConnectivity string `json:"storageConnectivity"`
-	RpoOk               bool   `json:"rpoOk"`
-}
-
-func getPrecheckSecret(c *gin.Context, cli client.Client) string {
-	cm := corev1.ConfigMap{}
-	if err := cli.Get(c.Request.Context(), client.ObjectKey{Namespace: "polardbx-operator-system", Name: "polardbx-ui-backend-config"}, &cm); err == nil {
-		if cm.Data != nil && cm.Data["precheck.secret"] != "" {
-			return cm.Data["precheck.secret"]
-		}
-	}
-	return ""
-}
-
-func signPrecheckToken(secret, plain string) string {
-	if secret == "" {
-		return ""
-	}
-	h := hmac.New(sha256.New, []byte(secret))
-	h.Write([]byte(plain))
-	mac := h.Sum(nil)
-	return hex.EncodeToString(mac)
-}
-
-func verifyPrecheckToken(secret, plain, sig string) bool {
-	if secret == "" || sig == "" {
-		return false
-	}
-	expected := signPrecheckToken(secret, plain)
-	return hmac.Equal([]byte(expected), []byte(sig))
 }
 
 // GetPrecheckSecretForValidation tries to get secret via k8sClient in gin context.

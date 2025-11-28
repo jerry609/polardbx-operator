@@ -25,6 +25,7 @@ export interface StorageConfig extends Record<string, unknown> {
 export interface NetworkConfig extends Record<string, unknown> {
   serviceType?: string;
   loadBalancerClass?: string;
+  hostNetwork?: boolean;  // 使用宿主网络模式
 }
 
 export interface SecurityConfig extends Record<string, unknown> {
@@ -38,6 +39,15 @@ export interface AdvancedConfig extends Record<string, unknown> {
   enableLogCollection?: boolean;
   customLabels?: Record<string, string>;
   customAnnotations?: Record<string, string>;
+  nodeSelector?: Record<string, string>;  // 节点选择器
+  shareGMS?: boolean;  // GMS共享极简模式
+}
+
+// 镜像配置
+export interface ImageConfig extends Record<string, unknown> {
+  repository?: string;  // 镜像仓库
+  tag?: string;         // 镜像标签
+  pullPolicy?: 'Always' | 'IfNotPresent' | 'Never';  // 拉取策略
 }
 
 export interface ClusterCreationConfig extends Record<string, unknown> {
@@ -45,6 +55,7 @@ export interface ClusterCreationConfig extends Record<string, unknown> {
   namespace?: string;
   description?: string;
   version?: string;
+  image?: ImageConfig;       // 镜像配置
   topology: ClusterTopologyConfig;
   storage: StorageConfig;
   network?: NetworkConfig;
@@ -65,15 +76,66 @@ export interface ClusterTemplate {
 
 export const CLUSTER_TEMPLATES: readonly ClusterTemplate[] = [
   {
-    name: 'minimal',
-    label: '最小化',
+    name: '最小化',
+    label: 'minimal',
     icon: 'bolt',
     recommended: true,
-    description: '单副本开发测试',
+    description: '单副本配置，适合开发测试环境，资源占用最少',
     config: {
       topology: {
         cn: { replicas: 1, resources: { cpu: '500m', memory: '1Gi' } },
         dn: { replicas: 1, resources: { cpu: '500m', memory: '1Gi' } },
+        gms: { replicas: 1, resources: { cpu: '500m', memory: '1Gi' } }
+      },
+      storage: { storageClassName: 'standard', size: '20Gi', accessMode: 'ReadWriteOnce' },
+      network: { serviceType: 'ClusterIP' },
+      security: { enableTLS: false }
+    }
+  },
+  {
+    name: '标准版',
+    label: 'standard',
+    icon: 'cluster',
+    recommended: false,
+    description: '多副本高可用配置，适合预生产和小型生产环境',
+    config: {
+      topology: {
+        cn: { replicas: 2, resources: { cpu: '2', memory: '4Gi' } },
+        dn: { replicas: 2, resources: { cpu: '2', memory: '4Gi' } },
+        gms: { replicas: 1, resources: { cpu: '1', memory: '2Gi' } }
+      },
+      storage: { storageClassName: 'standard', size: '50Gi', accessMode: 'ReadWriteOnce' },
+      network: { serviceType: 'ClusterIP' },
+      security: { enableTLS: false }
+    }
+  },
+  {
+    name: '生产版',
+    label: 'production',
+    icon: 'cloud-server',
+    recommended: false,
+    description: '高性能高可用配置，适合大规模生产环境',
+    config: {
+      topology: {
+        cn: { replicas: 3, resources: { cpu: '4', memory: '8Gi' } },
+        dn: { replicas: 3, resources: { cpu: '4', memory: '8Gi' } },
+        gms: { replicas: 3, resources: { cpu: '2', memory: '4Gi' } }
+      },
+      storage: { storageClassName: 'standard', size: '100Gi', accessMode: 'ReadWriteOnce' },
+      network: { serviceType: 'LoadBalancer' },
+      security: { enableTLS: true }
+    }
+  },
+  {
+    name: '自定义',
+    label: 'custom',
+    icon: 'setting',
+    recommended: false,
+    description: '完全自定义配置，适合有特殊需求的场景',
+    config: {
+      topology: {
+        cn: { replicas: 1, resources: { cpu: '1', memory: '2Gi' } },
+        dn: { replicas: 1, resources: { cpu: '1', memory: '2Gi' } },
         gms: { replicas: 1, resources: { cpu: '500m', memory: '1Gi' } }
       },
       storage: { storageClassName: 'standard', size: '20Gi', accessMode: 'ReadWriteOnce' },

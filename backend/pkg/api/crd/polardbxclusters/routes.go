@@ -1,9 +1,8 @@
 package polardbxclusters
 
 import (
-	api_pod "polardbx-ui-backend/pkg/api/pod"
-	api_prechange "polardbx-ui-backend/pkg/api/prechange"
-	api_restore "polardbx-ui-backend/pkg/api/restore"
+	domain_pod "polardbx-ui-backend/pkg/api/domain/platform/pod/handler"
+	domain_restore "polardbx-ui-backend/pkg/api/domain/platform/restore/handler"
 
 	domain_pxc "polardbx-ui-backend/pkg/api/domain/polardbxclusters"
 
@@ -28,7 +27,7 @@ func RegisterRoutes(crd *gin.RouterGroup) {
 	item.GET("/alerts-summary", domain_pxc.GetAlertsSummary)
 
 	// Cluster pods
-	item.GET("/pods", api_pod.ListForCluster)
+	item.GET("/pods", domain_pod.ListForCluster)
 
 	// Cluster backups (list/create) and advice → domain
 	item.GET("/backups", domain_pxc.ListBackups)
@@ -36,9 +35,9 @@ func RegisterRoutes(crd *gin.RouterGroup) {
 	item.GET("/backup-advice", domain_pxc.GetBackupAdvice)
 
 	// Prechange & Restore
-	item.GET("/prechange-check", api_prechange.GetPrechangeChecklist)
-	item.POST("/precheck", api_prechange.Precheck)
-	item.POST("/restore", api_restore.RestoreCluster)
-	item.POST("/pitr", api_restore.InitiatePITR)
-	item.GET("/restore-status", api_restore.GetRestoreStatus)
+	item.GET("/prechange-check", domain_pxc.GetPrechangeChecklist)
+	item.POST("/precheck", domain_pxc.Precheck)
+	item.POST("/restore", domain_restore.RestoreCluster)
+	item.POST("/pitr", domain_restore.InitiatePITR)
+	item.GET("/restore-status", domain_restore.GetRestoreStatus)
 }

@@ -316,10 +316,10 @@ import { XStore } from '../../models/xstore.model';
               
               <nz-descriptions nzBordered [nzColumn]="2" nzSize="small">
                 <nz-descriptions-item nzTitle="引擎">
-                  {{ xstore.spec?.engine || 'galaxy' }}
+                  {{ xstore.spec.engine || 'galaxy' }}
                 </nz-descriptions-item>
                 <nz-descriptions-item nzTitle="节点数">
-                  {{ xstore.spec?.topology?.nodeCount || '-' }}
+                  {{ xstore.spec.topology.nodeCount || '-' }}
                 </nz-descriptions-item>
                 <nz-descriptions-item nzTitle="CPU (limits)">
                   {{ getResourceLimit(xstore, 'cpu') }}

@@ -196,8 +196,16 @@ export class ClusterListComponent implements OnInit, OnDestroy {
       nzTitle: '创建集群',
       nzContent: ClusterCreationWizardComponent,
       nzWidth: '90vw',
-      nzStyle: { top: '20px' },
-      nzBodyStyle: { padding: '0' },
+      nzStyle: { 
+        top: '30px',
+        maxWidth: '1200px'
+      },
+      nzBodyStyle: { 
+        padding: '0',
+        height: 'calc(100vh - 160px)',
+        maxHeight: '800px',
+        overflow: 'hidden'
+      },
       nzMaskClosable: false,
       nzFooter: null
     });

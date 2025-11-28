@@ -1,4 +1,7 @@
-package parameters
+// Package handler 提供参数和参数模板的 HTTP 处理器package handler
+
+// 遵循 Clean Architecture 设计模式
+package handler
 
 import (
 	"net/http"
@@ -10,7 +13,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// ----- Parameters -----
+// ======================== Parameters ========================
+
+// List 获取参数列表
 func List(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -25,6 +30,7 @@ func List(c *gin.Context) {
 	c.JSON(http.StatusOK, items)
 }
 
+// Get 获取指定参数
 func Get(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -40,6 +46,7 @@ func Get(c *gin.Context) {
 	c.JSON(http.StatusOK, item)
 }
 
+// Create 创建参数
 func Create(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -59,6 +66,7 @@ func Create(c *gin.Context) {
 	c.JSON(http.StatusCreated, created)
 }
 
+// Update 更新参数
 func Update(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -78,6 +86,7 @@ func Update(c *gin.Context) {
 	c.JSON(http.StatusOK, updated)
 }
 
+// Delete 删除参数
 func Delete(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -92,7 +101,9 @@ func Delete(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "parameter deleted"})
 }
 
-// ----- Parameter Templates -----
+// ======================== Parameter Templates ========================
+
+// ListTemplates 获取参数模板列表
 func ListTemplates(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -107,6 +118,7 @@ func ListTemplates(c *gin.Context) {
 	c.JSON(http.StatusOK, items)
 }
 
+// GetTemplate 获取指定参数模板
 func GetTemplate(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -122,6 +134,7 @@ func GetTemplate(c *gin.Context) {
 	c.JSON(http.StatusOK, item)
 }
 
+// CreateTemplate 创建参数模板
 func CreateTemplate(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -141,6 +154,7 @@ func CreateTemplate(c *gin.Context) {
 	c.JSON(http.StatusCreated, created)
 }
 
+// UpdateTemplate 更新参数模板
 func UpdateTemplate(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -160,6 +174,7 @@ func UpdateTemplate(c *gin.Context) {
 	c.JSON(http.StatusOK, updated)
 }
 
+// DeleteTemplate 删除参数模板
 func DeleteTemplate(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {

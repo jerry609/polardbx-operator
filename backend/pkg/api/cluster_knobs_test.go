@@ -18,7 +18,7 @@ import (
 
 	polardbxv1 "github.com/alibaba/polardbx-operator/api/v1"
 
-	api_clusterknobs "polardbx-ui-backend/pkg/api/clusterknobs"
+	domain_clusterknobs "polardbx-ui-backend/pkg/api/domain/platform/clusterknobs/handler"
 )
 
 func TestClusterKnobsEndpoints(t *testing.T) {
@@ -60,11 +60,11 @@ func TestClusterKnobsEndpoints(t *testing.T) {
 	})
 
 	// Register ClusterKnobs routes
-	router.GET("/cluster-knobs", api_clusterknobs.GetList)
-	router.POST("/cluster-knobs", api_clusterknobs.Create)
-	router.GET("/cluster-knobs/:namespace/:name", api_clusterknobs.Get)
-	router.PUT("/cluster-knobs/:namespace/:name", api_clusterknobs.Update)
-	router.DELETE("/cluster-knobs/:namespace/:name", api_clusterknobs.Delete)
+	router.GET("/cluster-knobs", domain_clusterknobs.GetList)
+	router.POST("/cluster-knobs", domain_clusterknobs.Create)
+	router.GET("/cluster-knobs/:namespace/:name", domain_clusterknobs.Get)
+	router.PUT("/cluster-knobs/:namespace/:name", domain_clusterknobs.Update)
+	router.DELETE("/cluster-knobs/:namespace/:name", domain_clusterknobs.Delete)
 
 	// --- Test GetClusterKnobsList ---
 	t.Run("GetClusterKnobsList", func(t *testing.T) {
@@ -281,7 +281,7 @@ func TestClusterKnobsBusinessLogic(t *testing.T) {
 					c.Set("k8sClient", fakeClient)
 					c.Next()
 				})
-				router.POST("/cluster-knobs", api_clusterknobs.Create)
+				router.POST("/cluster-knobs", domain_clusterknobs.Create)
 
 				clusterKnobs := &polardbxv1.PolarDBXClusterKnobs{
 					ObjectMeta: metav1.ObjectMeta{
@@ -358,7 +358,7 @@ func TestClusterKnobsBusinessLogic(t *testing.T) {
 					c.Set("k8sClient", fakeClient)
 					c.Next()
 				})
-				router.POST("/cluster-knobs", api_clusterknobs.Create)
+				router.POST("/cluster-knobs", domain_clusterknobs.Create)
 
 				clusterKnobs := &polardbxv1.PolarDBXClusterKnobs{
 					ObjectMeta: metav1.ObjectMeta{
@@ -390,7 +390,7 @@ func TestClusterKnobsBusinessLogic(t *testing.T) {
 			c.Set("k8sClient", fakeClient)
 			c.Next()
 		})
-		router.POST("/cluster-knobs", api_clusterknobs.Create)
+		router.POST("/cluster-knobs", domain_clusterknobs.Create)
 
 		clusterKnobs := &polardbxv1.PolarDBXClusterKnobs{
 			ObjectMeta: metav1.ObjectMeta{
@@ -511,7 +511,7 @@ func TestClusterKnobsBusinessLogic(t *testing.T) {
 					c.Set("k8sClient", fakeClient)
 					c.Next()
 				})
-				router.POST("/cluster-knobs", api_clusterknobs.Create)
+				router.POST("/cluster-knobs", domain_clusterknobs.Create)
 
 				clusterKnobs := &polardbxv1.PolarDBXClusterKnobs{
 					ObjectMeta: metav1.ObjectMeta{

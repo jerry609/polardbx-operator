@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
+	domain_restore "polardbx-ui-backend/pkg/api/domain/platform/restore/handler"
 	"polardbx-ui-backend/pkg/api/domain/polardbxclusters/services/runner"
-	api_restore "polardbx-ui-backend/pkg/api/restore"
 	"polardbx-ui-backend/pkg/api/util"
 
 	"github.com/gin-gonic/gin"
@@ -31,7 +31,7 @@ func RunRestoreFlow(c *gin.Context) {
 			return nil
 		}},
 		runner.Step{Name: "apply", Fn: func(c *gin.Context) error {
-			api_restore.RestoreCluster(c)
+			domain_restore.RestoreCluster(c)
 			if c.IsAborted() {
 				return errors.New("restore apply aborted")
 			}

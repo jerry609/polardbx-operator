@@ -1,7 +1,7 @@
 package polardbxclusters
 
 import (
-	api_clusterknobs "polardbx-ui-backend/pkg/api/clusterknobs"
+	domain_clusterknobs "polardbx-ui-backend/pkg/api/domain/platform/clusterknobs/handler"
 	"polardbx-ui-backend/pkg/api/domain/polardbxclusters/services"
 
 	"os"
@@ -85,9 +85,9 @@ func RegisterRoutes(v1 *gin.RouterGroup) {
 	g.DELETE("/parameter-templates/:namespace/:name", DeleteTemplate)
 
 	// ClusterKnobs
-	g.GET("/cluster-knobs", api_clusterknobs.GetList)
-	g.POST("/cluster-knobs", api_clusterknobs.Create)
-	g.GET("/cluster-knobs/:namespace/:name", api_clusterknobs.Get)
-	g.PUT("/cluster-knobs/:namespace/:name", api_clusterknobs.Update)
-	g.DELETE("/cluster-knobs/:namespace/:name", api_clusterknobs.Delete)
+	g.GET("/cluster-knobs", domain_clusterknobs.GetList)
+	g.POST("/cluster-knobs", domain_clusterknobs.Create)
+	g.GET("/cluster-knobs/:namespace/:name", domain_clusterknobs.Get)
+	g.PUT("/cluster-knobs/:namespace/:name", domain_clusterknobs.Update)
+	g.DELETE("/cluster-knobs/:namespace/:name", domain_clusterknobs.Delete)
 }

@@ -17,7 +17,7 @@ import (
 
 	polardbxv1 "github.com/alibaba/polardbx-operator/api/v1"
 
-	api_parameters "polardbx-ui-backend/pkg/api/parameters"
+	domain_parameters "polardbx-ui-backend/pkg/api/domain/platform/parameters/handler"
 )
 
 func TestParameterTemplateEndpoints(t *testing.T) {
@@ -105,11 +105,11 @@ func TestParameterTemplateEndpoints(t *testing.T) {
 	})
 
 	// Register ParameterTemplate routes
-	router.GET("/parameter-templates", api_parameters.ListTemplates)
-	router.POST("/parameter-templates", api_parameters.CreateTemplate)
-	router.GET("/parameter-templates/:namespace/:name", api_parameters.GetTemplate)
-	router.PUT("/parameter-templates/:namespace/:name", api_parameters.UpdateTemplate)
-	router.DELETE("/parameter-templates/:namespace/:name", api_parameters.DeleteTemplate)
+	router.GET("/parameter-templates", domain_parameters.ListTemplates)
+	router.POST("/parameter-templates", domain_parameters.CreateTemplate)
+	router.GET("/parameter-templates/:namespace/:name", domain_parameters.GetTemplate)
+	router.PUT("/parameter-templates/:namespace/:name", domain_parameters.UpdateTemplate)
+	router.DELETE("/parameter-templates/:namespace/:name", domain_parameters.DeleteTemplate)
 
 	// --- Test ListParameterTemplates ---
 	t.Run("ListParameterTemplates", func(t *testing.T) {
@@ -336,7 +336,7 @@ func TestParameterTemplateBusinessLogic(t *testing.T) {
 					c.Set("k8sClient", fakeClient)
 					c.Next()
 				})
-				router.POST("/parameter-templates", api_parameters.CreateTemplate)
+				router.POST("/parameter-templates", domain_parameters.CreateTemplate)
 
 				template := &polardbxv1.PolarDBXParameterTemplate{
 					ObjectMeta: metav1.ObjectMeta{
@@ -395,7 +395,7 @@ func TestParameterTemplateBusinessLogic(t *testing.T) {
 					c.Set("k8sClient", fakeClient)
 					c.Next()
 				})
-				router.POST("/parameter-templates", api_parameters.CreateTemplate)
+				router.POST("/parameter-templates", domain_parameters.CreateTemplate)
 
 				template := &polardbxv1.PolarDBXParameterTemplate{
 					ObjectMeta: metav1.ObjectMeta{
@@ -440,7 +440,7 @@ func TestParameterTemplateBusinessLogic(t *testing.T) {
 			c.Set("k8sClient", fakeClient)
 			c.Next()
 		})
-		router.POST("/parameter-templates", api_parameters.CreateTemplate)
+		router.POST("/parameter-templates", domain_parameters.CreateTemplate)
 
 		template := &polardbxv1.PolarDBXParameterTemplate{
 			ObjectMeta: metav1.ObjectMeta{

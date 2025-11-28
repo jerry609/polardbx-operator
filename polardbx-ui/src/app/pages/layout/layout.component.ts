@@ -121,6 +121,18 @@ export class LayoutComponent implements OnInit {
   namespaces: string[] = [];
   activeNamespace: string | null = null;
   isAuthenticated = false;
+  
+  // 用于控制每个子菜单的独立展开状态
+  submenuOpenMap: { [key: string]: boolean } = {
+    backup: false,
+    recovery: false,
+    storage: false,
+    rebuild: false,
+    operations: false,
+    parameters: false,
+    opsHelper: false,
+    resources: false
+  };
 
   private readonly iconService = inject(NzIconService);
   private readonly ns = inject(NamespaceService);

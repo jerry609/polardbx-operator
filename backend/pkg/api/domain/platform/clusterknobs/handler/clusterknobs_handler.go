@@ -1,4 +1,7 @@
-package clusterknobs
+// Package handler 提供集群参数旋钮的 HTTP 处理器package handler
+
+// 遵循 Clean Architecture 设计模式
+package handler
 
 import (
 	"net/http"
@@ -10,7 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// List
+// GetList 获取所有集群参数旋钮列表
 func GetList(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -24,7 +27,7 @@ func GetList(c *gin.Context) {
 	c.JSON(http.StatusOK, list)
 }
 
-// Create
+// Create 创建集群参数旋钮
 func Create(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -43,7 +46,7 @@ func Create(c *gin.Context) {
 	c.JSON(http.StatusCreated, created)
 }
 
-// Get
+// Get 获取指定集群参数旋钮
 func Get(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -59,7 +62,7 @@ func Get(c *gin.Context) {
 	c.JSON(http.StatusOK, knobs)
 }
 
-// Update
+// Update 更新集群参数旋钮
 func Update(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -82,7 +85,7 @@ func Update(c *gin.Context) {
 	c.JSON(http.StatusOK, updated)
 }
 
-// Delete
+// Delete 删除集群参数旋钮
 func Delete(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {

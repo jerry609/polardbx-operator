@@ -16,7 +16,7 @@ import (
 	polardbxv1 "github.com/alibaba/polardbx-operator/api/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	api_restore "polardbx-ui-backend/pkg/api/restore"
+	domain_restore "polardbx-ui-backend/pkg/api/domain/platform/restore/handler"
 )
 
 func setupRecoveryTestRouter(fakeClient client.Client) *gin.Engine {
@@ -27,12 +27,12 @@ func setupRecoveryTestRouter(fakeClient client.Client) *gin.Engine {
 	})
 
 	// Register recovery routes (subpackage)
-	router.POST("/clusters/:namespace/:name/restore", api_restore.RestoreCluster)
-	router.POST("/clusters/:namespace/:name/pitr", api_restore.InitiatePITR)
-	router.GET("/clusters/:namespace/:name/restore-status", api_restore.GetRestoreStatus)
-	router.GET("/restore-jobs", api_restore.ListJobs)
-	router.GET("/restore-jobs/:namespace/:name", api_restore.GetJob)
-	router.DELETE("/restore-jobs/:namespace/:name", api_restore.CancelJob)
+	router.POST("/clusters/:namespace/:name/restore", domain_restore.RestoreCluster)
+	router.POST("/clusters/:namespace/:name/pitr", domain_restore.InitiatePITR)
+	router.GET("/clusters/:namespace/:name/restore-status", domain_restore.GetRestoreStatus)
+	router.GET("/restore-jobs", domain_restore.ListJobs)
+	router.GET("/restore-jobs/:namespace/:name", domain_restore.GetJob)
+	router.DELETE("/restore-jobs/:namespace/:name", domain_restore.CancelJob)
 
 	return router
 }

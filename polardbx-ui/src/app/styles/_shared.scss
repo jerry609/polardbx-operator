@@ -1,25 +1,29 @@
 // src/app/styles/_shared.scss
 
-// Color Palette (Kuboard Inspired - Refined)
+// Color Palette - 低饱和度专业风格
 :root {
-  --primary-color: #409eff; // A clearer, softer blue
-  --accent-color: #e6a23c; // A gentle orange for accents
-  --warn-color: #f56c6c; 
-  --success-color: #67c23a;
+  --primary-color: #4a7c9b;        // 柔和的蓝灰色（主色调）
+  --primary-color-hover: #3d6a87;  // 悬停态
+  --primary-color-active: #2f5670; // 激活态
+  --primary-color-light: #e8f0f5;  // 浅色背景
+  
+  --accent-color: #6b8fa8;         // 柔和强调色
+  --warn-color: #c75d5d;           // 柔和警告红
+  --success-color: #5a9e5a;        // 柔和成功绿
 
-  --background-color: #f7f8fa; // Main background
-  --sidebar-background-color: #ffffff; // Sidebar background
+  --background-color: #f5f6f8;     // 主背景
+  --sidebar-background-color: #ffffff;
   --card-background-color: #ffffff;
   
-  --text-color: #303133;
-  --text-secondary-color: #606266;
-  --text-placeholder-color: #c0c4cc;
+  --text-color: #333333;
+  --text-secondary-color: #666666;
+  --text-placeholder-color: #999999;
 
-  --border-color: #e4e7ed;
-  --border-color-light: #ebeef5;
+  --border-color: #e0e3e8;
+  --border-color-light: #ebeef2;
 
-  --primary-gradient: linear-gradient(135deg, #409eff 0%, #79bbff 100%);
-  --sidebar-active-background: #ecf5ff;
+  --primary-gradient: linear-gradient(135deg, #4a7c9b 0%, #6b8fa8 100%);
+  --sidebar-active-background: #e8f0f5;
 }
 
 // Shadows

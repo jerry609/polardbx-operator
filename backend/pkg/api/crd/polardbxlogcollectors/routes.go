@@ -1,26 +1,26 @@
 package polardbxlogcollectors
 
 import (
-	api_logcollector "polardbx-ui-backend/pkg/api/logcollector"
+	domain_logcollector "polardbx-ui-backend/pkg/api/domain/platform/logcollector/handler"
 
 	"github.com/gin-gonic/gin"
 )
 
 func RegisterRoutes(crd *gin.RouterGroup) {
 	r := crd.Group("/polardbxlogcollectors")
-	r.GET("", api_logcollector.List)
-	r.POST("", api_logcollector.Create)
+	r.GET("", domain_logcollector.List)
+	r.POST("", domain_logcollector.Create)
 	item := r.Group("/:namespace/:name")
-	item.GET("", api_logcollector.Get)
-	item.PUT("", api_logcollector.Update)
-	item.DELETE("", api_logcollector.Delete)
+	item.GET("", domain_logcollector.Get)
+	item.PUT("", domain_logcollector.Update)
+	item.DELETE("", domain_logcollector.Delete)
 	// namespace-scoped extra endpoints
 	ns := r.Group("/:namespace")
-	ns.GET("/pipeline", api_logcollector.GetLogstashPipeline)
-	ns.PUT("/pipeline", api_logcollector.UpdateLogstashPipeline)
-	ns.GET("/elastic-certs", api_logcollector.GetElasticsearchCert)
-	ns.PUT("/elastic-certs", api_logcollector.UpdateElasticsearchCert)
-	ns.GET("/:name/status", api_logcollector.GetLogCollectorStatus)
-	ns.GET("/logstash/logs", api_logcollector.StreamLogstashLogs)
-	ns.POST("/test", api_logcollector.TestLogCollector)
+	ns.GET("/pipeline", domain_logcollector.GetLogstashPipeline)
+	ns.PUT("/pipeline", domain_logcollector.UpdateLogstashPipeline)
+	ns.GET("/elastic-certs", domain_logcollector.GetElasticsearchCert)
+	ns.PUT("/elastic-certs", domain_logcollector.UpdateElasticsearchCert)
+	ns.GET("/:name/status", domain_logcollector.GetLogCollectorStatus)
+	ns.GET("/logstash/logs", domain_logcollector.StreamLogstashLogs)
+	ns.POST("/test", domain_logcollector.TestLogCollector)
 }

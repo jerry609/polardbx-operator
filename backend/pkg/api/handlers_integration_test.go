@@ -25,9 +25,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	crfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	api_monitoring "polardbx-ui-backend/pkg/api/monitoring"
-	parameters "polardbx-ui-backend/pkg/api/parameters"
-	restore "polardbx-ui-backend/pkg/api/restore"
+	domain_monitoring "polardbx-ui-backend/pkg/api/domain/monitoring"
+	domain_parameters "polardbx-ui-backend/pkg/api/domain/platform/parameters/handler"
+	domain_restore "polardbx-ui-backend/pkg/api/domain/platform/restore/handler"
 	"polardbx-ui-backend/pkg/k8s"
 
 	// domain handlers
@@ -98,18 +98,18 @@ func setupIntegrationTestRouter(k8sClientProvider k8s.ClientProvider) *gin.Engin
 		v1.DELETE("/xstores/:namespace/:name", domain_xs.Delete)
 
 		// Monitor routes
-		v1.GET("/monitors", api_monitoring.List)
-		v1.POST("/monitors", api_monitoring.Create)
-		v1.GET("/monitors/:namespace/:name", api_monitoring.Get)
-		v1.PUT("/monitors/:namespace/:name", api_monitoring.Update)
-		v1.DELETE("/monitors/:namespace/:name", api_monitoring.Delete)
+		v1.GET("/monitors", domain_monitoring.ListMonitors)
+		v1.POST("/monitors", domain_monitoring.CreateMonitor)
+		v1.GET("/monitors/:namespace/:name", domain_monitoring.GetMonitor)
+		v1.PUT("/monitors/:namespace/:name", domain_monitoring.UpdateMonitor)
+		v1.DELETE("/monitors/:namespace/:name", domain_monitoring.DeleteMonitor)
 
 		// Parameter routes
-		v1.GET("/parameters", parameters.List)
-		v1.POST("/parameters", parameters.Create)
-		v1.GET("/parameters/:name", parameters.Get)
-		v1.PUT("/parameters/:name", parameters.Update)
-		v1.DELETE("/parameters/:name", parameters.Delete)
+		v1.GET("/parameters", domain_parameters.List)
+		v1.POST("/parameters", domain_parameters.Create)
+		v1.GET("/parameters/:name", domain_parameters.Get)
+		v1.PUT("/parameters/:name", domain_parameters.Update)
+		v1.DELETE("/parameters/:name", domain_parameters.Delete)
 
 		// Additional CRD routes would be defined here
 	}
@@ -226,18 +226,18 @@ func (suite *IntegrationTestSuite) TestAPICRUDOperations() {
 	assert.NotNil(suite.T(), domain_xs.Delete)
 
 	// Test Monitor handlers
-	assert.NotNil(suite.T(), api_monitoring.List)
-	assert.NotNil(suite.T(), api_monitoring.Create)
-	assert.NotNil(suite.T(), api_monitoring.Get)
-	assert.NotNil(suite.T(), api_monitoring.Update)
-	assert.NotNil(suite.T(), api_monitoring.Delete)
+	assert.NotNil(suite.T(), domain_monitoring.ListMonitors)
+	assert.NotNil(suite.T(), domain_monitoring.CreateMonitor)
+	assert.NotNil(suite.T(), domain_monitoring.GetMonitor)
+	assert.NotNil(suite.T(), domain_monitoring.UpdateMonitor)
+	assert.NotNil(suite.T(), domain_monitoring.DeleteMonitor)
 
 	// Test Parameter handlers
-	assert.NotNil(suite.T(), parameters.List)
-	assert.NotNil(suite.T(), parameters.Create)
-	assert.NotNil(suite.T(), parameters.Get)
-	assert.NotNil(suite.T(), parameters.Update)
-	assert.NotNil(suite.T(), parameters.Delete)
+	assert.NotNil(suite.T(), domain_parameters.List)
+	assert.NotNil(suite.T(), domain_parameters.Create)
+	assert.NotNil(suite.T(), domain_parameters.Get)
+	assert.NotNil(suite.T(), domain_parameters.Update)
+	assert.NotNil(suite.T(), domain_parameters.Delete)
 
 	// Test Backup Schedule handlers (migrated to domain)
 	assert.NotNil(suite.T(), domain_pxc.ListSchedules)
@@ -254,9 +254,9 @@ func (suite *IntegrationTestSuite) TestAPICRUDOperations() {
 	assert.NotNil(suite.T(), domain_pxc.DeleteBackupBinlog)
 
 	// Test Recovery handlers (moved to api/restore)
-	assert.NotNil(suite.T(), restore.RestoreCluster)
-	assert.NotNil(suite.T(), restore.InitiatePITR)
-	assert.NotNil(suite.T(), restore.GetRestoreStatus)
+	assert.NotNil(suite.T(), domain_restore.RestoreCluster)
+	assert.NotNil(suite.T(), domain_restore.InitiatePITR)
+	assert.NotNil(suite.T(), domain_restore.GetRestoreStatus)
 }
 
 func (suite *IntegrationTestSuite) TestClusterOperations() {
@@ -413,11 +413,11 @@ func TestXStoreHandlerExists(t *testing.T) {
 
 func TestMonitorHandlerExists(t *testing.T) {
 	// Test that monitor handlers are properly defined
-	assert.NotNil(t, api_monitoring.List)
-	assert.NotNil(t, api_monitoring.Create)
-	assert.NotNil(t, api_monitoring.Get)
-	assert.NotNil(t, api_monitoring.Update)
-	assert.NotNil(t, api_monitoring.Delete)
+	assert.NotNil(t, domain_monitoring.ListMonitors)
+	assert.NotNil(t, domain_monitoring.CreateMonitor)
+	assert.NotNil(t, domain_monitoring.GetMonitor)
+	assert.NotNil(t, domain_monitoring.UpdateMonitor)
+	assert.NotNil(t, domain_monitoring.DeleteMonitor)
 }
 
 func TestAllCRDHandlersExist(t *testing.T) {
@@ -426,9 +426,9 @@ func TestAllCRDHandlersExist(t *testing.T) {
 		// XStore
 		domain_xs.List, domain_xs.Create, domain_xs.Get, domain_xs.Update, domain_xs.Delete,
 		// Monitor
-		api_monitoring.List, api_monitoring.Create, api_monitoring.Get, api_monitoring.Update, api_monitoring.Delete,
+		domain_monitoring.ListMonitors, domain_monitoring.CreateMonitor, domain_monitoring.GetMonitor, domain_monitoring.UpdateMonitor, domain_monitoring.DeleteMonitor,
 		// Parameters
-		parameters.List, parameters.Create, parameters.Get, parameters.Update, parameters.Delete,
+		domain_parameters.List, domain_parameters.Create, domain_parameters.Get, domain_parameters.Update, domain_parameters.Delete,
 		// BackupBinlog
 		domain_pxc.ListBackupBinlogs, domain_pxc.CreateBackupBinlog, domain_pxc.GetBackupBinlog, domain_pxc.UpdateBackupBinlog, domain_pxc.DeleteBackupBinlog,
 		// XStoreFollower
@@ -436,7 +436,7 @@ func TestAllCRDHandlersExist(t *testing.T) {
 		// XStoreBackup
 		domain_xs.ListBackups, domain_xs.CreateBackup, domain_xs.GetBackup, domain_xs.UpdateBackup, domain_xs.DeleteBackup,
 		// Recovery APIs
-		restore.RestoreCluster, restore.InitiatePITR, restore.GetRestoreStatus,
+		domain_restore.RestoreCluster, domain_restore.InitiatePITR, domain_restore.GetRestoreStatus,
 	}
 
 	for i, handler := range handlers {

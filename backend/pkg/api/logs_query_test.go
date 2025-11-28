@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	api_logs "polardbx-ui-backend/pkg/api/logs"
+	domain_logs "polardbx-ui-backend/pkg/api/domain/platform/logs/handler"
 
 	"github.com/gin-gonic/gin"
 	corev1 "k8s.io/api/core/v1"
@@ -21,7 +21,7 @@ func setupLogsRouterWithClientset(cs *k8sfake.Clientset) *gin.Engine {
 	v1 := r.Group("/api/v1")
 	{
 		v1.Use(func(c *gin.Context) { c.Set("clientset", cs) })
-		v1.POST("/logs/query", api_logs.Query)
+		v1.POST("/logs/query", domain_logs.Query)
 	}
 	return r
 }

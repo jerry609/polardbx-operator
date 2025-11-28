@@ -9,15 +9,15 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 
-	api_diagnostics "polardbx-ui-backend/pkg/api/diagnostics"
+	domain_diagnostics "polardbx-ui-backend/pkg/api/domain/platform/diagnostics/handler"
 )
 
 func TestDiagnostics_Placeholders(t *testing.T) {
 	r := gin.Default()
-	r.POST("/api/v1/diagnostics/:namespace/:cluster/start", api_diagnostics.Start)
-	r.GET("/api/v1/diagnostics/:namespace/:id/status", api_diagnostics.GetStatus)
-	r.GET("/api/v1/diagnostics/reports", api_diagnostics.ListReports)
-	r.GET("/api/v1/diagnostics/:namespace/:id/download", api_diagnostics.Download)
+	r.POST("/api/v1/diagnostics/:namespace/:cluster/start", domain_diagnostics.Start)
+	r.GET("/api/v1/diagnostics/:namespace/:id/status", domain_diagnostics.GetStatus)
+	r.GET("/api/v1/diagnostics/reports", domain_diagnostics.ListReports)
+	r.GET("/api/v1/diagnostics/:namespace/:id/download", domain_diagnostics.Download)
 
 	// Start
 	w := httptest.NewRecorder()

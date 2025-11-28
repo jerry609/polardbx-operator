@@ -61,12 +61,12 @@ import { Subject, takeUntil } from 'rxjs';
             <nz-card class="detail-card" *ngIf="pod as p">
               <nz-descriptions nzTitle="基本信息" nzBordered [nzColumn]="2">
                 <nz-descriptions-item nzTitle="命名空间">{{ namespace }}</nz-descriptions-item>
-                <nz-descriptions-item nzTitle="Pod 名称">{{ p.metadata?.name }}</nz-descriptions-item>
+                <nz-descriptions-item nzTitle="Pod 名称">{{ p.metadata.name }}</nz-descriptions-item>
                 <nz-descriptions-item nzTitle="Pod IP"><code class="code-text">{{ p.status?.podIP || '未分配' }}</code></nz-descriptions-item>
-                <nz-descriptions-item nzTitle="节点">{{ p.spec?.nodeName || '未知' }}</nz-descriptions-item>
+                <nz-descriptions-item nzTitle="节点">{{ p.spec.nodeName || '未知' }}</nz-descriptions-item>
                 <nz-descriptions-item nzTitle="状态"><nz-badge [nzStatus]="getStatusBadge(p.status?.phase)" [nzText]="p.status?.phase || '未知'"></nz-badge></nz-descriptions-item>
                 <nz-descriptions-item nzTitle="重启次数"><span [class.restart-warning]="getRestartCount() > 0">{{ getRestartCount() }}</span></nz-descriptions-item>
-                <nz-descriptions-item nzTitle="创建时间" [nzSpan]="2">{{ p.metadata?.creationTimestamp | date:'yyyy-MM-dd HH:mm:ss' }}</nz-descriptions-item>
+                <nz-descriptions-item nzTitle="创建时间" [nzSpan]="2">{{ p.metadata.creationTimestamp | date:'yyyy-MM-dd HH:mm:ss' }}</nz-descriptions-item>
               </nz-descriptions>
               <nz-divider></nz-divider>
               <nz-descriptions nzTitle="容器列表" nzBordered [nzColumn]="1">

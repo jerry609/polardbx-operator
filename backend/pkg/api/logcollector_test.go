@@ -17,7 +17,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	api_logcollector "polardbx-ui-backend/pkg/api/logcollector"
+	domain_logcollector "polardbx-ui-backend/pkg/api/domain/platform/logcollector/handler"
 )
 
 func setupLogCollectorTest() (*gin.Engine, client.Client) {
@@ -346,10 +346,10 @@ func TestLogCollectorBusinessLogic(t *testing.T) {
 func RegisterLogCollectorRoutes(router *gin.Engine) {
 	api := router.Group("/api/v1")
 	{
-		api.GET("/log-collectors", api_logcollector.List)
-		api.POST("/log-collectors", api_logcollector.Create)
-		api.GET("/log-collectors/:namespace/:name", api_logcollector.Get)
-		api.PUT("/log-collectors/:namespace/:name", api_logcollector.Update)
-		api.DELETE("/log-collectors/:namespace/:name", api_logcollector.Delete)
+		api.GET("/log-collectors", domain_logcollector.List)
+		api.POST("/log-collectors", domain_logcollector.Create)
+		api.GET("/log-collectors/:namespace/:name", domain_logcollector.Get)
+		api.PUT("/log-collectors/:namespace/:name", domain_logcollector.Update)
+		api.DELETE("/log-collectors/:namespace/:name", domain_logcollector.Delete)
 	}
 }

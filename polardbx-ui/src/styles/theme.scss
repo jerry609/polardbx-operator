@@ -1,19 +1,19 @@
-// Theme variables inspired by Podman Desktop website
+// Theme variables - 低饱和度专业风格
 :root {
-  /* Refined palette (Podman Desktop-inspired) */
-  --pd-primary: #2f5d8a;        /* primary */
-  --pd-primary-600: #254a6e;    /* primary hover */
-  --pd-accent: #5aa0e6;         /* accent */
-  --pd-accent-600: #3e86ce;     /* accent hover */
-  --pd-bg: #f6f7f9;
+  /* 主色调 - 低饱和度专业蓝灰 */
+  --pd-primary: #4a7c9b;        /* 主色调 */
+  --pd-primary-600: #3d6a87;    /* 悬停态 */
+  --pd-accent: #6b8fa8;         /* 强调色 */
+  --pd-accent-600: #5a7d96;     /* 强调悬停 */
+  --pd-bg: #f5f6f8;
   --pd-surface: #ffffff;
-  --pd-text: #2f3b47;
-  --pd-text-secondary: #6b7785;
-  --pd-border: #e5e9ef;
-  --pd-radius: 12px;
-  --pd-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+  --pd-text: #333333;
+  --pd-text-secondary: #666666;
+  --pd-border: #e0e3e8;
+  --pd-radius: 6px;
+  --pd-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 
-  /* Map to legacy custom vars to keep compatibility */
+  /* 兼容旧变量 */
   --primary-color: var(--pd-primary);
   --accent-color: var(--pd-accent);
   --background-color: var(--pd-bg);

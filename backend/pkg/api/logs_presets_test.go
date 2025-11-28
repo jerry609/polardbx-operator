@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	api_logs "polardbx-ui-backend/pkg/api/logs"
+	domain_logs "polardbx-ui-backend/pkg/api/domain/platform/logs/handler"
 
 	"github.com/gin-gonic/gin"
 	corev1 "k8s.io/api/core/v1"
@@ -20,8 +20,8 @@ func setupPresetsRouterWithClientset(cs *k8sfake.Clientset) *gin.Engine {
 	v1 := r.Group("/api/v1")
 	{
 		v1.Use(func(c *gin.Context) { c.Set("clientset", cs) })
-		v1.GET("/logs/presets", api_logs.Presets)
-		v1.GET("/logs/presets/:pattern", api_logs.PresetByPattern)
+		v1.GET("/logs/presets", domain_logs.Presets)
+		v1.GET("/logs/presets/:pattern", domain_logs.PresetByPattern)
 	}
 	return r
 }
