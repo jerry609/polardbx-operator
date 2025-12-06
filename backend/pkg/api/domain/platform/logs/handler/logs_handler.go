@@ -842,6 +842,9 @@ func BootstrapLogs(c *gin.Context) {
 
 	jobName := c.Query("jobName")
 	namespace := util.DefaultNamespace(c, "polardbx-operator-system")
+
+	// Security: Enforce upper limit for tailLines to prevent OOM
+	const maxTailLines = int64(10000)
 	tailLines := int64(100) // Default to last 100 lines
 
 	if jobName == "" {
@@ -852,6 +855,9 @@ func BootstrapLogs(c *gin.Context) {
 	if tailParam := c.Query("tailLines"); tailParam != "" {
 		if parsed, err := strconv.ParseInt(tailParam, 10, 64); err == nil && parsed > 0 {
 			tailLines = parsed
+			if tailLines > maxTailLines {
+				tailLines = maxTailLines
+			}
 		}
 	}
 

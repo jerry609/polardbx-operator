@@ -79,7 +79,6 @@ func setupRoutes(r *gin.Engine) {
 		RegisterSystemRoutes(v1)
 		RegisterDiagnosticsRoutes(v1)
 		RegisterRestoreRoutes(v1)
-		RegisterMiscRoutes(v1)
 	}
 
 	// Register CRD-aligned alias routes

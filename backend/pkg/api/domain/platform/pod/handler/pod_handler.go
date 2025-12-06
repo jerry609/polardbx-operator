@@ -4,8 +4,12 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"io"
+	"log"
 	"net/http"
+	"os"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -59,9 +63,15 @@ func (h *PodHandler) getLogs(c *gin.Context) {
 	pod := c.Param("pod_name")
 	container := c.Query("container")
 	tailStr := c.DefaultQuery("tailLines", "1000")
+
+	// Security: Enforce upper limit for tailLines to prevent OOM
+	const maxTailLines = int64(10000)
 	tail := int64(1000)
 	if v, err := strconv.ParseInt(tailStr, 10, 64); err == nil && v > 0 {
 		tail = v
+		if tail > maxTailLines {
+			tail = maxTailLines
+		}
 	}
 	result, err := h.service.GetLogs(c.Request.Context(), ns, pod, container, tail)
 	if err != nil {
@@ -150,9 +160,10 @@ func (h *PodHandler) delete(c *gin.Context) {
 }
 
 // ExecWS WebSocket 代理 K8s Exec
+// 安全改进：使用后端已认证的 kubeconfig，而不是允许客户端自带
 func ExecWS(c *gin.Context) {
 	rows, cols := 24, 80
-	handleExecWebSocketFast(c, rows, cols)
+	handleExecWebSocketSecure(c, rows, cols)
 }
 
 // ---- WebSocket Exec 辅助代码 ----
@@ -211,27 +222,81 @@ func (w wsJSONWriter) Write(p []byte) (int, error) {
 	return len(p), nil
 }
 
-func handleExecWebSocketFast(c *gin.Context, rows, cols int) {
-	kubeconfigB64 := c.GetHeader("X-Kubeconfig-B64")
-	if kubeconfigB64 == "" {
-		kubeconfigB64 = c.Query("k")
+// Security constants for WebSocket exec
+const (
+	// maxExecIdleTimeout is the max idle time before closing the connection
+	maxExecIdleTimeout = 30 * time.Minute
+	// allowedExecShells are the shells allowed for exec
+	allowedExecShell = "/bin/sh"
+)
+
+// allowedOrigins returns the list of allowed origins for WebSocket connections
+func allowedOrigins() []string {
+	// In production, this should be configured via environment variables
+	origins := os.Getenv("ALLOWED_WS_ORIGINS")
+	if origins == "" {
+		// Default: only allow same-origin and localhost for development
+		return []string{"localhost", "127.0.0.1"}
 	}
-	if kubeconfigB64 == "" {
-		c.JSON(400, gin.H{"error": "missing kubeconfig"})
-		return
+	return strings.Split(origins, ",")
+}
+
+// checkOrigin validates the WebSocket origin header
+func checkOrigin(r *http.Request) bool {
+	origin := r.Header.Get("Origin")
+	if origin == "" {
+		// Same-origin requests may not have Origin header
+		return true
 	}
-	kubeconfig, err := base64.StdEncoding.DecodeString(kubeconfigB64)
-	if err != nil {
-		c.JSON(400, gin.H{"error": "invalid kubeconfig"})
-		return
+
+	allowed := allowedOrigins()
+	for _, a := range allowed {
+		if a == "*" {
+			return true
+		}
+		if strings.Contains(origin, a) {
+			return true
+		}
 	}
+
+	// Log rejected origins for security audit
+	log.Printf("SECURITY: WebSocket origin rejected: %s from %s", origin, r.RemoteAddr)
+	return false
+}
+
+// handleExecWebSocketSecure handles WebSocket exec using the backend's authenticated kubeconfig
+// Security improvements:
+// 1. Uses backend-controlled kubeconfig from middleware (not user-supplied)
+// 2. Validates WebSocket origin
+// 3. Limits allowed shell commands
+// 4. Adds audit logging
+func handleExecWebSocketSecure(c *gin.Context, rows, cols int) {
 	ns := c.Param("namespace")
 	name := c.Param("name")
 	container := c.Query("container")
 
+	// Security: Get the authenticated kubeconfig from context (set by KubeconfigAuthMiddleware)
+	normalizedKubeconfig, exists := c.Get("normalizedKubeconfig")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "authentication required"})
+		return
+	}
+
+	kubeconfig, ok := normalizedKubeconfig.([]byte)
+	if !ok || len(kubeconfig) == 0 {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid authentication state"})
+		return
+	}
+
+	// Security audit log
+	user := c.GetString("k8sUser")
+	log.Printf("AUDIT: Pod exec requested by user=%s for pod=%s/%s container=%s from=%s",
+		user, ns, name, container, c.ClientIP())
+
 	restCfg, err := clientcmd.RESTConfigFromKubeConfig(kubeconfig)
 	if err != nil {
-		c.JSON(500, gin.H{"error": "config error"})
+		log.Printf("ERROR: Failed to create REST config for exec: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "configuration error"})
 		return
 	}
 	restCfg.APIPath = "/api"
@@ -240,24 +305,47 @@ func handleExecWebSocketFast(c *gin.Context, rows, cols int) {
 
 	clientset, err := kubernetes.NewForConfig(restCfg)
 	if err != nil {
-		c.JSON(500, gin.H{"error": "client error"})
+		log.Printf("ERROR: Failed to create clientset for exec: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "client initialization failed"})
 		return
 	}
 
-	upgrader := websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}
+	// Security: Validate WebSocket origin
+	upgrader := websocket.Upgrader{
+		CheckOrigin:     checkOrigin,
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
+	}
 	ws, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
+		log.Printf("ERROR: WebSocket upgrade failed for exec: %v", err)
 		return
 	}
 	defer ws.Close()
 
+	// Set WebSocket timeouts
+	ws.SetReadDeadline(time.Now().Add(maxExecIdleTimeout))
+	ws.SetPongHandler(func(string) error {
+		ws.SetReadDeadline(time.Now().Add(maxExecIdleTimeout))
+		return nil
+	})
+
 	req := clientset.CoreV1().RESTClient().Post().Resource("pods").Name(name).Namespace(ns).SubResource("exec")
-	execOpts := &corev1.PodExecOptions{Container: container, Command: []string{"/bin/bash", "-l"}, Stdin: true, Stdout: true, Stderr: true, TTY: true}
+	// Security: Use restricted shell instead of bash -l
+	execOpts := &corev1.PodExecOptions{
+		Container: container,
+		Command:   []string{allowedExecShell},
+		Stdin:     true,
+		Stdout:    true,
+		Stderr:    true,
+		TTY:       true,
+	}
 	req.VersionedParams(execOpts, scheme.ParameterCodec)
 
 	executor, err := remotecommand.NewSPDYExecutor(restCfg, http.MethodPost, req.URL())
 	if err != nil {
-		ws.WriteMessage(websocket.TextMessage, []byte("exec error"))
+		log.Printf("ERROR: Failed to create SPDY executor for exec: %v", err)
+		ws.WriteMessage(websocket.TextMessage, []byte(`{"op":"error","data":"exec initialization failed"}`))
 		return
 	}
 
@@ -273,6 +361,9 @@ func handleExecWebSocketFast(c *gin.Context, rows, cols int) {
 			if err != nil {
 				return
 			}
+			// Reset read deadline on activity
+			ws.SetReadDeadline(time.Now().Add(maxExecIdleTimeout))
+
 			if mt != websocket.TextMessage {
 				continue
 			}
@@ -300,8 +391,24 @@ func handleExecWebSocketFast(c *gin.Context, rows, cols int) {
 	// stream exec
 	go func() {
 		defer ws.Close()
-		_ = executor.Stream(remotecommand.StreamOptions{Stdin: stdinReader, Stdout: wsJSONWriter{ws: ws, op: "stdout"}, Stderr: wsJSONWriter{ws: ws, op: "stderr"}, Tty: true, TerminalSizeQueue: resizeQ})
+		_ = executor.Stream(remotecommand.StreamOptions{
+			Stdin:             stdinReader,
+			Stdout:            wsJSONWriter{ws: ws, op: "stdout"},
+			Stderr:            wsJSONWriter{ws: ws, op: "stderr"},
+			Tty:               true,
+			TerminalSizeQueue: resizeQ,
+		})
+		log.Printf("AUDIT: Pod exec session ended for user=%s pod=%s/%s", user, ns, name)
 	}()
 
 	<-done
+}
+
+// handleExecWebSocketFast is DEPRECATED - use handleExecWebSocketSecure instead
+// Kept for reference but should not be called
+func handleExecWebSocketFast(c *gin.Context, rows, cols int) {
+	c.JSON(http.StatusForbidden, gin.H{
+		"error":   "this endpoint has been disabled for security reasons",
+		"message": "Pod exec now uses backend-controlled authentication",
+	})
 }

@@ -1857,11 +1857,21 @@ func GetBootstrapLogs(c *gin.Context) {
 	sessionID := c.Query("sessionId")
 	jobName := c.Query("jobName")
 	namespace := c.DefaultQuery("namespace", "polardbx-operator-system")
-	tailLines := int64(100)
+
+	// Security: Set reasonable limits for tailLines to prevent OOM
+	const (
+		defaultTailLines = int64(100)
+		maxTailLines     = int64(10000) // Max 10k lines to prevent memory exhaustion
+	)
+	tailLines := defaultTailLines
 
 	if tailParam := c.Query("tailLines"); tailParam != "" {
 		if parsed, err := strconv.ParseInt(tailParam, 10, 64); err == nil && parsed > 0 {
 			tailLines = parsed
+			// Enforce upper limit
+			if tailLines > maxTailLines {
+				tailLines = maxTailLines
+			}
 		}
 	}
 
