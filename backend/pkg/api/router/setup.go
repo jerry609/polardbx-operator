@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"polardbx-ui-backend/pkg/api"
+	apierrors "polardbx-ui-backend/pkg/api/errors"
 	"polardbx-ui-backend/pkg/api/middleware"
 	"polardbx-ui-backend/pkg/config"
 
@@ -33,8 +34,14 @@ func SetupRouter() *gin.Engine {
 
 // setupMiddleware configures all middleware
 func setupMiddleware(r *gin.Engine, cfg *config.ServerConfig) {
-	// Recovery middleware with logging
-	r.Use(middleware.RecoveryWithLogger())
+	// Request ID middleware (first, for tracing)
+	r.Use(apierrors.RequestIDMiddleware())
+
+	// Recovery middleware - use our enhanced version that returns APIError
+	r.Use(apierrors.RecoveryHandler())
+
+	// Global error handler - catches any unhandled errors and formats them
+	r.Use(apierrors.Handler())
 
 	// Request logging middleware
 	r.Use(middleware.RequestLogger(middleware.RequestLogConfig{

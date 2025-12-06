@@ -3,6 +3,7 @@ package util
 import (
 	"context"
 	"encoding/base64"
+	"log"
 	"net/http"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	apierrors "polardbx-ui-backend/pkg/api/errors"
 	"polardbx-ui-backend/pkg/k8s"
 
 	"k8s.io/client-go/tools/clientcmd"
@@ -23,12 +25,12 @@ import (
 func K8sClientFromContext(c *gin.Context) (client.Client, bool) {
 	v, ok := c.Get("k8sClient")
 	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "kubernetes client not initialized"})
+		apierrors.AbortUnauthorized(c, "Kubernetes client not initialized")
 		return nil, false
 	}
 	cli, ok := v.(client.Client)
 	if !ok || cli == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid kubernetes client in context"})
+		apierrors.AbortUnauthorized(c, "Invalid kubernetes client in context")
 		return nil, false
 	}
 	return cli, true
@@ -51,12 +53,12 @@ func ClientsetFromContext(c *gin.Context) (kubernetes.Interface, bool) {
 func DynamicClientFromContext(c *gin.Context) (dynamic.Interface, bool) {
 	v, ok := c.Get("dynamic-client")
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "kubernetes dynamic client not available"})
+		apierrors.AbortInternal(c, "Kubernetes dynamic client not available")
 		return nil, false
 	}
 	dynClient, ok := v.(dynamic.Interface)
 	if !ok || dynClient == nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid dynamic client in context"})
+		apierrors.AbortInternal(c, "Invalid dynamic client in context")
 		return nil, false
 	}
 	return dynClient, true
@@ -75,8 +77,22 @@ func DefaultNamespace(c *gin.Context, fallback string) string {
 	return fallback
 }
 
-// HandleK8sError maps common k8s errors to HTTP codes.
-func HandleK8sError(c *gin.Context, context string, err error) {
+// HandleK8sError maps common k8s errors to HTTP codes using unified error handling.
+// It logs the full error internally and returns a sanitized response to the client.
+func HandleK8sError(c *gin.Context, operation string, err error) {
+	// Log full error details internally
+	user := c.GetString("k8sUser")
+	requestID := c.GetString("requestId")
+	log.Printf("[K8S_ERROR] operation=%s user=%s request_id=%s error=%v",
+		operation, user, requestID, err)
+
+	// Use the unified error handler which sanitizes the response
+	apierrors.AbortK8sError(c, operation, err)
+}
+
+// HandleK8sErrorLegacy is the old implementation - kept for reference during migration
+// Deprecated: Use HandleK8sError instead
+func HandleK8sErrorLegacy(c *gin.Context, context string, err error) {
 	switch {
 	case k8serrors.IsInvalid(err), k8serrors.IsBadRequest(err):
 		c.JSON(http.StatusBadRequest, gin.H{"error": context, "details": err.Error()})
