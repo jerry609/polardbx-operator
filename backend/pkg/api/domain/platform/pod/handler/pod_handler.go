@@ -25,17 +25,17 @@ import (
 	"polardbx-ui-backend/pkg/api/util"
 )
 
-// PodHandler 处理 Pod 相关的 HTTP 请求
+// PodHandler handles Pod-related HTTP requests
 type PodHandler struct {
 	service *service.PodService
 }
 
-// NewPodHandler 创建新的 PodHandler
+// NewPodHandler creates new PodHandler
 func NewPodHandler(svc *service.PodService) *PodHandler {
 	return &PodHandler{service: svc}
 }
 
-// NewPodHandlerFromContext 从 gin.Context 创建完整的 handler 链
+// NewPodHandlerFromContext creates complete handler chain from gin.Context
 func NewPodHandlerFromContext(c *gin.Context) (*PodHandler, bool) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -50,7 +50,7 @@ func NewPodHandlerFromContext(c *gin.Context) (*PodHandler, bool) {
 	return NewPodHandler(svc), true
 }
 
-// GetLogs 获取 Pod 日志
+// GetLogs retrieves Pod logs
 func GetLogs(c *gin.Context) {
 	h, ok := NewPodHandlerFromContext(c)
 	if !ok {
@@ -82,7 +82,7 @@ func (h *PodHandler) getLogs(c *gin.Context) {
 	c.Data(http.StatusOK, "text/plain; charset=utf-8", []byte(result))
 }
 
-// ListForCluster 列出集群的所有 Pod
+// ListForCluster lists all Pods for a cluster
 func ListForCluster(c *gin.Context) {
 	h, ok := NewPodHandlerFromContext(c)
 	if !ok {
@@ -102,7 +102,7 @@ func (h *PodHandler) listForCluster(c *gin.Context) {
 	apierr.OK(c, pods)
 }
 
-// List 列出命名空间的所有 Pod
+// List lists all Pods in a namespace
 func List(c *gin.Context) {
 	h, ok := NewPodHandlerFromContext(c)
 	if !ok {
@@ -121,7 +121,7 @@ func (h *PodHandler) list(c *gin.Context) {
 	apierr.OK(c, pods)
 }
 
-// Get 获取指定的 Pod
+// Get retrieves a specific Pod
 func Get(c *gin.Context) {
 	h, ok := NewPodHandlerFromContext(c)
 	if !ok {
@@ -141,7 +141,7 @@ func (h *PodHandler) get(c *gin.Context) {
 	apierr.OK(c, pod)
 }
 
-// Delete 删除指定的 Pod
+// Delete removes a specific Pod
 func Delete(c *gin.Context) {
 	h, ok := NewPodHandlerFromContext(c)
 	if !ok {
@@ -160,14 +160,14 @@ func (h *PodHandler) delete(c *gin.Context) {
 	apierr.OK(c, gin.H{"message": "pod deleted"})
 }
 
-// ExecWS WebSocket 代理 K8s Exec
-// 安全改进：使用后端已认证的 kubeconfig，而不是允许客户端自带
+// ExecWS proxies WebSocket to K8s Exec
+// Security improvement: Use backend authenticated kubeconfig instead of allowing client-provided config
 func ExecWS(c *gin.Context) {
 	rows, cols := 24, 80
 	handleExecWebSocketSecure(c, rows, cols)
 }
 
-// ---- WebSocket Exec 辅助代码 ----
+// ---- WebSocket Exec Helper Code ----
 
 type dynamicTerminalSizeQueue struct {
 	ch chan remotecommand.TerminalSize

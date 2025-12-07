@@ -13,7 +13,7 @@ import (
 // PolarDBXMonitor CRD CRUD Handlers
 // ========================================
 
-// ListMonitors 列出所有 PolarDBXMonitor 资源
+// ListMonitors lists all PolarDBXMonitor resources
 func ListMonitors(c *gin.Context) {
 	k8sClient, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -28,7 +28,7 @@ func ListMonitors(c *gin.Context) {
 	apierr.OK(c, monitors)
 }
 
-// CreateMonitor 创建 PolarDBXMonitor 资源
+// CreateMonitor creates a PolarDBXMonitor resource
 func CreateMonitor(c *gin.Context) {
 	k8sClient, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -48,7 +48,7 @@ func CreateMonitor(c *gin.Context) {
 	apierr.Created(c, created)
 }
 
-// GetMonitor 获取 PolarDBXMonitor 资源
+// GetMonitor gets a PolarDBXMonitor resource
 func GetMonitor(c *gin.Context) {
 	k8sClient, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -64,7 +64,7 @@ func GetMonitor(c *gin.Context) {
 	apierr.OK(c, m)
 }
 
-// UpdateMonitor 更新 PolarDBXMonitor 资源
+// UpdateMonitor updates a PolarDBXMonitor resource
 func UpdateMonitor(c *gin.Context) {
 	k8sClient, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -85,7 +85,7 @@ func UpdateMonitor(c *gin.Context) {
 	apierr.OK(c, um)
 }
 
-// DeleteMonitor 删除 PolarDBXMonitor 资源
+// DeleteMonitor deletes a PolarDBXMonitor resource
 func DeleteMonitor(c *gin.Context) {
 	k8sClient, ok := util.K8sClientFromContext(c)
 	if !ok {

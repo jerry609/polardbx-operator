@@ -2221,7 +2221,7 @@ func Status(c *gin.Context) {
 		if svc.Spec.Type == corev1.ServiceTypeNodePort {
 			for _, port := range svc.Spec.Ports {
 				if port.NodePort > 0 {
-					return fmt.Sprintf("NodePort: %d (需要使用 <node-ip>:%d 访问)", port.NodePort, port.NodePort)
+					return fmt.Sprintf("NodePort: %d (access via <node-ip>:%d)", port.NodePort, port.NodePort)
 				}
 			}
 		}

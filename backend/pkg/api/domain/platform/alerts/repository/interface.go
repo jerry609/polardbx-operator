@@ -6,17 +6,17 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-// AlertsRepository 定义告警存储层接口
+// AlertsRepository defines alert storage layer interface
 type AlertsRepository interface {
-	// GetConfigMap 获取指定的 ConfigMap
+	// GetConfigMap retrieves the specified ConfigMap
 	GetConfigMap(ctx context.Context, namespace, name string) (*corev1.ConfigMap, error)
 
-	// CreateConfigMap 创建 ConfigMap
+	// CreateConfigMap creates a ConfigMap
 	CreateConfigMap(ctx context.Context, cm *corev1.ConfigMap) error
 
-	// UpdateConfigMap 更新 ConfigMap
+	// UpdateConfigMap updates a ConfigMap
 	UpdateConfigMap(ctx context.Context, cm *corev1.ConfigMap) error
 
-	// ListEvents 列出事件
+	// ListEvents lists events
 	ListEvents(ctx context.Context, namespace string) ([]corev1.Event, error)
 }

@@ -13,18 +13,18 @@ import (
 )
 
 const (
-	// 诊断 Pod 名称前缀
+	// Diagnostic Pod name prefix
 	ClinicPodPrefix = "polardbx-clinic-"
-	// 诊断 Pod 标签
+	// Diagnostic Pod label
 	ClinicLabelKey = "polardbx/clinic"
-	// 诊断状态
+	// Diagnostic status
 	DiagStatusRunning   = "running"
 	DiagStatusSucceeded = "succeeded"
 	DiagStatusFailed    = "failed"
 	DiagStatusPending   = "pending"
 )
 
-// DiagnosticJob 诊断任务信息
+// DiagnosticJob diagnostic task information
 type DiagnosticJob struct {
 	ID          string    `json:"id"`
 	Namespace   string    `json:"namespace"`
@@ -37,29 +37,29 @@ type DiagnosticJob struct {
 	Message     string    `json:"message,omitempty"`
 }
 
-// DiagnosticsService 诊断服务
+// DiagnosticsService diagnostic service
 type DiagnosticsService struct {
 	cli client.Client
 }
 
-// NewDiagnosticsService 创建诊断服务
+// NewDiagnosticsService creates diagnostic service
 func NewDiagnosticsService(cli client.Client) *DiagnosticsService {
 	return &DiagnosticsService{cli: cli}
 }
 
-// StartDiagnosis 启动诊断任务
-// 创建 polardbx-clinic Pod 来收集集群诊断信息
+// StartDiagnosis starts diagnostic task
+// Create polardbx-clinic Pod to collect cluster diagnostic information
 func (s *DiagnosticsService) StartDiagnosis(ctx context.Context, namespace, clusterName string) (*DiagnosticJob, error) {
-	// 生成唯一的诊断任务 ID
+	// Generate unique diagnostic task ID
 	jobID := fmt.Sprintf("%s-%d", clusterName, time.Now().Unix())
 	podName := ClinicPodPrefix + jobID
 
-	// 构建诊断 Pod
+	// Build diagnostic Pod
 	pod := s.buildClinicPod(namespace, podName, clusterName, jobID)
 
-	// 创建 Pod
+	// Create Pod
 	if err := s.cli.Create(ctx, pod); err != nil {
-		return nil, fmt.Errorf("创建诊断 Pod 失败: %w", err)
+		return nil, fmt.Errorf("failed to create diagnostic Pod: %w", err)
 	}
 
 	return &DiagnosticJob{
@@ -69,18 +69,18 @@ func (s *DiagnosticsService) StartDiagnosis(ctx context.Context, namespace, clus
 		Status:    DiagStatusRunning,
 		Progress:  0,
 		StartedAt: time.Now(),
-		Message:   "诊断任务已启动",
+		Message:   "diagnostic task started",
 	}, nil
 }
 
-// GetDiagnosisStatus 获取诊断任务状态
+// GetDiagnosisStatus gets diagnostic task status
 func (s *DiagnosticsService) GetDiagnosisStatus(ctx context.Context, namespace, jobID string) (*DiagnosticJob, error) {
 	podName := ClinicPodPrefix + jobID
 
 	var pod corev1.Pod
 	key := client.ObjectKey{Namespace: namespace, Name: podName}
 	if err := s.cli.Get(ctx, key, &pod); err != nil {
-		return nil, fmt.Errorf("获取诊断 Pod 状态失败: %w", err)
+		return nil, fmt.Errorf("failed to get diagnostic Pod status: %w", err)
 	}
 
 	job := &DiagnosticJob{
@@ -89,30 +89,30 @@ func (s *DiagnosticsService) GetDiagnosisStatus(ctx context.Context, namespace, 
 		Cluster:   pod.Labels["polardbx/cluster"],
 	}
 
-	// 解析 Pod 状态
+	// Parse Pod status
 	switch pod.Status.Phase {
 	case corev1.PodPending:
 		job.Status = DiagStatusPending
 		job.Progress = 0
-		job.Message = "诊断 Pod 正在启动"
+		job.Message = "diagnostic Pod starting"
 	case corev1.PodRunning:
 		job.Status = DiagStatusRunning
 		job.Progress = 50
-		job.Message = "正在收集诊断信息"
+		job.Message = "collecting diagnostic information"
 	case corev1.PodSucceeded:
 		job.Status = DiagStatusSucceeded
 		job.Progress = 100
-		job.Message = "诊断完成"
+		job.Message = "diagnostic completed"
 		job.OutputPath = fmt.Sprintf("/tmp/polardbx-clinic/%s.tar.gz", jobID)
 	case corev1.PodFailed:
 		job.Status = DiagStatusFailed
 		job.Progress = 0
-		job.Message = "诊断任务失败"
-		// 尝试获取失败原因
+		job.Message = "diagnostic task failed"
+		// Try to get failure reason
 		if len(pod.Status.ContainerStatuses) > 0 {
 			cs := pod.Status.ContainerStatuses[0]
 			if cs.State.Terminated != nil && cs.State.Terminated.Reason != "" {
-				job.Message = fmt.Sprintf("诊断失败: %s", cs.State.Terminated.Reason)
+				job.Message = fmt.Sprintf("diagnostic failed: %s", cs.State.Terminated.Reason)
 			}
 		}
 	default:
@@ -120,7 +120,7 @@ func (s *DiagnosticsService) GetDiagnosisStatus(ctx context.Context, namespace, 
 		job.Progress = 0
 	}
 
-	// 设置时间
+	// Set timestamps
 	if !pod.CreationTimestamp.IsZero() {
 		job.StartedAt = pod.CreationTimestamp.Time
 	}
@@ -136,11 +136,11 @@ func (s *DiagnosticsService) GetDiagnosisStatus(ctx context.Context, namespace, 
 	return job, nil
 }
 
-// ListDiagnosisReports 列出诊断报告
+// ListDiagnosisReports lists diagnostic reports
 func (s *DiagnosticsService) ListDiagnosisReports(ctx context.Context, namespace string) ([]DiagnosticJob, error) {
 	var podList corev1.PodList
 
-	// 构建标签选择器
+	// Build label selector
 	labelSelector := labels.SelectorFromSet(map[string]string{
 		ClinicLabelKey: "true",
 	})
@@ -153,7 +153,7 @@ func (s *DiagnosticsService) ListDiagnosisReports(ctx context.Context, namespace
 	}
 
 	if err := s.cli.List(ctx, &podList, listOpts); err != nil {
-		return nil, fmt.Errorf("列出诊断 Pod 失败: %w", err)
+		return nil, fmt.Errorf("failed to list diagnostic Pods: %w", err)
 	}
 
 	var reports []DiagnosticJob
@@ -166,7 +166,7 @@ func (s *DiagnosticsService) ListDiagnosisReports(ctx context.Context, namespace
 			StartedAt: pod.CreationTimestamp.Time,
 		}
 
-		// 解析状态
+		// Parse status
 		switch pod.Status.Phase {
 		case corev1.PodSucceeded:
 			job.Status = DiagStatusSucceeded
@@ -186,26 +186,26 @@ func (s *DiagnosticsService) ListDiagnosisReports(ctx context.Context, namespace
 	return reports, nil
 }
 
-// GetDownloadInfo 获取诊断报告下载信息
+// GetDownloadInfo gets diagnostic report download information
 func (s *DiagnosticsService) GetDownloadInfo(ctx context.Context, namespace, jobID string) (string, error) {
-	// 检查 Pod 状态
+	// Check Pod status
 	job, err := s.GetDiagnosisStatus(ctx, namespace, jobID)
 	if err != nil {
 		return "", err
 	}
 
 	if job.Status != DiagStatusSucceeded {
-		return "", fmt.Errorf("诊断任务尚未完成，当前状态: %s", job.Status)
+		return "", fmt.Errorf("diagnostic task not completed yet, current status: %s", job.Status)
 	}
 
-	// 返回诊断报告的路径
-	// 实际使用时可能需要通过 kubectl cp 或者其他方式获取文件
+	// Return diagnostic report path
+	// In actual use, may need to get file via kubectl cp or other methods
 	return job.OutputPath, nil
 }
 
-// buildClinicPod 构建诊断 Pod 配置
+// buildClinicPod builds diagnostic Pod configuration
 func (s *DiagnosticsService) buildClinicPod(namespace, podName, clusterName, jobID string) *corev1.Pod {
-	// 诊断脚本 - 收集各种诊断信息
+	// Diagnostic script - collect various diagnostic information
 	diagScript := `#!/bin/bash
 set -e
 
@@ -220,63 +220,63 @@ echo "Cluster: ${CLUSTER_NAME}"
 echo "Namespace: ${NAMESPACE}"
 echo "Start Time: $(date)"
 
-# 收集集群信息
+# Collect cluster information
 echo "Collecting cluster information..."
 kubectl get pxc ${CLUSTER_NAME} -n ${NAMESPACE} -o yaml > ${OUTPUT_DIR}/data/pxc.yaml 2>/dev/null || echo "Failed to get PXC"
 
-# 收集 XStore 信息
+# Collect XStore information
 echo "Collecting XStore information..."
 kubectl get xstore -n ${NAMESPACE} -l polardbx/name=${CLUSTER_NAME} -o yaml > ${OUTPUT_DIR}/data/xstores.yaml 2>/dev/null || echo "No XStore found"
 
-# 收集 Pod 信息
+# Collect Pod information
 echo "Collecting Pod information..."
 kubectl get pods -n ${NAMESPACE} -l polardbx/name=${CLUSTER_NAME} -o wide > ${OUTPUT_DIR}/data/pods.txt 2>/dev/null || echo "No Pods found"
 
-# 收集事件
+# Collect events
 echo "Collecting events..."
 kubectl get events -n ${NAMESPACE} --field-selector involvedObject.name=${CLUSTER_NAME} > ${OUTPUT_DIR}/data/events.txt 2>/dev/null || echo "No events"
 
-# 收集 CN 日志
+# Collect CN logs
 echo "Collecting CN logs..."
 for pod in $(kubectl get pods -n ${NAMESPACE} -l polardbx/name=${CLUSTER_NAME},polardbx/role=cn -o jsonpath='{.items[*].metadata.name}' 2>/dev/null); do
     kubectl logs ${pod} -n ${NAMESPACE} --tail=1000 > ${OUTPUT_DIR}/data/cn-${pod}.log 2>/dev/null || true
 done
 
-# 收集 DN 日志
+# Collect DN logs
 echo "Collecting DN logs..."
 for pod in $(kubectl get pods -n ${NAMESPACE} -l polardbx/name=${CLUSTER_NAME},polardbx/role=dn -o jsonpath='{.items[*].metadata.name}' 2>/dev/null); do
     kubectl logs ${pod} -n ${NAMESPACE} --tail=1000 > ${OUTPUT_DIR}/data/dn-${pod}.log 2>/dev/null || true
 done
 
-# 收集 GMS 日志
+# Collect GMS logs
 echo "Collecting GMS logs..."
 for pod in $(kubectl get pods -n ${NAMESPACE} -l polardbx/name=${CLUSTER_NAME},polardbx/role=gms -o jsonpath='{.items[*].metadata.name}' 2>/dev/null); do
     kubectl logs ${pod} -n ${NAMESPACE} --tail=1000 > ${OUTPUT_DIR}/data/gms-${pod}.log 2>/dev/null || true
 done
 
-# 收集 CDC 日志
+# Collect CDC logs
 echo "Collecting CDC logs..."
 for pod in $(kubectl get pods -n ${NAMESPACE} -l polardbx/name=${CLUSTER_NAME},polardbx/role=cdc -o jsonpath='{.items[*].metadata.name}' 2>/dev/null); do
     kubectl logs ${pod} -n ${NAMESPACE} --tail=1000 > ${OUTPUT_DIR}/data/cdc-${pod}.log 2>/dev/null || true
 done
 
-# 收集节点信息
+# Collect node information
 echo "Collecting node information..."
 kubectl get nodes -o wide > ${OUTPUT_DIR}/data/nodes.txt 2>/dev/null || echo "Failed to get nodes"
 
-# 收集 ConfigMap
+# Collect ConfigMap
 echo "Collecting ConfigMaps..."
 kubectl get configmap -n ${NAMESPACE} -l polardbx/name=${CLUSTER_NAME} -o yaml > ${OUTPUT_DIR}/data/configmaps.yaml 2>/dev/null || echo "No ConfigMaps"
 
-# 收集 Secret (仅元数据)
+# Collect Secret (metadata only)
 echo "Collecting Secrets metadata..."
 kubectl get secrets -n ${NAMESPACE} -l polardbx/name=${CLUSTER_NAME} -o jsonpath='{.items[*].metadata.name}' > ${OUTPUT_DIR}/data/secrets.txt 2>/dev/null || echo "No Secrets"
 
-# 收集 PVC 信息
+# Collect PVC information
 echo "Collecting PVC information..."
 kubectl get pvc -n ${NAMESPACE} -l polardbx/name=${CLUSTER_NAME} -o yaml > ${OUTPUT_DIR}/data/pvcs.yaml 2>/dev/null || echo "No PVCs"
 
-# 生成报告摘要
+# Generate report summary
 echo "Generating summary..."
 cat > ${OUTPUT_DIR}/data/summary.txt << EOF
 === PolarDB-X Diagnostic Report ===
@@ -288,7 +288,7 @@ Files collected:
 $(ls -la ${OUTPUT_DIR}/data/)
 EOF
 
-# 打包
+# Package
 echo "Creating archive..."
 cd ${OUTPUT_DIR}
 tar -czf ${REPORT_FILE} data/
@@ -313,7 +313,7 @@ echo "End Time: $(date)"
 		},
 		Spec: corev1.PodSpec{
 			RestartPolicy:      corev1.RestartPolicyNever,
-			ServiceAccountName: "polardbx-operator", // 需要有足够权限的 ServiceAccount
+			ServiceAccountName: "polardbx-operator", // ServiceAccount with sufficient permissions required
 			Containers: []corev1.Container{
 				{
 					Name:  "clinic",

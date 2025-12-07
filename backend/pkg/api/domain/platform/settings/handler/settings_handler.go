@@ -12,17 +12,17 @@ import (
 	"polardbx-ui-backend/pkg/api/util"
 )
 
-// SettingsHandler 处理设置相关的 HTTP 请求
+// SettingsHandler handles HTTP requests related to settings
 type SettingsHandler struct {
 	service *service.SettingsService
 }
 
-// NewSettingsHandler 创建新的 SettingsHandler
+// NewSettingsHandler creates a new SettingsHandler
 func NewSettingsHandler(svc *service.SettingsService) *SettingsHandler {
 	return &SettingsHandler{service: svc}
 }
 
-// NewSettingsHandlerFromContext 从 gin.Context 创建完整的 handler 链
+// NewSettingsHandlerFromContext creates complete handler chain from gin.Context
 func NewSettingsHandlerFromContext(c *gin.Context) (*SettingsHandler, bool) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -33,13 +33,13 @@ func NewSettingsHandlerFromContext(c *gin.Context) (*SettingsHandler, bool) {
 	return NewSettingsHandler(svc), true
 }
 
-// NewSettingsServiceFromClient 创建 SettingsService（供其他包使用）
+// NewSettingsServiceFromClient creates SettingsService (for use by other packages)
 func NewSettingsServiceFromClient(cli client.Client) *service.SettingsService {
 	repo := repository.NewK8sSettingsRepository(cli)
 	return service.NewSettingsService(repo)
 }
 
-// Get 获取所有设置
+// Get gets all settings
 func Get(c *gin.Context) {
 	h, ok := NewSettingsHandlerFromContext(c)
 	if !ok {
@@ -49,7 +49,7 @@ func Get(c *gin.Context) {
 	apierr.OK(c, data)
 }
 
-// Update 更新设置
+// Update updates settings
 func Update(c *gin.Context) {
 	h, ok := NewSettingsHandlerFromContext(c)
 	if !ok {
@@ -67,13 +67,13 @@ func Update(c *gin.Context) {
 	apierr.OK(c, body)
 }
 
-// ReadDashboardSettings 读取备份仪表盘设置（供其他包使用）
+// ReadDashboardSettings reads backup dashboard settings (for use by other packages)
 func ReadDashboardSettings(ctx context.Context, cli client.Client) service.BackupDashboardSettings {
 	svc := NewSettingsServiceFromClient(cli)
 	return svc.GetDashboardSettings(ctx)
 }
 
-// GetImageRegistryConfig 获取镜像仓库配置
+// GetImageRegistryConfig gets image registry configuration
 func GetImageRegistryConfig(c *gin.Context) {
 	h, ok := NewSettingsHandlerFromContext(c)
 	if !ok {
@@ -85,7 +85,7 @@ func GetImageRegistryConfig(c *gin.Context) {
 	})
 }
 
-// UpdateImageRegistryRequest 更新镜像仓库请求
+// UpdateImageRegistryRequest update image registry request
 type UpdateImageRegistryRequest struct {
 	Registry        string   `json:"registry"`
 	CustomRegistry  string   `json:"customRegistry"`
@@ -93,7 +93,7 @@ type UpdateImageRegistryRequest struct {
 	Mirrors         []string `json:"mirrors"`
 }
 
-// UpdateImageRegistryConfig 更新镜像仓库配置
+// UpdateImageRegistryConfig updates image registry configuration
 func UpdateImageRegistryConfig(c *gin.Context) {
 	h, ok := NewSettingsHandlerFromContext(c)
 	if !ok {
@@ -113,12 +113,12 @@ func UpdateImageRegistryConfig(c *gin.Context) {
 
 	apierr.OK(c, gin.H{
 		"success": true,
-		"message": "镜像源配置已更新",
+		"message": "Image registry configuration updated",
 		"data":    data,
 	})
 }
 
-// GetAvailableRegistries 获取可用的镜像仓库预设
+// GetAvailableRegistries gets available image registry presets
 func GetAvailableRegistries(c *gin.Context) {
 	h, ok := NewSettingsHandlerFromContext(c)
 	if !ok {
@@ -130,12 +130,12 @@ func GetAvailableRegistries(c *gin.Context) {
 	})
 }
 
-// TestImageRegistryRequest 测试镜像仓库请求
+// TestImageRegistryRequest test image registry request
 type TestImageRegistryRequest struct {
 	Registry string `json:"registry" binding:"required"`
 }
 
-// TestImageRegistry 测试镜像仓库连通性
+// TestImageRegistry tests image registry connectivity
 func TestImageRegistry(c *gin.Context) {
 	var req TestImageRegistryRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

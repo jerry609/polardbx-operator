@@ -1,6 +1,6 @@
-// Package handler 提供参数和参数模板的 HTTP 处理器package handler
+// Package handler provides HTTP handlers for parameters and parameter templates
 
-// 遵循 Clean Architecture 设计模式
+// Follows Clean Architecture design pattern
 package handler
 
 import (
@@ -14,7 +14,7 @@ import (
 
 // ======================== Parameters ========================
 
-// List 获取参数列表
+// List gets parameter list
 func List(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -29,7 +29,7 @@ func List(c *gin.Context) {
 	apierr.OK(c, items)
 }
 
-// Get 获取指定参数
+// Get gets specified parameter
 func Get(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -45,7 +45,7 @@ func Get(c *gin.Context) {
 	apierr.OK(c, item)
 }
 
-// Create 创建参数
+// Create creates parameter
 func Create(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -65,7 +65,7 @@ func Create(c *gin.Context) {
 	apierr.Created(c, created)
 }
 
-// Update 更新参数
+// Update updates parameter
 func Update(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -85,7 +85,7 @@ func Update(c *gin.Context) {
 	apierr.OK(c, updated)
 }
 
-// Delete 删除参数
+// Delete deletes parameter
 func Delete(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -102,7 +102,7 @@ func Delete(c *gin.Context) {
 
 // ======================== Parameter Templates ========================
 
-// ListTemplates 获取参数模板列表
+// ListTemplates gets parameter template list
 func ListTemplates(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -117,7 +117,7 @@ func ListTemplates(c *gin.Context) {
 	apierr.OK(c, items)
 }
 
-// GetTemplate 获取指定参数模板
+// GetTemplate gets specified parameter template
 func GetTemplate(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -133,7 +133,7 @@ func GetTemplate(c *gin.Context) {
 	apierr.OK(c, item)
 }
 
-// CreateTemplate 创建参数模板
+// CreateTemplate creates parameter template
 func CreateTemplate(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -153,7 +153,7 @@ func CreateTemplate(c *gin.Context) {
 	apierr.Created(c, created)
 }
 
-// UpdateTemplate 更新参数模板
+// UpdateTemplate updates parameter template
 func UpdateTemplate(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -173,7 +173,7 @@ func UpdateTemplate(c *gin.Context) {
 	apierr.OK(c, updated)
 }
 
-// DeleteTemplate 删除参数模板
+// DeleteTemplate deletes parameter template
 func DeleteTemplate(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {

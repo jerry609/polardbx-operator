@@ -1,6 +1,6 @@
-// Package handler 提供集群参数旋钮的 HTTP 处理器package handler
+// Package handler provides HTTP handlers for cluster parameter knobs
 
-// 遵循 Clean Architecture 设计模式
+// Follows Clean Architecture design pattern
 package handler
 
 import (
@@ -12,7 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// GetList 获取所有集群参数旋钮列表
+// GetList gets all cluster parameter knobs list
 func GetList(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -26,7 +26,7 @@ func GetList(c *gin.Context) {
 	apierr.OK(c, list)
 }
 
-// Create 创建集群参数旋钮
+// Create creates cluster parameter knobs
 func Create(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -45,7 +45,7 @@ func Create(c *gin.Context) {
 	apierr.Created(c, created)
 }
 
-// Get 获取指定集群参数旋钮
+// Get gets specified cluster parameter knobs
 func Get(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -61,7 +61,7 @@ func Get(c *gin.Context) {
 	apierr.OK(c, knobs)
 }
 
-// Update 更新集群参数旋钮
+// Update updates cluster parameter knobs
 func Update(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -84,7 +84,7 @@ func Update(c *gin.Context) {
 	apierr.OK(c, updated)
 }
 
-// Delete 删除集群参数旋钮
+// Delete deletes cluster parameter knobs
 func Delete(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {

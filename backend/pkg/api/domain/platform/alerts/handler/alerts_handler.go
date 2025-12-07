@@ -15,17 +15,17 @@ import (
 	"polardbx-ui-backend/pkg/api/util"
 )
 
-// AlertsHandler 处理告警相关的 HTTP 请求
+// AlertsHandler handles alert-related HTTP requests
 type AlertsHandler struct {
 	service *service.AlertsService
 }
 
-// NewAlertsHandler 创建新的 AlertsHandler
+// NewAlertsHandler creates new AlertsHandler
 func NewAlertsHandler(svc *service.AlertsService) *AlertsHandler {
 	return &AlertsHandler{service: svc}
 }
 
-// NewAlertsHandlerFromContext 从 gin.Context 创建完整的 handler 链
+// NewAlertsHandlerFromContext creates complete handler chain from gin.Context
 func NewAlertsHandlerFromContext(c *gin.Context) (*AlertsHandler, bool) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -36,7 +36,7 @@ func NewAlertsHandlerFromContext(c *gin.Context) (*AlertsHandler, bool) {
 	return NewAlertsHandler(svc), true
 }
 
-// ListProfiles 列出所有配置文件
+// ListProfiles lists all configuration files
 func ListProfiles(c *gin.Context) {
 	h, ok := NewAlertsHandlerFromContext(c)
 	if !ok {
@@ -46,7 +46,7 @@ func ListProfiles(c *gin.Context) {
 	apierr.OK(c, gin.H{"items": items})
 }
 
-// CreateProfile 创建配置文件
+// CreateProfile creates configuration file
 func CreateProfile(c *gin.Context) {
 	h, ok := NewAlertsHandlerFromContext(c)
 	if !ok {
@@ -71,7 +71,7 @@ func CreateProfile(c *gin.Context) {
 	apierr.Created(c, gin.H{"name": body.Name})
 }
 
-// GetProfile 获取配置文件
+// GetProfile gets configuration file
 func GetProfile(c *gin.Context) {
 	h, ok := NewAlertsHandlerFromContext(c)
 	if !ok {
@@ -86,7 +86,7 @@ func GetProfile(c *gin.Context) {
 	apierr.OK(c, gin.H{"name": profile.Name, "content": profile.Content})
 }
 
-// UpdateProfile 更新配置文件
+// UpdateProfile updates configuration file
 func UpdateProfile(c *gin.Context) {
 	h, ok := NewAlertsHandlerFromContext(c)
 	if !ok {
@@ -111,7 +111,7 @@ func UpdateProfile(c *gin.Context) {
 	apierr.OK(c, gin.H{"name": name})
 }
 
-// DeleteProfile 删除配置文件
+// DeleteProfile deletes configuration file
 func DeleteProfile(c *gin.Context) {
 	h, ok := NewAlertsHandlerFromContext(c)
 	if !ok {
@@ -129,7 +129,7 @@ func DeleteProfile(c *gin.Context) {
 	apierr.OK(c, gin.H{"deleted": name})
 }
 
-// DryRunProfile 验证 Alertmanager YAML
+// DryRunProfile validates Alertmanager YAML
 func DryRunProfile(c *gin.Context) {
 	h, ok := NewAlertsHandlerFromContext(c)
 	if !ok {
@@ -154,7 +154,7 @@ func DryRunProfile(c *gin.Context) {
 	apierr.OK(c, gin.H{"valid": true})
 }
 
-// GetRoutes 获取路由配置
+// GetRoutes gets routing configuration
 func GetRoutes(c *gin.Context) {
 	h, ok := NewAlertsHandlerFromContext(c)
 	if !ok {
@@ -164,7 +164,7 @@ func GetRoutes(c *gin.Context) {
 	apierr.OK(c, gin.H{"content": content})
 }
 
-// PutRoutes 更新路由配置
+// PutRoutes updates routing configuration
 func PutRoutes(c *gin.Context) {
 	h, ok := NewAlertsHandlerFromContext(c)
 	if !ok {
@@ -181,7 +181,7 @@ func PutRoutes(c *gin.Context) {
 	apierr.OK(c, gin.H{"message": "routes updated"})
 }
 
-// List 聚合告警列表
+// List aggregated alert list
 func List(c *gin.Context) {
 	h, ok := NewAlertsHandlerFromContext(c)
 	if !ok {
@@ -194,7 +194,7 @@ func List(c *gin.Context) {
 	apierr.OK(c, gin.H{"items": items})
 }
 
-// ListSilences Alertmanager 静默列表代理
+// ListSilences Alertmanager silence list proxy
 func ListSilences(c *gin.Context) {
 	_, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -216,7 +216,7 @@ func ListSilences(c *gin.Context) {
 	c.JSON(resp.StatusCode, out)
 }
 
-// CreateSilence 创建静默
+// CreateSilence creates silence
 func CreateSilence(c *gin.Context) {
 	_, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -244,7 +244,7 @@ func CreateSilence(c *gin.Context) {
 	c.JSON(resp.StatusCode, out)
 }
 
-// DeleteSilence 删除静默
+// DeleteSilence deletes silence
 func DeleteSilence(c *gin.Context) {
 	_, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -268,7 +268,7 @@ func DeleteSilence(c *gin.Context) {
 	c.JSON(resp.StatusCode, out)
 }
 
-// TestAlert 发送测试告警
+// TestAlert sends test alert
 func TestAlert(c *gin.Context) {
 	_, ok := util.K8sClientFromContext(c)
 	if !ok {

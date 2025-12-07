@@ -9,30 +9,30 @@ import (
 	"polardbx-ui-backend/pkg/api/util"
 )
 
-// Start 触发集群诊断任务
-// @Summary 启动诊断
-// @Description 创建 polardbx-clinic Pod 收集集群诊断信息
+// Start triggers cluster diagnostic task
+// @Summary Start diagnosis
+// @Description Create polardbx-clinic Pod to collect cluster diagnostic information
 // @Tags diagnostics
 // @Accept json
 // @Produce json
-// @Param namespace path string true "命名空间"
-// @Param cluster path string true "集群名称"
-// @Success 202 {object} service.DiagnosticJob "诊断任务已启动"
-// @Failure 400 {object} map[string]string "请求参数错误"
-// @Failure 500 {object} map[string]string "服务器错误"
+// @Param namespace path string true "namespace"
+// @Param cluster path string true "cluster name"
+// @Success 202 {object} service.DiagnosticJob "diagnostic task started"
+// @Failure 400 {object} map[string]string "request parameter error"
+// @Failure 500 {object} map[string]string "server error"
 // @Router /api/v1/diagnostics/{namespace}/{cluster}/start [post]
 func Start(c *gin.Context) {
 	namespace := c.Param("namespace")
 	cluster := c.Param("cluster")
 
 	if namespace == "" || cluster == "" {
-		apierr.AbortValidation(c, "命名空间和集群名称不能为空")
+		apierr.AbortValidation(c, "namespace and cluster name cannot be empty")
 		return
 	}
 
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
-		apierr.AbortInternal(c, "无法获取 Kubernetes 客户端")
+		apierr.AbortInternal(c, "unable to get Kubernetes client")
 		return
 	}
 
@@ -46,30 +46,30 @@ func Start(c *gin.Context) {
 	apierr.Accepted(c, job)
 }
 
-// GetStatus 返回诊断任务的进度/状态
-// @Summary 获取诊断状态
-// @Description 获取指定诊断任务的当前状态和进度
+// GetStatus returns diagnostic task progress/status
+// @Summary Get diagnostic status
+// @Description Get current status and progress of specified diagnostic task
 // @Tags diagnostics
 // @Accept json
 // @Produce json
-// @Param namespace path string true "命名空间"
-// @Param id path string true "诊断任务ID"
-// @Success 200 {object} service.DiagnosticJob "诊断任务状态"
-// @Failure 404 {object} map[string]string "任务不存在"
-// @Failure 500 {object} map[string]string "服务器错误"
+// @Param namespace path string true "namespace"
+// @Param id path string true "diagnostic task ID"
+// @Success 200 {object} service.DiagnosticJob "diagnostic task status"
+// @Failure 404 {object} map[string]string "task not found"
+// @Failure 500 {object} map[string]string "server error"
 // @Router /api/v1/diagnostics/{namespace}/{id}/status [get]
 func GetStatus(c *gin.Context) {
 	namespace := c.Param("namespace")
 	id := c.Param("id")
 
 	if namespace == "" || id == "" {
-		apierr.AbortValidation(c, "命名空间和任务ID不能为空")
+		apierr.AbortValidation(c, "namespace and task ID cannot be empty")
 		return
 	}
 
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
-		apierr.AbortInternal(c, "无法获取 Kubernetes 客户端")
+		apierr.AbortInternal(c, "unable to get Kubernetes client")
 		return
 	}
 
@@ -83,22 +83,22 @@ func GetStatus(c *gin.Context) {
 	apierr.OK(c, job)
 }
 
-// ListReports 列出诊断报告
-// @Summary 列出诊断报告
-// @Description 列出指定命名空间下的所有诊断报告
+// ListReports lists diagnostic reports
+// @Summary List diagnostic reports
+// @Description List all diagnostic reports under specified namespace
 // @Tags diagnostics
 // @Accept json
 // @Produce json
-// @Param namespace query string false "命名空间，不指定则列出所有命名空间"
-// @Success 200 {array} service.DiagnosticJob "诊断报告列表"
-// @Failure 500 {object} map[string]string "服务器错误"
+// @Param namespace query string false "namespace, list all namespaces if not specified"
+// @Success 200 {array} service.DiagnosticJob "diagnostic reports list"
+// @Failure 500 {object} map[string]string "server error"
 // @Router /api/v1/diagnostics/reports [get]
 func ListReports(c *gin.Context) {
 	namespace := c.DefaultQuery("namespace", "")
 
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
-		apierr.AbortInternal(c, "无法获取 Kubernetes 客户端")
+		apierr.AbortInternal(c, "unable to get Kubernetes client")
 		return
 	}
 
@@ -120,31 +120,31 @@ func ListReports(c *gin.Context) {
 	})
 }
 
-// Download 返回报告下载信息
-// @Summary 下载诊断报告
-// @Description 获取诊断报告的下载链接或路径
+// Download returns report download information
+// @Summary Download diagnostic report
+// @Description Get download link or path for diagnostic report
 // @Tags diagnostics
 // @Accept json
 // @Produce json
-// @Param namespace path string true "命名空间"
-// @Param id path string true "诊断任务ID"
-// @Success 200 {object} map[string]string "下载信息"
-// @Failure 400 {object} map[string]string "请求参数错误"
-// @Failure 404 {object} map[string]string "报告不存在"
-// @Failure 500 {object} map[string]string "服务器错误"
+// @Param namespace path string true "namespace"
+// @Param id path string true "diagnostic task ID"
+// @Success 200 {object} map[string]string "download information"
+// @Failure 400 {object} map[string]string "request parameter error"
+// @Failure 404 {object} map[string]string "report not found"
+// @Failure 500 {object} map[string]string "server error"
 // @Router /api/v1/diagnostics/{namespace}/{id}/download [get]
 func Download(c *gin.Context) {
 	namespace := c.Param("namespace")
 	id := c.Param("id")
 
 	if namespace == "" || id == "" {
-		apierr.AbortValidation(c, "命名空间和任务ID不能为空")
+		apierr.AbortValidation(c, "namespace and task ID cannot be empty")
 		return
 	}
 
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
-		apierr.AbortInternal(c, "无法获取 Kubernetes 客户端")
+		apierr.AbortInternal(c, "unable to get Kubernetes client")
 		return
 	}
 
@@ -155,71 +155,71 @@ func Download(c *gin.Context) {
 		return
 	}
 
-	// 返回下载信息
-	// 注意: 在实际生产环境中，可能需要:
-	// 1. 从 Pod 中复制文件到可访问的存储
-	// 2. 生成预签名 URL
-	// 3. 通过 API 代理流式传输文件
+	// Return download information
+	// Note: In production environment, may need to:
+	// 1. Copy files from Pod to accessible storage
+	// 2. Generate pre-signed URLs
+	// 3. Stream files through API proxy
 	apierr.OK(c, gin.H{
 		"id":        id,
 		"namespace": namespace,
 		"path":      outputPath,
 		"url":       "/api/v1/diagnostics/" + namespace + "/" + id + "/file",
-		"message":   "诊断报告准备就绪，可通过 kubectl cp 命令或 url 下载",
+		"message":   "diagnostic report ready, can be downloaded via kubectl cp command or url",
 		"command":   "kubectl cp " + namespace + "/polardbx-clinic-" + id + ":" + outputPath + " ./" + id + ".tar.gz",
 	})
 }
 
-// GetFile 获取诊断报告文件（流式下载）
-// @Summary 获取诊断报告文件
-// @Description 从 Pod 中获取诊断报告文件内容
+// GetFile gets diagnostic report file (streaming download)
+// @Summary Get diagnostic report file
+// @Description Get diagnostic report file content from Pod
 // @Tags diagnostics
 // @Produce application/gzip
-// @Param namespace path string true "命名空间"
-// @Param id path string true "诊断任务ID"
-// @Success 200 {file} binary "诊断报告文件"
-// @Failure 404 {object} map[string]string "文件不存在"
-// @Failure 500 {object} map[string]string "服务器错误"
+// @Param namespace path string true "namespace"
+// @Param id path string true "diagnostic task ID"
+// @Success 200 {file} binary "diagnostic report file"
+// @Failure 404 {object} map[string]string "file not found"
+// @Failure 500 {object} map[string]string "server error"
 // @Router /api/v1/diagnostics/{namespace}/{id}/file [get]
 func GetFile(c *gin.Context) {
 	namespace := c.Param("namespace")
 	id := c.Param("id")
 
-	// TODO: 实现从 Pod 中读取文件并流式传输
-	// 这需要使用 kubernetes client-go 的 exec/cp 功能
-	// 或者使用 kubectl cp 的底层实现
+	// TODO: Implement reading files from Pod and streaming
+	// This requires using kubernetes client-go's exec/cp functionality
+	// or kubectl cp's underlying implementation
 
-	apierr.Abort(c, apierr.Internal("文件下载功能需要额外配置，请使用 kubectl cp 命令下载: kubectl cp "+namespace+"/polardbx-clinic-"+id+":/tmp/polardbx-clinic/"+id+".tar.gz ./"+id+".tar.gz"))
+	apierr.Abort(c, apierr.Internal("file download requires additional configuration, please use kubectl cp command to download: kubectl cp "+namespace+"/polardbx-clinic-"+id+":/tmp/polardbx-clinic/"+id+".tar.gz ./"+id+".tar.gz"))
 }
 
-// DeleteJob 删除诊断任务（清理 Pod）
-// @Summary 删除诊断任务
-// @Description 删除诊断 Pod 和相关资源
+// DeleteJob deletes diagnostic task (cleanup Pod)
+// @Summary Delete diagnostic task
+// @Description Delete diagnostic Pod and related resources
 // @Tags diagnostics
 // @Accept json
 // @Produce json
-// @Param namespace path string true "命名空间"
-// @Param id path string true "诊断任务ID"
-// @Success 200 {object} map[string]string "删除成功"
-// @Failure 404 {object} map[string]string "任务不存在"
-// @Failure 500 {object} map[string]string "服务器错误"
+// @Param namespace path string true "namespace"
+// @Param id path string true "diagnostic task ID"
+// @Success 200 {object} map[string]string "deletion successful"
+// @Failure 404 {object} map[string]string "task not found"
+// @Failure 500 {object} map[string]string "server error"
 // @Router /api/v1/diagnostics/{namespace}/{id} [delete]
 func DeleteJob(c *gin.Context) {
 	namespace := c.Param("namespace")
 	id := c.Param("id")
 
 	if namespace == "" || id == "" {
-		apierr.AbortValidation(c, "命名空间和任务ID不能为空")
+		apierr.AbortValidation(c, "namespace and task ID cannot be empty")
 		return
 	}
 
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
-		apierr.AbortInternal(c, "无法获取 Kubernetes 客户端")
+		apierr.AbortInternal(c, "unable to get Kubernetes client")
 		return
 	}
 
-	// 删除诊断 Pod
+	// Delete diagnostic Pod
 	podName := service.ClinicPodPrefix + id
 	pod := &corev1.Pod{}
 	pod.SetName(podName)
@@ -231,7 +231,7 @@ func DeleteJob(c *gin.Context) {
 	}
 
 	apierr.OK(c, gin.H{
-		"message": "诊断任务已删除",
+		"message": "diagnostic task deleted",
 		"id":      id,
 	})
 }

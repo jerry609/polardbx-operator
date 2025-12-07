@@ -27,9 +27,10 @@ const (
 	checkpointAnnotationVersion = "monitoring.polardbx.com/checkpoint-version"
 )
 
-// checkpointFormatVersion 标识持久化格式。当 Phase 3 引入诊断结果后，仍沿用此版本号，
-// 并通过 PersistedSession 扩展字段存储最新的诊断报告。若未来需要兼容多版本，可基于
-// 此常量进行条件分支解析。
+// checkpointFormatVersion identifies the persistence format. When Phase 3 introduces diagnostic results,
+// this version number is still used, and the latest diagnostic reports are stored through extended fields
+// of PersistedSession. If multi-version compatibility is needed in the future, conditional branching
+// can be performed based on this constant.
 const checkpointFormatVersion = "v1alpha1"
 
 // CheckpointManager persists and restores installation checkpoints to Kubernetes.

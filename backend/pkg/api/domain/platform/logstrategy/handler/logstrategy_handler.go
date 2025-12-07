@@ -88,7 +88,7 @@ func saveList(c *gin.Context, cm *corev1.ConfigMap, list []Strategy) error {
 func List(c *gin.Context) {
 	cm, err := getStore(c)
 	if err != nil {
-		// 兼容前端：返回空列表而不是 500，避免页面崩溃
+		// Compatible with frontend: return empty list instead of 500 to avoid page crash
 		apierr.OK(c, gin.H{"total": 0, "items": []any{}, "warning": "strategy store not accessible", "details": err.Error()})
 		return
 	}
@@ -586,7 +586,7 @@ const (
 	CMNamespace   = "polardbx-logcollector"
 )
 
-// 内部常量别名
+// Internal constant aliases
 const (
 	recordsCMName = RecordsCMName
 	recordsKey    = RecordsKey

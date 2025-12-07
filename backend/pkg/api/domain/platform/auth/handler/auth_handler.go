@@ -12,7 +12,7 @@ import (
 	jwt "github.com/golang-jwt/jwt/v5"
 )
 
-// Claims JWT 声明
+// Claims JWT claims
 type Claims struct {
 	Username string `json:"username"`
 	Role     string `json:"role"`
@@ -23,7 +23,7 @@ func getJWTSecret() string {
 	return strings.TrimSpace(os.Getenv("JWT_SECRET"))
 }
 
-// Login 登录并颁发 JWT（当 JWT_SECRET 配置时）
+// Login login and issue JWT (when JWT_SECRET is configured)
 func Login(c *gin.Context) {
 	secret := getJWTSecret()
 	if secret == "" {
@@ -74,7 +74,7 @@ func Login(c *gin.Context) {
 	apierr.OK(c, gin.H{"token": signed, "expiresAt": exp.UTC().Format(time.RFC3339), "role": role})
 }
 
-// Me 返回当前 JWT 声明
+// Me returns current JWT claims
 func Me(c *gin.Context) {
 	secret := getJWTSecret()
 	if secret == "" {
@@ -90,7 +90,7 @@ func Me(c *gin.Context) {
 	apierr.AbortUnauthorized(c, "unauthorized")
 }
 
-// JWTAuthMiddleware JWT 认证中间件
+// JWTAuthMiddleware JWT authentication middleware
 func JWTAuthMiddleware() gin.HandlerFunc {
 	secret := getJWTSecret()
 	if secret == "" {

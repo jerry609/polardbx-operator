@@ -13,17 +13,17 @@ import (
 	"polardbx-ui-backend/pkg/api/util"
 )
 
-// LogServiceHandler 处理日志服务状态相关的 HTTP 请求
+// LogServiceHandler handles HTTP requests related to log service status
 type LogServiceHandler struct {
 	clientset kubernetes.Interface
 }
 
-// NewLogServiceHandler 创建新的 LogServiceHandler
+// NewLogServiceHandler creates a new LogServiceHandler
 func NewLogServiceHandler(clientset kubernetes.Interface) *LogServiceHandler {
 	return &LogServiceHandler{clientset: clientset}
 }
 
-// NewLogServiceHandlerFromContext 从 gin.Context 创建 handler
+// NewLogServiceHandlerFromContext creates handler from gin.Context
 func NewLogServiceHandlerFromContext(c *gin.Context) (*LogServiceHandler, bool) {
 	clientset, ok := util.ClientsetFromContext(c)
 	if !ok {
@@ -33,14 +33,14 @@ func NewLogServiceHandlerFromContext(c *gin.Context) (*LogServiceHandler, bool) 
 }
 
 const (
-	// DefaultLogCollectorNamespace 默认日志收集器命名空间
+	// DefaultLogCollectorNamespace default log collector namespace
 	DefaultLogCollectorNamespace = "polardbx-logcollector"
-	// RestartFlappingThreshold 重启抖动阈值
+	// RestartFlappingThreshold restart flapping threshold
 	RestartFlappingThreshold int32 = 5
 )
 
 // Status GET /logservice/status
-// 聚合日志收集组件的就绪状态和配置
+// Aggregate readiness status and configuration of log collection components
 func Status(c *gin.Context) {
 	h, ok := NewLogServiceHandlerFromContext(c)
 	if !ok {
@@ -53,12 +53,12 @@ func (h *LogServiceHandler) status(c *gin.Context) {
 	ctx := c.Request.Context()
 	ns := c.DefaultQuery("namespace", DefaultLogCollectorNamespace)
 
-	// 获取组件状态
+	// Get component status
 	fbInfo := h.getFilebeatStatus(ctx, ns)
 	lsInfo := h.getLogstashStatus(ctx, ns)
 	cmExists := h.checkPipelineConfigMap(ctx, ns)
 
-	// 计算整体状态
+	// Calculate overall status
 	state := h.calculateOverallState(fbInfo, lsInfo)
 
 	resp := gin.H{
@@ -78,7 +78,7 @@ func (h *LogServiceHandler) status(c *gin.Context) {
 	apierr.OK(c, resp)
 }
 
-// ComponentInfo 组件状态信息
+// ComponentInfo component status information
 type ComponentInfo struct {
 	Status   string      `json:"status"`
 	Replicas ReplicaInfo `json:"replicas"`
@@ -87,13 +87,13 @@ type ComponentInfo struct {
 	Pod      *PodInfo    `json:"pod,omitempty"`
 }
 
-// ReplicaInfo 副本信息
+// ReplicaInfo replica information
 type ReplicaInfo struct {
 	Ready int32 `json:"ready"`
 	Total int32 `json:"total"`
 }
 
-// PodInfo Pod 详细信息
+// PodInfo Pod detailed information
 type PodInfo struct {
 	Name        string `json:"name"`
 	Restarts    int32  `json:"restarts"`
@@ -116,7 +116,7 @@ func (h *LogServiceHandler) getFilebeatStatus(ctx context.Context, ns string) gi
 	readyFB := ds.Status.NumberReady
 	desiredFB := ds.Status.DesiredNumberScheduled
 
-	// 获取 Pod 级别详情
+	// Get Pod level details
 	podInfo := h.getPodStatus(ctx, ns, "app=filebeat")
 	status := h.calculateComponentStatus(true, readyFB, desiredFB, podInfo)
 
@@ -147,7 +147,7 @@ func (h *LogServiceHandler) getLogstashStatus(ctx context.Context, ns string) gi
 	readyLS := dep.Status.ReadyReplicas
 	desiredLS := dep.Status.Replicas
 
-	// 获取 Pod 级别详情
+	// Get Pod level details
 	podInfo := h.getPodStatus(ctx, ns, "app=logstash")
 	status := h.calculateComponentStatus(true, readyLS, desiredLS, podInfo)
 
@@ -272,7 +272,7 @@ func errString(err error) string {
 	return err.Error()
 }
 
-// 保留这些类型以备将来使用
+// Keep these types for future use
 var _ = (*appsv1.DaemonSet)(nil)
 var _ = (*appsv1.Deployment)(nil)
 var _ = (*corev1.ConfigMap)(nil)

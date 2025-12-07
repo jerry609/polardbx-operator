@@ -5,33 +5,33 @@ import (
 	"sort"
 )
 
-// DiagnosticProbeFactory 用于延迟构建探针实例，便于测试与依赖注入。
+// DiagnosticProbeFactory is used for delayed construction of probe instances, facilitating testing and dependency injection.
 type DiagnosticProbeFactory func() DiagnosticProbe
 
-// registry 默认包含设计阶段定义的探针，后续阶段可替换为具体实现。
+// registry contains probes defined during the design phase by default, which can be replaced with specific implementations in subsequent phases.
 var defaultDiagnosticProbes = map[string]struct {
 	Description string
 	Factory     DiagnosticProbeFactory
 }{
 	"prometheus-health": {
-		Description: "检测 Prometheus StatefulSet、Service 以及核心指标可用性",
+		Description: "Check Prometheus StatefulSet, Service, and core metrics availability",
 		Factory:     func() DiagnosticProbe { return newPlaceholderProbe("prometheus-health") },
 	},
 	"grafana-connectivity": {
-		Description: "验证 Grafana Pod 与数据源连通性",
+		Description: "Verify Grafana Pod and data source connectivity",
 		Factory:     func() DiagnosticProbe { return newPlaceholderProbe("grafana-connectivity") },
 	},
 	"operator-events": {
-		Description: "分析监控 Operator 的事件与日志以发现调谐失败",
+		Description: "Analyze monitoring Operator events and logs to discover tuning failures",
 		Factory:     func() DiagnosticProbe { return newPlaceholderProbe("operator-events") },
 	},
 	"k8s-events": {
-		Description: "聚合命名空间层面的 Warning/Error 事件",
+		Description: "Aggregate Warning/Error events at the namespace level",
 		Factory:     func() DiagnosticProbe { return newPlaceholderProbe("k8s-events") },
 	},
 }
 
-// ListDefaultDiagnosticProbes 返回排序后的探针 ID 列表，便于 UI 或日志展示。
+// ListDefaultDiagnosticProbes returns a sorted list of probe IDs for UI or log display.
 func ListDefaultDiagnosticProbes() []string {
 	ids := make([]string, 0, len(defaultDiagnosticProbes))
 	for id := range defaultDiagnosticProbes {
@@ -41,7 +41,7 @@ func ListDefaultDiagnosticProbes() []string {
 	return ids
 }
 
-// ResolveDiagnosticProbe 根据 ID 构造探针实例；找不到时返回 nil。
+// ResolveDiagnosticProbe constructs a probe instance based on ID; returns nil if not found.
 func ResolveDiagnosticProbe(id string) DiagnosticProbe {
 	if meta, ok := defaultDiagnosticProbes[id]; ok && meta.Factory != nil {
 		return meta.Factory()
@@ -49,12 +49,12 @@ func ResolveDiagnosticProbe(id string) DiagnosticProbe {
 	return nil
 }
 
-// newPlaceholderProbe 提供阶段占位实现，在 Phase 3 中将替换为真实逻辑。
+// newPlaceholderProbe provides a phase placeholder implementation, which will be replaced with real logic in Phase 3.
 func newPlaceholderProbe(id string) DiagnosticProbe {
 	return placeholderProbe{id: id}
 }
 
-// placeholderProbe 满足 DiagnosticProbe 接口但不执行任何诊断。
+// placeholderProbe satisfies the DiagnosticProbe interface but performs no diagnosis.
 type placeholderProbe struct {
 	id string
 }

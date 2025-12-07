@@ -16,17 +16,17 @@ import (
 	"polardbx-ui-backend/pkg/api/util"
 )
 
-// RestoreHandler 处理恢复相关的 HTTP 请求
+// RestoreHandler handles HTTP requests related to restore operations
 type RestoreHandler struct {
 	repo repository.RestoreRepository
 }
 
-// NewRestoreHandler 创建新的 RestoreHandler
+// NewRestoreHandler creates a new RestoreHandler
 func NewRestoreHandler(repo repository.RestoreRepository) *RestoreHandler {
 	return &RestoreHandler{repo: repo}
 }
 
-// NewRestoreHandlerFromContext 从 gin.Context 创建 handler
+// NewRestoreHandlerFromContext creates handler from gin.Context
 func NewRestoreHandlerFromContext(c *gin.Context) (*RestoreHandler, bool) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -76,7 +76,7 @@ func (h *RestoreHandler) restoreCluster(c *gin.Context) {
 		return
 	}
 
-	// 验证备份存在且已完成
+	// Validate that backup exists and is completed
 	if req.BackupSet != "" {
 		backup, err := h.repo.GetBackup(c.Request.Context(), namespace, req.BackupSet)
 		if err != nil {
@@ -94,20 +94,20 @@ func (h *RestoreHandler) restoreCluster(c *gin.Context) {
 		target = clusterName + "-restored"
 	}
 
-	// 确保目标集群不存在
+	// Ensure target cluster does not exist
 	if _, err := h.repo.GetCluster(c.Request.Context(), namespace, target); err == nil {
 		apierr.Abort(c, apierr.Conflict(fmt.Sprintf("target cluster %s/%s already exists", namespace, target)))
 		return
 	}
 
-	// 加载源集群
+	// Load source cluster
 	source, err := h.repo.GetCluster(c.Request.Context(), namespace, clusterName)
 	if err != nil {
 		util.HandleK8sError(c, "source cluster not found", err)
 		return
 	}
 
-	// 构建恢复集群
+	// Build restored cluster
 	restored := &polardbxv1.PolarDBXCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      target,
@@ -177,7 +177,7 @@ func (h *RestoreHandler) initiatePITR(c *gin.Context) {
 		return
 	}
 
-	// 规范化字段
+	// Normalize fields
 	if strings.TrimSpace(req.Time) == "" {
 		req.Time = req.TargetTime
 	}
@@ -193,7 +193,7 @@ func (h *RestoreHandler) initiatePITR(c *gin.Context) {
 		return
 	}
 
-	// 验证备份
+	// Validate backup
 	if strings.TrimSpace(req.BackupSet) != "" {
 		backup, err := h.repo.GetBackup(c.Request.Context(), namespace, req.BackupSet)
 		if err != nil {
@@ -211,20 +211,20 @@ func (h *RestoreHandler) initiatePITR(c *gin.Context) {
 		target = sourceName + "-pitr"
 	}
 
-	// 确保目标集群不存在
+	// Ensure target cluster does not exist
 	if _, err := h.repo.GetCluster(c.Request.Context(), namespace, target); err == nil {
 		apierr.Abort(c, apierr.Conflict(fmt.Sprintf("target cluster exists: %s/%s", namespace, target)))
 		return
 	}
 
-	// 加载源集群
+	// Load source cluster
 	source, err := h.repo.GetCluster(c.Request.Context(), namespace, sourceName)
 	if err != nil {
 		util.HandleK8sError(c, "source cluster not found", err)
 		return
 	}
 
-	// 构建 PITR 恢复集群
+	// Build PITR restored cluster
 	restored := &polardbxv1.PolarDBXCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      target,
@@ -453,10 +453,10 @@ func CancelJob(c *gin.Context) {
 	ns := c.Param("namespace")
 	name := c.Param("name")
 
-	// 检查 job 是否存在 (使用 PolarDBXBackup 作为代理检查)
+	// Check if job exists (using PolarDBXBackup as proxy check)
 	_, err := h.repo.GetBackup(c.Request.Context(), ns, name)
 	if err != nil {
-		// Job 不存在
+		// Job does not exist
 		apierr.AbortNotFound(c, "restore job", fmt.Sprintf("%s/%s", ns, name))
 		return
 	}

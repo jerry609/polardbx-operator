@@ -17,7 +17,7 @@ const (
 	SettingsConfigMap = "polardbx-ui-backend-config"
 )
 
-// BackupDashboardSettings 备份仪表盘设置
+// BackupDashboardSettings backup dashboard settings
 type BackupDashboardSettings struct {
 	RPOThresholdSeconds                int     `json:"rpoThresholdSeconds"`
 	ThroughputLowerBoundMBps           float64 `json:"throughputLowerBoundMBps"`
@@ -27,17 +27,17 @@ type BackupDashboardSettings struct {
 	AutoRebuildPreferredNodeLabelValue string  `json:"autoRebuildPreferredNodeLabelValue"`
 }
 
-// SettingsService 定义设置业务逻辑层
+// SettingsService defines settings business logic layer
 type SettingsService struct {
 	repo repository.SettingsRepository
 }
 
-// NewSettingsService 创建新的 SettingsService
+// NewSettingsService creates a new SettingsService
 func NewSettingsService(repo repository.SettingsRepository) *SettingsService {
 	return &SettingsService{repo: repo}
 }
 
-// Get 获取所有设置
+// Get gets all settings
 func (s *SettingsService) Get(ctx context.Context) (map[string]string, error) {
 	cm, _ := s.repo.GetConfigMap(ctx, SettingsNamespace, SettingsConfigMap)
 	if cm == nil {
@@ -46,7 +46,7 @@ func (s *SettingsService) Get(ctx context.Context) (map[string]string, error) {
 	return cm.Data, nil
 }
 
-// Update 更新设置
+// Update updates settings
 func (s *SettingsService) Update(ctx context.Context, body map[string]any) error {
 	cm, err := s.repo.GetConfigMap(ctx, SettingsNamespace, SettingsConfigMap)
 	if err != nil {
@@ -67,7 +67,7 @@ func (s *SettingsService) Update(ctx context.Context, body map[string]any) error
 	return s.repo.UpdateConfigMap(ctx, cm)
 }
 
-// GetDashboardSettings 获取备份仪表盘设置
+// GetDashboardSettings gets backup dashboard settings
 func (s *SettingsService) GetDashboardSettings(ctx context.Context) BackupDashboardSettings {
 	settings := defaultSettings()
 	cm, err := s.repo.GetConfigMap(ctx, SettingsNamespace, SettingsConfigMap)
@@ -87,13 +87,13 @@ func (s *SettingsService) GetDashboardSettings(ctx context.Context) BackupDashbo
 	return settings
 }
 
-// GetImageRegistryConfig 获取镜像仓库配置
+// GetImageRegistryConfig gets image registry configuration
 func (s *SettingsService) GetImageRegistryConfig() map[string]any {
 	cfg := config.GetGlobalConfig()
 	return cfg.ToMap()
 }
 
-// UpdateImageRegistryConfig 更新镜像仓库配置
+// UpdateImageRegistryConfig updates image registry configuration
 func (s *SettingsService) UpdateImageRegistryConfig(registry, customRegistry, defaultRegistry string) (map[string]any, error) {
 	cfg := config.GetGlobalConfig()
 
@@ -112,27 +112,27 @@ func (s *SettingsService) UpdateImageRegistryConfig(registry, customRegistry, de
 	return cfg.ToMap(), nil
 }
 
-// GetAvailableRegistries 获取可用的镜像仓库预设
+// GetAvailableRegistries gets available image registry presets
 func (s *SettingsService) GetAvailableRegistries() []map[string]interface{} {
 	return []map[string]interface{}{
 		{
-			"name":        "DaoCloud Mirror (推荐)",
+			"name":        "DaoCloud Mirror (Recommended)",
 			"registry":    "docker.m.daocloud.io",
-			"description": "DaoCloud 公共镜像加速服务，完整代理 Docker Hub",
+			"description": "DaoCloud public image acceleration service, fully proxies Docker Hub",
 			"region":      "China",
 			"status":      "verified",
 		},
 		{
-			"name":        "Docker Hub (官方)",
+			"name":        "Docker Hub (Official)",
 			"registry":    "docker.io",
-			"description": "官方 Docker Hub 镜像仓库 (docker.io)",
+			"description": "Official Docker Hub image registry (docker.io)",
 			"region":      "Global",
 			"status":      "slow",
 		},
 		{
-			"name":        "自定义镜像仓库",
+			"name":        "Custom Image Registry",
 			"registry":    "custom",
-			"description": "使用企业私有镜像仓库（如 Harbor），需提前同步 alpine/helm:3.12.3 镜像",
+			"description": "Use enterprise private image registry (such as Harbor), need to sync alpine/helm:3.12.3 image in advance",
 			"region":      "Custom",
 			"status":      "custom",
 		},
@@ -164,7 +164,7 @@ func parseFloat(s string, def float64) float64 {
 	return def
 }
 
-// 错误定义
+// Error definitions
 type SettingsError string
 
 func (e SettingsError) Error() string { return string(e) }

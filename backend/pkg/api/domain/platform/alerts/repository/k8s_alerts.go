@@ -7,17 +7,17 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// K8sAlertsRepository 使用 Kubernetes client 实现 AlertsRepository
+// K8sAlertsRepository implements AlertsRepository using Kubernetes client
 type K8sAlertsRepository struct {
 	client client.Client
 }
 
-// NewK8sAlertsRepository 创建新的 K8s 实现
+// NewK8sAlertsRepository creates new K8s implementation
 func NewK8sAlertsRepository(cli client.Client) *K8sAlertsRepository {
 	return &K8sAlertsRepository{client: cli}
 }
 
-// GetConfigMap 获取指定的 ConfigMap
+// GetConfigMap retrieves the specified ConfigMap
 func (r *K8sAlertsRepository) GetConfigMap(ctx context.Context, namespace, name string) (*corev1.ConfigMap, error) {
 	cm := &corev1.ConfigMap{}
 	if err := r.client.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, cm); err != nil {
@@ -26,17 +26,17 @@ func (r *K8sAlertsRepository) GetConfigMap(ctx context.Context, namespace, name 
 	return cm, nil
 }
 
-// CreateConfigMap 创建 ConfigMap
+// CreateConfigMap creates a ConfigMap
 func (r *K8sAlertsRepository) CreateConfigMap(ctx context.Context, cm *corev1.ConfigMap) error {
 	return r.client.Create(ctx, cm)
 }
 
-// UpdateConfigMap 更新 ConfigMap
+// UpdateConfigMap updates a ConfigMap
 func (r *K8sAlertsRepository) UpdateConfigMap(ctx context.Context, cm *corev1.ConfigMap) error {
 	return r.client.Update(ctx, cm)
 }
 
-// ListEvents 列出事件
+// ListEvents lists events
 func (r *K8sAlertsRepository) ListEvents(ctx context.Context, namespace string) ([]corev1.Event, error) {
 	var evList corev1.EventList
 	opts := []client.ListOption{}

@@ -8,37 +8,37 @@ import (
 	"polardbx-ui-backend/pkg/api/domain/platform/pod/repository"
 )
 
-// PodService 定义 Pod 业务逻辑层
+// PodService defines the Pod business logic layer
 type PodService struct {
 	repo repository.PodRepository
 }
 
-// NewPodService 创建新的 PodService
+// NewPodService creates new PodService
 func NewPodService(repo repository.PodRepository) *PodService {
 	return &PodService{repo: repo}
 }
 
-// List 列出指定命名空间的所有 Pod
+// List lists all Pods in the specified namespace
 func (s *PodService) List(ctx context.Context, namespace string) ([]corev1.Pod, error) {
 	return s.repo.List(ctx, namespace)
 }
 
-// ListForCluster 列出 PolarDBX 集群的所有 Pod
+// ListForCluster lists all Pods for a PolarDBX cluster
 func (s *PodService) ListForCluster(ctx context.Context, namespace, clusterName string) ([]corev1.Pod, error) {
 	return s.repo.ListForCluster(ctx, namespace, clusterName)
 }
 
-// Get 获取指定的 Pod
+// Get retrieves the specified Pod
 func (s *PodService) Get(ctx context.Context, namespace, name string) (*corev1.Pod, error) {
 	return s.repo.Get(ctx, namespace, name)
 }
 
-// Delete 删除指定的 Pod
+// Delete removes the specified Pod
 func (s *PodService) Delete(ctx context.Context, namespace, name string) error {
 	return s.repo.Delete(ctx, namespace, name)
 }
 
-// GetLogs 获取 Pod 日志
+// GetLogs retrieves Pod logs
 func (s *PodService) GetLogs(ctx context.Context, namespace, podName, container string, tailLines int64) (string, error) {
 	return s.repo.GetLogs(ctx, namespace, podName, container, tailLines)
 }

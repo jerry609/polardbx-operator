@@ -1,6 +1,5 @@
-// Package handler 提供预变更检查的 HTTP 处理器package handler
-
-// 遵循 Clean Architecture 设计模式
+// Package handler provides HTTP handlers for pre-change checks
+// Follows Clean Architecture design pattern
 package handler
 
 import (
@@ -26,13 +25,13 @@ import (
 
 // ======================== Types ========================
 
-// PrecheckRequest 预检请求
+// PrecheckRequest precheck request
 type PrecheckRequest struct {
 	Operation  string         `json:"operation"`  // scale|upgrade|config
 	TargetSpec map[string]any `json:"targetSpec"` // optional, reserved
 }
 
-// Checklist 汇总预变更检查的关键结果
+// Checklist summarizes key results of pre-change checks
 type Checklist struct {
 	HasRecentBackup     bool   `json:"hasRecentBackup"`
 	RpoLagSeconds       int    `json:"rpoLagSeconds"`
@@ -418,7 +417,7 @@ func verifyPrecheckToken(secret, plain, sig string) bool {
 
 // ======================== HTTP Handlers ========================
 
-// GetPrechangeChecklist 获取预变更检查清单
+// GetPrechangeChecklist gets pre-change checklist
 func GetPrechangeChecklist(c *gin.Context) {
 	k8sClient, ok := getK8sClient(c)
 	if !ok {
@@ -463,7 +462,7 @@ func GetPrechangeChecklist(c *gin.Context) {
 	apierr.OK(c, resp)
 }
 
-// Precheck 执行预检并返回 pass/warnings/errors 和轻量 token
+// Precheck performs precheck and returns pass/warnings/errors and lightweight token
 func Precheck(c *gin.Context) {
 	k8sClient, ok := getK8sClient(c)
 	if !ok {

@@ -9,17 +9,17 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// SystemHandler 处理 system 相关的 HTTP 请求
+// SystemHandler handles HTTP requests related to system
 type SystemHandler struct {
 	service *service.SystemService
 }
 
-// NewSystemHandler 创建新的 SystemHandler
+// NewSystemHandler creates a new SystemHandler
 func NewSystemHandler(svc *service.SystemService) *SystemHandler {
 	return &SystemHandler{service: svc}
 }
 
-// NewSystemHandlerFromClient 从 K8s client 创建完整的 handler 链
+// NewSystemHandlerFromClient creates complete handler chain from K8s client
 func NewSystemHandlerFromClient(c *gin.Context) (*SystemHandler, bool) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -30,7 +30,7 @@ func NewSystemHandlerFromClient(c *gin.Context) (*SystemHandler, bool) {
 	return NewSystemHandler(svc), true
 }
 
-// ContextInfo 返回当前 k8s 用户、上下文和默认命名空间
+// ContextInfo returns current k8s user, context and default namespace
 func ContextInfo(c *gin.Context) {
 	_, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -49,18 +49,18 @@ func ContextInfo(c *gin.Context) {
 	apierr.OK(c, gin.H{"user": user, "context": ctxName, "defaultNamespace": defNS})
 }
 
-// ListNamespaces 返回所有可见的命名空间
+// ListNamespaces returns all visible namespaces
 func ListNamespaces(c *gin.Context) {
 	h, ok := NewSystemHandlerFromClient(c)
 	if !ok {
-		// 返回空列表以避免前端错误
+		// Return empty list to avoid frontend errors
 		apierr.OK(c, gin.H{"items": []any{}, "count": 0, "warning": "k8s client not initialized"})
 		return
 	}
 	h.listNamespaces(c)
 }
 
-// listNamespaces 实例方法处理命名空间列表
+// listNamespaces instance method handles namespace list
 func (h *SystemHandler) listNamespaces(c *gin.Context) {
 	items, err := h.service.ListNamespaces(c.Request.Context())
 	if err != nil {
@@ -70,7 +70,7 @@ func (h *SystemHandler) listNamespaces(c *gin.Context) {
 	apierr.OK(c, gin.H{"items": items, "count": len(items)})
 }
 
-// ListStorageClasses 返回所有可用的存储类
+// ListStorageClasses returns all available storage classes
 func ListStorageClasses(c *gin.Context) {
 	h, ok := NewSystemHandlerFromClient(c)
 	if !ok {
@@ -80,7 +80,7 @@ func ListStorageClasses(c *gin.Context) {
 	h.listStorageClasses(c)
 }
 
-// listStorageClasses 实例方法处理存储类列表
+// listStorageClasses instance method handles storage class list
 func (h *SystemHandler) listStorageClasses(c *gin.Context) {
 	items, err := h.service.ListStorageClasses(c.Request.Context())
 	if err != nil {
@@ -90,11 +90,11 @@ func (h *SystemHandler) listStorageClasses(c *gin.Context) {
 	apierr.OK(c, gin.H{"items": items, "count": len(items)})
 }
 
-// ListPolarDBXVersions 返回支持的 PolarDB-X 版本列表
+// ListPolarDBXVersions returns supported PolarDB-X version list
 func ListPolarDBXVersions(c *gin.Context) {
 	h, ok := NewSystemHandlerFromClient(c)
 	if !ok {
-		// 即使没有 k8s client，版本列表也可以返回
+		// Version list can be returned even without k8s client
 		svc := service.NewSystemService(nil)
 		versions := svc.GetPolarDBXVersions()
 		apierr.OK(c, gin.H{"items": versions, "count": len(versions)})

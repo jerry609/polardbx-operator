@@ -21,18 +21,18 @@ const (
 	CMAlertRoutes   = "polardbx-alert-routes"
 )
 
-// ProfileInfo 配置文件信息
+// ProfileInfo configuration file information
 type ProfileInfo struct {
 	Name string `json:"name"`
 }
 
-// ProfileDetail 配置文件详情
+// ProfileDetail configuration file details
 type ProfileDetail struct {
 	Name    string `json:"name"`
 	Content string `json:"content"`
 }
 
-// AlertItem 告警条目
+// AlertItem alert item
 type AlertItem struct {
 	Source    string            `json:"source"`
 	Severity  string            `json:"severity"`
@@ -42,23 +42,23 @@ type AlertItem struct {
 	Time      string            `json:"time,omitempty"`
 }
 
-// DryRunResult 干运行结果
+// DryRunResult dry run result
 type DryRunResult struct {
 	Valid   bool   `json:"valid"`
 	Details string `json:"details,omitempty"`
 }
 
-// AlertsService 定义告警业务逻辑层
+// AlertsService defines alert business logic layer
 type AlertsService struct {
 	repo repository.AlertsRepository
 }
 
-// NewAlertsService 创建新的 AlertsService
+// NewAlertsService creates new AlertsService
 func NewAlertsService(repo repository.AlertsRepository) *AlertsService {
 	return &AlertsService{repo: repo}
 }
 
-// ListProfiles 列出所有配置文件
+// ListProfiles lists all configuration files
 func (s *AlertsService) ListProfiles(ctx context.Context) ([]ProfileInfo, error) {
 	cm, err := s.repo.GetConfigMap(ctx, SettingsNS, CMAlertProfiles)
 	if err != nil {
@@ -71,7 +71,7 @@ func (s *AlertsService) ListProfiles(ctx context.Context) ([]ProfileInfo, error)
 	return items, nil
 }
 
-// CreateProfile 创建配置文件
+// CreateProfile creates configuration file
 func (s *AlertsService) CreateProfile(ctx context.Context, name, content string) error {
 	cm, err := s.repo.GetConfigMap(ctx, SettingsNS, CMAlertProfiles)
 	if err != nil {
@@ -93,7 +93,7 @@ func (s *AlertsService) CreateProfile(ctx context.Context, name, content string)
 	return s.repo.UpdateConfigMap(ctx, cm)
 }
 
-// GetProfile 获取配置文件
+// GetProfile gets configuration file
 func (s *AlertsService) GetProfile(ctx context.Context, name string) (*ProfileDetail, error) {
 	cm, err := s.repo.GetConfigMap(ctx, SettingsNS, CMAlertProfiles)
 	if err != nil {
@@ -106,7 +106,7 @@ func (s *AlertsService) GetProfile(ctx context.Context, name string) (*ProfileDe
 	return &ProfileDetail{Name: name, Content: content}, nil
 }
 
-// UpdateProfile 更新配置文件
+// UpdateProfile updates configuration file
 func (s *AlertsService) UpdateProfile(ctx context.Context, name, content string) error {
 	cm, err := s.repo.GetConfigMap(ctx, SettingsNS, CMAlertProfiles)
 	if err != nil {
@@ -119,7 +119,7 @@ func (s *AlertsService) UpdateProfile(ctx context.Context, name, content string)
 	return s.repo.UpdateConfigMap(ctx, cm)
 }
 
-// DeleteProfile 删除配置文件
+// DeleteProfile deletes configuration file
 func (s *AlertsService) DeleteProfile(ctx context.Context, name string) error {
 	cm, err := s.repo.GetConfigMap(ctx, SettingsNS, CMAlertProfiles)
 	if err != nil {
@@ -132,7 +132,7 @@ func (s *AlertsService) DeleteProfile(ctx context.Context, name string) error {
 	return s.repo.UpdateConfigMap(ctx, cm)
 }
 
-// DryRunProfile 验证 Alertmanager YAML
+// DryRunProfile validates Alertmanager YAML
 func (s *AlertsService) DryRunProfile(content string) (*DryRunResult, error) {
 	f, err := os.CreateTemp("", "am-profile-*.yaml")
 	if err != nil {
@@ -149,7 +149,7 @@ func (s *AlertsService) DryRunProfile(content string) (*DryRunResult, error) {
 	return &DryRunResult{Valid: true}, nil
 }
 
-// GetRoutes 获取路由配置
+// GetRoutes gets routing configuration
 func (s *AlertsService) GetRoutes(ctx context.Context) (string, error) {
 	cm, _ := s.repo.GetConfigMap(ctx, SettingsNS, CMAlertRoutes)
 	if cm == nil {
@@ -158,7 +158,7 @@ func (s *AlertsService) GetRoutes(ctx context.Context) (string, error) {
 	return cm.Data["config.yaml"], nil
 }
 
-// PutRoutes 更新路由配置
+// PutRoutes updates routing configuration
 func (s *AlertsService) PutRoutes(ctx context.Context, content string) error {
 	cm, err := s.repo.GetConfigMap(ctx, SettingsNS, CMAlertRoutes)
 	if err != nil {
@@ -175,16 +175,16 @@ func (s *AlertsService) PutRoutes(ctx context.Context, content string) error {
 	return s.repo.UpdateConfigMap(ctx, cm)
 }
 
-// ListAlerts 聚合 Alertmanager 和 K8s 事件的告警列表
+// ListAlerts aggregates alert list from Alertmanager and K8s events
 func (s *AlertsService) ListAlerts(ctx context.Context, namespace, cluster, alertmanagerURL string) ([]AlertItem, error) {
 	items := make([]AlertItem, 0)
 
-	// 从 Alertmanager 获取
+	// Fetch from Alertmanager
 	if alertmanagerURL != "" {
 		items = append(items, s.fetchAlertsFromAlertmanager(alertmanagerURL, namespace, cluster)...)
 	}
 
-	// 从 K8s 事件获取
+	// Fetch from K8s events
 	events, err := s.repo.ListEvents(ctx, namespace)
 	if err == nil {
 		for _, ev := range events {
@@ -262,7 +262,7 @@ func (s *AlertsService) fetchAlertsFromAlertmanager(url, namespace, cluster stri
 	return items
 }
 
-// 错误定义
+// Error definitions
 type AlertsError string
 
 func (e AlertsError) Error() string { return string(e) }

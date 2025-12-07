@@ -1,5 +1,5 @@
-// Package handler 提供 PrometheusRule 告警规则管理的 HTTP 处理器
-// 遵循 Clean Architecture 设计模式
+// Package handler provides HTTP handlers for PrometheusRule alert rule management
+// Follows Clean Architecture design pattern
 package handler
 
 import (
@@ -27,7 +27,7 @@ import (
 
 // ======================== Types ========================
 
-// PrometheusRule 表示告警规则资源
+// PrometheusRule represents alert rule resource
 type PrometheusRule struct {
 	Name           string            `json:"name"`
 	Namespace      string            `json:"namespace"`
@@ -39,11 +39,11 @@ type PrometheusRule struct {
 	Groups         []interface{}     `json:"groups,omitempty"`
 }
 
-// AlertRuleTemplateSummary 表示告警规则模板的摘要信息
+// AlertRuleTemplateSummary represents alert rule template summary information
 type AlertRuleTemplateSummary struct {
 	Name            string                  `json:"name"`
 	DisplayName     string                  `json:"displayName"`
-	Title           string                  `json:"title"` // 前端使用
+	Title           string                  `json:"title"` // used by frontend
 	Description     string                  `json:"description"`
 	Category        string                  `json:"category"`
 	Categories      []string                `json:"categories,omitempty"`
@@ -51,22 +51,22 @@ type AlertRuleTemplateSummary struct {
 	Groups          []AlertRuleGroupSummary `json:"groups,omitempty"`
 	Labels          map[string]string       `json:"labels,omitempty"`
 	Annotations     map[string]string       `json:"annotations,omitempty"`
-	Source          string                  `json:"source"`    // chart 或 embedded
-	File            string                  `json:"file"`      // 来源文件名
-	Size            int64                   `json:"size"`      // 文件大小
-	UpdatedAt       string                  `json:"updatedAt"` // 更新时间
+	Source          string                  `json:"source"`    // chart or embedded
+	File            string                  `json:"file"`      // source filename
+	Size            int64                   `json:"size"`      // file size
+	UpdatedAt       string                  `json:"updatedAt"` // update time
 }
 
-// AlertRuleGroupSummary 表示告警规则组的摘要信息
-// 字段名与前端 AlertRuleGroupSummary 接口匹配
+// AlertRuleGroupSummary represents alert rule group summary information
+// Field names match frontend AlertRuleGroupSummary interface
 type AlertRuleGroupSummary struct {
 	Name       string   `json:"name"`
-	Rules      int      `json:"rules"`                // 前端使用 rules 而非 rulesCount
-	Interval   string   `json:"interval,omitempty"`   // 规则评估间隔
-	Severities []string `json:"severities,omitempty"` // 组内规则的严重级别列表
+	Rules      int      `json:"rules"`                // frontend uses rules instead of rulesCount
+	Interval   string   `json:"interval,omitempty"`   // rule evaluation interval
+	Severities []string `json:"severities,omitempty"` // list of severity levels within the group
 }
 
-// AlertRuleTemplateDetail 表示告警规则模板的详细信息
+// AlertRuleTemplateDetail represents alert rule template detailed information
 type AlertRuleTemplateDetail struct {
 	Name        string `json:"name"`
 	DisplayName string `json:"displayName"`
@@ -75,7 +75,7 @@ type AlertRuleTemplateDetail struct {
 	Content     string `json:"content"`
 }
 
-// ruleValidationOutcome 表示规则验证结果
+// ruleValidationOutcome represents rule validation result
 type ruleValidationOutcome struct {
 	Success  bool
 	Message  string
@@ -92,20 +92,20 @@ var embeddedTemplates embed.FS
 // ======================== Constants ========================
 
 const (
-	// 模板目录在 chart 中的相对路径
-	// 注意：PrometheusRule 模板直接在 templates 目录下，不是 alertrules 子目录
+	// Template directory relative path in chart
+	// Note: PrometheusRule templates are directly in templates directory, not alertrules subdirectory
 	alertRulesDir = "charts/polardbx-monitor/templates"
 )
 
 var (
-	// prometheusRuleGVR 定义 PrometheusRule 资源的 GroupVersionResource
+	// prometheusRuleGVR defines PrometheusRule resource GroupVersionResource
 	prometheusRuleGVR = schema.GroupVersionResource{
 		Group:    "monitoring.coreos.com",
 		Version:  "v1",
 		Resource: "prometheusrules",
 	}
 
-	// 模板目录缓存
+	// template directory cache
 	templateDirCache    string
 	templateDirCacheMu  sync.RWMutex
 	templateDirResolved bool
@@ -113,12 +113,12 @@ var (
 
 // ======================== Handler ========================
 
-// PrometheusRuleHandler 处理告警规则相关的请求
+// PrometheusRuleHandler handles alert rule related requests
 type PrometheusRuleHandler struct {
 	dynamicClient dynamic.Interface
 }
 
-// NewPrometheusRuleHandler 创建新的 PrometheusRuleHandler 实例
+// NewPrometheusRuleHandler creates new PrometheusRuleHandler instance
 func NewPrometheusRuleHandler(dynamicClient dynamic.Interface) *PrometheusRuleHandler {
 	return &PrometheusRuleHandler{
 		dynamicClient: dynamicClient,
@@ -127,7 +127,7 @@ func NewPrometheusRuleHandler(dynamicClient dynamic.Interface) *PrometheusRuleHa
 
 // ======================== PrometheusRule CRUD ========================
 
-// List 获取 PrometheusRule 列表
+// List gets PrometheusRule list
 func (h *PrometheusRuleHandler) List(c *gin.Context) {
 	namespace := c.Query("namespace")
 
@@ -156,7 +156,7 @@ func (h *PrometheusRuleHandler) List(c *gin.Context) {
 	apierr.OK(c, rules)
 }
 
-// GetYAML 获取 PrometheusRule 的 YAML 内容
+// GetYAML gets PrometheusRule YAML content
 func (h *PrometheusRuleHandler) GetYAML(c *gin.Context) {
 	namespace := c.Param("namespace")
 	name := c.Param("name")
@@ -174,7 +174,7 @@ func (h *PrometheusRuleHandler) GetYAML(c *gin.Context) {
 		return
 	}
 
-	// 移除 managedFields 以获得更干净的输出
+	// Remove managedFields for cleaner output
 	unstructured.RemoveNestedField(obj.Object, "metadata", "managedFields")
 	unstructured.RemoveNestedField(obj.Object, "metadata", "resourceVersion")
 	unstructured.RemoveNestedField(obj.Object, "metadata", "uid")
@@ -192,7 +192,7 @@ func (h *PrometheusRuleHandler) GetYAML(c *gin.Context) {
 	})
 }
 
-// ValidateRule 验证 PrometheusRule YAML 内容
+// ValidateRule validates PrometheusRule YAML content
 func (h *PrometheusRuleHandler) ValidateRule(c *gin.Context) {
 	var body struct {
 		YAML string `json:"yaml" binding:"required"`
@@ -216,7 +216,7 @@ func (h *PrometheusRuleHandler) ValidateRule(c *gin.Context) {
 
 // ======================== Template Management ========================
 
-// ListTemplates 列出所有告警规则模板
+// ListTemplates List all alert rule templates
 func (h *PrometheusRuleHandler) ListTemplates(c *gin.Context) {
 	templates, err := loadAllTemplates()
 	if err != nil {
@@ -224,20 +224,20 @@ func (h *PrometheusRuleHandler) ListTemplates(c *gin.Context) {
 		return
 	}
 
-	// 获取模板目录路径用于前端显示
+	// Get template directory path for frontend display
 	directory := ""
 	if dir, err := resolveAlertTemplateDir(); err == nil {
 		directory = dir
 	}
 
-	// 返回前端期望的格式: { items: [...], directory: "..." }
+	// Return format expected by frontend: { items: [...], directory: "..." }
 	apierr.OK(c, gin.H{
 		"items":     templates,
 		"directory": directory,
 	})
 }
 
-// GetTemplate 获取指定模板的详细信息
+// GetTemplate Get detailed information of specified template
 func (h *PrometheusRuleHandler) GetTemplate(c *gin.Context) {
 	templateName := c.Param("name")
 	if templateName == "" {
@@ -254,7 +254,7 @@ func (h *PrometheusRuleHandler) GetTemplate(c *gin.Context) {
 	apierr.OK(c, template)
 }
 
-// ApplyTemplate 应用模板到集群
+// ApplyTemplate Apply template to cluster
 func (h *PrometheusRuleHandler) ApplyTemplate(c *gin.Context) {
 	var body struct {
 		TemplateName string `json:"templateName" binding:"required"`
@@ -267,34 +267,34 @@ func (h *PrometheusRuleHandler) ApplyTemplate(c *gin.Context) {
 		return
 	}
 
-	// 获取模板详情
+	// Get template details
 	template, err := loadTemplateDetail(body.TemplateName)
 	if err != nil {
 		apierr.AbortNotFound(c, "template", body.TemplateName)
 		return
 	}
 
-	// 解析 YAML 内容
+	// Parse YAML content
 	var obj unstructured.Unstructured
 	if err := yaml.Unmarshal([]byte(template.Content), &obj.Object); err != nil {
 		apierr.AbortInternal(c, fmt.Sprintf("Failed to parse template: %v", err))
 		return
 	}
 
-	// 设置 namespace
+	// Set namespace
 	obj.SetNamespace(body.Namespace)
 
-	// 如果提供了自定义名称，则使用它
+	// If custom name is provided, use it
 	if body.Name != "" {
 		obj.SetName(body.Name)
 	}
 
 	ctx := c.Request.Context()
 
-	// 尝试创建或更新
+	// Try to create or update
 	existing, err := h.dynamicClient.Resource(prometheusRuleGVR).Namespace(body.Namespace).Get(ctx, obj.GetName(), metav1.GetOptions{})
 	if err == nil {
-		// 资源已存在，进行更新
+		// Resource already exists, perform update
 		obj.SetResourceVersion(existing.GetResourceVersion())
 		_, err = h.dynamicClient.Resource(prometheusRuleGVR).Namespace(body.Namespace).Update(ctx, &obj, metav1.UpdateOptions{})
 		if err != nil {
@@ -306,7 +306,7 @@ func (h *PrometheusRuleHandler) ApplyTemplate(c *gin.Context) {
 			"name":    obj.GetName(),
 		})
 	} else {
-		// 创建新资源
+		// Create new resource
 		_, err = h.dynamicClient.Resource(prometheusRuleGVR).Namespace(body.Namespace).Create(ctx, &obj, metav1.CreateOptions{})
 		if err != nil {
 			apierr.AbortInternal(c, fmt.Sprintf("Failed to create PrometheusRule: %v", err))
@@ -321,7 +321,7 @@ func (h *PrometheusRuleHandler) ApplyTemplate(c *gin.Context) {
 
 // ======================== Helper Functions ========================
 
-// parsePrometheusRule 从 unstructured 对象解析 PrometheusRule
+// parsePrometheusRule parses PrometheusRule from unstructured object
 func parsePrometheusRule(item unstructured.Unstructured) PrometheusRule {
 	rule := PrometheusRule{
 		Name:      item.GetName(),
@@ -329,7 +329,7 @@ func parsePrometheusRule(item unstructured.Unstructured) PrometheusRule {
 		Labels:    item.GetLabels(),
 	}
 
-	// 解析 groups
+	// Parse groups
 	groups, found, _ := unstructured.NestedSlice(item.Object, "spec", "groups")
 	if found {
 		rule.GroupsCount = len(groups)
@@ -367,7 +367,7 @@ func parsePrometheusRule(item unstructured.Unstructured) PrometheusRule {
 	return rule
 }
 
-// runRuleValidation 验证 PrometheusRule YAML 内容
+// runRuleValidation validates PrometheusRule YAML content
 func runRuleValidation(yamlContent string) (*unstructured.Unstructured, ruleValidationOutcome) {
 	trimmed := strings.TrimSpace(yamlContent)
 	if trimmed == "" {
@@ -400,7 +400,7 @@ func runRuleValidation(yamlContent string) (*unstructured.Unstructured, ruleVali
 	warnings := []string{}
 	details := []map[string]string{}
 
-	// 验证 apiVersion 和 kind
+	// Validate apiVersion and kind
 	if obj.GetAPIVersion() != "monitoring.coreos.com/v1" {
 		errors = append(errors, "apiVersion should be 'monitoring.coreos.com/v1'")
 	}
@@ -411,7 +411,7 @@ func runRuleValidation(yamlContent string) (*unstructured.Unstructured, ruleVali
 		errors = append(errors, "metadata.name is required")
 	}
 
-	// 验证 groups
+	// Validate groups
 	groups, found, _ := unstructured.NestedSlice(obj.Object, "spec", "groups")
 	if !found {
 		errors = append(errors, "spec.groups is required")
@@ -468,7 +468,7 @@ func runRuleValidation(yamlContent string) (*unstructured.Unstructured, ruleVali
 		}
 	}
 
-	// 构建 details
+	// Build details
 	for _, err := range errors {
 		details = append(details, map[string]string{
 			"level":   "error",
@@ -499,9 +499,9 @@ func runRuleValidation(yamlContent string) (*unstructured.Unstructured, ruleVali
 	}
 }
 
-// IsValidPromQLBasic 执行基本的 PromQL 语法检查（导出用于测试兼容）
+// IsValidPromQLBasic performs basic PromQL syntax check (exported for test compatibility)
 func IsValidPromQLBasic(expr string) bool {
-	// 基本检查：括号平衡
+	// Basic check: bracket balance
 	parenCount := 0
 	braceCount := 0
 	bracketCount := 0
@@ -532,19 +532,19 @@ func IsValidPromQLBasic(expr string) bool {
 
 // ======================== Template Loading ========================
 
-// loadAllTemplates 加载所有模板的摘要信息
+// loadAllTemplates loads summary information of all templates
 func loadAllTemplates() ([]AlertRuleTemplateSummary, error) {
-	// 首先尝试从文件系统加载 chart 模板
+	// First try to load chart templates from filesystem
 	chartTemplates, err := LoadChartTemplates()
 	if err == nil && len(chartTemplates) > 0 {
 		return chartTemplates, nil
 	}
 
-	// 回退到嵌入的模板
+	// Fallback to embedded templates
 	return loadEmbeddedTemplates()
 }
 
-// LoadChartTemplates 从 chart 目录加载模板（导出用于测试兼容）
+// LoadChartTemplates loads templates from chart directory (exported for test compatibility)
 func LoadChartTemplates() ([]AlertRuleTemplateSummary, error) {
 	templateDir, err := resolveAlertTemplateDir()
 	if err != nil {
@@ -565,7 +565,7 @@ func LoadChartTemplates() ([]AlertRuleTemplateSummary, error) {
 
 		filePath := filepath.Join(templateDir, entry.Name())
 
-		// 获取文件信息
+		// Get file information
 		fileInfo, err := os.Stat(filePath)
 		var fileSize int64
 		var updatedAt string
@@ -579,10 +579,10 @@ func LoadChartTemplates() ([]AlertRuleTemplateSummary, error) {
 			continue
 		}
 
-		// 处理 Helm 模板内容
+		// Process Helm template content
 		cleanContent := sanitizeHelmPlaceholders(string(content))
 
-		// 解析可能包含多个文档的 YAML
+		// Parse YAML that may contain multiple documents
 		docs := splitYAMLDocuments(cleanContent)
 
 		for _, doc := range docs {
@@ -594,7 +594,7 @@ func LoadChartTemplates() ([]AlertRuleTemplateSummary, error) {
 		}
 	}
 
-	// 按名称排序
+	// Sort by name
 	sort.Slice(templates, func(i, j int) bool {
 		return templates[i].Name < templates[j].Name
 	})
@@ -602,7 +602,7 @@ func LoadChartTemplates() ([]AlertRuleTemplateSummary, error) {
 	return templates, nil
 }
 
-// loadEmbeddedTemplates 从嵌入资源加载模板
+// loadEmbeddedTemplates loads templates from embedded resources
 func loadEmbeddedTemplates() ([]AlertRuleTemplateSummary, error) {
 	templates := []AlertRuleTemplateSummary{}
 
@@ -619,7 +619,7 @@ func loadEmbeddedTemplates() ([]AlertRuleTemplateSummary, error) {
 			return nil
 		}
 
-		// 获取嵌入文件信息
+		// Get embedded file information
 		fileInfo, _ := d.Info()
 		var fileSize int64
 		var updatedAt string
@@ -644,9 +644,9 @@ func loadEmbeddedTemplates() ([]AlertRuleTemplateSummary, error) {
 	return templates, nil
 }
 
-// loadTemplateDetail 加载模板详细信息
+// loadTemplateDetail loads template detailed information
 func loadTemplateDetail(templateName string) (*AlertRuleTemplateDetail, error) {
-	// 首先尝试从 chart 加载
+	// First try to load from chart
 	templateDir, err := resolveAlertTemplateDir()
 	if err == nil {
 		entries, err := os.ReadDir(templateDir)
@@ -688,11 +688,11 @@ func loadTemplateDetail(templateName string) (*AlertRuleTemplateDetail, error) {
 		}
 	}
 
-	// 回退到嵌入模板
+	// Fallback to embedded template
 	return loadEmbeddedTemplateDetail(templateName)
 }
 
-// loadEmbeddedTemplateDetail 从嵌入资源加载模板详情
+// loadEmbeddedTemplateDetail loads template details from embedded resources
 func loadEmbeddedTemplateDetail(templateName string) (*AlertRuleTemplateDetail, error) {
 	var result *AlertRuleTemplateDetail
 
@@ -742,7 +742,7 @@ func loadEmbeddedTemplateDetail(templateName string) (*AlertRuleTemplateDetail, 
 	return result, nil
 }
 
-// resolveAlertTemplateDir 解析告警模板目录路径
+// resolveAlertTemplateDir resolves alert template directory path
 func resolveAlertTemplateDir() (string, error) {
 	templateDirCacheMu.RLock()
 	if templateDirResolved {
@@ -758,7 +758,7 @@ func resolveAlertTemplateDir() (string, error) {
 	templateDirCacheMu.Lock()
 	defer templateDirCacheMu.Unlock()
 
-	// 双重检查
+	// Double-check
 	if templateDirResolved {
 		if templateDirCache == "" {
 			return "", fmt.Errorf("template directory not found")
@@ -766,7 +766,7 @@ func resolveAlertTemplateDir() (string, error) {
 		return templateDirCache, nil
 	}
 
-	// 尝试不同的路径
+	// Try different paths
 	possiblePaths := []string{
 		alertRulesDir,
 		filepath.Join("..", alertRulesDir),
@@ -774,7 +774,7 @@ func resolveAlertTemplateDir() (string, error) {
 		"/app/charts/polardbx-monitor/templates",
 	}
 
-	// 添加基于可执行文件位置的路径
+	// Add paths based on executable location
 	if exe, err := os.Executable(); err == nil {
 		exeDir := filepath.Dir(exe)
 		possiblePaths = append(possiblePaths,
@@ -796,7 +796,7 @@ func resolveAlertTemplateDir() (string, error) {
 	return "", fmt.Errorf("template directory not found in any of the expected locations")
 }
 
-// splitYAMLDocuments 分割多文档 YAML
+// splitYAMLDocuments splits multi-document YAML
 func splitYAMLDocuments(content string) []string {
 	docs := []string{}
 	separator := regexp.MustCompile(`(?m)^---\s*$`)
@@ -812,9 +812,9 @@ func splitYAMLDocuments(content string) []string {
 	return docs
 }
 
-// sanitizeHelmPlaceholders 清理 Helm 模板占位符
+// sanitizeHelmPlaceholders cleans Helm template placeholders
 func sanitizeHelmPlaceholders(content string) string {
-	// 处理条件语句块 - 移除整个 if/else/end 结构
+	// Process conditional blocks - remove entire if/else/end structures
 	ifPattern := regexp.MustCompile(`\{\{-?\s*if[^}]*\}\}`)
 	elsePattern := regexp.MustCompile(`\{\{-?\s*else[^}]*\}\}`)
 	endPattern := regexp.MustCompile(`\{\{-?\s*end\s*-?\}\}`)
@@ -828,14 +828,14 @@ func sanitizeHelmPlaceholders(content string) string {
 	result = rangePattern.ReplaceAllString(result, "")
 	result = withPattern.ReplaceAllString(result, "")
 
-	// 处理 include 语句
+	// Process include statements
 	includePattern := regexp.MustCompile(`\{\{-?\s*include\s+"[^"]*"\s*\.\s*\|\s*nindent\s+\d+\s*-?\}\}`)
 	result = includePattern.ReplaceAllString(result, "")
 
-	// 处理简单值替换 {{ .Values.xxx }}
+	// Process simple value replacements {{ .Values.xxx }}
 	valuePattern := regexp.MustCompile(`\{\{[^}]+\}\}`)
 	result = valuePattern.ReplaceAllStringFunc(result, func(match string) string {
-		// 保留一些常见的默认值
+		// Keep some common default values
 		if strings.Contains(match, ".Release.Namespace") {
 			return "default"
 		}
@@ -848,19 +848,19 @@ func sanitizeHelmPlaceholders(content string) string {
 	return result
 }
 
-// parseTemplateFromYAML 从 YAML 内容解析模板摘要
+// parseTemplateFromYAML parses template summary from YAML content
 func parseTemplateFromYAML(content string, filename string) (AlertRuleTemplateSummary, error) {
 	return parseTemplateFromYAMLWithInfo(content, filename, "chart", 0, "")
 }
 
-// parseTemplateFromYAMLWithInfo 从 YAML 内容解析模板摘要（带文件信息）
+// parseTemplateFromYAMLWithInfo parses template summary from YAML content (with file info)
 func parseTemplateFromYAMLWithInfo(content string, filename string, source string, size int64, updatedAt string) (AlertRuleTemplateSummary, error) {
 	var obj map[string]interface{}
 	if err := yaml.Unmarshal([]byte(content), &obj); err != nil {
 		return AlertRuleTemplateSummary{}, err
 	}
 
-	// 验证是 PrometheusRule
+	// Validate it's a PrometheusRule
 	kind, _ := obj["kind"].(string)
 	if kind != "PrometheusRule" {
 		return AlertRuleTemplateSummary{}, fmt.Errorf("not a PrometheusRule")
@@ -875,7 +875,7 @@ func parseTemplateFromYAMLWithInfo(content string, filename string, source strin
 	displayName := formatDisplayName(name)
 	category := extractCategory(filename)
 
-	// 提取 labels 和 annotations
+	// Extract labels and annotations
 	labels := make(map[string]string)
 	if labelsRaw, ok := metadata["labels"].(map[string]interface{}); ok {
 		for k, v := range labelsRaw {
@@ -896,7 +896,7 @@ func parseTemplateFromYAMLWithInfo(content string, filename string, source strin
 	template := AlertRuleTemplateSummary{
 		Name:            name,
 		DisplayName:     displayName,
-		Title:           displayName, // 前端使用 title 字段
+		Title:           displayName, // Frontend uses title field
 		Description:     extractDescription(obj),
 		Category:        category,
 		Categories:      []string{category},
@@ -910,7 +910,7 @@ func parseTemplateFromYAMLWithInfo(content string, filename string, source strin
 		UpdatedAt:       updatedAt,
 	}
 
-	// 解析 groups
+	// Parse groups
 	spec, _ := obj["spec"].(map[string]interface{})
 	groups, _ := spec["groups"].([]interface{})
 
@@ -924,7 +924,7 @@ func parseTemplateFromYAMLWithInfo(content string, filename string, source strin
 		interval, _ := groupMap["interval"].(string)
 		rules, _ := groupMap["rules"].([]interface{})
 
-		// 收集该组内的所有严重级别
+		// Collect all severity levels within this group
 		severitySet := make(map[string]bool)
 		for _, r := range rules {
 			ruleMap, ok := r.(map[string]interface{})
@@ -952,7 +952,7 @@ func parseTemplateFromYAMLWithInfo(content string, filename string, source strin
 	return template, nil
 }
 
-// extractPrimarySeverity 从对象中提取主要严重级别
+// extractPrimarySeverity extracts primary severity level from object
 func extractPrimarySeverity(obj map[string]interface{}) string {
 	spec, _ := obj["spec"].(map[string]interface{})
 	groups, _ := spec["groups"].([]interface{})
@@ -976,7 +976,7 @@ func extractPrimarySeverity(obj map[string]interface{}) string {
 		}
 	}
 
-	// 返回最常见的严重级别
+	// Return the most common severity level
 	maxCount := 0
 	primarySev := ""
 	for sev, count := range severityCounts {
@@ -988,13 +988,13 @@ func extractPrimarySeverity(obj map[string]interface{}) string {
 	return primarySev
 }
 
-// formatDisplayName 格式化显示名称
+// formatDisplayName formats display name
 func formatDisplayName(name string) string {
-	// 移除常见前缀
+	// Remove common prefixes
 	name = strings.TrimPrefix(name, "polardbx-")
 	name = strings.TrimPrefix(name, "pxc-")
 
-	// 转换为标题格式
+	// Convert to title format
 	parts := strings.Split(name, "-")
 	for i, part := range parts {
 		if len(part) > 0 {
@@ -1005,7 +1005,7 @@ func formatDisplayName(name string) string {
 	return strings.Join(parts, " ")
 }
 
-// extractDescription 从对象中提取描述
+// extractDescription extracts description from object
 func extractDescription(obj map[string]interface{}) string {
 	metadata, _ := obj["metadata"].(map[string]interface{})
 	annotations, _ := metadata["annotations"].(map[string]interface{})
@@ -1014,14 +1014,14 @@ func extractDescription(obj map[string]interface{}) string {
 		return desc
 	}
 
-	// 尝试从名称生成描述
+	// Try to generate description from name
 	name, _ := metadata["name"].(string)
 	return fmt.Sprintf("Alert rules for %s", formatDisplayName(name))
 }
 
-// extractCategory 从文件名提取分类
+// extractCategory extracts category from filename
 func extractCategory(filename string) string {
-	// 根据文件名推断分类
+	// Infer category based on filename
 	lower := strings.ToLower(filename)
 
 	categories := map[string]string{
@@ -1044,7 +1044,7 @@ func extractCategory(filename string) string {
 
 // ======================== Context-based Functions ========================
 
-// ListWithContext 使用 context 获取 PrometheusRule 列表（用于内部调用）
+// ListWithContext uses context to get PrometheusRule list (for internal calls)
 func (h *PrometheusRuleHandler) ListWithContext(ctx context.Context, namespace string) ([]PrometheusRule, error) {
 	var list *unstructured.UnstructuredList
 	var err error
@@ -1068,7 +1068,7 @@ func (h *PrometheusRuleHandler) ListWithContext(ctx context.Context, namespace s
 	return rules, nil
 }
 
-// GetYAMLWithContext 使用 context 获取 YAML（用于内部调用）
+// GetYAMLWithContext uses context to get YAML (for internal calls)
 func (h *PrometheusRuleHandler) GetYAMLWithContext(ctx context.Context, namespace, name string) (string, error) {
 	obj, err := h.dynamicClient.Resource(prometheusRuleGVR).Namespace(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
@@ -1089,13 +1089,13 @@ func (h *PrometheusRuleHandler) GetYAMLWithContext(ctx context.Context, namespac
 	return string(yamlBytes), nil
 }
 
-// ValidateWithContext 使用 context 验证规则（用于内部调用）
+// ValidateWithContext uses context to validate rules (for internal calls)
 func (h *PrometheusRuleHandler) ValidateWithContext(yamlContent string) ruleValidationOutcome {
 	_, outcome := runRuleValidation(yamlContent)
 	return outcome
 }
 
-// ApplyTemplateWithContext 使用 context 应用模板（用于内部调用）
+// ApplyTemplateWithContext uses context to apply template (for internal calls)
 func (h *PrometheusRuleHandler) ApplyTemplateWithContext(ctx context.Context, templateName, namespace, name string) error {
 	template, err := loadTemplateDetail(templateName)
 	if err != nil {
@@ -1125,7 +1125,7 @@ func (h *PrometheusRuleHandler) ApplyTemplateWithContext(ctx context.Context, te
 
 // ======================== Package-level Functions (for main.go) ========================
 
-// getHandler 从 context 获取 handler
+// getHandler gets handler from context
 func getHandler(c *gin.Context) (*PrometheusRuleHandler, bool) {
 	dynClient, ok := util.DynamicClientFromContext(c)
 	if !ok {
@@ -1134,7 +1134,7 @@ func getHandler(c *gin.Context) (*PrometheusRuleHandler, bool) {
 	return NewPrometheusRuleHandler(dynClient), true
 }
 
-// List 包级别函数，用于 main.go 注册路由
+// List package-level function for main.go route registration
 func List(c *gin.Context) {
 	h, ok := getHandler(c)
 	if !ok {
@@ -1143,7 +1143,7 @@ func List(c *gin.Context) {
 	h.List(c)
 }
 
-// GetYAML 包级别函数，用于 main.go 注册路由
+// GetYAML package-level function for main.go route registration
 func GetYAML(c *gin.Context) {
 	h, ok := getHandler(c)
 	if !ok {
@@ -1152,7 +1152,7 @@ func GetYAML(c *gin.Context) {
 	h.GetYAML(c)
 }
 
-// ValidateRule 包级别函数，用于 main.go 注册路由
+// ValidateRule package-level function for main.go route registration
 func ValidateRule(c *gin.Context) {
 	h, ok := getHandler(c)
 	if !ok {
@@ -1161,7 +1161,7 @@ func ValidateRule(c *gin.Context) {
 	h.ValidateRule(c)
 }
 
-// ListTemplates 包级别函数，用于 main.go 注册路由
+// ListTemplates package-level function for main.go route registration
 func ListTemplates(c *gin.Context) {
 	h, ok := getHandler(c)
 	if !ok {
@@ -1170,7 +1170,7 @@ func ListTemplates(c *gin.Context) {
 	h.ListTemplates(c)
 }
 
-// GetTemplate 包级别函数，用于 main.go 注册路由
+// GetTemplate package-level function for main.go route registration
 func GetTemplate(c *gin.Context) {
 	h, ok := getHandler(c)
 	if !ok {
@@ -1179,7 +1179,7 @@ func GetTemplate(c *gin.Context) {
 	h.GetTemplate(c)
 }
 
-// ApplyTemplate 包级别函数，用于 main.go 注册路由
+// ApplyTemplate package-level function for main.go route registration
 func ApplyTemplate(c *gin.Context) {
 	h, ok := getHandler(c)
 	if !ok {

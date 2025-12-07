@@ -18,17 +18,17 @@ import (
 	"polardbx-ui-backend/pkg/api/util"
 )
 
-// GrafanaHandler 处理 Grafana 相关的 HTTP 请求
+// GrafanaHandler handles HTTP requests related to Grafana
 type GrafanaHandler struct {
 	repo repository.GrafanaRepository
 }
 
-// NewGrafanaHandler 创建新的 GrafanaHandler
+// NewGrafanaHandler creates a new GrafanaHandler
 func NewGrafanaHandler(repo repository.GrafanaRepository) *GrafanaHandler {
 	return &GrafanaHandler{repo: repo}
 }
 
-// NewGrafanaHandlerFromContext 从 gin.Context 创建 handler
+// NewGrafanaHandlerFromContext creates handler from gin.Context
 func NewGrafanaHandlerFromContext(c *gin.Context) (*GrafanaHandler, bool) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -209,7 +209,7 @@ func (h *GrafanaHandler) rollbackDashboard(c *gin.Context) {
 		return
 	}
 
-	// 保存当前版本并回滚
+	// Save current version and rollback
 	rollback := map[string]string{name: target}
 	if _, err := h.repo.SaveDashboards(c.Request.Context(), rollback, true); err != nil {
 		apierr.AbortInternal(c, "failed to rollback: "+err.Error())
@@ -219,14 +219,14 @@ func (h *GrafanaHandler) rollbackDashboard(c *gin.Context) {
 	apierr.OK(c, gin.H{"message": "rolled back", "name": name, "version": body.Version})
 }
 
-// ============ 模板相关 ============
+// ============ Template related ============
 
 const (
 	templatesDirEnv     = "POLARDBX_GRAFANA_TEMPLATES_DIR"
 	defaultTemplatePath = "dashboard"
 )
 
-// DashboardTemplateSummary 仪表盘模板摘要
+// DashboardTemplateSummary dashboard template summary
 type DashboardTemplateSummary struct {
 	Name        string   `json:"name"`
 	Title       string   `json:"title"`
@@ -238,7 +238,7 @@ type DashboardTemplateSummary struct {
 	UpdatedAt   string   `json:"updatedAt"`
 }
 
-// DashboardTemplateDetail 仪表盘模板详情
+// DashboardTemplateDetail dashboard template detail
 type DashboardTemplateDetail struct {
 	DashboardTemplateSummary
 	Content json.RawMessage `json:"content"`
@@ -490,5 +490,5 @@ func fallbackTitle(name string) string {
 	return title
 }
 
-// 保留这些变量用于避免未使用的导入警告
+// Keep these variables to avoid unused import warnings
 var _ = strconv.Atoi

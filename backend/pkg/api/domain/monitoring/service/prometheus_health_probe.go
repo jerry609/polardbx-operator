@@ -19,10 +19,10 @@ import (
 
 const (
 	prometheusHealthProbeID        = "prometheus-health"
-	prometheusNotFoundSummary      = "未在监控命名空间中找到 Prometheus StatefulSet"
-	prometheusReplicasZeroSummary  = "Prometheus StatefulSet 副本数为 0"
-	prometheusPodsNotReadySummary  = "Prometheus StatefulSet 未完全就绪"
-	prometheusRevisionDriftSummary = "Prometheus StatefulSet 正在滚动更新"
+	prometheusNotFoundSummary      = "Prometheus StatefulSet not found in monitoring namespace"
+	prometheusReplicasZeroSummary  = "Prometheus StatefulSet has 0 replicas"
+	prometheusPodsNotReadySummary  = "Prometheus StatefulSet is not fully ready"
+	prometheusRevisionDriftSummary = "Prometheus StatefulSet is undergoing rolling update"
 )
 
 var (
@@ -40,7 +40,7 @@ func (p *prometheusHealthProbe) ID() string {
 }
 
 func (p *prometheusHealthProbe) Description() string {
-	return "检测 Prometheus StatefulSet、Pod 状态与滚动更新是否健康"
+	return "Check if Prometheus StatefulSet, Pod status, and rolling updates are healthy"
 }
 
 func (p *prometheusHealthProbe) Run(ctx context.Context, input ProbeInput) ([]DiagnosticFinding, error) {
@@ -90,7 +90,7 @@ func locatePrometheusStatefulSet(ctx context.Context, cli client.Client, namespa
 }
 
 func buildPrometheusMissingFinding(namespace string) DiagnosticFinding {
-	cause := fmt.Sprintf("命名空间 %s 中不存在 Prometheus StatefulSet", namespace)
+	cause := fmt.Sprintf("Prometheus StatefulSet does not exist in namespace %s", namespace)
 	return DiagnosticFinding{
 		ProbeID:        prometheusHealthProbeID,
 		Summary:        prometheusNotFoundSummary,
@@ -121,7 +121,7 @@ func analysePrometheusStatefulSet(ctx context.Context, cli client.Client, namesp
 			Summary:        prometheusReplicasZeroSummary,
 			Category:       spec.Configuration,
 			Severity:       spec.Major,
-			PossibleCauses: []string{"Prometheus StatefulSet 的副本数被配置为 0，无法提供监控能力"},
+			PossibleCauses: []string{"Prometheus StatefulSet replicas configured to 0, unable to provide monitoring capability"},
 			Details:        detail,
 		}
 	}
@@ -141,13 +141,13 @@ func analysePrometheusStatefulSet(ctx context.Context, cli client.Client, namesp
 
 	if ready == 0 {
 		severity = spec.Critical
-		causes = append(causes, "所有 Prometheus Pod 均未就绪")
+		causes = append(causes, "All Prometheus Pods are not ready")
 	} else if ready < desired {
-		causes = append(causes, fmt.Sprintf("仅有 %d/%d 个 Prometheus Pod 就绪", ready, desired))
+		causes = append(causes, fmt.Sprintf("Only %d/%d Prometheus Pods are ready", ready, desired))
 	}
 
 	if strings.TrimSpace(sts.Status.CurrentRevision) != strings.TrimSpace(sts.Status.UpdateRevision) {
-		causes = append(causes, "Prometheus StatefulSet 正在滚动升级，Pod 尚未完成切换")
+		causes = append(causes, "Prometheus StatefulSet is undergoing rolling upgrade, Pods have not completed switching")
 		if summary == prometheusPodsNotReadySummary {
 			summary = prometheusRevisionDriftSummary
 		}
@@ -157,8 +157,8 @@ func analysePrometheusStatefulSet(ctx context.Context, cli client.Client, namesp
 
 	fixes = append(fixes, SuggestedFix{
 		ID:                fixPrometheusRestart,
-		Title:             "尝试自动重启 Prometheus",
-		Description:       "通过给 StatefulSet 模板打注解触发滚动重启，常用于解除 CrashLoopBackOff 或卡住的滚动升级",
+		Title:             "Try to automatically restart Prometheus",
+		Description:       "Trigger rolling restart by annotating StatefulSet template, commonly used to resolve CrashLoopBackOff or stuck rolling upgrades",
 		Type:              SuggestedFixTypeOperatorHook,
 		Automated:         true,
 		Verification:      fmt.Sprintf("kubectl rollout status statefulset/%s -n %s", sts.Name, namespace),
@@ -197,7 +197,7 @@ func collectPrometheusPodIssues(ctx context.Context, cli client.Client, namespac
 
 	podList := &corev1.PodList{}
 	if err := cli.List(ctx, podList, client.InNamespace(namespace), client.MatchingLabelsSelector{Selector: selector}); err != nil {
-		return []string{fmt.Sprintf("无法列出 Prometheus Pod：%v", err)}, map[string]string{
+		return []string{fmt.Sprintf("Unable to list Prometheus Pods: %v", err)}, map[string]string{
 			"podsListError": err.Error(),
 		}
 	}
@@ -205,7 +205,7 @@ func collectPrometheusPodIssues(ctx context.Context, cli client.Client, namespac
 	podDetails := map[string]string{}
 	causes := make([]string, 0)
 	if len(podList.Items) == 0 {
-		causes = append(causes, "未找到与 StatefulSet 选择器匹配的 Prometheus Pod")
+		causes = append(causes, "No Prometheus Pods found matching StatefulSet selector")
 		return causes, podDetails
 	}
 
@@ -224,7 +224,7 @@ func collectPrometheusPodIssues(ctx context.Context, cli client.Client, namespac
 		if description != "" {
 			causes = append(causes, fmt.Sprintf("Pod %s：%s", pod.Name, description))
 		} else {
-			causes = append(causes, fmt.Sprintf("Pod %s 未就绪", pod.Name))
+			causes = append(causes, fmt.Sprintf("Pod %s is not ready", pod.Name))
 		}
 
 		podDetails[fmt.Sprintf("pod.%s.phase", pod.Name)] = string(pod.Status.Phase)
@@ -298,16 +298,16 @@ func describePodIssue(pod *corev1.Pod) string {
 			if cs.State.Waiting.Message != "" {
 				msg = fmt.Sprintf("%s：%s", msg, cs.State.Waiting.Message)
 			}
-			waitingMessages = append(waitingMessages, fmt.Sprintf("容器 %s 等待中(%s)", cs.Name, msg))
+			waitingMessages = append(waitingMessages, fmt.Sprintf("Container %s waiting (%s)", cs.Name, msg))
 		} else if cs.State.Terminated != nil {
 			terminated := cs.State.Terminated
-			desc := fmt.Sprintf("容器 %s 终止(%s)", cs.Name, terminated.Reason)
+			desc := fmt.Sprintf("Container %s terminated (%s)", cs.Name, terminated.Reason)
 			if terminated.ExitCode != 0 {
-				desc = fmt.Sprintf("%s，退出码 %d", desc, terminated.ExitCode)
+				desc = fmt.Sprintf("%s, exit code %d", desc, terminated.ExitCode)
 			}
 			waitingMessages = append(waitingMessages, desc)
 		} else if !cs.Ready {
-			waitingMessages = append(waitingMessages, fmt.Sprintf("容器 %s 未就绪", cs.Name))
+			waitingMessages = append(waitingMessages, fmt.Sprintf("Container %s is not ready", cs.Name))
 		}
 	}
 

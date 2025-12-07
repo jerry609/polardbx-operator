@@ -7,14 +7,14 @@ import (
 	"polardbx-ui-backend/pkg/api/domain/platform/system/repository"
 )
 
-// NamespaceInfo 命名空间信息
+// NamespaceInfo namespace information
 type NamespaceInfo struct {
 	Name      string    `json:"name"`
 	Status    string    `json:"status"`
 	CreatedAt time.Time `json:"createdAt"`
 }
 
-// StorageClassInfo 存储类信息
+// StorageClassInfo storage class information
 type StorageClassInfo struct {
 	Name              string            `json:"name"`
 	Provisioner       string            `json:"provisioner"`
@@ -24,7 +24,7 @@ type StorageClassInfo struct {
 	Parameters        map[string]string `json:"parameters,omitempty"`
 }
 
-// PolarDBXVersionInfo PolarDB-X 版本信息
+// PolarDBXVersionInfo PolarDB-X version information
 type PolarDBXVersionInfo struct {
 	Version     string `json:"version"`
 	Label       string `json:"label"`
@@ -33,24 +33,24 @@ type PolarDBXVersionInfo struct {
 	Deprecated  bool   `json:"deprecated"`
 }
 
-// ContextInfo 上下文信息
+// ContextInfo context information
 type ContextInfo struct {
 	User             string `json:"user"`
 	Context          string `json:"context"`
 	DefaultNamespace string `json:"defaultNamespace"`
 }
 
-// SystemService 定义 system 业务逻辑层
+// SystemService defines system business logic layer
 type SystemService struct {
 	repo repository.SystemRepository
 }
 
-// NewSystemService 创建新的 SystemService
+// NewSystemService creates a new SystemService
 func NewSystemService(repo repository.SystemRepository) *SystemService {
 	return &SystemService{repo: repo}
 }
 
-// ListNamespaces 列出所有命名空间
+// ListNamespaces lists all namespaces
 func (s *SystemService) ListNamespaces(ctx context.Context) ([]NamespaceInfo, error) {
 	namespaces, err := s.repo.ListNamespaces(ctx)
 	if err != nil {
@@ -68,7 +68,7 @@ func (s *SystemService) ListNamespaces(ctx context.Context) ([]NamespaceInfo, er
 	return items, nil
 }
 
-// ListStorageClasses 列出所有存储类
+// ListStorageClasses lists all storage classes
 func (s *SystemService) ListStorageClasses(ctx context.Context) ([]StorageClassInfo, error) {
 	storageClasses, err := s.repo.ListStorageClasses(ctx)
 	if err != nil {
@@ -106,13 +106,13 @@ func (s *SystemService) ListStorageClasses(ctx context.Context) ([]StorageClassI
 	return items, nil
 }
 
-// GetPolarDBXVersions 返回支持的 PolarDB-X 版本列表
+// GetPolarDBXVersions returns supported PolarDB-X version list
 func (s *SystemService) GetPolarDBXVersions() []PolarDBXVersionInfo {
-	// 版本信息可以从配置文件或 CRD 中读取，这里先硬编码常用版本
+	// Version information can be read from config file or CRD, hardcoded common versions for now
 	return []PolarDBXVersionInfo{
-		{Version: "8.0.18", Label: "8.0.18 (最新稳定版)", Recommended: true},
+		{Version: "8.0.18", Label: "8.0.18 (latest stable)", Recommended: true},
 		{Version: "8.0.17", Label: "8.0.17"},
 		{Version: "8.0.16", Label: "8.0.16"},
-		{Version: "5.7.14", Label: "5.7.14 (旧版本)", Deprecated: true},
+		{Version: "5.7.14", Label: "5.7.14 (legacy version)", Deprecated: true},
 	}
 }

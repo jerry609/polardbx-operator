@@ -7,10 +7,10 @@ import (
 	storagev1 "k8s.io/api/storage/v1"
 )
 
-// SystemRepository 定义 system 信息查询的存储层接口
+// SystemRepository defines the storage layer interface for system information queries
 type SystemRepository interface {
-	// ListNamespaces 列出所有命名空间
+	// ListNamespaces lists all namespaces
 	ListNamespaces(ctx context.Context) ([]corev1.Namespace, error)
-	// ListStorageClasses 列出所有存储类
+	// ListStorageClasses lists all storage classes
 	ListStorageClasses(ctx context.Context) ([]storagev1.StorageClass, error)
 }

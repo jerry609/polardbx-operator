@@ -14,14 +14,14 @@ import (
 	"polardbx-ui-backend/pkg/k8s"
 )
 
-// K8sPodRepository 使用 Kubernetes client 实现 PodRepository
+// K8sPodRepository implements PodRepository using Kubernetes client
 type K8sPodRepository struct {
 	client    client.Client
 	clientset kubernetes.Interface
 	restCfg   *rest.Config
 }
 
-// NewK8sPodRepository 创建新的 K8s 实现
+// NewK8sPodRepository creates new K8s implementation
 func NewK8sPodRepository(cli client.Client, cs kubernetes.Interface, restCfg *rest.Config) *K8sPodRepository {
 	return &K8sPodRepository{
 		client:    cli,
@@ -30,7 +30,7 @@ func NewK8sPodRepository(cli client.Client, cs kubernetes.Interface, restCfg *re
 	}
 }
 
-// NewK8sPodRepositorySimple 创建仅需要 client.Client 的简化版本
+// NewK8sPodRepositorySimple creates simplified version that only needs client.Client
 func NewK8sPodRepositorySimple(cli client.Client, cs kubernetes.Interface) *K8sPodRepository {
 	return &K8sPodRepository{
 		client:    cli,
@@ -38,7 +38,7 @@ func NewK8sPodRepositorySimple(cli client.Client, cs kubernetes.Interface) *K8sP
 	}
 }
 
-// List 列出指定命名空间的所有 Pod
+// List lists all Pods in the specified namespace
 func (r *K8sPodRepository) List(ctx context.Context, namespace string) ([]corev1.Pod, error) {
 	var podList corev1.PodList
 	if err := r.client.List(ctx, &podList, client.InNamespace(namespace)); err != nil {
@@ -47,12 +47,12 @@ func (r *K8sPodRepository) List(ctx context.Context, namespace string) ([]corev1
 	return podList.Items, nil
 }
 
-// ListForCluster 列出 PolarDBX 集群的所有 Pod
+// ListForCluster lists all Pods for a PolarDBX cluster
 func (r *K8sPodRepository) ListForCluster(ctx context.Context, namespace, clusterName string) ([]corev1.Pod, error) {
 	return k8s.ListPodsForPolarDBXCluster(r.client, namespace, clusterName)
 }
 
-// Get 获取指定的 Pod
+// Get retrieves the specified Pod
 func (r *K8sPodRepository) Get(ctx context.Context, namespace, name string) (*corev1.Pod, error) {
 	var pod corev1.Pod
 	if err := r.client.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, &pod); err != nil {
@@ -61,7 +61,7 @@ func (r *K8sPodRepository) Get(ctx context.Context, namespace, name string) (*co
 	return &pod, nil
 }
 
-// Delete 删除指定的 Pod
+// Delete removes the specified Pod
 func (r *K8sPodRepository) Delete(ctx context.Context, namespace, name string) error {
 	pod := &corev1.Pod{}
 	pod.Namespace = namespace
@@ -69,12 +69,12 @@ func (r *K8sPodRepository) Delete(ctx context.Context, namespace, name string) e
 	return r.client.Delete(ctx, pod)
 }
 
-// GetLogs 获取 Pod 日志
+// GetLogs retrieves Pod logs
 func (r *K8sPodRepository) GetLogs(ctx context.Context, namespace, podName, container string, tailLines int64) (string, error) {
 	return k8s.GetPodLogsWithContext(ctx, r.clientset, namespace, podName, container, tailLines)
 }
 
-// Exec 在 Pod 中执行命令
+// Exec executes command in Pod
 func (r *K8sPodRepository) Exec(ctx context.Context, cfg ExecConfig) error {
 	if r.restCfg == nil {
 		return nil

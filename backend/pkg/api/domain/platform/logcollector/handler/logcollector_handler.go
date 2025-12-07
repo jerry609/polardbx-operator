@@ -25,17 +25,17 @@ import (
 	"polardbx-ui-backend/pkg/k8s"
 )
 
-// LogCollectorHandler 处理日志收集器相关的 HTTP 请求
+// LogCollectorHandler handles HTTP requests related to log collectors
 type LogCollectorHandler struct {
 	repo repository.LogCollectorRepository
 }
 
-// NewLogCollectorHandler 创建新的 LogCollectorHandler
+// NewLogCollectorHandler creates a new LogCollectorHandler
 func NewLogCollectorHandler(repo repository.LogCollectorRepository) *LogCollectorHandler {
 	return &LogCollectorHandler{repo: repo}
 }
 
-// NewLogCollectorHandlerFromContext 从 gin.Context 创建 handler
+// NewLogCollectorHandlerFromContext creates handler from gin.Context
 func NewLogCollectorHandlerFromContext(c *gin.Context) (*LogCollectorHandler, bool) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -45,7 +45,7 @@ func NewLogCollectorHandlerFromContext(c *gin.Context) (*LogCollectorHandler, bo
 	return NewLogCollectorHandler(repo), true
 }
 
-// k8sClientFromContext 从 context 获取 k8s client (兼容旧代码)
+// k8sClientFromContext gets k8s client from context (for backward compatibility)
 func k8sClientFromContext(c *gin.Context) (client.Client, bool) {
 	v, ok := c.Get("k8sClient")
 	if !ok {
@@ -61,7 +61,7 @@ func k8sClientFromContext(c *gin.Context) (client.Client, bool) {
 }
 
 // List GET /logcollectors
-// 列出日志收集器
+// List log collectors
 func List(c *gin.Context) {
 	h, ok := NewLogCollectorHandlerFromContext(c)
 	if !ok {
@@ -81,7 +81,7 @@ func (h *LogCollectorHandler) list(c *gin.Context) {
 }
 
 // Create POST /logcollectors
-// 创建日志收集器
+// Create log collector
 func Create(c *gin.Context) {
 	h, ok := NewLogCollectorHandlerFromContext(c)
 	if !ok {
@@ -107,7 +107,7 @@ func (h *LogCollectorHandler) create(c *gin.Context) {
 }
 
 // Get GET /logcollectors/:namespace/:name
-// 获取日志收集器
+// Get log collector
 func Get(c *gin.Context) {
 	h, ok := NewLogCollectorHandlerFromContext(c)
 	if !ok {
@@ -128,7 +128,7 @@ func (h *LogCollectorHandler) get(c *gin.Context) {
 }
 
 // Update PUT /logcollectors/:namespace/:name
-// 更新日志收集器
+// Update log collector
 func Update(c *gin.Context) {
 	h, ok := NewLogCollectorHandlerFromContext(c)
 	if !ok {
@@ -154,7 +154,7 @@ func (h *LogCollectorHandler) update(c *gin.Context) {
 }
 
 // Delete DELETE /logcollectors/:namespace/:name
-// 删除日志收集器
+// Delete log collector
 func Delete(c *gin.Context) {
 	h, ok := NewLogCollectorHandlerFromContext(c)
 	if !ok {
@@ -173,9 +173,9 @@ func (h *LogCollectorHandler) delete(c *gin.Context) {
 	apierr.OK(c, gin.H{"message": "log collector deleted successfully"})
 }
 
-// ======================== Pipeline 相关函数 ========================
+// ======================== Pipeline related functions ========================
 
-// clientsetFromContext 从 context 获取 kubernetes clientset
+// clientsetFromContext gets kubernetes clientset from context
 func clientsetFromContext(c *gin.Context) (kubernetes.Interface, bool) {
 	v, ok := c.Get("clientset")
 	if !ok {
@@ -191,7 +191,7 @@ func clientsetFromContext(c *gin.Context) (kubernetes.Interface, bool) {
 }
 
 // GetLogstashPipeline GET /logcollectors/:namespace/pipeline
-// 获取 logstash pipeline ConfigMap 内容
+// Get logstash pipeline ConfigMap content
 func GetLogstashPipeline(c *gin.Context) {
 	clientset, ok := clientsetFromContext(c)
 	if !ok {
@@ -223,7 +223,7 @@ type updatePipelineRequest struct {
 }
 
 // UpdateLogstashPipeline PUT /logcollectors/:namespace/pipeline
-// 更新或创建 logstash pipeline ConfigMap
+// Update or create logstash pipeline ConfigMap
 func UpdateLogstashPipeline(c *gin.Context) {
 	clientset, ok := clientsetFromContext(c)
 	if !ok {
@@ -269,7 +269,7 @@ type esCertRequest struct {
 }
 
 // GetElasticsearchCert GET /logcollectors/:namespace/es-cert
-// 获取 Elasticsearch 证书信息
+// Get Elasticsearch certificate information
 func GetElasticsearchCert(c *gin.Context) {
 	clientset, ok := clientsetFromContext(c)
 	if !ok {
@@ -294,7 +294,7 @@ func GetElasticsearchCert(c *gin.Context) {
 }
 
 // UpdateElasticsearchCert PUT /logcollectors/:namespace/es-cert
-// 更新 Elasticsearch 证书
+// Update Elasticsearch certificate
 func UpdateElasticsearchCert(c *gin.Context) {
 	clientset, ok := clientsetFromContext(c)
 	if !ok {
@@ -331,7 +331,7 @@ func UpdateElasticsearchCert(c *gin.Context) {
 }
 
 // GetLogCollectorStatus GET /logcollectors/:namespace/:name/status
-// 聚合 Filebeat/Logstash 就绪状态和输出模式
+// Aggregate Filebeat/Logstash ready status and output mode
 func GetLogCollectorStatus(c *gin.Context) {
 	k8sCli, ok := k8sClientFromContext(c)
 	if !ok {
@@ -392,7 +392,7 @@ func GetLogCollectorStatus(c *gin.Context) {
 }
 
 // StreamLogstashLogs GET /logcollectors/:namespace/logs
-// 流式输出 logstash pod 日志
+// Stream logstash pod logs
 func StreamLogstashLogs(c *gin.Context) {
 	clientset, ok := clientsetFromContext(c)
 	if !ok {
@@ -466,7 +466,7 @@ func StreamLogstashLogs(c *gin.Context) {
 }
 
 // TestLogCollector GET /logcollectors/:namespace/test
-// 执行简单检查以查找常见配置错误
+// Perform simple checks to find common configuration errors
 func TestLogCollector(c *gin.Context) {
 	clientset, ok := clientsetFromContext(c)
 	if !ok {
