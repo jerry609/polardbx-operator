@@ -2,13 +2,13 @@ package handler
 
 import (
 	"context"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"polardbx-ui-backend/pkg/api/domain/platform/settings/repository"
 	"polardbx-ui-backend/pkg/api/domain/platform/settings/service"
+	apierr "polardbx-ui-backend/pkg/api/errors"
 	"polardbx-ui-backend/pkg/api/util"
 )
 
@@ -46,7 +46,7 @@ func Get(c *gin.Context) {
 		return
 	}
 	data, _ := h.service.Get(c.Request.Context())
-	c.JSON(http.StatusOK, data)
+	apierr.OK(c, data)
 }
 
 // Update 更新设置
@@ -57,14 +57,14 @@ func Update(c *gin.Context) {
 	}
 	var body map[string]any
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payload", "details": err.Error()})
+		apierr.AbortValidation(c, "invalid payload: "+err.Error())
 		return
 	}
 	if err := h.service.Update(c.Request.Context(), body); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update settings", "details": err.Error()})
+		apierr.AbortInternal(c, "failed to update settings: "+err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, body)
+	apierr.OK(c, body)
 }
 
 // ReadDashboardSettings 读取备份仪表盘设置（供其他包使用）
@@ -79,7 +79,7 @@ func GetImageRegistryConfig(c *gin.Context) {
 	if !ok {
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{
+	apierr.OK(c, gin.H{
 		"success": true,
 		"data":    h.service.GetImageRegistryConfig(),
 	})
@@ -101,24 +101,17 @@ func UpdateImageRegistryConfig(c *gin.Context) {
 	}
 	var req UpdateImageRegistryRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"message": "Invalid request: " + err.Error(),
-			"debug":   gin.H{"registry": req.Registry, "customRegistry": req.CustomRegistry, "defaultRegistry": req.DefaultRegistry},
-		})
+		apierr.AbortValidation(c, "Invalid request: "+err.Error())
 		return
 	}
 
 	data, err := h.service.UpdateImageRegistryConfig(req.Registry, req.CustomRegistry, req.DefaultRegistry)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"message": err.Error(),
-		})
+		apierr.AbortValidation(c, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	apierr.OK(c, gin.H{
 		"success": true,
 		"message": "镜像源配置已更新",
 		"data":    data,
@@ -131,7 +124,7 @@ func GetAvailableRegistries(c *gin.Context) {
 	if !ok {
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{
+	apierr.OK(c, gin.H{
 		"success": true,
 		"data":    h.service.GetAvailableRegistries(),
 	})
@@ -146,14 +139,11 @@ type TestImageRegistryRequest struct {
 func TestImageRegistry(c *gin.Context) {
 	var req TestImageRegistryRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"message": "Invalid request: " + err.Error(),
-		})
+		apierr.AbortValidation(c, "Invalid request: "+err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	apierr.OK(c, gin.H{
 		"success":   true,
 		"message":   "Registry test not yet implemented",
 		"registry":  req.Registry,

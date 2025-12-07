@@ -1,10 +1,9 @@
 package handler
 
 import (
-	"net/http"
-
 	"polardbx-ui-backend/pkg/api/domain/platform/system/repository"
 	"polardbx-ui-backend/pkg/api/domain/platform/system/service"
+	apierr "polardbx-ui-backend/pkg/api/errors"
 	"polardbx-ui-backend/pkg/api/util"
 
 	"github.com/gin-gonic/gin"
@@ -47,7 +46,7 @@ func ContextInfo(c *gin.Context) {
 			}
 		}
 	}
-	c.JSON(http.StatusOK, gin.H{"user": user, "context": ctxName, "defaultNamespace": defNS})
+	apierr.OK(c, gin.H{"user": user, "context": ctxName, "defaultNamespace": defNS})
 }
 
 // ListNamespaces 返回所有可见的命名空间
@@ -55,7 +54,7 @@ func ListNamespaces(c *gin.Context) {
 	h, ok := NewSystemHandlerFromClient(c)
 	if !ok {
 		// 返回空列表以避免前端错误
-		c.JSON(http.StatusOK, gin.H{"items": []any{}, "count": 0, "warning": "k8s client not initialized"})
+		apierr.OK(c, gin.H{"items": []any{}, "count": 0, "warning": "k8s client not initialized"})
 		return
 	}
 	h.listNamespaces(c)
@@ -65,17 +64,17 @@ func ListNamespaces(c *gin.Context) {
 func (h *SystemHandler) listNamespaces(c *gin.Context) {
 	items, err := h.service.ListNamespaces(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"items": []any{}, "count": 0, "warning": "failed to list namespaces", "details": err.Error()})
+		apierr.OK(c, gin.H{"items": []any{}, "count": 0, "warning": "failed to list namespaces", "details": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"items": items, "count": len(items)})
+	apierr.OK(c, gin.H{"items": items, "count": len(items)})
 }
 
 // ListStorageClasses 返回所有可用的存储类
 func ListStorageClasses(c *gin.Context) {
 	h, ok := NewSystemHandlerFromClient(c)
 	if !ok {
-		c.JSON(http.StatusOK, gin.H{"items": []any{}, "count": 0, "warning": "k8s client not initialized"})
+		apierr.OK(c, gin.H{"items": []any{}, "count": 0, "warning": "k8s client not initialized"})
 		return
 	}
 	h.listStorageClasses(c)
@@ -85,10 +84,10 @@ func ListStorageClasses(c *gin.Context) {
 func (h *SystemHandler) listStorageClasses(c *gin.Context) {
 	items, err := h.service.ListStorageClasses(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"items": []any{}, "count": 0, "warning": "failed to list storage classes", "details": err.Error()})
+		apierr.OK(c, gin.H{"items": []any{}, "count": 0, "warning": "failed to list storage classes", "details": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"items": items, "count": len(items)})
+	apierr.OK(c, gin.H{"items": items, "count": len(items)})
 }
 
 // ListPolarDBXVersions 返回支持的 PolarDB-X 版本列表
@@ -98,9 +97,9 @@ func ListPolarDBXVersions(c *gin.Context) {
 		// 即使没有 k8s client，版本列表也可以返回
 		svc := service.NewSystemService(nil)
 		versions := svc.GetPolarDBXVersions()
-		c.JSON(http.StatusOK, gin.H{"items": versions, "count": len(versions)})
+		apierr.OK(c, gin.H{"items": versions, "count": len(versions)})
 		return
 	}
 	versions := h.service.GetPolarDBXVersions()
-	c.JSON(http.StatusOK, gin.H{"items": versions, "count": len(versions)})
+	apierr.OK(c, gin.H{"items": versions, "count": len(versions)})
 }

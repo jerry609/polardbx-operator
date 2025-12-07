@@ -1,9 +1,8 @@
 package services
 
 import (
-	"net/http"
-
 	"polardbx-ui-backend/pkg/api/domain/xstores/k8srepo"
+	apierr "polardbx-ui-backend/pkg/api/errors"
 	"polardbx-ui-backend/pkg/api/util"
 
 	polardbxv1 "github.com/alibaba/polardbx-operator/api/v1"
@@ -28,7 +27,7 @@ func (s *XStoreService) List(c *gin.Context) {
 		util.HandleK8sError(c, "failed to list xstores", err)
 		return
 	}
-	c.JSON(http.StatusOK, items)
+	apierr.OK(c, items)
 }
 
 func (s *XStoreService) Create(c *gin.Context) {
@@ -39,7 +38,7 @@ func (s *XStoreService) Create(c *gin.Context) {
 	ns := util.DefaultNamespace(c, "default")
 	var body polardbxv1.XStore
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid xstore", "details": err.Error()})
+		apierr.AbortValidation(c, "invalid xstore: "+err.Error())
 		return
 	}
 	created, err := s.repo.Create(c.Request.Context(), cli, ns, &body)
@@ -47,7 +46,7 @@ func (s *XStoreService) Create(c *gin.Context) {
 		util.HandleK8sError(c, "failed to create xstore", err)
 		return
 	}
-	c.JSON(http.StatusCreated, created)
+	apierr.Created(c, created)
 }
 
 func (s *XStoreService) Get(c *gin.Context) {
@@ -62,7 +61,7 @@ func (s *XStoreService) Get(c *gin.Context) {
 		util.HandleK8sError(c, "failed to get xstore", err)
 		return
 	}
-	c.JSON(http.StatusOK, item)
+	apierr.OK(c, item)
 }
 
 func (s *XStoreService) Update(c *gin.Context) {
@@ -73,7 +72,7 @@ func (s *XStoreService) Update(c *gin.Context) {
 	ns := c.Param("namespace")
 	var body polardbxv1.XStore
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid xstore", "details": err.Error()})
+		apierr.AbortValidation(c, "invalid xstore: "+err.Error())
 		return
 	}
 	body.Namespace = ns
@@ -82,7 +81,7 @@ func (s *XStoreService) Update(c *gin.Context) {
 		util.HandleK8sError(c, "failed to update xstore", err)
 		return
 	}
-	c.JSON(http.StatusOK, updated)
+	apierr.OK(c, updated)
 }
 
 func (s *XStoreService) Delete(c *gin.Context) {
@@ -96,7 +95,7 @@ func (s *XStoreService) Delete(c *gin.Context) {
 		util.HandleK8sError(c, "failed to delete xstore", err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "xstore deleted"})
+	apierr.OK(c, gin.H{"message": "xstore deleted"})
 }
 
 func (s *XStoreService) ListPods(c *gin.Context) {
@@ -111,5 +110,5 @@ func (s *XStoreService) ListPods(c *gin.Context) {
 		util.HandleK8sError(c, "failed to list pods for xstore", err)
 		return
 	}
-	c.JSON(http.StatusOK, items)
+	apierr.OK(c, items)
 }

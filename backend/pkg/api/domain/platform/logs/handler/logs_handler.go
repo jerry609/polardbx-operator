@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	apierr "polardbx-ui-backend/pkg/api/errors"
 	"polardbx-ui-backend/pkg/api/util"
 	"polardbx-ui-backend/pkg/config"
 
@@ -19,7 +20,7 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -98,38 +99,38 @@ const presetsKey = "presets.json"
 // Query handles log query requests
 func Query(c *gin.Context) {
 	if err := util.EnsureLogsSecurityBootstrap(c); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "security bootstrap failed", "details": err.Error()})
+		apierr.AbortInternal(c, "security bootstrap failed: "+err.Error())
 		return
 	}
 	var req QueryRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request", "details": err.Error()})
+		apierr.AbortValidation(c, "invalid request: "+err.Error())
 		return
 	}
 	allowed, defHost, err := util.LoadLogsSecurityConfig(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load security config", "details": err.Error()})
+		apierr.AbortInternal(c, "failed to load security config: "+err.Error())
 		return
 	}
 	if req.Host == "" {
 		req.Host = defHost
 	}
 	if !util.IsHostAllowed(req.Host, allowed, defHost) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "target host not allowed"})
+		apierr.AbortForbidden(c, "target host not allowed")
 		return
 	}
 	// host format validation
 	if u, perr := url.Parse(req.Host); perr != nil || (u.Scheme != "http" && u.Scheme != "https") {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid host, expect http(s) URL"})
+		apierr.AbortValidation(c, "invalid host, expect http(s) URL")
 		return
 	}
 
 	if strings.TrimSpace(req.Index) == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "index is required"})
+		apierr.AbortValidation(c, "index is required")
 		return
 	}
 	if req.Size < 0 || req.From < 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "size/from must be non-negative"})
+		apierr.AbortValidation(c, "size/from must be non-negative")
 		return
 	}
 
@@ -221,12 +222,12 @@ func Query(c *gin.Context) {
 		to := req.TimeRange["to"]
 		// validate RFC3339 if provided
 		if _, err := time.Parse(time.RFC3339, f); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid timeRange.from, expect RFC3339"})
+			apierr.AbortValidation(c, "invalid timeRange.from, expect RFC3339")
 			return
 		}
 		if to != "" {
 			if _, err := time.Parse(time.RFC3339, to); err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "invalid timeRange.to, expect RFC3339"})
+				apierr.AbortValidation(c, "invalid timeRange.to, expect RFC3339")
 				return
 			}
 		}
@@ -264,7 +265,7 @@ func Query(c *gin.Context) {
 
 	resp, err := httpClient.Do(httpReq)
 	if err != nil {
-		c.JSON(http.StatusBadGateway, gin.H{"error": "es query failed", "details": err.Error()})
+		apierr.Abort(c, apierr.BadGateway("es query failed: "+err.Error()))
 		return
 	}
 	defer resp.Body.Close()
@@ -276,7 +277,7 @@ func Query(c *gin.Context) {
 	if !req.Normalize {
 		var out any
 		_ = json.Unmarshal(bodyBytes, &out)
-		c.JSON(http.StatusOK, out)
+		apierr.OK(c, out)
 		return
 	}
 	// normalize
@@ -337,7 +338,7 @@ func Query(c *gin.Context) {
 	if len(norm.Facets) == 0 {
 		norm.Facets = nil
 	}
-	c.JSON(http.StatusOK, norm)
+	apierr.OK(c, norm)
 }
 
 func defaultInt(v int, d int) int {
@@ -459,7 +460,7 @@ func Bootstrap(c *gin.Context) {
 				}
 				// If job is still running, return existing job info
 				if !isComplete && !isFailed {
-					c.JSON(http.StatusAccepted, gin.H{
+					apierr.Accepted(c, gin.H{
 						"message":      "logs bootstrap already in progress",
 						"namespace":    r.NS,
 						"targetNs":     "polardbx-logcollector",
@@ -497,7 +498,7 @@ func Bootstrap(c *gin.Context) {
 
 	// If dry-run, just accept
 	if r.Dry {
-		c.JSON(http.StatusAccepted, gin.H{
+		apierr.Accepted(c, gin.H{
 			"message":        "logs bootstrap accepted (dry-run)",
 			"namespace":      r.NS,
 			"mode":           r.Mode,
@@ -510,8 +511,8 @@ func Bootstrap(c *gin.Context) {
 
 	// Ensure target logs namespace exists
 	logsNS := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "polardbx-logcollector"}}
-	if err := cli.Create(c.Request.Context(), logsNS); err != nil && !apierrors.IsAlreadyExists(err) {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create namespace polardbx-logcollector", "details": err.Error()})
+	if err := cli.Create(c.Request.Context(), logsNS); err != nil && !k8serrors.IsAlreadyExists(err) {
+		apierr.AbortInternal(c, "failed to create namespace polardbx-logcollector: "+err.Error())
 		return
 	}
 
@@ -530,13 +531,13 @@ func Bootstrap(c *gin.Context) {
 	cmKey := client.ObjectKey{Namespace: r.NS, Name: "polardbx-logs-manifests"}
 	if err := cli.Get(c.Request.Context(), cmKey, existingCM); err != nil {
 		if err := cli.Create(c.Request.Context(), manifestsCM); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create manifests ConfigMap", "details": err.Error()})
+			apierr.AbortInternal(c, "failed to create manifests ConfigMap: "+err.Error())
 			return
 		}
 	} else {
 		existingCM.Data = manifestsCM.Data
 		if err := cli.Update(c.Request.Context(), existingCM); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update manifests ConfigMap", "details": err.Error()})
+			apierr.AbortInternal(c, "failed to update manifests ConfigMap: "+err.Error())
 			return
 		}
 	}
@@ -587,8 +588,8 @@ func Bootstrap(c *gin.Context) {
 			Name: targetNamespace,
 		},
 	}
-	if err := cli.Create(c.Request.Context(), ns); err != nil && !apierrors.IsAlreadyExists(err) {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create namespace", "details": err.Error()})
+	if err := cli.Create(c.Request.Context(), ns); err != nil && !k8serrors.IsAlreadyExists(err) {
+		apierr.AbortInternal(c, "failed to create namespace: "+err.Error())
 		return
 	}
 
@@ -599,8 +600,8 @@ func Bootstrap(c *gin.Context) {
 			Namespace: targetNamespace,
 		},
 	}
-	if err := cli.Create(c.Request.Context(), installerSA); err != nil && !apierrors.IsAlreadyExists(err) {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create installer ServiceAccount", "details": err.Error()})
+	if err := cli.Create(c.Request.Context(), installerSA); err != nil && !k8serrors.IsAlreadyExists(err) {
+		apierr.AbortInternal(c, "failed to create installer ServiceAccount: "+err.Error())
 		return
 	}
 
@@ -638,20 +639,20 @@ func Bootstrap(c *gin.Context) {
 		},
 	}
 	if err := cli.Create(c.Request.Context(), installerRole); err != nil {
-		if !apierrors.IsAlreadyExists(err) {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create installer ClusterRole", "details": err.Error()})
+		if !k8serrors.IsAlreadyExists(err) {
+			apierr.AbortInternal(c, "failed to create installer ClusterRole: "+err.Error())
 			return
 		}
 
 		existingRole := &rbacv1.ClusterRole{}
 		if getErr := cli.Get(c.Request.Context(), client.ObjectKey{Name: installerRole.Name}, existingRole); getErr != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to refresh installer ClusterRole", "details": getErr.Error()})
+			apierr.AbortInternal(c, "failed to refresh installer ClusterRole: "+getErr.Error())
 			return
 		}
 
 		existingRole.Rules = installerRole.Rules
 		if updateErr := cli.Update(c.Request.Context(), existingRole); updateErr != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update installer ClusterRole", "details": updateErr.Error()})
+			apierr.AbortInternal(c, "failed to update installer ClusterRole: "+updateErr.Error())
 			return
 		}
 	}
@@ -675,21 +676,21 @@ func Bootstrap(c *gin.Context) {
 		},
 	}
 	if err := cli.Create(c.Request.Context(), installerBinding); err != nil {
-		if !apierrors.IsAlreadyExists(err) {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create installer ClusterRoleBinding", "details": err.Error()})
+		if !k8serrors.IsAlreadyExists(err) {
+			apierr.AbortInternal(c, "failed to create installer ClusterRoleBinding: "+err.Error())
 			return
 		}
 
 		existingBinding := &rbacv1.ClusterRoleBinding{}
 		if getErr := cli.Get(c.Request.Context(), client.ObjectKey{Name: installerBinding.Name}, existingBinding); getErr != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to refresh installer ClusterRoleBinding", "details": getErr.Error()})
+			apierr.AbortInternal(c, "failed to refresh installer ClusterRoleBinding: "+getErr.Error())
 			return
 		}
 
 		existingBinding.Subjects = installerBinding.Subjects
 		existingBinding.RoleRef = installerBinding.RoleRef
 		if updateErr := cli.Update(c.Request.Context(), existingBinding); updateErr != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update installer ClusterRoleBinding", "details": updateErr.Error()})
+			apierr.AbortInternal(c, "failed to update installer ClusterRoleBinding: "+updateErr.Error())
 			return
 		}
 	}
@@ -741,11 +742,11 @@ func Bootstrap(c *gin.Context) {
 	}
 
 	if err := cli.Create(c.Request.Context(), job); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create logs install job", "details": err.Error()})
+		apierr.AbortInternal(c, "failed to create logs install job: "+err.Error())
 		return
 	}
 
-	c.JSON(http.StatusAccepted, gin.H{
+	apierr.Accepted(c, gin.H{
 		"message":        "logs bootstrap started",
 		"namespace":      targetNamespace,
 		"targetNs":       targetNamespace,
@@ -769,7 +770,7 @@ func BootstrapStatus(c *gin.Context) {
 	namespace := util.DefaultNamespace(c, "polardbx-operator-system")
 
 	if jobName == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "jobName parameter is required"})
+		apierr.AbortValidation(c, "jobName parameter is required")
 		return
 	}
 
@@ -777,8 +778,8 @@ func BootstrapStatus(c *gin.Context) {
 	job := &batchv1.Job{}
 	key := client.ObjectKey{Namespace: namespace, Name: jobName}
 	if err := cli.Get(c.Request.Context(), key, job); err != nil {
-		if apierrors.IsNotFound(err) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "job not found", "jobName": jobName, "namespace": namespace})
+		if k8serrors.IsNotFound(err) {
+			apierr.AbortNotFound(c, "job", fmt.Sprintf("%s/%s", namespace, jobName))
 			return
 		}
 		util.HandleK8sError(c, "failed to get job", err)
@@ -830,7 +831,7 @@ func BootstrapStatus(c *gin.Context) {
 	// Add conditions for detailed status
 	response["conditions"] = job.Status.Conditions
 
-	c.JSON(http.StatusOK, response)
+	apierr.OK(c, response)
 }
 
 // BootstrapLogs returns the logs of a logs bootstrap job
@@ -848,7 +849,7 @@ func BootstrapLogs(c *gin.Context) {
 	tailLines := int64(100) // Default to last 100 lines
 
 	if jobName == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "jobName parameter is required"})
+		apierr.AbortValidation(c, "jobName parameter is required")
 		return
 	}
 
@@ -871,7 +872,7 @@ func BootstrapLogs(c *gin.Context) {
 	}
 
 	if len(pods.Items) == 0 {
-		c.JSON(http.StatusNotFound, gin.H{"error": "no pods found for job", "jobName": jobName})
+		apierr.AbortNotFound(c, "pods for job", jobName)
 		return
 	}
 
@@ -897,11 +898,11 @@ func BootstrapLogs(c *gin.Context) {
 
 	logs, err := io.ReadAll(rc)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to read logs", "details": err.Error()})
+		apierr.AbortInternal(c, "failed to read logs: "+err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	apierr.OK(c, gin.H{
 		"jobName":   jobName,
 		"namespace": namespace,
 		"podName":   pod.Name,
@@ -1018,7 +1019,7 @@ func Presets(c *gin.Context) {
 	for _, p := range m {
 		list = append(list, p)
 	}
-	c.JSON(http.StatusOK, gin.H{"total": len(list), "items": list})
+	apierr.OK(c, gin.H{"total": len(list), "items": list})
 }
 
 // PresetByPattern returns preset for a given pattern
@@ -1026,8 +1027,8 @@ func PresetByPattern(c *gin.Context) {
 	pattern := c.Param("pattern")
 	m := loadPresets(c)
 	if p, ok := m[pattern]; ok {
-		c.JSON(http.StatusOK, p)
+		apierr.OK(c, p)
 		return
 	}
-	c.JSON(http.StatusNotFound, gin.H{"error": "preset not found"})
+	apierr.AbortNotFound(c, "preset", pattern)
 }

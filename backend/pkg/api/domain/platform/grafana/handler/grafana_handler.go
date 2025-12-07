@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
 	"os"
 	"path/filepath"
 	"sort"
@@ -15,6 +14,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"polardbx-ui-backend/pkg/api/domain/platform/grafana/repository"
+	apierr "polardbx-ui-backend/pkg/api/errors"
 	"polardbx-ui-backend/pkg/api/util"
 )
 
@@ -50,10 +50,10 @@ func GetConfig(c *gin.Context) {
 func (h *GrafanaHandler) getConfig(c *gin.Context) {
 	config, err := h.repo.GetConfig(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get grafana config", "details": err.Error()})
+		apierr.AbortInternal(c, "failed to get grafana config: "+err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, config)
+	apierr.OK(c, config)
 }
 
 // PutConfig PUT /grafana/config
@@ -68,15 +68,15 @@ func PutConfig(c *gin.Context) {
 func (h *GrafanaHandler) putConfig(c *gin.Context) {
 	var req repository.GrafanaConfig
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payload", "details": err.Error()})
+		apierr.AbortValidation(c, "invalid payload: "+err.Error())
 		return
 	}
 
 	if err := h.repo.SaveConfig(c.Request.Context(), &req); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		apierr.AbortInternal(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, req)
+	apierr.OK(c, req)
 }
 
 // SyncDashboards POST /grafana/dashboards/sync
@@ -94,16 +94,16 @@ func (h *GrafanaHandler) syncDashboards(c *gin.Context) {
 		Overwrite  bool              `json:"overwrite"`
 	}
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payload", "details": err.Error()})
+		apierr.AbortValidation(c, "invalid payload: "+err.Error())
 		return
 	}
 
 	count, err := h.repo.SaveDashboards(c.Request.Context(), body.Dashboards, body.Overwrite)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		apierr.AbortInternal(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusAccepted, gin.H{"message": "dashboards synced", "count": count})
+	apierr.Accepted(c, gin.H{"message": "dashboards synced", "count": count})
 }
 
 // ListDashboards GET /grafana/dashboards
@@ -118,7 +118,7 @@ func ListDashboards(c *gin.Context) {
 func (h *GrafanaHandler) listDashboards(c *gin.Context) {
 	data, err := h.repo.GetDashboards(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		apierr.AbortInternal(c, err.Error())
 		return
 	}
 
@@ -147,7 +147,7 @@ func (h *GrafanaHandler) listDashboards(c *gin.Context) {
 		}
 	}
 	sort.Slice(items, func(i, j int) bool { return items[i]["name"].(string) < items[j]["name"].(string) })
-	c.JSON(http.StatusOK, gin.H{"items": items})
+	apierr.OK(c, gin.H{"items": items})
 }
 
 // ListDashboardVersions GET /grafana/dashboards/:name/versions
@@ -163,7 +163,7 @@ func (h *GrafanaHandler) listDashboardVersions(c *gin.Context) {
 	name := c.Param("name")
 	data, err := h.repo.GetDashboards(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		apierr.AbortInternal(c, err.Error())
 		return
 	}
 
@@ -174,7 +174,7 @@ func (h *GrafanaHandler) listDashboardVersions(c *gin.Context) {
 		}
 	}
 	sort.Sort(sort.Reverse(sort.IntSlice(vers)))
-	c.JSON(http.StatusOK, gin.H{"name": name, "versions": vers})
+	apierr.OK(c, gin.H{"name": name, "versions": vers})
 }
 
 // RollbackDashboard POST /grafana/dashboards/:name/rollback
@@ -192,31 +192,31 @@ func (h *GrafanaHandler) rollbackDashboard(c *gin.Context) {
 		Version int `json:"version"`
 	}
 	if err := c.ShouldBindJSON(&body); err != nil || body.Version <= 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payload"})
+		apierr.AbortValidation(c, "invalid payload")
 		return
 	}
 
 	data, err := h.repo.GetDashboards(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		apierr.AbortInternal(c, err.Error())
 		return
 	}
 
 	targetKey := fmt.Sprintf("%s@v%04d", name, body.Version)
 	target, ok := data[targetKey]
 	if !ok {
-		c.JSON(http.StatusNotFound, gin.H{"error": "version not found"})
+		apierr.AbortNotFound(c, "dashboard version", targetKey)
 		return
 	}
 
 	// 保存当前版本并回滚
 	rollback := map[string]string{name: target}
 	if _, err := h.repo.SaveDashboards(c.Request.Context(), rollback, true); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to rollback", "details": err.Error()})
+		apierr.AbortInternal(c, "failed to rollback: "+err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "rolled back", "name": name, "version": body.Version})
+	apierr.OK(c, gin.H{"message": "rolled back", "name": name, "version": body.Version})
 }
 
 // ============ 模板相关 ============
@@ -248,21 +248,21 @@ type DashboardTemplateDetail struct {
 func ListTemplates(c *gin.Context) {
 	dir, err := ResolveTemplatesDir()
 	if err != nil {
-		status := http.StatusNotFound
-		if !errors.Is(err, os.ErrNotExist) {
-			status = http.StatusInternalServerError
+		if errors.Is(err, os.ErrNotExist) {
+			apierr.AbortNotFound(c, "grafana dashboard templates directory", "")
+		} else {
+			apierr.AbortInternal(c, "grafana dashboard templates directory not found: "+err.Error())
 		}
-		c.JSON(status, gin.H{"error": "grafana dashboard templates directory not found", "details": err.Error()})
 		return
 	}
 
 	items, err := LoadTemplateSummaries(dir)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load grafana templates", "details": err.Error()})
+		apierr.AbortInternal(c, "failed to load grafana templates: "+err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	apierr.OK(c, gin.H{
 		"items":     items,
 		"directory": dir,
 	})
@@ -272,31 +272,31 @@ func ListTemplates(c *gin.Context) {
 func GetTemplate(c *gin.Context) {
 	name := c.Param("name")
 	if name == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "template name is required"})
+		apierr.AbortValidation(c, "template name is required")
 		return
 	}
 
 	dir, err := ResolveTemplatesDir()
 	if err != nil {
-		status := http.StatusNotFound
-		if !errors.Is(err, os.ErrNotExist) {
-			status = http.StatusInternalServerError
+		if errors.Is(err, os.ErrNotExist) {
+			apierr.AbortNotFound(c, "grafana dashboard templates directory", "")
+		} else {
+			apierr.AbortInternal(c, "grafana dashboard templates directory not found: "+err.Error())
 		}
-		c.JSON(status, gin.H{"error": "grafana dashboard templates directory not found", "details": err.Error()})
 		return
 	}
 
 	detail, err := LoadTemplateDetail(dir, name)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "template not found", "name": name})
+			apierr.AbortNotFound(c, "template", name)
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load template", "details": err.Error()})
+		apierr.AbortInternal(c, "failed to load template: "+err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, detail)
+	apierr.OK(c, detail)
 }
 
 func ResolveTemplatesDir() (string, error) {

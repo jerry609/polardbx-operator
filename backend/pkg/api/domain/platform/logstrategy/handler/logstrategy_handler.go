@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	apierr "polardbx-ui-backend/pkg/api/errors"
 	"polardbx-ui-backend/pkg/api/util"
 	"polardbx-ui-backend/pkg/k8s"
 
@@ -88,16 +89,16 @@ func List(c *gin.Context) {
 	cm, err := getStore(c)
 	if err != nil {
 		// 兼容前端：返回空列表而不是 500，避免页面崩溃
-		c.JSON(http.StatusOK, gin.H{"total": 0, "items": []any{}, "warning": "strategy store not accessible", "details": err.Error()})
+		apierr.OK(c, gin.H{"total": 0, "items": []any{}, "warning": "strategy store not accessible", "details": err.Error()})
 		return
 	}
 	if cm == nil {
-		c.JSON(http.StatusOK, gin.H{"total": 0, "items": []any{}})
+		apierr.OK(c, gin.H{"total": 0, "items": []any{}})
 		return
 	}
 	list := loadList(cm)
 	sort.Slice(list, func(i, j int) bool { return list[i].Name < list[j].Name })
-	c.JSON(http.StatusOK, gin.H{"total": len(list), "items": list})
+	apierr.OK(c, gin.H{"total": len(list), "items": list})
 }
 
 // Get returns a strategy by name
@@ -105,43 +106,43 @@ func Get(c *gin.Context) {
 	name := c.Param("name")
 	cm, err := getStore(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load strategy store", "details": err.Error()})
+		apierr.AbortInternal(c, "failed to load strategy store: "+err.Error())
 		return
 	}
 	for _, it := range loadList(cm) {
 		if it.Name == name {
-			c.JSON(http.StatusOK, it)
+			apierr.OK(c, it)
 			return
 		}
 	}
-	c.JSON(http.StatusNotFound, gin.H{"error": "strategy not found"})
+	apierr.AbortNotFound(c, "strategy", name)
 }
 
 // Create creates a new strategy
 func Create(c *gin.Context) {
 	cm, err := getStore(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load strategy store", "details": err.Error()})
+		apierr.AbortInternal(c, "failed to load strategy store: "+err.Error())
 		return
 	}
 	var s Strategy
 	if err := c.ShouldBindJSON(&s); err != nil || s.Name == "" || s.ClusterName == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid strategy", "details": "name and clusterName required"})
+		apierr.AbortValidation(c, "invalid strategy: name and clusterName required")
 		return
 	}
 	list := loadList(cm)
 	for _, it := range list {
 		if it.Name == s.Name {
-			c.JSON(http.StatusConflict, gin.H{"error": "strategy exists"})
+			apierr.Abort(c, apierr.AlreadyExists("strategy", s.Name))
 			return
 		}
 	}
 	list = append(list, s)
 	if e := saveList(c, cm, list); e != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to persist strategy", "details": e.Error()})
+		apierr.AbortInternal(c, "failed to persist strategy: "+e.Error())
 		return
 	}
-	c.JSON(http.StatusCreated, s)
+	apierr.Created(c, s)
 }
 
 // Update updates an existing strategy
@@ -149,12 +150,12 @@ func Update(c *gin.Context) {
 	name := c.Param("name")
 	cm, err := getStore(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load strategy store", "details": err.Error()})
+		apierr.AbortInternal(c, "failed to load strategy store: "+err.Error())
 		return
 	}
 	var s Strategy
 	if err := c.ShouldBindJSON(&s); err != nil || s.Name == "" || s.Name != name {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid strategy", "details": "body.name must equal path name"})
+		apierr.AbortValidation(c, "invalid strategy: body.name must equal path name")
 		return
 	}
 	list := loadList(cm)
@@ -167,11 +168,11 @@ func Update(c *gin.Context) {
 		}
 	}
 	if !found {
-		c.JSON(http.StatusNotFound, gin.H{"error": "strategy not found"})
+		apierr.AbortNotFound(c, "strategy", name)
 		return
 	}
 	if e := saveList(c, cm, list); e != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to persist strategy", "details": e.Error()})
+		apierr.AbortInternal(c, "failed to persist strategy: "+e.Error())
 		return
 	}
 	// If no ES output remains for this cluster after update, perform cleanup
@@ -185,7 +186,7 @@ func Update(c *gin.Context) {
 	if !hasActive {
 		performCleanupForCluster(c, s.ClusterNS, s.ClusterName)
 	}
-	c.JSON(http.StatusOK, s)
+	apierr.OK(c, s)
 }
 
 // Delete deletes a strategy by name
@@ -193,7 +194,7 @@ func Delete(c *gin.Context) {
 	name := c.Param("name")
 	cm, err := getStore(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load strategy store", "details": err.Error()})
+		apierr.AbortInternal(c, "failed to load strategy store: "+err.Error())
 		return
 	}
 	list := loadList(cm)
@@ -209,12 +210,12 @@ func Delete(c *gin.Context) {
 		}
 	}
 	if idx < 0 {
-		c.JSON(http.StatusNotFound, gin.H{"error": "strategy not found"})
+		apierr.AbortNotFound(c, "strategy", name)
 		return
 	}
 	list = append(list[:idx], list[idx+1:]...)
 	if e := saveList(c, cm, list); e != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to persist strategy", "details": e.Error()})
+		apierr.AbortInternal(c, "failed to persist strategy: "+e.Error())
 		return
 	}
 	if hasRemoved {
@@ -279,7 +280,7 @@ func performCleanupForCluster(c *gin.Context, ns string, clusterName string) {
 func Precheck(c *gin.Context) {
 	var s Strategy
 	if err := c.ShouldBindJSON(&s); err != nil || s.Name == "" || s.ClusterName == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "name and clusterName required"})
+		apierr.AbortValidation(c, "name and clusterName required")
 		return
 	}
 	cli, ok := util.K8sClientFromContext(c)
@@ -355,7 +356,7 @@ func Precheck(c *gin.Context) {
 			valid = false
 		}
 	}
-	c.JSON(http.StatusOK, gin.H{"valid": valid, "checks": checks, "errors": errors, "warnings": warnings})
+	apierr.OK(c, gin.H{"valid": valid, "checks": checks, "errors": errors, "warnings": warnings})
 }
 
 func buildLogstashOutput(s *Strategy) string {
@@ -391,7 +392,7 @@ func Apply(c *gin.Context) {
 	name := c.Param("name")
 	cm, err := getStore(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load strategy store", "details": err.Error()})
+		apierr.AbortInternal(c, "failed to load strategy store: "+err.Error())
 		return
 	}
 	var s *Strategy
@@ -403,7 +404,7 @@ func Apply(c *gin.Context) {
 		}
 	}
 	if s == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "strategy not found"})
+		apierr.AbortNotFound(c, "strategy", name)
 		return
 	}
 	cli, ok := util.K8sClientFromContext(c)
@@ -432,7 +433,7 @@ func Apply(c *gin.Context) {
 		if err != nil {
 			newSec := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: secName, Namespace: cmNamespace}, Type: corev1.SecretTypeOpaque, Data: map[string][]byte{"ca.crt": []byte(s.Output.CACrt)}}
 			if _, e := clientset.CoreV1().Secrets(cmNamespace).Create(ctx, newSec, metav1.CreateOptions{}); e != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create es cert secret", "details": e.Error()})
+				apierr.AbortInternal(c, "failed to create es cert secret: "+e.Error())
 				return
 			}
 		} else {
@@ -441,7 +442,7 @@ func Apply(c *gin.Context) {
 			}
 			sec.Data["ca.crt"] = []byte(s.Output.CACrt)
 			if _, e := clientset.CoreV1().Secrets(cmNamespace).Update(ctx, sec, metav1.UpdateOptions{}); e != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update es cert secret", "details": e.Error()})
+				apierr.AbortInternal(c, "failed to update es cert secret: "+e.Error())
 				return
 			}
 		}
@@ -454,7 +455,7 @@ func Apply(c *gin.Context) {
 		if err != nil {
 			newSec := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: credName, Namespace: cmNamespace}, Type: corev1.SecretTypeOpaque, StringData: map[string]string{"username": s.Output.Username, "password": s.Output.Password}}
 			if _, e := clientset.CoreV1().Secrets(cmNamespace).Create(ctx, newSec, metav1.CreateOptions{}); e != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create credentials secret", "details": e.Error()})
+				apierr.AbortInternal(c, "failed to create credentials secret: "+e.Error())
 				return
 			}
 		} else {
@@ -471,7 +472,7 @@ func Apply(c *gin.Context) {
 				sec.StringData["password"] = s.Output.Password
 			}
 			if _, e := clientset.CoreV1().Secrets(cmNamespace).Update(ctx, sec, metav1.UpdateOptions{}); e != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update credentials secret", "details": e.Error()})
+				apierr.AbortInternal(c, "failed to update credentials secret: "+e.Error())
 				return
 			}
 		}
@@ -485,7 +486,7 @@ func Apply(c *gin.Context) {
 	if err != nil {
 		newCm := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: cmNamePipeline, Namespace: cmNamespace}, Data: map[string]string{pipelineKey: out}}
 		if _, e := clientset.CoreV1().ConfigMaps(cmNamespace).Create(ctx, newCm, metav1.CreateOptions{}); e != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create pipeline configmap", "details": e.Error()})
+			apierr.AbortInternal(c, "failed to create pipeline configmap: "+e.Error())
 			return
 		}
 	} else {
@@ -494,7 +495,7 @@ func Apply(c *gin.Context) {
 		}
 		pl.Data[pipelineKey] = out
 		if _, e := clientset.CoreV1().ConfigMaps(cmNamespace).Update(ctx, pl, metav1.UpdateOptions{}); e != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update pipeline configmap", "details": e.Error()})
+			apierr.AbortInternal(c, "failed to update pipeline configmap: "+e.Error())
 			return
 		}
 	}
@@ -507,7 +508,7 @@ func Apply(c *gin.Context) {
 		}
 		dep.Spec.Template.Annotations["kubectl.kubernetes.io/restartedAt"] = time.Now().Format(time.RFC3339)
 		if _, e := clientset.AppsV1().Deployments(cmNamespace).Update(ctx, dep, metav1.UpdateOptions{}); e != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to restart logstash", "details": e.Error()})
+			apierr.AbortInternal(c, "failed to restart logstash: "+e.Error())
 			return
 		}
 	}
@@ -523,7 +524,7 @@ func Apply(c *gin.Context) {
 	targets := []string{ns + "/" + s.ClusterName}
 	addApplyRecord(c, s.Name, "success", "Strategy applied successfully", targets)
 
-	c.JSON(http.StatusOK, gin.H{"applied": true, "namespace": ns, "cluster": s.ClusterName, "logstash": gin.H{"restarted": dep != nil}, "pipelineKey": pipelineKey})
+	apierr.OK(c, gin.H{"applied": true, "namespace": ns, "cluster": s.ClusterName, "logstash": gin.H{"restarted": dep != nil}, "pipelineKey": pipelineKey})
 }
 
 // TestConnection validates connectivity to Elasticsearch using simple HTTP request
@@ -535,12 +536,12 @@ func TestConnection(c *gin.Context) {
 		Password string   `json:"password"`
 	}
 	if err := c.ShouldBindJSON(&payload); err != nil || len(payload.Hosts) == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "hosts required"})
+		apierr.AbortValidation(c, "hosts required")
 		return
 	}
 	host := strings.TrimSpace(payload.Hosts[0])
 	if host == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid host"})
+		apierr.AbortValidation(c, "invalid host")
 		return
 	}
 	if !strings.Contains(host, "://") {
@@ -561,15 +562,11 @@ func TestConnection(c *gin.Context) {
 		}
 		resp2, err2 := client.Do(req2)
 		if err2 != nil || resp2.StatusCode >= 400 {
-			code := http.StatusBadGateway
-			if resp2 != nil {
-				code = resp2.StatusCode
-			}
-			c.JSON(code, gin.H{"error": "elasticsearch connection failed"})
+			apierr.Abort(c, apierr.ServiceUnavailable("elasticsearch connection failed", 0))
 			return
 		}
 	}
-	c.JSON(http.StatusOK, gin.H{"ok": true})
+	apierr.OK(c, gin.H{"ok": true})
 }
 
 // ApplyRecord represents a log strategy application record
@@ -599,7 +596,7 @@ const (
 func ListApplyRecords(c *gin.Context) {
 	cs, ok := util.ClientsetFromContext(c)
 	if !ok {
-		c.JSON(http.StatusOK, gin.H{"total": 0, "items": []ApplyRecord{}})
+		apierr.OK(c, gin.H{"total": 0, "items": []ApplyRecord{}})
 		return
 	}
 
@@ -607,7 +604,7 @@ func ListApplyRecords(c *gin.Context) {
 	cm, err := cs.CoreV1().ConfigMaps(cmNamespace).Get(c.Request.Context(), recordsCMName, metav1.GetOptions{})
 	if err != nil {
 		// If ConfigMap doesn't exist, return empty list
-		c.JSON(http.StatusOK, gin.H{"total": 0, "items": []ApplyRecord{}})
+		apierr.OK(c, gin.H{"total": 0, "items": []ApplyRecord{}})
 		return
 	}
 
@@ -621,7 +618,7 @@ func ListApplyRecords(c *gin.Context) {
 		return records[i].AppliedAt.After(records[j].AppliedAt)
 	})
 
-	c.JSON(http.StatusOK, gin.H{"total": len(records), "items": records})
+	apierr.OK(c, gin.H{"total": len(records), "items": records})
 }
 
 // AddApplyRecord Helper function to add an apply record (called from Apply function)

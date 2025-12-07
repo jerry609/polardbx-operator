@@ -26,6 +26,7 @@ import (
 
 	"polardbx-ui-backend/pkg/api/domain/monitoring/service"
 	spec "polardbx-ui-backend/pkg/api/domain/monitoring/spec"
+	apierr "polardbx-ui-backend/pkg/api/errors"
 	"polardbx-ui-backend/pkg/api/util"
 	"polardbx-ui-backend/pkg/config"
 )
@@ -243,7 +244,7 @@ func DetectEnvironment(c *gin.Context) {
 	}
 	logger.WithValues("namespace", snapshot.Namespace, "components", len(snapshot.Components)).Info("detect environment succeeded")
 
-	c.JSON(http.StatusOK, snapshot)
+	apierr.OK(c, snapshot)
 }
 
 func CreatePlan(c *gin.Context) {
@@ -281,7 +282,7 @@ func CreatePlan(c *gin.Context) {
 		resp.Warnings = &warnings
 	}
 
-	c.JSON(http.StatusOK, resp)
+	apierr.OK(c, resp)
 }
 
 func StartInstallation(c *gin.Context) {
@@ -319,7 +320,7 @@ func StartInstallation(c *gin.Context) {
 	).Info("installation session accepted")
 
 	executor.start(execCtx, rec.id, clonePlan(rec.plan), persist)
-	c.JSON(http.StatusAccepted, startResp)
+	apierr.Accepted(c, startResp)
 }
 
 func GetInstallStatus(c *gin.Context) {
@@ -358,7 +359,7 @@ func GetInstallStatus(c *gin.Context) {
 					}
 					if ok {
 						logger.WithValues("sessionId", restoredID).Info("returning restored session status")
-						c.JSON(http.StatusOK, status)
+						apierr.OK(c, status)
 						return
 					}
 				}
@@ -372,7 +373,7 @@ func GetInstallStatus(c *gin.Context) {
 	maybeStartExecutor(c, sessionID, nil, persist)
 	logger.WithValues("sessionId", sessionID, "phase", status.Phase).Info("returning session status")
 
-	c.JSON(http.StatusOK, status)
+	apierr.OK(c, status)
 }
 
 func TriggerRetry(c *gin.Context) {
@@ -437,7 +438,7 @@ func TriggerRetry(c *gin.Context) {
 		}
 		if activated {
 			maybeStartExecutor(c, sessionID, &plan, persist)
-			c.JSON(http.StatusAccepted, status)
+			apierr.Accepted(c, status)
 			return
 		}
 		status, ok, err := store.snapshot(ctx, sessionID, persist)
@@ -450,7 +451,7 @@ func TriggerRetry(c *gin.Context) {
 			respondError(c, http.StatusNotFound, ErrorCodeSessionNotFound, fmt.Sprintf("session %s not found", sessionID))
 			return
 		}
-		c.JSON(http.StatusAccepted, status)
+		apierr.Accepted(c, status)
 		return
 	}
 
@@ -475,7 +476,7 @@ func TriggerRetry(c *gin.Context) {
 	}
 
 	maybeStartExecutor(c, sessionID, &plan, persist)
-	c.JSON(http.StatusAccepted, status)
+	apierr.Accepted(c, status)
 }
 
 func DiagnoseFailure(c *gin.Context) {
@@ -515,7 +516,7 @@ func DiagnoseFailure(c *gin.Context) {
 		"autoFixes", autoFixCount,
 	).Info("diagnosis response generated")
 
-	c.JSON(http.StatusOK, resp)
+	apierr.OK(c, resp)
 }
 
 func diagnosticContextFromRequest(c *gin.Context) context.Context {
@@ -676,7 +677,7 @@ func ApplyAutoFix(c *gin.Context) {
 		"fixId", req.FixId,
 		"success", resp.Success,
 	).Info("auto-fix completed")
-	c.JSON(http.StatusOK, resp)
+	apierr.OK(c, resp)
 }
 
 // ---- helpers & state management ----
@@ -1842,7 +1843,7 @@ func Uninstall(c *gin.Context) {
 	}
 
 	logger.WithValues("namespace", namespace).Info("uninstall completed")
-	c.JSON(http.StatusOK, response)
+	apierr.OK(c, response)
 }
 
 // GetBootstrapLogs retrieves logs from a bootstrap/install job.
@@ -1926,7 +1927,7 @@ func GetBootstrapLogs(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	apierr.OK(c, gin.H{
 		"jobName":   jobName,
 		"namespace": namespace,
 		"podName":   pod.Name,
@@ -1983,7 +1984,7 @@ func Bootstrap(c *gin.Context) {
 					}
 				}
 				if !isComplete && !isFailed {
-					c.JSON(http.StatusAccepted, gin.H{
+					apierr.Accepted(c, gin.H{
 						"message":      "monitoring bootstrap already in progress",
 						"namespace":    r.NS,
 						"targetNs":     "polardbx-monitor",
@@ -2015,7 +2016,7 @@ func Bootstrap(c *gin.Context) {
 	_ = cli.Update(c.Request.Context(), &cm)
 
 	if r.Dry {
-		c.JSON(http.StatusAccepted, gin.H{"message": "monitoring bootstrap accepted (dry-run)", "namespace": r.NS, "mode": r.Mode, "releaseName": r.Name, "dryRun": r.Dry})
+		apierr.Accepted(c, gin.H{"message": "monitoring bootstrap accepted (dry-run)", "namespace": r.NS, "mode": r.Mode, "releaseName": r.Name, "dryRun": r.Dry})
 		return
 	}
 
@@ -2073,7 +2074,7 @@ func Bootstrap(c *gin.Context) {
 
 	logger.WithValues("jobName", jobName, "namespace", r.NS).Info("bootstrap job created")
 
-	c.JSON(http.StatusAccepted, gin.H{
+	apierr.Accepted(c, gin.H{
 		"message":       "monitoring bootstrap started",
 		"namespace":     r.NS,
 		"targetNs":      "polardbx-monitor",
@@ -2153,7 +2154,7 @@ func BootstrapStatus(c *gin.Context) {
 	}
 	response["conditions"] = job.Status.Conditions
 
-	c.JSON(http.StatusOK, response)
+	apierr.OK(c, response)
 }
 
 // Status summarizes discovered monitoring components readiness.
@@ -2282,7 +2283,7 @@ func Status(c *gin.Context) {
 	am["configured"] = amExists
 	am["exists"] = amExists
 
-	c.JSON(http.StatusOK, gin.H{
+	apierr.OK(c, gin.H{
 		"namespace":       ns,
 		"namespaceExists": namespaceExists,
 		"namespaceError":  namespaceError,

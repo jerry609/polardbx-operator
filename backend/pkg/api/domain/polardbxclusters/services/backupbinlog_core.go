@@ -5,8 +5,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"net/http"
-
+	apierr "polardbx-ui-backend/pkg/api/errors"
 	"polardbx-ui-backend/pkg/api/util"
 )
 
@@ -32,7 +31,7 @@ func (s *BackupBinlogService) List(c *gin.Context) {
 		util.HandleK8sError(c, "failed to list backup binlogs", err)
 		return
 	}
-	c.JSON(http.StatusOK, list.Items)
+	apierr.OK(c, list.Items)
 }
 
 func (s *BackupBinlogService) Create(c *gin.Context) {
@@ -43,7 +42,7 @@ func (s *BackupBinlogService) Create(c *gin.Context) {
 	ns := c.DefaultQuery("namespace", "default")
 	var obj polardbxv1.PolarDBXBackupBinlog
 	if err := c.ShouldBindJSON(&obj); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid backup binlog", "details": err.Error()})
+		apierr.AbortValidation(c, "invalid backup binlog: "+err.Error())
 		return
 	}
 	if obj.Namespace == "" {
@@ -53,7 +52,7 @@ func (s *BackupBinlogService) Create(c *gin.Context) {
 		util.HandleK8sError(c, "failed to create backup binlog", err)
 		return
 	}
-	c.JSON(http.StatusCreated, &obj)
+	apierr.Created(c, &obj)
 }
 
 func (s *BackupBinlogService) Get(c *gin.Context) {
@@ -68,7 +67,7 @@ func (s *BackupBinlogService) Get(c *gin.Context) {
 		util.HandleK8sError(c, "failed to get backup binlog", err)
 		return
 	}
-	c.JSON(http.StatusOK, &obj)
+	apierr.OK(c, &obj)
 }
 
 func (s *BackupBinlogService) Update(c *gin.Context) {
@@ -79,7 +78,7 @@ func (s *BackupBinlogService) Update(c *gin.Context) {
 	ns := c.Param("namespace")
 	var obj polardbxv1.PolarDBXBackupBinlog
 	if err := c.ShouldBindJSON(&obj); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid backup binlog", "details": err.Error()})
+		apierr.AbortValidation(c, "invalid backup binlog: "+err.Error())
 		return
 	}
 	obj.Namespace = ns
@@ -87,7 +86,7 @@ func (s *BackupBinlogService) Update(c *gin.Context) {
 		util.HandleK8sError(c, "failed to update backup binlog", err)
 		return
 	}
-	c.JSON(http.StatusOK, &obj)
+	apierr.OK(c, &obj)
 }
 
 func (s *BackupBinlogService) Delete(c *gin.Context) {
@@ -104,5 +103,5 @@ func (s *BackupBinlogService) Delete(c *gin.Context) {
 		util.HandleK8sError(c, "failed to delete backup binlog", err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "backup binlog deleted"})
+	apierr.OK(c, gin.H{"message": "backup binlog deleted"})
 }

@@ -1,8 +1,7 @@
 package domain_monitoring
 
 import (
-	"net/http"
-
+	apierr "polardbx-ui-backend/pkg/api/errors"
 	"polardbx-ui-backend/pkg/api/util"
 	"polardbx-ui-backend/pkg/k8s"
 
@@ -26,7 +25,7 @@ func ListMonitors(c *gin.Context) {
 		util.HandleK8sError(c, "failed to list monitors", err)
 		return
 	}
-	c.JSON(http.StatusOK, monitors)
+	apierr.OK(c, monitors)
 }
 
 // CreateMonitor 创建 PolarDBXMonitor 资源
@@ -38,7 +37,7 @@ func CreateMonitor(c *gin.Context) {
 	namespace := util.DefaultNamespace(c, "default")
 	var monitor polardbxv1.PolarDBXMonitor
 	if err := c.ShouldBindJSON(&monitor); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse monitor data", "details": err.Error()})
+		apierr.AbortValidation(c, "failed to parse monitor data: "+err.Error())
 		return
 	}
 	created, err := k8s.CreatePolarDBXMonitorWithContext(c.Request.Context(), k8sClient, namespace, &monitor)
@@ -46,7 +45,7 @@ func CreateMonitor(c *gin.Context) {
 		util.HandleK8sError(c, "failed to create monitor", err)
 		return
 	}
-	c.JSON(http.StatusCreated, created)
+	apierr.Created(c, created)
 }
 
 // GetMonitor 获取 PolarDBXMonitor 资源
@@ -62,7 +61,7 @@ func GetMonitor(c *gin.Context) {
 		util.HandleK8sError(c, "failed to get monitor", err)
 		return
 	}
-	c.JSON(http.StatusOK, m)
+	apierr.OK(c, m)
 }
 
 // UpdateMonitor 更新 PolarDBXMonitor 资源
@@ -74,7 +73,7 @@ func UpdateMonitor(c *gin.Context) {
 	ns := c.Param("namespace")
 	var m polardbxv1.PolarDBXMonitor
 	if err := c.ShouldBindJSON(&m); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse monitor data", "details": err.Error()})
+		apierr.AbortValidation(c, "failed to parse monitor data: "+err.Error())
 		return
 	}
 	m.Namespace = ns
@@ -83,7 +82,7 @@ func UpdateMonitor(c *gin.Context) {
 		util.HandleK8sError(c, "failed to update monitor", err)
 		return
 	}
-	c.JSON(http.StatusOK, um)
+	apierr.OK(c, um)
 }
 
 // DeleteMonitor 删除 PolarDBXMonitor 资源
@@ -98,5 +97,5 @@ func DeleteMonitor(c *gin.Context) {
 		util.HandleK8sError(c, "failed to delete monitor", err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "monitor deleted successfully"})
+	apierr.OK(c, gin.H{"message": "monitor deleted successfully"})
 }

@@ -1,12 +1,11 @@
 package handler
 
 import (
-	"net/http"
-
 	"github.com/gin-gonic/gin"
 	corev1 "k8s.io/api/core/v1"
 
 	"polardbx-ui-backend/pkg/api/domain/platform/diagnostics/service"
+	apierr "polardbx-ui-backend/pkg/api/errors"
 	"polardbx-ui-backend/pkg/api/util"
 )
 
@@ -27,33 +26,24 @@ func Start(c *gin.Context) {
 	cluster := c.Param("cluster")
 
 	if namespace == "" || cluster == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "invalid_parameters",
-			"message": "命名空间和集群名称不能为空",
-		})
+		apierr.AbortValidation(c, "命名空间和集群名称不能为空")
 		return
 	}
 
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   "k8s_client_error",
-			"message": "无法获取 Kubernetes 客户端",
-		})
+		apierr.AbortInternal(c, "无法获取 Kubernetes 客户端")
 		return
 	}
 
 	svc := service.NewDiagnosticsService(cli)
 	job, err := svc.StartDiagnosis(c.Request.Context(), namespace, cluster)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   "start_diagnosis_failed",
-			"message": err.Error(),
-		})
+		apierr.AbortInternal(c, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusAccepted, job)
+	apierr.Accepted(c, job)
 }
 
 // GetStatus 返回诊断任务的进度/状态
@@ -73,33 +63,24 @@ func GetStatus(c *gin.Context) {
 	id := c.Param("id")
 
 	if namespace == "" || id == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "invalid_parameters",
-			"message": "命名空间和任务ID不能为空",
-		})
+		apierr.AbortValidation(c, "命名空间和任务ID不能为空")
 		return
 	}
 
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   "k8s_client_error",
-			"message": "无法获取 Kubernetes 客户端",
-		})
+		apierr.AbortInternal(c, "无法获取 Kubernetes 客户端")
 		return
 	}
 
 	svc := service.NewDiagnosticsService(cli)
 	job, err := svc.GetDiagnosisStatus(c.Request.Context(), namespace, id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error":   "job_not_found",
-			"message": err.Error(),
-		})
+		apierr.AbortNotFound(c, "diagnostic job", id)
 		return
 	}
 
-	c.JSON(http.StatusOK, job)
+	apierr.OK(c, job)
 }
 
 // ListReports 列出诊断报告
@@ -117,20 +98,14 @@ func ListReports(c *gin.Context) {
 
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   "k8s_client_error",
-			"message": "无法获取 Kubernetes 客户端",
-		})
+		apierr.AbortInternal(c, "无法获取 Kubernetes 客户端")
 		return
 	}
 
 	svc := service.NewDiagnosticsService(cli)
 	reports, err := svc.ListDiagnosisReports(c.Request.Context(), namespace)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   "list_reports_failed",
-			"message": err.Error(),
-		})
+		apierr.AbortInternal(c, err.Error())
 		return
 	}
 
@@ -138,7 +113,7 @@ func ListReports(c *gin.Context) {
 		reports = []service.DiagnosticJob{}
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	apierr.OK(c, gin.H{
 		"namespace": namespace,
 		"reports":   reports,
 		"total":     len(reports),
@@ -163,29 +138,20 @@ func Download(c *gin.Context) {
 	id := c.Param("id")
 
 	if namespace == "" || id == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "invalid_parameters",
-			"message": "命名空间和任务ID不能为空",
-		})
+		apierr.AbortValidation(c, "命名空间和任务ID不能为空")
 		return
 	}
 
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   "k8s_client_error",
-			"message": "无法获取 Kubernetes 客户端",
-		})
+		apierr.AbortInternal(c, "无法获取 Kubernetes 客户端")
 		return
 	}
 
 	svc := service.NewDiagnosticsService(cli)
 	outputPath, err := svc.GetDownloadInfo(c.Request.Context(), namespace, id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error":   "download_not_available",
-			"message": err.Error(),
-		})
+		apierr.AbortNotFound(c, "diagnostic report", id)
 		return
 	}
 
@@ -194,7 +160,7 @@ func Download(c *gin.Context) {
 	// 1. 从 Pod 中复制文件到可访问的存储
 	// 2. 生成预签名 URL
 	// 3. 通过 API 代理流式传输文件
-	c.JSON(http.StatusOK, gin.H{
+	apierr.OK(c, gin.H{
 		"id":        id,
 		"namespace": namespace,
 		"path":      outputPath,
@@ -223,11 +189,7 @@ func GetFile(c *gin.Context) {
 	// 这需要使用 kubernetes client-go 的 exec/cp 功能
 	// 或者使用 kubectl cp 的底层实现
 
-	c.JSON(http.StatusNotImplemented, gin.H{
-		"error":   "not_implemented",
-		"message": "文件下载功能需要额外配置，请使用 kubectl cp 命令下载",
-		"command": "kubectl cp " + namespace + "/polardbx-clinic-" + id + ":/tmp/polardbx-clinic/" + id + ".tar.gz ./" + id + ".tar.gz",
-	})
+	apierr.Abort(c, apierr.Internal("文件下载功能需要额外配置，请使用 kubectl cp 命令下载: kubectl cp "+namespace+"/polardbx-clinic-"+id+":/tmp/polardbx-clinic/"+id+".tar.gz ./"+id+".tar.gz"))
 }
 
 // DeleteJob 删除诊断任务（清理 Pod）
@@ -247,19 +209,13 @@ func DeleteJob(c *gin.Context) {
 	id := c.Param("id")
 
 	if namespace == "" || id == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "invalid_parameters",
-			"message": "命名空间和任务ID不能为空",
-		})
+		apierr.AbortValidation(c, "命名空间和任务ID不能为空")
 		return
 	}
 
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   "k8s_client_error",
-			"message": "无法获取 Kubernetes 客户端",
-		})
+		apierr.AbortInternal(c, "无法获取 Kubernetes 客户端")
 		return
 	}
 
@@ -270,14 +226,11 @@ func DeleteJob(c *gin.Context) {
 	pod.SetNamespace(namespace)
 
 	if err := cli.Delete(c.Request.Context(), pod); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   "delete_failed",
-			"message": err.Error(),
-		})
+		apierr.AbortK8sError(c, "delete diagnostic pod", err)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	apierr.OK(c, gin.H{
 		"message": "诊断任务已删除",
 		"id":      id,
 	})

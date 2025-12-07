@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
 	appsv1 "k8s.io/api/apps/v1"
@@ -10,6 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
+	apierr "polardbx-ui-backend/pkg/api/errors"
 	"polardbx-ui-backend/pkg/api/util"
 )
 
@@ -75,7 +75,7 @@ func (h *LogServiceHandler) status(c *gin.Context) {
 	if state == "not_installed" {
 		resp["installHint"] = "helm install polardbx-logcollector charts/polardbx-logcollector -n polardbx-logcollector --create-namespace"
 	}
-	c.JSON(http.StatusOK, resp)
+	apierr.OK(c, resp)
 }
 
 // ComponentInfo 组件状态信息

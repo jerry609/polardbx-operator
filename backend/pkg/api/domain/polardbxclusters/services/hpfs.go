@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"net"
-	"net/http"
 	"net/url"
 	"strings"
 	"time"
@@ -15,6 +14,7 @@ import (
 	yamlutil "k8s.io/apimachinery/pkg/util/yaml"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	apierr "polardbx-ui-backend/pkg/api/errors"
 	"polardbx-ui-backend/pkg/api/util"
 )
 
@@ -45,12 +45,12 @@ func (s *BackupService) ListHpfsSinks(c *gin.Context) {
 		return
 	}
 	if _, exists := cm.Data["config.yaml"]; !exists {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "config.yaml not found in ConfigMap"})
+		apierr.AbortInternal(c, "config.yaml not found in ConfigMap")
 		return
 	}
 	cfg, err := decodeHpfsConfig(cm)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to parse config.yaml", "details": err.Error()})
+		apierr.AbortInternal(c, "failed to parse config.yaml: "+err.Error())
 		return
 	}
 	type SinkDTO struct {
@@ -77,7 +77,7 @@ func (s *BackupService) ListHpfsSinks(c *gin.Context) {
 		}
 		sinks = append(sinks, dto)
 	}
-	c.JSON(http.StatusOK, gin.H{"namespace": systemNS, "configMap": "polardbx-hpfs-config", "sinks": sinks})
+	apierr.OK(c, gin.H{"namespace": systemNS, "configMap": "polardbx-hpfs-config", "sinks": sinks})
 }
 
 // ValidateHpfsSink validates that a given sink (name+type) exists in HPFS config
@@ -91,7 +91,7 @@ func (s *BackupService) ValidateHpfsSink(c *gin.Context) {
 		Type string `json:"type"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		apierr.AbortValidation(c, "invalid request body")
 		return
 	}
 	systemNS := c.DefaultQuery("systemNamespace", "polardbx-operator-system")
@@ -101,12 +101,12 @@ func (s *BackupService) ValidateHpfsSink(c *gin.Context) {
 		return
 	}
 	if _, exists := cm.Data["config.yaml"]; !exists {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "config.yaml not found in ConfigMap"})
+		apierr.AbortInternal(c, "config.yaml not found in ConfigMap")
 		return
 	}
 	cfg, err := decodeHpfsConfig(cm)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to parse config.yaml", "details": err.Error()})
+		apierr.AbortInternal(c, "failed to parse config.yaml: "+err.Error())
 		return
 	}
 	reqType := normalizeSinkType(req.Type)
@@ -120,7 +120,7 @@ func (s *BackupService) ValidateHpfsSink(c *gin.Context) {
 			break
 		}
 	}
-	c.JSON(http.StatusOK, gin.H{"name": reqName, "type": reqType, "status": status, "message": message})
+	apierr.OK(c, gin.H{"name": reqName, "type": reqType, "status": status, "message": message})
 }
 
 // helpers adapted from original

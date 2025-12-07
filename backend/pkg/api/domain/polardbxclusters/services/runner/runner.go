@@ -2,7 +2,8 @@ package runner
 
 import (
 	"log"
-	"net/http"
+
+	apierr "polardbx-ui-backend/pkg/api/errors"
 
 	"github.com/gin-gonic/gin"
 )
@@ -46,6 +47,6 @@ func Run(c *gin.Context, steps ...Step) *RunResult {
 // JSON 响应帮助函数。
 func RespondOK(c *gin.Context, rr *RunResult) {
 	if !c.Writer.Written() {
-		c.JSON(http.StatusOK, rr)
+		apierr.OK(c, rr)
 	}
 }

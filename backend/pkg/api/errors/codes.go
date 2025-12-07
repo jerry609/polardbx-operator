@@ -66,6 +66,11 @@ const (
 	ErrPrometheusFailed ErrorCode = "MON_8003" // Prometheus operation failed
 	ErrHelmFailed       ErrorCode = "MON_8004" // Helm operation failed
 	ErrInstallFailed    ErrorCode = "MON_8005" // Installation failed
+
+	// Gateway errors (9xxx)
+	ErrBadGateway         ErrorCode = "GW_9001" // Bad gateway (upstream error)
+	ErrGatewayTimeout     ErrorCode = "GW_9002" // Gateway timeout
+	ErrServiceUnavailable ErrorCode = "GW_9003" // Service unavailable
 )
 
 // APIError represents a structured API error
@@ -182,4 +187,9 @@ var codeToHTTPStatus = map[ErrorCode]int{
 	ErrPrometheusFailed: http.StatusInternalServerError,
 	ErrHelmFailed:       http.StatusInternalServerError,
 	ErrInstallFailed:    http.StatusInternalServerError,
+
+	// Gateway errors
+	ErrBadGateway:         http.StatusBadGateway,
+	ErrGatewayTimeout:     http.StatusGatewayTimeout,
+	ErrServiceUnavailable: http.StatusServiceUnavailable,
 }

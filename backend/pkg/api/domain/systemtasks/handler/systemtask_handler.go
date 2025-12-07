@@ -1,13 +1,11 @@
 package handler
 
-
 import (
-	"net/http"
-
 	polardbxv1 "github.com/alibaba/polardbx-operator/api/v1"
 	"github.com/gin-gonic/gin"
 
 	"polardbx-ui-backend/pkg/api/domain/systemtasks/service"
+	apierr "polardbx-ui-backend/pkg/api/errors"
 	"polardbx-ui-backend/pkg/api/util"
 )
 
@@ -41,7 +39,7 @@ func (h *SystemTaskHandler) List(c *gin.Context) {
 	}
 
 	// 4. 返回响应
-	c.JSON(http.StatusOK, tasks)
+	apierr.OK(c, tasks)
 }
 
 // Get 获取单个 SystemTask
@@ -60,7 +58,7 @@ func (h *SystemTaskHandler) Get(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, task)
+	apierr.OK(c, task)
 }
 
 // Create 创建 SystemTask
@@ -74,7 +72,7 @@ func (h *SystemTaskHandler) Create(c *gin.Context) {
 
 	var body polardbxv1.SystemTask
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid system task", "details": err.Error()})
+		apierr.AbortValidation(c, "invalid system task: "+err.Error())
 		return
 	}
 
@@ -84,7 +82,7 @@ func (h *SystemTaskHandler) Create(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, created)
+	apierr.Created(c, created)
 }
 
 // Update 更新 SystemTask
@@ -98,7 +96,7 @@ func (h *SystemTaskHandler) Update(c *gin.Context) {
 
 	var body polardbxv1.SystemTask
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid system task", "details": err.Error()})
+		apierr.AbortValidation(c, "invalid system task: "+err.Error())
 		return
 	}
 
@@ -108,7 +106,7 @@ func (h *SystemTaskHandler) Update(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, updated)
+	apierr.OK(c, updated)
 }
 
 // Delete 删除 SystemTask
@@ -126,7 +124,7 @@ func (h *SystemTaskHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "system task deleted"})
+	apierr.OK(c, gin.H{"message": "system task deleted"})
 }
 
 // RegisterRoutes 注册路由

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	apierr "polardbx-ui-backend/pkg/api/errors"
 	"polardbx-ui-backend/pkg/api/util"
 
 	"github.com/gin-gonic/gin"
@@ -55,7 +56,7 @@ func GetAlertsSummary(c *gin.Context) {
 					summary["total"] = summary["total"].(int) + 1
 				}
 				summary["source"] = "alertmanager"
-				c.JSON(http.StatusOK, summary)
+				apierr.OK(c, summary)
 				return
 			}
 		}
@@ -72,5 +73,5 @@ func GetAlertsSummary(c *gin.Context) {
 		}
 		summary["warning"], summary["total"], summary["source"] = warn, warn, "events"
 	}
-	c.JSON(http.StatusOK, summary)
+	apierr.OK(c, summary)
 }

@@ -1,7 +1,6 @@
 package services
 
 import (
-	"net/http"
 	"time"
 
 	polardbxv1 "github.com/alibaba/polardbx-operator/api/v1"
@@ -9,6 +8,7 @@ import (
 	cronv3 "github.com/robfig/cron/v3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	apierr "polardbx-ui-backend/pkg/api/errors"
 	"polardbx-ui-backend/pkg/api/util"
 	"polardbx-ui-backend/pkg/k8s"
 )
@@ -29,7 +29,7 @@ func (s *BackupScheduleService) List(c *gin.Context) {
 		util.HandleK8sError(c, "failed to list backup schedules", err)
 		return
 	}
-	c.JSON(http.StatusOK, items)
+	apierr.OK(c, items)
 }
 
 func (s *BackupScheduleService) Create(c *gin.Context) {
@@ -40,7 +40,7 @@ func (s *BackupScheduleService) Create(c *gin.Context) {
 	ns := util.DefaultNamespace(c, "default")
 	var body polardbxv1.PolarDBXBackupSchedule
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid schedule", "details": err.Error()})
+		apierr.AbortValidation(c, "invalid schedule: "+err.Error())
 		return
 	}
 	body.Namespace = ns
@@ -49,7 +49,7 @@ func (s *BackupScheduleService) Create(c *gin.Context) {
 		util.HandleK8sError(c, "failed to create backup schedule", err)
 		return
 	}
-	c.JSON(http.StatusCreated, created)
+	apierr.Created(c, created)
 }
 
 func (s *BackupScheduleService) Get(c *gin.Context) {
@@ -64,7 +64,7 @@ func (s *BackupScheduleService) Get(c *gin.Context) {
 		util.HandleK8sError(c, "failed to get backup schedule", err)
 		return
 	}
-	c.JSON(http.StatusOK, item)
+	apierr.OK(c, item)
 }
 
 func (s *BackupScheduleService) Update(c *gin.Context) {
@@ -75,7 +75,7 @@ func (s *BackupScheduleService) Update(c *gin.Context) {
 	ns := c.Param("namespace")
 	var body polardbxv1.PolarDBXBackupSchedule
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid schedule", "details": err.Error()})
+		apierr.AbortValidation(c, "invalid schedule: "+err.Error())
 		return
 	}
 	body.Namespace = ns
@@ -84,7 +84,7 @@ func (s *BackupScheduleService) Update(c *gin.Context) {
 		util.HandleK8sError(c, "failed to update backup schedule", err)
 		return
 	}
-	c.JSON(http.StatusOK, updated)
+	apierr.OK(c, updated)
 }
 
 func (s *BackupScheduleService) Delete(c *gin.Context) {
@@ -98,7 +98,7 @@ func (s *BackupScheduleService) Delete(c *gin.Context) {
 		util.HandleK8sError(c, "failed to delete backup schedule", err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "backup schedule deleted"})
+	apierr.OK(c, gin.H{"message": "backup schedule deleted"})
 }
 
 // GetNextRuns returns per-schedule next run time (uses status.nextBackupTime; cron-parsed otherwise)
@@ -150,5 +150,5 @@ func (s *BackupScheduleService) GetNextRuns(c *gin.Context) {
 		}
 		items = append(items, entry)
 	}
-	c.JSON(http.StatusOK, gin.H{"namespace": namespace, "total": len(items), "schedules": items})
+	apierr.OK(c, gin.H{"namespace": namespace, "total": len(items), "schedules": items})
 }

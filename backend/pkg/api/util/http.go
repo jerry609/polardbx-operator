@@ -4,16 +4,14 @@ import (
 	"context"
 	"encoding/base64"
 	"log"
-	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	apierrors "polardbx-ui-backend/pkg/api/errors"
+	apierr "polardbx-ui-backend/pkg/api/errors"
 	"polardbx-ui-backend/pkg/k8s"
 
 	"k8s.io/client-go/tools/clientcmd"
@@ -25,12 +23,12 @@ import (
 func K8sClientFromContext(c *gin.Context) (client.Client, bool) {
 	v, ok := c.Get("k8sClient")
 	if !ok {
-		apierrors.AbortUnauthorized(c, "Kubernetes client not initialized")
+		apierr.AbortUnauthorized(c, "Kubernetes client not initialized")
 		return nil, false
 	}
 	cli, ok := v.(client.Client)
 	if !ok || cli == nil {
-		apierrors.AbortUnauthorized(c, "Invalid kubernetes client in context")
+		apierr.AbortUnauthorized(c, "Invalid kubernetes client in context")
 		return nil, false
 	}
 	return cli, true
@@ -53,12 +51,12 @@ func ClientsetFromContext(c *gin.Context) (kubernetes.Interface, bool) {
 func DynamicClientFromContext(c *gin.Context) (dynamic.Interface, bool) {
 	v, ok := c.Get("dynamic-client")
 	if !ok {
-		apierrors.AbortInternal(c, "Kubernetes dynamic client not available")
+		apierr.AbortInternal(c, "Kubernetes dynamic client not available")
 		return nil, false
 	}
 	dynClient, ok := v.(dynamic.Interface)
 	if !ok || dynClient == nil {
-		apierrors.AbortInternal(c, "Invalid dynamic client in context")
+		apierr.AbortInternal(c, "Invalid dynamic client in context")
 		return nil, false
 	}
 	return dynClient, true
@@ -87,32 +85,14 @@ func HandleK8sError(c *gin.Context, operation string, err error) {
 		operation, user, requestID, err)
 
 	// Use the unified error handler which sanitizes the response
-	apierrors.AbortK8sError(c, operation, err)
+	apierr.AbortK8sError(c, operation, err)
 }
 
 // HandleK8sErrorLegacy is the old implementation - kept for reference during migration
 // Deprecated: Use HandleK8sError instead
 func HandleK8sErrorLegacy(c *gin.Context, context string, err error) {
-	switch {
-	case k8serrors.IsInvalid(err), k8serrors.IsBadRequest(err):
-		c.JSON(http.StatusBadRequest, gin.H{"error": context, "details": err.Error()})
-	case k8serrors.IsAlreadyExists(err):
-		c.JSON(http.StatusConflict, gin.H{"error": context, "details": err.Error()})
-	case k8serrors.IsNotFound(err):
-		c.JSON(http.StatusNotFound, gin.H{"error": context, "details": err.Error()})
-	case k8serrors.IsForbidden(err):
-		c.JSON(http.StatusForbidden, gin.H{"error": context, "details": err.Error()})
-	case k8serrors.IsUnauthorized(err):
-		c.JSON(http.StatusUnauthorized, gin.H{"error": context, "details": err.Error()})
-	case k8serrors.IsTimeout(err):
-		c.JSON(http.StatusGatewayTimeout, gin.H{"error": context, "details": err.Error()})
-	case k8serrors.IsTooManyRequests(err):
-		c.JSON(http.StatusTooManyRequests, gin.H{"error": context, "details": err.Error()})
-	case k8serrors.IsServiceUnavailable(err):
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": context, "details": err.Error()})
-	default:
-		c.JSON(http.StatusInternalServerError, gin.H{"error": context, "details": err.Error()})
-	}
+	// Delegate to the unified error handler
+	apierr.AbortK8sError(c, context, err)
 }
 
 // ---- Handler timeout helpers ----
@@ -190,7 +170,7 @@ func InitClientsFromKubeconfigB64(c *gin.Context, kubeconfigB64 string) (client.
 
 // NotFound is a helper for deprecated endpoints after migration.
 func NotFound(c *gin.Context) {
-	c.JSON(http.StatusNotFound, gin.H{"error": "endpoint deprecated", "details": "use new domain handlers"})
+	apierr.AbortNotFound(c, "endpoint", "deprecated - use new domain handlers")
 }
 
 // K8sPatchClusterJSON is a small wrapper to patch PolarDBXCluster with raw JSON merge patch.

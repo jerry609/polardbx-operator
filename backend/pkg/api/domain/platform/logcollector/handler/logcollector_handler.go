@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	apierr "polardbx-ui-backend/pkg/api/errors"
+
 	"github.com/gin-gonic/gin"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -47,12 +49,12 @@ func NewLogCollectorHandlerFromContext(c *gin.Context) (*LogCollectorHandler, bo
 func k8sClientFromContext(c *gin.Context) (client.Client, bool) {
 	v, ok := c.Get("k8sClient")
 	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "kubernetes client not initialized"})
+		apierr.AbortForbidden(c, "kubernetes client not initialized")
 		return nil, false
 	}
 	cli, ok := v.(client.Client)
 	if !ok || cli == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid kubernetes client in context"})
+		apierr.AbortForbidden(c, "invalid kubernetes client in context")
 		return nil, false
 	}
 	return cli, true
@@ -72,10 +74,10 @@ func (h *LogCollectorHandler) list(c *gin.Context) {
 	namespace := c.DefaultQuery("namespace", "default")
 	collectors, err := h.repo.List(c.Request.Context(), namespace)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list log collectors", "details": err.Error()})
+		apierr.AbortInternal(c, "failed to list log collectors: "+err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, collectors)
+	apierr.OK(c, collectors)
 }
 
 // Create POST /logcollectors
@@ -92,16 +94,16 @@ func (h *LogCollectorHandler) create(c *gin.Context) {
 	namespace := c.DefaultQuery("namespace", "default")
 	var collector polardbxv1.PolarDBXLogCollector
 	if err := c.ShouldBindJSON(&collector); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse log collector data", "details": err.Error()})
+		apierr.AbortValidation(c, "failed to parse log collector data: "+err.Error())
 		return
 	}
 	collector.Namespace = namespace
 	createdCollector, err := h.repo.Create(c.Request.Context(), &collector)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create log collector", "details": err.Error()})
+		apierr.AbortInternal(c, "failed to create log collector: "+err.Error())
 		return
 	}
-	c.JSON(http.StatusCreated, createdCollector)
+	apierr.Created(c, createdCollector)
 }
 
 // Get GET /logcollectors/:namespace/:name
@@ -119,10 +121,10 @@ func (h *LogCollectorHandler) get(c *gin.Context) {
 	name := c.Param("name")
 	collector, err := h.repo.Get(c.Request.Context(), namespace, name)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "failed to get log collector", "details": err.Error()})
+		apierr.AbortNotFound(c, "log collector", name)
 		return
 	}
-	c.JSON(http.StatusOK, collector)
+	apierr.OK(c, collector)
 }
 
 // Update PUT /logcollectors/:namespace/:name
@@ -139,16 +141,16 @@ func (h *LogCollectorHandler) update(c *gin.Context) {
 	namespace := c.Param("namespace")
 	var collector polardbxv1.PolarDBXLogCollector
 	if err := c.ShouldBindJSON(&collector); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse log collector data", "details": err.Error()})
+		apierr.AbortValidation(c, "failed to parse log collector data: "+err.Error())
 		return
 	}
 	collector.Namespace = namespace
 	updatedCollector, err := h.repo.Update(c.Request.Context(), &collector)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update log collector", "details": err.Error()})
+		apierr.AbortInternal(c, "failed to update log collector: "+err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, updatedCollector)
+	apierr.OK(c, updatedCollector)
 }
 
 // Delete DELETE /logcollectors/:namespace/:name
@@ -168,7 +170,7 @@ func (h *LogCollectorHandler) delete(c *gin.Context) {
 		util.HandleK8sError(c, "failed to delete log collector", err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "log collector deleted successfully"})
+	apierr.OK(c, gin.H{"message": "log collector deleted successfully"})
 }
 
 // ======================== Pipeline 相关函数 ========================
@@ -177,12 +179,12 @@ func (h *LogCollectorHandler) delete(c *gin.Context) {
 func clientsetFromContext(c *gin.Context) (kubernetes.Interface, bool) {
 	v, ok := c.Get("clientset")
 	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "kubeconfig not provided or invalid"})
+		apierr.AbortForbidden(c, "kubeconfig not provided or invalid")
 		return nil, false
 	}
 	cs, ok := v.(kubernetes.Interface)
 	if !ok || cs == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid clientset in context"})
+		apierr.AbortForbidden(c, "invalid clientset in context")
 		return nil, false
 	}
 	return cs, true
@@ -202,18 +204,18 @@ func GetLogstashPipeline(c *gin.Context) {
 	defer cancel()
 	cm, err := clientset.CoreV1().ConfigMaps(namespace).Get(ctx, cmName, metav1.GetOptions{})
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get logstash pipeline configmap", "details": err.Error()})
+		apierr.AbortInternal(c, "failed to get logstash pipeline configmap: "+err.Error())
 		return
 	}
 	if key != "" {
 		if v, ok := cm.Data[key]; ok {
-			c.JSON(http.StatusOK, gin.H{"namespace": namespace, "configMap": cmName, "key": key, "value": v})
+			apierr.OK(c, gin.H{"namespace": namespace, "configMap": cmName, "key": key, "value": v})
 			return
 		}
-		c.JSON(http.StatusNotFound, gin.H{"error": "key not found in configmap"})
+		apierr.AbortNotFound(c, "configmap key", key)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"namespace": namespace, "configMap": cmName, "data": cm.Data})
+	apierr.OK(c, gin.H{"namespace": namespace, "configMap": cmName, "data": cm.Data})
 }
 
 type updatePipelineRequest struct {
@@ -231,7 +233,7 @@ func UpdateLogstashPipeline(c *gin.Context) {
 	cmName := c.DefaultQuery("configMap", "logstash-pipeline")
 	var req updatePipelineRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body", "details": err.Error()})
+		apierr.AbortValidation(c, "invalid request body: "+err.Error())
 		return
 	}
 	if req.Data == nil {
@@ -243,10 +245,10 @@ func UpdateLogstashPipeline(c *gin.Context) {
 	if err != nil {
 		newCm := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: cmName, Namespace: namespace}, Data: req.Data}
 		if _, err2 := clientset.CoreV1().ConfigMaps(namespace).Create(ctx, newCm, metav1.CreateOptions{}); err2 != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create pipeline configmap", "details": err2.Error()})
+			apierr.AbortInternal(c, "failed to create pipeline configmap: "+err2.Error())
 			return
 		}
-		c.JSON(http.StatusCreated, gin.H{"namespace": namespace, "configMap": cmName, "data": req.Data})
+		apierr.Created(c, gin.H{"namespace": namespace, "configMap": cmName, "data": req.Data})
 		return
 	}
 	if cm.Data == nil {
@@ -256,10 +258,10 @@ func UpdateLogstashPipeline(c *gin.Context) {
 		cm.Data[k] = v
 	}
 	if _, err := clientset.CoreV1().ConfigMaps(namespace).Update(ctx, cm, metav1.UpdateOptions{}); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update pipeline configmap", "details": err.Error()})
+		apierr.AbortInternal(c, "failed to update pipeline configmap: "+err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"namespace": namespace, "configMap": cmName, "data": cm.Data})
+	apierr.OK(c, gin.H{"namespace": namespace, "configMap": cmName, "data": cm.Data})
 }
 
 type esCertRequest struct {
@@ -280,7 +282,7 @@ func GetElasticsearchCert(c *gin.Context) {
 	defer cancel()
 	sec, err := clientset.CoreV1().Secrets(namespace).Get(ctx, secName, metav1.GetOptions{})
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get secret", "details": err.Error()})
+		apierr.AbortInternal(c, "failed to get secret: "+err.Error())
 		return
 	}
 	v := string(sec.Data["ca.crt"])
@@ -288,7 +290,7 @@ func GetElasticsearchCert(c *gin.Context) {
 	if include {
 		resp["caCrt"] = v
 	}
-	c.JSON(http.StatusOK, resp)
+	apierr.OK(c, resp)
 }
 
 // UpdateElasticsearchCert PUT /logcollectors/:namespace/es-cert
@@ -302,7 +304,7 @@ func UpdateElasticsearchCert(c *gin.Context) {
 	secName := c.DefaultQuery("name", "elastic-certs-public")
 	var req esCertRequest
 	if err := c.ShouldBindJSON(&req); err != nil || strings.TrimSpace(req.CACrt) == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid caCrt"})
+		apierr.AbortValidation(c, "invalid caCrt")
 		return
 	}
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
@@ -311,10 +313,10 @@ func UpdateElasticsearchCert(c *gin.Context) {
 	if err != nil {
 		newSec := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: secName, Namespace: namespace}, Type: corev1.SecretTypeOpaque, Data: map[string][]byte{"ca.crt": []byte(req.CACrt)}}
 		if _, err2 := clientset.CoreV1().Secrets(namespace).Create(ctx, newSec, metav1.CreateOptions{}); err2 != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create secret", "details": err2.Error()})
+			apierr.AbortInternal(c, "failed to create secret: "+err2.Error())
 			return
 		}
-		c.JSON(http.StatusCreated, gin.H{"namespace": namespace, "secret": secName, "size": len(req.CACrt)})
+		apierr.Created(c, gin.H{"namespace": namespace, "secret": secName, "size": len(req.CACrt)})
 		return
 	}
 	if sec.Data == nil {
@@ -322,10 +324,10 @@ func UpdateElasticsearchCert(c *gin.Context) {
 	}
 	sec.Data["ca.crt"] = []byte(req.CACrt)
 	if _, err := clientset.CoreV1().Secrets(namespace).Update(ctx, sec, metav1.UpdateOptions{}); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update secret", "details": err.Error()})
+		apierr.AbortInternal(c, "failed to update secret: "+err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"namespace": namespace, "secret": secName, "size": len(req.CACrt)})
+	apierr.OK(c, gin.H{"namespace": namespace, "secret": secName, "size": len(req.CACrt)})
 }
 
 // GetLogCollectorStatus GET /logcollectors/:namespace/:name/status
@@ -386,7 +388,7 @@ func GetLogCollectorStatus(c *gin.Context) {
 	} else {
 		resp["logstashError"] = depErr.Error()
 	}
-	c.JSON(http.StatusOK, resp)
+	apierr.OK(c, resp)
 }
 
 // StreamLogstashLogs GET /logcollectors/:namespace/logs
@@ -426,7 +428,7 @@ func StreamLogstashLogs(c *gin.Context) {
 			}
 		}
 		if pod == "" {
-			c.JSON(http.StatusNotFound, gin.H{"error": "no logstash pod found"})
+			apierr.AbortNotFound(c, "logstash pod", "")
 			return
 		}
 	}
@@ -439,7 +441,7 @@ func StreamLogstashLogs(c *gin.Context) {
 	}
 	stream, err := clientset.CoreV1().Pods(namespace).GetLogs(pod, opts).Stream(ctx)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to open log stream", "details": err.Error()})
+		apierr.AbortInternal(c, "failed to open log stream: "+err.Error())
 		return
 	}
 	defer stream.Close()
@@ -505,7 +507,7 @@ func TestLogCollector(c *gin.Context) {
 	} else {
 		checks = append(checks, gin.H{"name": "pipeline exists", "ok": false, "details": cmErr.Error()})
 	}
-	c.JSON(http.StatusOK, gin.H{"checks": checks})
+	apierr.OK(c, gin.H{"checks": checks})
 }
 
 func joinValues(m map[string]string) string {

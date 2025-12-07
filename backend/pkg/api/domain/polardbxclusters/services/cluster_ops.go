@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"log"
-	"net/http"
 	"time"
 
+	apierr "polardbx-ui-backend/pkg/api/errors"
 	"polardbx-ui-backend/pkg/api/util"
 
 	"github.com/gin-gonic/gin"
@@ -31,12 +31,12 @@ func (s *ClusterService) UpdateLogConfig(ctx context.Context, c *gin.Context) er
 	switch nodeType {
 	case "cn", "dn", "gms", "cdc":
 	default:
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid nodeType", "details": nodeType})
+		apierr.AbortValidation(c, "invalid nodeType: "+nodeType)
 		return nil
 	}
 	var req LogConfigRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid log config data", "details": err.Error()})
+		apierr.AbortValidation(c, "invalid log config data: "+err.Error())
 		return nil
 	}
 	patchData := map[string]any{"spec": map[string]any{"config": map[string]any{nodeType: map[string]any{}}}}
@@ -60,7 +60,7 @@ func (s *ClusterService) UpdateLogConfig(ctx context.Context, c *gin.Context) er
 		return nil
 	}
 	log.Printf("ops UpdateLogConfig ok duration=%s", time.Since(start))
-	c.JSON(http.StatusOK, gin.H{"message": nodeType + " log config updated successfully"})
+	apierr.OK(c, gin.H{"message": nodeType + " log config updated successfully"})
 	return nil
 }
 
@@ -76,7 +76,7 @@ func (s *ClusterService) Scale(ctx context.Context, c *gin.Context) error {
 	log.Printf("ops Scale begin: %s/%s", ns, name)
 	var req ClusterScalingRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid scaling request", "details": err.Error()})
+		apierr.AbortValidation(c, "invalid scaling request: "+err.Error())
 		return nil
 	}
 	patch := map[string]any{"spec": map[string]any{"topology": map[string]any{"nodes": map[string]any{}}}}
@@ -91,7 +91,7 @@ func (s *ClusterService) Scale(ctx context.Context, c *gin.Context) error {
 		nodes["cdc"] = map[string]any{"replicas": *req.CDCReplicas}
 	}
 	if len(nodes) == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "no replica changes specified"})
+		apierr.AbortValidation(c, "no replica changes specified")
 		return nil
 	}
 	b, _ := json.Marshal(patch)
@@ -101,7 +101,7 @@ func (s *ClusterService) Scale(ctx context.Context, c *gin.Context) error {
 		return nil
 	}
 	log.Printf("ops Scale ok duration=%s", time.Since(start))
-	c.JSON(http.StatusOK, gin.H{"message": "Cluster scaling initiated successfully"})
+	apierr.OK(c, gin.H{"message": "Cluster scaling initiated successfully"})
 	return nil
 }
 
@@ -117,7 +117,7 @@ func (s *ClusterService) Upgrade(ctx context.Context, c *gin.Context) error {
 	log.Printf("ops Upgrade begin: %s/%s", ns, name)
 	var req ClusterUpgradeRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid upgrade request", "details": err.Error()})
+		apierr.AbortValidation(c, "invalid upgrade request: "+err.Error())
 		return nil
 	}
 	patch := map[string]any{"spec": map[string]any{"topology": map[string]any{"version": req.TargetVersion}}}
@@ -131,6 +131,6 @@ func (s *ClusterService) Upgrade(ctx context.Context, c *gin.Context) error {
 		return nil
 	}
 	log.Printf("ops Upgrade ok duration=%s", time.Since(start))
-	c.JSON(http.StatusOK, gin.H{"message": "Cluster upgrade initiated successfully", "upgrade": gin.H{"targetVersion": req.TargetVersion, "strategy": req.Strategy, "status": "升级已启动"}})
+	apierr.OK(c, gin.H{"message": "Cluster upgrade initiated successfully", "upgrade": gin.H{"targetVersion": req.TargetVersion, "strategy": req.Strategy, "status": "升级已启动"}})
 	return nil
 }

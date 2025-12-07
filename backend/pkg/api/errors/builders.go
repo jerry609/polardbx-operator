@@ -49,6 +49,11 @@ func AlreadyExists(resource, name string) *APIError {
 	return Newf(ErrAlreadyExists, "%s '%s' already exists", resource, name)
 }
 
+// Conflict creates a conflict error (e.g., resource version conflict)
+func Conflict(message string) *APIError {
+	return New(ErrK8sConflict, message)
+}
+
 // Validation creates a validation error
 func Validation(message string) *APIError {
 	return New(ErrValidation, message)
@@ -121,6 +126,11 @@ func extractK8sResourceInfo(err error) string {
 		}
 	}
 	return "Resource not found"
+}
+
+// BadGateway creates a bad gateway error (502)
+func BadGateway(message string) *APIError {
+	return New(ErrBadGateway, message)
 }
 
 // IsNotFound checks if error is a not found error

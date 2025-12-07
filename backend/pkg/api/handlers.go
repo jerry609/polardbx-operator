@@ -7,7 +7,6 @@ import (
 	"io/fs"
 	"log"
 	"net"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -18,6 +17,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
+	apierr "polardbx-ui-backend/pkg/api/errors"
 	apiutil "polardbx-ui-backend/pkg/api/util"
 	"polardbx-ui-backend/pkg/k8s"
 )
@@ -131,8 +131,7 @@ func KubeconfigAuthMiddleware() gin.HandlerFunc {
 		}
 		if kubeconfigB64 == "" {
 			log.Printf("KubeconfigAuthMiddleware: missing kubeconfig for %s from %s", requestPath, c.ClientIP())
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "kubeconfig not provided"})
-			c.Abort()
+			apierr.AbortUnauthorized(c, "kubeconfig not provided")
 			return
 		}
 
@@ -140,23 +139,21 @@ func KubeconfigAuthMiddleware() gin.HandlerFunc {
 		kubeconfig, err := base64.StdEncoding.DecodeString(kubeconfigB64)
 		if err != nil {
 			log.Printf("KubeconfigAuthMiddleware: base64 decode failed for %s from %s: %v", requestPath, c.ClientIP(), err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid kubeconfig base64", "details": err.Error()})
-			c.Abort()
+			apierr.Abort(c, apierr.Validation("invalid kubeconfig base64"))
 			return
 		}
 
 		normalized, cfg, err := normalizeKubeconfig(kubeconfig)
 		if err != nil {
 			log.Printf("KubeconfigAuthMiddleware: normalize failed for %s from %s: %v", requestPath, c.ClientIP(), err)
-			status := http.StatusBadRequest
+			apiErr := apierr.Validation("failed to normalize kubeconfig")
 			switch {
 			case errors.Is(err, fs.ErrPermission):
-				status = http.StatusForbidden
+				apiErr = apierr.Forbidden("permission denied for kubeconfig")
 			case errors.Is(err, fs.ErrNotExist):
-				status = http.StatusBadRequest
+				apiErr = apierr.Validation("kubeconfig file not found")
 			}
-			c.JSON(status, gin.H{"error": "failed to normalize kubeconfig", "details": err.Error()})
-			c.Abort()
+			apierr.Abort(c, apiErr)
 			return
 		}
 
@@ -164,8 +161,7 @@ func KubeconfigAuthMiddleware() gin.HandlerFunc {
 		ctrlClient, clientset, dynClient, err := newAllClientsFromKubeconfig(normalized)
 		if err != nil {
 			log.Printf("KubeconfigAuthMiddleware: client creation failed for %s from %s: %v", requestPath, c.ClientIP(), err)
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "failed to create kubernetes clients", "details": err.Error()})
-			c.Abort()
+			apierr.AbortUnauthorized(c, "failed to create kubernetes clients")
 			return
 		}
 
@@ -200,7 +196,7 @@ func Connect(c *gin.Context) {
 	cs, ok := apiutil.ClientsetFromContext(c)
 	if !ok {
 		log.Printf("Connect: clientset missing for request from %s", c.ClientIP())
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "kubeconfig not provided or invalid"})
+		apierr.AbortUnauthorized(c, "kubeconfig not provided or invalid")
 		return
 	}
 
@@ -239,19 +235,19 @@ func Connect(c *gin.Context) {
 		log.Printf("Connect: server version query failed for context=%s user=%s: %T %v", ctxName, user, err, err)
 		switch {
 		case k8serrors.IsUnauthorized(err):
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "authentication failed", "details": err.Error()})
+			apierr.AbortUnauthorized(c, "authentication failed")
 		case k8serrors.IsForbidden(err):
-			c.JSON(http.StatusForbidden, gin.H{"error": "permission denied", "details": err.Error()})
+			apierr.AbortForbidden(c, "permission denied")
 		default:
 			var netErr net.Error
 			if errors.As(err, &netErr) {
-				payload := gin.H{"error": "apiserver unreachable", "details": err.Error()}
-				if netErr.Timeout() {
-					payload["reason"] = "timeout"
+				apiErr := apierr.Timeout("apiserver unreachable")
+				if !netErr.Timeout() {
+					apiErr = apierr.ServiceUnavailable("apiserver unreachable", 0)
 				}
-				c.JSON(http.StatusGatewayTimeout, payload)
+				apierr.Abort(c, apiErr)
 			} else {
-				c.JSON(http.StatusServiceUnavailable, gin.H{"error": "apiserver unreachable", "details": err.Error()})
+				apierr.Abort(c, apierr.ServiceUnavailable("apiserver unreachable", 0))
 			}
 		}
 		return
@@ -271,7 +267,7 @@ func Connect(c *gin.Context) {
 		log.Printf("Connect: apiserverVersion=%s platform=%s context=%s user=%s", sv.GitVersion, sv.Platform, ctxName, user)
 	}
 
-	c.JSON(http.StatusOK, resp)
+	apierr.OK(c, resp)
 	log.Printf("Connect: connection successful for context=%s user=%s", ctxName, user)
 }
 

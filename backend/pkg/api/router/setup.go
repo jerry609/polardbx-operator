@@ -2,12 +2,11 @@ package router
 
 import (
 	"log"
-	"net/http"
 	"strconv"
 	"strings"
 
 	"polardbx-ui-backend/pkg/api"
-	apierrors "polardbx-ui-backend/pkg/api/errors"
+	apierr "polardbx-ui-backend/pkg/api/errors"
 	"polardbx-ui-backend/pkg/api/middleware"
 	"polardbx-ui-backend/pkg/config"
 
@@ -35,13 +34,13 @@ func SetupRouter() *gin.Engine {
 // setupMiddleware configures all middleware
 func setupMiddleware(r *gin.Engine, cfg *config.ServerConfig) {
 	// Request ID middleware (first, for tracing)
-	r.Use(apierrors.RequestIDMiddleware())
+	r.Use(apierr.RequestIDMiddleware())
 
 	// Recovery middleware - use our enhanced version that returns APIError
-	r.Use(apierrors.RecoveryHandler())
+	r.Use(apierr.RecoveryHandler())
 
 	// Global error handler - catches any unhandled errors and formats them
-	r.Use(apierrors.Handler())
+	r.Use(apierr.Handler())
 
 	// Request logging middleware
 	r.Use(middleware.RequestLogger(middleware.RequestLogConfig{
@@ -63,7 +62,7 @@ func setupRoutes(r *gin.Engine) {
 
 	// Ping endpoint
 	r.GET("/ping", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"message": "pong"})
+		apierr.OK(c, gin.H{"message": "pong"})
 	})
 
 	// API v1 group

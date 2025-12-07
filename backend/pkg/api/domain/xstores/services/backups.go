@@ -1,9 +1,8 @@
 package services
 
 import (
-	"net/http"
-
 	"polardbx-ui-backend/pkg/api/domain/xstores/k8srepo"
+	apierr "polardbx-ui-backend/pkg/api/errors"
 	"polardbx-ui-backend/pkg/api/util"
 
 	"github.com/gin-gonic/gin"
@@ -27,7 +26,7 @@ func (s *BackupsService) List(c *gin.Context) {
 		util.HandleK8sError(c, "failed to list xstore backups", err)
 		return
 	}
-	c.JSON(http.StatusOK, items)
+	apierr.OK(c, items)
 }
 
 func (s *BackupsService) Create(c *gin.Context) {
@@ -38,7 +37,7 @@ func (s *BackupsService) Create(c *gin.Context) {
 	ns := util.DefaultNamespace(c, "default")
 	var body k8srepo.XStoreBackupAlias
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid xstore backup", "details": err.Error()})
+		apierr.AbortValidation(c, "invalid xstore backup: "+err.Error())
 		return
 	}
 	obj := body.As()
@@ -47,7 +46,7 @@ func (s *BackupsService) Create(c *gin.Context) {
 		util.HandleK8sError(c, "failed to create xstore backup", err)
 		return
 	}
-	c.JSON(http.StatusCreated, created)
+	apierr.Created(c, created)
 }
 
 func (s *BackupsService) Get(c *gin.Context) {
@@ -62,7 +61,7 @@ func (s *BackupsService) Get(c *gin.Context) {
 		util.HandleK8sError(c, "failed to get xstore backup", err)
 		return
 	}
-	c.JSON(http.StatusOK, item)
+	apierr.OK(c, item)
 }
 
 func (s *BackupsService) Update(c *gin.Context) {
@@ -73,7 +72,7 @@ func (s *BackupsService) Update(c *gin.Context) {
 	ns := c.Param("namespace")
 	var body k8srepo.XStoreBackupAlias
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid xstore backup", "details": err.Error()})
+		apierr.AbortValidation(c, "invalid xstore backup: "+err.Error())
 		return
 	}
 	obj := body.As()
@@ -83,7 +82,7 @@ func (s *BackupsService) Update(c *gin.Context) {
 		util.HandleK8sError(c, "failed to update xstore backup", err)
 		return
 	}
-	c.JSON(http.StatusOK, updated)
+	apierr.OK(c, updated)
 }
 
 func (s *BackupsService) Delete(c *gin.Context) {
@@ -97,7 +96,7 @@ func (s *BackupsService) Delete(c *gin.Context) {
 		util.HandleK8sError(c, "failed to delete xstore backup", err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "xstore backup deleted"})
+	apierr.OK(c, gin.H{"message": "xstore backup deleted"})
 }
 
 func (s *BackupsService) ForceDelete(c *gin.Context) {
@@ -118,7 +117,7 @@ func (s *BackupsService) ForceDelete(c *gin.Context) {
 		util.HandleK8sError(c, "failed to remove finalizers", err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "xstore backup finalizers removed"})
+	apierr.OK(c, gin.H{"message": "xstore backup finalizers removed"})
 }
 
 func (s *BackupsService) RemoteInfo(c *gin.Context) {
@@ -133,5 +132,5 @@ func (s *BackupsService) RemoteInfo(c *gin.Context) {
 		util.HandleK8sError(c, "failed to get xstore backup", err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"namespace": ns, "name": name, "phase": bk.Status.Phase})
+	apierr.OK(c, gin.H{"namespace": ns, "name": name, "phase": bk.Status.Phase})
 }

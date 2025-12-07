@@ -21,6 +21,7 @@ import (
 
 	"polardbx-ui-backend/pkg/api/domain/platform/pod/repository"
 	"polardbx-ui-backend/pkg/api/domain/platform/pod/service"
+	apierr "polardbx-ui-backend/pkg/api/errors"
 	"polardbx-ui-backend/pkg/api/util"
 )
 
@@ -75,7 +76,7 @@ func (h *PodHandler) getLogs(c *gin.Context) {
 	}
 	result, err := h.service.GetLogs(c.Request.Context(), ns, pod, container, tail)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get logs", "details": err.Error()})
+		apierr.AbortK8sError(c, "get pod logs", err)
 		return
 	}
 	c.Data(http.StatusOK, "text/plain; charset=utf-8", []byte(result))
@@ -95,10 +96,10 @@ func (h *PodHandler) listForCluster(c *gin.Context) {
 	cluster := c.Param("name")
 	pods, err := h.service.ListForCluster(c.Request.Context(), ns, cluster)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list pods", "details": err.Error()})
+		apierr.AbortK8sError(c, "list cluster pods", err)
 		return
 	}
-	c.JSON(http.StatusOK, pods)
+	apierr.OK(c, pods)
 }
 
 // List 列出命名空间的所有 Pod
@@ -114,10 +115,10 @@ func (h *PodHandler) list(c *gin.Context) {
 	ns := c.DefaultQuery("namespace", "default")
 	pods, err := h.service.List(c.Request.Context(), ns)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list pods", "details": err.Error()})
+		apierr.AbortK8sError(c, "list pods", err)
 		return
 	}
-	c.JSON(http.StatusOK, pods)
+	apierr.OK(c, pods)
 }
 
 // Get 获取指定的 Pod
@@ -134,10 +135,10 @@ func (h *PodHandler) get(c *gin.Context) {
 	name := c.Param("name")
 	pod, err := h.service.Get(c.Request.Context(), ns, name)
 	if err != nil {
-		util.HandleK8sError(c, "failed to get pod", err)
+		apierr.AbortK8sError(c, "get pod", err)
 		return
 	}
-	c.JSON(http.StatusOK, pod)
+	apierr.OK(c, pod)
 }
 
 // Delete 删除指定的 Pod
@@ -153,10 +154,10 @@ func (h *PodHandler) delete(c *gin.Context) {
 	ns := c.Param("namespace")
 	name := c.Param("name")
 	if err := h.service.Delete(c.Request.Context(), ns, name); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete pod", "details": err.Error()})
+		apierr.AbortK8sError(c, "delete pod", err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "pod deleted"})
+	apierr.OK(c, gin.H{"message": "pod deleted"})
 }
 
 // ExecWS WebSocket 代理 K8s Exec
@@ -278,13 +279,13 @@ func handleExecWebSocketSecure(c *gin.Context, rows, cols int) {
 	// Security: Get the authenticated kubeconfig from context (set by KubeconfigAuthMiddleware)
 	normalizedKubeconfig, exists := c.Get("normalizedKubeconfig")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "authentication required"})
+		apierr.Abort(c, apierr.Unauthorized("authentication required"))
 		return
 	}
 
 	kubeconfig, ok := normalizedKubeconfig.([]byte)
 	if !ok || len(kubeconfig) == 0 {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid authentication state"})
+		apierr.Abort(c, apierr.Unauthorized("invalid authentication state"))
 		return
 	}
 
@@ -296,7 +297,7 @@ func handleExecWebSocketSecure(c *gin.Context, rows, cols int) {
 	restCfg, err := clientcmd.RESTConfigFromKubeConfig(kubeconfig)
 	if err != nil {
 		log.Printf("ERROR: Failed to create REST config for exec: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "configuration error"})
+		apierr.AbortInternal(c, "configuration error")
 		return
 	}
 	restCfg.APIPath = "/api"
@@ -306,7 +307,7 @@ func handleExecWebSocketSecure(c *gin.Context, rows, cols int) {
 	clientset, err := kubernetes.NewForConfig(restCfg)
 	if err != nil {
 		log.Printf("ERROR: Failed to create clientset for exec: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "client initialization failed"})
+		apierr.AbortInternal(c, "client initialization failed")
 		return
 	}
 
@@ -407,8 +408,5 @@ func handleExecWebSocketSecure(c *gin.Context, rows, cols int) {
 // handleExecWebSocketFast is DEPRECATED - use handleExecWebSocketSecure instead
 // Kept for reference but should not be called
 func handleExecWebSocketFast(c *gin.Context, rows, cols int) {
-	c.JSON(http.StatusForbidden, gin.H{
-		"error":   "this endpoint has been disabled for security reasons",
-		"message": "Pod exec now uses backend-controlled authentication",
-	})
+	apierr.Abort(c, apierr.Forbidden("this endpoint has been disabled for security reasons: Pod exec now uses backend-controlled authentication"))
 }

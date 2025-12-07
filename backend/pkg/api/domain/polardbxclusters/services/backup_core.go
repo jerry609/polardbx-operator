@@ -11,6 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	apierr "polardbx-ui-backend/pkg/api/errors"
 	"polardbx-ui-backend/pkg/api/middleware"
 	"polardbx-ui-backend/pkg/api/util"
 	"polardbx-ui-backend/pkg/k8s"
@@ -41,7 +42,7 @@ func (s *BackupService) List(c *gin.Context) {
 		return
 	}
 	logger.Info("listed %d backups for cluster=%s", len(backups), clusterName)
-	c.JSON(http.StatusOK, backups)
+	apierr.OK(c, backups)
 }
 
 // Create 为集群创建备份
@@ -55,7 +56,7 @@ func (s *BackupService) Create(c *gin.Context) {
 	var backup polardbxv1.PolarDBXBackup
 	if err := c.ShouldBindJSON(&backup); err != nil {
 		logger.Error(err, "failed to parse backup data")
-		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse backup data", "details": err.Error()})
+		apierr.AbortValidation(c, "failed to parse backup data: "+err.Error())
 		return
 	}
 	clusterName := c.Param("name")
@@ -75,7 +76,7 @@ func (s *BackupService) Create(c *gin.Context) {
 	}
 	logger.Info("backup created successfully name=%s for cluster=%s", created.Name, clusterName)
 	middleware.LogAudit(c, "CREATE", "PolarDBXBackup", namespace, created.Name, true)
-	c.JSON(http.StatusCreated, created)
+	apierr.Created(c, created)
 }
 
 // Validate 通过 dry-run 校验备份
@@ -89,7 +90,7 @@ func (s *BackupService) Validate(c *gin.Context) {
 	var backup polardbxv1.PolarDBXBackup
 	if err := c.ShouldBindJSON(&backup); err != nil {
 		logger.Error(err, "failed to parse backup data for validation")
-		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse backup data", "details": err.Error()})
+		apierr.AbortValidation(c, "failed to parse backup data: "+err.Error())
 		return
 	}
 	ns := c.Query("namespace")
@@ -107,7 +108,7 @@ func (s *BackupService) Validate(c *gin.Context) {
 		return
 	}
 	logger.Info("backup validation passed name=%s namespace=%s", backup.Name, ns)
-	c.JSON(http.StatusOK, gin.H{"valid": true})
+	apierr.OK(c, gin.H{"valid": true})
 }
 
 // StreamEvents 以 SSE 方式输出备份事件（轮询）
@@ -121,7 +122,7 @@ func (s *BackupService) StreamEvents(c *gin.Context) {
 	w := c.Writer
 	flusher, ok := w.(http.Flusher)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "streaming unsupported"})
+		apierr.AbortInternal(c, "streaming unsupported")
 		return
 	}
 	w.Header().Set("Content-Type", "text/event-stream")
@@ -214,7 +215,7 @@ func (s *BackupService) GetMetrics(c *gin.Context) {
 			progress = 90
 		}
 	}
-	c.JSON(http.StatusOK, gin.H{"phase": phase, "progress": progress, "estimated": true, "children": gin.H{"total": total, "finished": finished, "failed": failed}})
+	apierr.OK(c, gin.H{"phase": phase, "progress": progress, "estimated": true, "children": gin.H{"total": total, "finished": finished, "failed": failed}})
 }
 
 // ForceDelete 移除 PolarDBXBackup 的 finalizers 并触发删除
@@ -262,7 +263,7 @@ func (s *BackupService) ForceDelete(c *gin.Context) {
 	}
 	logger.Info("backup force deleted successfully name=%s namespace=%s", name, ns)
 	middleware.LogAudit(c, "FORCE_DELETE", "PolarDBXBackup", ns, name, true)
-	c.JSON(http.StatusOK, gin.H{"message": "backup finalizers removed and deletion triggered"})
+	apierr.OK(c, gin.H{"message": "backup finalizers removed and deletion triggered"})
 }
 
 // GetOverview aggregates last 24h KPIs (migrated from legacy)
@@ -320,7 +321,7 @@ func (s *BackupService) GetOverview(c *gin.Context) {
 	if c.DefaultQuery("evaluateStorage", "false") == "true" {
 		// For now, we skip online S3 scan here; retain legacy behavior via placeholders
 	}
-	c.JSON(http.StatusOK, gin.H{"namespace": namespace, "timeWindowHours": 24, "generatedAt": now.Format(time.RFC3339), "kpi": kpi})
+	apierr.OK(c, gin.H{"namespace": namespace, "timeWindowHours": 24, "generatedAt": now.Format(time.RFC3339), "kpi": kpi})
 }
 
 // GetClusterState aggregates per-cluster backup state: latest full backup, next schedule time, and RPO
@@ -430,7 +431,7 @@ func (s *BackupService) GetClusterState(c *gin.Context) {
 		out = append(out, entry)
 	}
 
-	c.JSON(http.StatusOK, gin.H{"namespace": namespace, "total": len(out), "clusters": out})
+	apierr.OK(c, gin.H{"namespace": namespace, "total": len(out), "clusters": out})
 }
 
 // GetBinlogMetrics aggregates binlog CRs and latest backup LRT per cluster
@@ -496,7 +497,7 @@ func (s *BackupService) GetBinlogMetrics(c *gin.Context) {
 		}
 		items = append(items, entry)
 	}
-	c.JSON(http.StatusOK, gin.H{"namespace": namespace, "total": len(items), "binlogs": items})
+	apierr.OK(c, gin.H{"namespace": namespace, "total": len(items), "binlogs": items})
 }
 
 func isBackupNewer(a, b polardbxv1.PolarDBXBackup) bool {
@@ -547,5 +548,5 @@ func (s *BackupService) Delete(c *gin.Context) {
 	}
 	logger.Info("backup deleted successfully name=%s namespace=%s", name, ns)
 	middleware.LogAudit(c, "DELETE", "PolarDBXBackup", ns, name, true)
-	c.JSON(http.StatusOK, gin.H{"message": "backup deleted successfully"})
+	apierr.OK(c, gin.H{"message": "backup deleted successfully"})
 }

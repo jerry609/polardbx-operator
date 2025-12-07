@@ -1,12 +1,11 @@
 package services
 
 import (
-	"net/http"
-
 	v1 "github.com/alibaba/polardbx-operator/api/v1"
 	"github.com/gin-gonic/gin"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	apierr "polardbx-ui-backend/pkg/api/errors"
 	"polardbx-ui-backend/pkg/api/util"
 )
 
@@ -30,7 +29,7 @@ func (s *BackupBinlogService) List(c *gin.Context) {
 		util.HandleK8sError(c, "failed to list xstore backup binlogs", err)
 		return
 	}
-	c.JSON(http.StatusOK, list.Items)
+	apierr.OK(c, list.Items)
 }
 
 func (s *BackupBinlogService) Create(c *gin.Context) {
@@ -41,7 +40,7 @@ func (s *BackupBinlogService) Create(c *gin.Context) {
 	ns := c.DefaultQuery("namespace", "default")
 	var obj v1.XStoreBackupBinlog
 	if err := c.ShouldBindJSON(&obj); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid xstore backup binlog", "details": err.Error()})
+		apierr.AbortValidation(c, "invalid xstore backup binlog: "+err.Error())
 		return
 	}
 	if obj.Namespace == "" {
@@ -51,7 +50,7 @@ func (s *BackupBinlogService) Create(c *gin.Context) {
 		util.HandleK8sError(c, "failed to create xstore backup binlog", err)
 		return
 	}
-	c.JSON(http.StatusCreated, &obj)
+	apierr.Created(c, &obj)
 }
 
 func (s *BackupBinlogService) Get(c *gin.Context) {
@@ -66,7 +65,7 @@ func (s *BackupBinlogService) Get(c *gin.Context) {
 		util.HandleK8sError(c, "failed to get xstore backup binlog", err)
 		return
 	}
-	c.JSON(http.StatusOK, &obj)
+	apierr.OK(c, &obj)
 }
 
 func (s *BackupBinlogService) Update(c *gin.Context) {
@@ -77,7 +76,7 @@ func (s *BackupBinlogService) Update(c *gin.Context) {
 	ns := c.Param("namespace")
 	var obj v1.XStoreBackupBinlog
 	if err := c.ShouldBindJSON(&obj); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid xstore backup binlog", "details": err.Error()})
+		apierr.AbortValidation(c, "invalid xstore backup binlog: "+err.Error())
 		return
 	}
 	obj.Namespace = ns
@@ -85,7 +84,7 @@ func (s *BackupBinlogService) Update(c *gin.Context) {
 		util.HandleK8sError(c, "failed to update xstore backup binlog", err)
 		return
 	}
-	c.JSON(http.StatusOK, &obj)
+	apierr.OK(c, &obj)
 }
 
 func (s *BackupBinlogService) Delete(c *gin.Context) {
@@ -102,5 +101,5 @@ func (s *BackupBinlogService) Delete(c *gin.Context) {
 		util.HandleK8sError(c, "failed to delete xstore backup binlog", err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "xstore backup binlog deleted"})
+	apierr.OK(c, gin.H{"message": "xstore backup binlog deleted"})
 }

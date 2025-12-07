@@ -7,7 +7,6 @@ import (
 	"embed"
 	"fmt"
 	"io/fs"
-	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -15,6 +14,7 @@ import (
 	"strings"
 	"sync"
 
+	apierr "polardbx-ui-backend/pkg/api/errors"
 	"polardbx-ui-backend/pkg/api/util"
 
 	"github.com/gin-gonic/gin"
@@ -143,9 +143,7 @@ func (h *PrometheusRuleHandler) List(c *gin.Context) {
 	}
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Failed to list PrometheusRules: %v", err),
-		})
+		apierr.AbortInternal(c, fmt.Sprintf("Failed to list PrometheusRules: %v", err))
 		return
 	}
 
@@ -155,7 +153,7 @@ func (h *PrometheusRuleHandler) List(c *gin.Context) {
 		rules = append(rules, rule)
 	}
 
-	c.JSON(http.StatusOK, rules)
+	apierr.OK(c, rules)
 }
 
 // GetYAML 获取 PrometheusRule 的 YAML 内容
@@ -164,9 +162,7 @@ func (h *PrometheusRuleHandler) GetYAML(c *gin.Context) {
 	name := c.Param("name")
 
 	if namespace == "" || name == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "namespace and name are required",
-		})
+		apierr.AbortValidation(c, "namespace and name are required")
 		return
 	}
 
@@ -174,9 +170,7 @@ func (h *PrometheusRuleHandler) GetYAML(c *gin.Context) {
 
 	obj, err := h.dynamicClient.Resource(prometheusRuleGVR).Namespace(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Failed to get PrometheusRule: %v", err),
-		})
+		apierr.AbortInternal(c, fmt.Sprintf("Failed to get PrometheusRule: %v", err))
 		return
 	}
 
@@ -189,13 +183,11 @@ func (h *PrometheusRuleHandler) GetYAML(c *gin.Context) {
 
 	yamlBytes, err := yaml.Marshal(obj.Object)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Failed to marshal to YAML: %v", err),
-		})
+		apierr.AbortInternal(c, fmt.Sprintf("Failed to marshal to YAML: %v", err))
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	apierr.OK(c, gin.H{
 		"yaml": string(yamlBytes),
 	})
 }
@@ -207,15 +199,13 @@ func (h *PrometheusRuleHandler) ValidateRule(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid request body: yaml field is required",
-		})
+		apierr.AbortValidation(c, "Invalid request body: yaml field is required")
 		return
 	}
 
 	_, outcome := runRuleValidation(body.YAML)
 
-	c.JSON(http.StatusOK, gin.H{
+	apierr.OK(c, gin.H{
 		"success":  outcome.Success,
 		"message":  outcome.Message,
 		"details":  outcome.Details,
@@ -230,9 +220,7 @@ func (h *PrometheusRuleHandler) ValidateRule(c *gin.Context) {
 func (h *PrometheusRuleHandler) ListTemplates(c *gin.Context) {
 	templates, err := loadAllTemplates()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Failed to load templates: %v", err),
-		})
+		apierr.AbortInternal(c, fmt.Sprintf("Failed to load templates: %v", err))
 		return
 	}
 
@@ -243,7 +231,7 @@ func (h *PrometheusRuleHandler) ListTemplates(c *gin.Context) {
 	}
 
 	// 返回前端期望的格式: { items: [...], directory: "..." }
-	c.JSON(http.StatusOK, gin.H{
+	apierr.OK(c, gin.H{
 		"items":     templates,
 		"directory": directory,
 	})
@@ -253,21 +241,17 @@ func (h *PrometheusRuleHandler) ListTemplates(c *gin.Context) {
 func (h *PrometheusRuleHandler) GetTemplate(c *gin.Context) {
 	templateName := c.Param("name")
 	if templateName == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "template name is required",
-		})
+		apierr.AbortValidation(c, "template name is required")
 		return
 	}
 
 	template, err := loadTemplateDetail(templateName)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": fmt.Sprintf("Template not found: %v", err),
-		})
+		apierr.AbortNotFound(c, "template", templateName)
 		return
 	}
 
-	c.JSON(http.StatusOK, template)
+	apierr.OK(c, template)
 }
 
 // ApplyTemplate 应用模板到集群
@@ -279,27 +263,21 @@ func (h *PrometheusRuleHandler) ApplyTemplate(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid request body",
-		})
+		apierr.AbortValidation(c, "Invalid request body")
 		return
 	}
 
 	// 获取模板详情
 	template, err := loadTemplateDetail(body.TemplateName)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": fmt.Sprintf("Template not found: %v", err),
-		})
+		apierr.AbortNotFound(c, "template", body.TemplateName)
 		return
 	}
 
 	// 解析 YAML 内容
 	var obj unstructured.Unstructured
 	if err := yaml.Unmarshal([]byte(template.Content), &obj.Object); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Failed to parse template: %v", err),
-		})
+		apierr.AbortInternal(c, fmt.Sprintf("Failed to parse template: %v", err))
 		return
 	}
 
@@ -320,12 +298,10 @@ func (h *PrometheusRuleHandler) ApplyTemplate(c *gin.Context) {
 		obj.SetResourceVersion(existing.GetResourceVersion())
 		_, err = h.dynamicClient.Resource(prometheusRuleGVR).Namespace(body.Namespace).Update(ctx, &obj, metav1.UpdateOptions{})
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": fmt.Sprintf("Failed to update PrometheusRule: %v", err),
-			})
+			apierr.AbortInternal(c, fmt.Sprintf("Failed to update PrometheusRule: %v", err))
 			return
 		}
-		c.JSON(http.StatusOK, gin.H{
+		apierr.OK(c, gin.H{
 			"message": "PrometheusRule updated successfully",
 			"name":    obj.GetName(),
 		})
@@ -333,12 +309,10 @@ func (h *PrometheusRuleHandler) ApplyTemplate(c *gin.Context) {
 		// 创建新资源
 		_, err = h.dynamicClient.Resource(prometheusRuleGVR).Namespace(body.Namespace).Create(ctx, &obj, metav1.CreateOptions{})
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": fmt.Sprintf("Failed to create PrometheusRule: %v", err),
-			})
+			apierr.AbortInternal(c, fmt.Sprintf("Failed to create PrometheusRule: %v", err))
 			return
 		}
-		c.JSON(http.StatusOK, gin.H{
+		apierr.OK(c, gin.H{
 			"message": "PrometheusRule created successfully",
 			"name":    obj.GetName(),
 		})

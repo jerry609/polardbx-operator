@@ -2,11 +2,11 @@ package services
 
 import (
 	"log"
-	"net/http"
 	"strconv"
 	"time"
 
 	"polardbx-ui-backend/pkg/api/domain/xstores/k8srepo"
+	apierr "polardbx-ui-backend/pkg/api/errors"
 	"polardbx-ui-backend/pkg/api/util"
 
 	polardbxv1 "github.com/alibaba/polardbx-operator/api/v1"
@@ -53,7 +53,7 @@ func (s *RebuildService) Status(c *gin.Context) {
 			items = append(items, map[string]any{"name": f.Name, "phase": string(f.Status.Phase), "message": f.Status.Message, "targetPod": f.Status.TargetPodName})
 		}
 	}
-	c.JSON(http.StatusOK, gin.H{"namespace": ns, "xstore": xname, "active": items})
+	apierr.OK(c, gin.H{"namespace": ns, "xstore": xname, "active": items})
 }
 
 // Wait 轮询等待指定 follower 进入结束态（成功/失败/删除中），支持超时与间隔。
@@ -65,7 +65,7 @@ func (s *RebuildService) Wait(c *gin.Context) {
 	ns := c.Param("namespace")
 	name := c.Query("follower")
 	if name == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "follower is required"})
+		apierr.AbortValidation(c, "follower is required")
 		return
 	}
 	timeoutSec, _ := strconv.Atoi(c.DefaultQuery("timeoutSec", "300"))
@@ -78,11 +78,11 @@ func (s *RebuildService) Wait(c *gin.Context) {
 			return
 		}
 		if polardbxv1xstore.IsEndPhase(f.Status.Phase) {
-			c.JSON(http.StatusOK, gin.H{"name": f.Name, "phase": string(f.Status.Phase), "message": f.Status.Message})
+			apierr.OK(c, gin.H{"name": f.Name, "phase": string(f.Status.Phase), "message": f.Status.Message})
 			return
 		}
 		if time.Now().After(deadline) {
-			c.JSON(http.StatusGatewayTimeout, gin.H{"error": "timeout", "name": f.Name, "phase": string(f.Status.Phase)})
+			apierr.Abort(c, apierr.New(apierr.ErrTimeout, "timeout waiting for follower "+f.Name+" (phase: "+string(f.Status.Phase)+")"))
 			return
 		}
 		log.Printf("rebuild wait: ns=%s follower=%s phase=%s", ns, name, f.Status.Phase)
@@ -99,7 +99,7 @@ func (s *RebuildService) Progress(c *gin.Context) {
 	ns := c.Param("namespace")
 	name := c.Query("follower")
 	if name == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "follower is required"})
+		apierr.AbortValidation(c, "follower is required")
 		return
 	}
 	var f polardbxv1.XStoreFollower
@@ -107,7 +107,7 @@ func (s *RebuildService) Progress(c *gin.Context) {
 		util.HandleK8sError(c, "failed to get follower", err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"name": f.Name, "phase": string(f.Status.Phase), "message": f.Status.Message, "targetPod": f.Status.TargetPodName})
+	apierr.OK(c, gin.H{"name": f.Name, "phase": string(f.Status.Phase), "message": f.Status.Message, "targetPod": f.Status.TargetPodName})
 }
 
 // Cancel: 取消（删除）XStoreFollower 任务
@@ -140,7 +140,7 @@ func (s *RebuildService) Cancel(c *gin.Context) {
 	}
 
 	if targetFollower == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "no active rebuild task found for xstore", "xstore": xstoreName})
+		apierr.AbortNotFound(c, "rebuild task", xstoreName)
 		return
 	}
 
@@ -150,7 +150,7 @@ func (s *RebuildService) Cancel(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	apierr.OK(c, gin.H{
 		"message": "rebuild task cancelled",
 		"task":    targetFollower.Name,
 		"xstore":  xstoreName,
@@ -185,7 +185,7 @@ func createFollowerWithRole(c *gin.Context, role polardbxv1xstore.FollowerRole) 
 	}
 	if xstoreName == "" {
 		log.Printf("rebuild create missing xStoreName: ns=%s, name=%s", ns, name)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "xStoreName is required"})
+		apierr.AbortValidation(c, "xStoreName is required")
 		return
 	}
 	obj := &polardbxv1.XStoreFollower{}
@@ -234,5 +234,5 @@ func createFollowerWithRole(c *gin.Context, role polardbxv1xstore.FollowerRole) 
 		return
 	}
 	log.Printf("rebuild create ok: ns=%s name=%s xstore=%s role=%s target=%s", ns, name, xstoreName, role, obj.Spec.TargetPodName)
-	c.JSON(http.StatusCreated, obj)
+	apierr.Created(c, obj)
 }

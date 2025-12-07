@@ -8,7 +8,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -21,6 +20,8 @@ import (
 	systemtask "github.com/alibaba/polardbx-operator/api/v1/systemtask"
 	"github.com/gin-gonic/gin"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	apierr "polardbx-ui-backend/pkg/api/errors"
 )
 
 // ======================== Types ========================
@@ -44,12 +45,12 @@ type Checklist struct {
 func getK8sClient(c *gin.Context) (client.Client, bool) {
 	v, ok := c.Get("k8sClient")
 	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "kubernetes client not initialized"})
+		apierr.AbortForbidden(c, "kubernetes client not initialized")
 		return nil, false
 	}
 	cli, ok := v.(client.Client)
 	if !ok || cli == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid kubernetes client in context"})
+		apierr.AbortForbidden(c, "invalid kubernetes client in context")
 		return nil, false
 	}
 	return cli, true
@@ -444,7 +445,7 @@ func GetPrechangeChecklist(c *gin.Context) {
 
 	hasRecent, lastBackupTime, rpoLagSeconds, storageConnectivity, rpoOk, err := computePrechangeChecklist(c, k8sClient, namespace, name, windowHours, now)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list backups", "details": err.Error()})
+		apierr.AbortInternal(c, "failed to list backups: "+err.Error())
 		return
 	}
 
@@ -459,7 +460,7 @@ func GetPrechangeChecklist(c *gin.Context) {
 		"rpoLagSeconds":       rpoLagSeconds,
 		"storageConnectivity": storageConnectivity,
 	}, "plan": plan}
-	c.JSON(http.StatusOK, resp)
+	apierr.OK(c, resp)
 }
 
 // Precheck 执行预检并返回 pass/warnings/errors 和轻量 token
@@ -474,7 +475,7 @@ func Precheck(c *gin.Context) {
 
 	var req PrecheckRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid precheck request", "details": err.Error()})
+		apierr.AbortValidation(c, "invalid precheck request: "+err.Error())
 		return
 	}
 	op := req.Operation
@@ -484,14 +485,14 @@ func Precheck(c *gin.Context) {
 			op = "config"
 		}
 	default:
-		c.JSON(http.StatusBadRequest, gin.H{"error": "unsupported operation", "operation": op})
+		apierr.AbortValidation(c, "unsupported operation: "+op)
 		return
 	}
 
 	now := time.Now()
 	hasRecent, lastBackupTime, rpoLagSeconds, storageConnectivity, rpoOk, err := computePrechangeChecklist(c, k8sClient, ns, name, 24, now)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to compute checklist", "details": err.Error()})
+		apierr.AbortInternal(c, "failed to compute checklist: "+err.Error())
 		return
 	}
 
@@ -585,7 +586,7 @@ func Precheck(c *gin.Context) {
 	secret := getPrecheckSecret(c, k8sClient)
 	sig := signPrecheckToken(secret, plain)
 
-	c.JSON(http.StatusOK, gin.H{
+	apierr.OK(c, gin.H{
 		"pass":      pass,
 		"operation": op,
 		"warnings":  warnings,

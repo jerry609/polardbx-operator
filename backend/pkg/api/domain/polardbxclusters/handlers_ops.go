@@ -1,8 +1,6 @@
 package polardbxclusters
 
 import (
-	"net/http"
-
 	polardbxv1 "github.com/alibaba/polardbx-operator/api/v1"
 	"github.com/gin-gonic/gin"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -11,6 +9,7 @@ import (
 	domain_prechange "polardbx-ui-backend/pkg/api/domain/platform/prechange/handler"
 	domain_restore "polardbx-ui-backend/pkg/api/domain/platform/restore/handler"
 	"polardbx-ui-backend/pkg/api/domain/polardbxclusters/services"
+	apierr "polardbx-ui-backend/pkg/api/errors"
 	"polardbx-ui-backend/pkg/api/util"
 )
 
@@ -59,7 +58,7 @@ func GetUpgradePlan(c *gin.Context) {
 	// 获取当前集群信息
 	var cluster polardbxv1.PolarDBXCluster
 	if err := cli.Get(c.Request.Context(), client.ObjectKey{Namespace: namespace, Name: name}, &cluster); err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "cluster not found", "details": err.Error()})
+		apierr.AbortNotFound(c, "cluster", name)
 		return
 	}
 
@@ -81,7 +80,7 @@ func GetUpgradePlan(c *gin.Context) {
 		},
 	}
 
-	c.JSON(http.StatusOK, resp)
+	apierr.OK(c, resp)
 }
 
 // buildUpgradeCandidates 构建升级候选列表

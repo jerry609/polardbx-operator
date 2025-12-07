@@ -4,9 +4,10 @@ import (
 	"net/http"
 	"time"
 
-	"polardbx-ui-backend/pkg/config"
-
 	"github.com/gin-gonic/gin"
+
+	apierr "polardbx-ui-backend/pkg/api/errors"
+	"polardbx-ui-backend/pkg/config"
 )
 
 var startTime = time.Now()
@@ -57,7 +58,7 @@ func RegisterHealthRoutes(r *gin.Engine) {
 
 // healthHandler handles liveness probes
 func healthHandler(c *gin.Context) {
-	c.JSON(http.StatusOK, HealthResponse{
+	apierr.OK(c, HealthResponse{
 		Status:    "healthy",
 		Timestamp: time.Now().UTC().Format(time.RFC3339),
 	})
@@ -88,18 +89,24 @@ func readyHandler(c *gin.Context) {
 		}
 	}
 
-	c.JSON(statusCode, ReadyResponse{
+	resp := ReadyResponse{
 		Status:     status,
 		Timestamp:  time.Now().UTC().Format(time.RFC3339),
 		Components: components,
-	})
+	}
+
+	if statusCode == http.StatusOK {
+		apierr.OK(c, resp)
+	} else {
+		apierr.Abort(c, apierr.ServiceUnavailable("service not ready", 0))
+	}
 }
 
 // versionHandler returns build version information
 func versionHandler(c *gin.Context) {
 	uptime := time.Since(startTime).Round(time.Second).String()
 
-	c.JSON(http.StatusOK, VersionInfo{
+	apierr.OK(c, VersionInfo{
 		Version:   Version,
 		Commit:    Commit,
 		BuildDate: BuildDate,

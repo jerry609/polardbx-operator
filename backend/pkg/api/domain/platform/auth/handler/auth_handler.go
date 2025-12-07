@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	apierr "polardbx-ui-backend/pkg/api/errors"
+
 	"github.com/gin-gonic/gin"
 	jwt "github.com/golang-jwt/jwt/v5"
 )
@@ -25,7 +27,7 @@ func getJWTSecret() string {
 func Login(c *gin.Context) {
 	secret := getJWTSecret()
 	if secret == "" {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "jwt not enabled"})
+		apierr.Abort(c, apierr.ServiceUnavailable("jwt not enabled", 0))
 		return
 	}
 	var body struct {
@@ -33,7 +35,7 @@ func Login(c *gin.Context) {
 		Password string `json:"password"`
 	}
 	if err := c.ShouldBindJSON(&body); err != nil || body.Username == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payload"})
+		apierr.AbortValidation(c, "invalid payload")
 		return
 	}
 	adminUser := strings.TrimSpace(os.Getenv("ADMIN_USER"))
@@ -49,7 +51,7 @@ func Login(c *gin.Context) {
 	if body.Username == adminUser && body.Password == adminPass {
 		role = "admin"
 	} else {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
+		apierr.AbortUnauthorized(c, "invalid credentials")
 		return
 	}
 
@@ -66,26 +68,26 @@ func Login(c *gin.Context) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	signed, err := token.SignedString([]byte(secret))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to sign token"})
+		apierr.AbortInternal(c, "failed to sign token")
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"token": signed, "expiresAt": exp.UTC().Format(time.RFC3339), "role": role})
+	apierr.OK(c, gin.H{"token": signed, "expiresAt": exp.UTC().Format(time.RFC3339), "role": role})
 }
 
 // Me 返回当前 JWT 声明
 func Me(c *gin.Context) {
 	secret := getJWTSecret()
 	if secret == "" {
-		c.JSON(http.StatusOK, gin.H{"enabled": false, "role": "anonymous"})
+		apierr.OK(c, gin.H{"enabled": false, "role": "anonymous"})
 		return
 	}
 	if v, ok := c.Get("jwtClaims"); ok {
 		if cl, ok2 := v.(*Claims); ok2 {
-			c.JSON(http.StatusOK, gin.H{"enabled": true, "username": cl.Username, "role": cl.Role, "exp": cl.ExpiresAt.Time})
+			apierr.OK(c, gin.H{"enabled": true, "username": cl.Username, "role": cl.Role, "exp": cl.ExpiresAt.Time})
 			return
 		}
 	}
-	c.JSON(http.StatusUnauthorized, gin.H{"enabled": true, "error": "unauthorized"})
+	apierr.AbortUnauthorized(c, "unauthorized")
 }
 
 // JWTAuthMiddleware JWT 认证中间件
@@ -102,26 +104,22 @@ func JWTAuthMiddleware() gin.HandlerFunc {
 
 		authz := c.GetHeader("Authorization")
 		if !strings.HasPrefix(authz, "Bearer ") {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "missing bearer token"})
-			c.Abort()
+			apierr.AbortUnauthorized(c, "missing bearer token")
 			return
 		}
 		raw := strings.TrimSpace(strings.TrimPrefix(authz, "Bearer "))
 		parsed, err := jwt.ParseWithClaims(raw, &Claims{}, func(t *jwt.Token) (interface{}, error) { return []byte(secret), nil })
 		if err != nil || !parsed.Valid {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
-			c.Abort()
+			apierr.AbortUnauthorized(c, "invalid token")
 			return
 		}
 		claims, ok := parsed.Claims.(*Claims)
 		if !ok {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid token claims"})
-			c.Abort()
+			apierr.AbortUnauthorized(c, "invalid token claims")
 			return
 		}
 		if c.Request.Method != http.MethodGet && strings.ToUpper(c.Request.Method) != http.MethodHead && claims.Role != "admin" {
-			c.JSON(http.StatusForbidden, gin.H{"error": "forbidden: admin required"})
-			c.Abort()
+			apierr.AbortForbidden(c, "forbidden: admin required")
 			return
 		}
 		c.Set("jwtClaims", claims)

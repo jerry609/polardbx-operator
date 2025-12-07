@@ -11,6 +11,7 @@ import (
 
 	"polardbx-ui-backend/pkg/api/domain/platform/alerts/repository"
 	"polardbx-ui-backend/pkg/api/domain/platform/alerts/service"
+	apierr "polardbx-ui-backend/pkg/api/errors"
 	"polardbx-ui-backend/pkg/api/util"
 )
 
@@ -42,7 +43,7 @@ func ListProfiles(c *gin.Context) {
 		return
 	}
 	items, _ := h.service.ListProfiles(c.Request.Context())
-	c.JSON(http.StatusOK, gin.H{"items": items})
+	apierr.OK(c, gin.H{"items": items})
 }
 
 // CreateProfile 创建配置文件
@@ -56,18 +57,18 @@ func CreateProfile(c *gin.Context) {
 		Content string `json:"content"`
 	}
 	if err := c.ShouldBindJSON(&body); err != nil || body.Name == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payload"})
+		apierr.AbortValidation(c, "invalid payload")
 		return
 	}
 	if err := h.service.CreateProfile(c.Request.Context(), body.Name, body.Content); err != nil {
 		if err == service.ErrProfileExists {
-			c.JSON(http.StatusConflict, gin.H{"error": "profile exists"})
+			apierr.Abort(c, apierr.Conflict("profile exists"))
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "create profiles cm", "details": err.Error()})
+		apierr.AbortInternal(c, "create profiles cm: "+err.Error())
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"name": body.Name})
+	apierr.Created(c, gin.H{"name": body.Name})
 }
 
 // GetProfile 获取配置文件
@@ -79,10 +80,10 @@ func GetProfile(c *gin.Context) {
 	name := c.Param("name")
 	profile, err := h.service.GetProfile(c.Request.Context(), name)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "profile not found"})
+		apierr.AbortNotFound(c, "profile", name)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"name": profile.Name, "content": profile.Content})
+	apierr.OK(c, gin.H{"name": profile.Name, "content": profile.Content})
 }
 
 // UpdateProfile 更新配置文件
@@ -96,18 +97,18 @@ func UpdateProfile(c *gin.Context) {
 		Content string `json:"content"`
 	}
 	if err := c.ShouldBindJSON(&body); err != nil || name == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payload"})
+		apierr.AbortValidation(c, "invalid payload")
 		return
 	}
 	if err := h.service.UpdateProfile(c.Request.Context(), name, body.Content); err != nil {
 		if err == service.ErrProfileNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"error": "profiles not found"})
+			apierr.AbortNotFound(c, "profile", name)
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "update profiles cm", "details": err.Error()})
+		apierr.AbortInternal(c, "update profiles cm: "+err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"name": name})
+	apierr.OK(c, gin.H{"name": name})
 }
 
 // DeleteProfile 删除配置文件
@@ -119,13 +120,13 @@ func DeleteProfile(c *gin.Context) {
 	name := c.Param("name")
 	if err := h.service.DeleteProfile(c.Request.Context(), name); err != nil {
 		if err == service.ErrProfileNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"error": "profile not found"})
+			apierr.AbortNotFound(c, "profile", name)
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "update profiles cm", "details": err.Error()})
+		apierr.AbortInternal(c, "update profiles cm: "+err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"deleted": name})
+	apierr.OK(c, gin.H{"deleted": name})
 }
 
 // DryRunProfile 验证 Alertmanager YAML
@@ -138,19 +139,19 @@ func DryRunProfile(c *gin.Context) {
 		Content string `json:"content"`
 	}
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payload"})
+		apierr.AbortValidation(c, "invalid payload")
 		return
 	}
 	result, err := h.service.DryRunProfile(body.Content)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "tempfile"})
+		apierr.AbortInternal(c, "tempfile error")
 		return
 	}
 	if !result.Valid {
-		c.JSON(http.StatusBadRequest, gin.H{"valid": false, "details": result.Details})
+		apierr.AbortValidation(c, result.Details)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"valid": true})
+	apierr.OK(c, gin.H{"valid": true})
 }
 
 // GetRoutes 获取路由配置
@@ -160,7 +161,7 @@ func GetRoutes(c *gin.Context) {
 		return
 	}
 	content, _ := h.service.GetRoutes(c.Request.Context())
-	c.JSON(http.StatusOK, gin.H{"content": content})
+	apierr.OK(c, gin.H{"content": content})
 }
 
 // PutRoutes 更新路由配置
@@ -173,11 +174,11 @@ func PutRoutes(c *gin.Context) {
 		Content string `json:"content"`
 	}
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payload"})
+		apierr.AbortValidation(c, "invalid payload")
 		return
 	}
 	_ = h.service.PutRoutes(c.Request.Context(), body.Content)
-	c.JSON(http.StatusOK, gin.H{"message": "routes updated"})
+	apierr.OK(c, gin.H{"message": "routes updated"})
 }
 
 // List 聚合告警列表
@@ -190,7 +191,7 @@ func List(c *gin.Context) {
 	cluster := c.DefaultQuery("cluster", "")
 	alertmanagerURL := c.Query("alertmanager")
 	items, _ := h.service.ListAlerts(c.Request.Context(), namespace, cluster, alertmanagerURL)
-	c.JSON(http.StatusOK, gin.H{"items": items})
+	apierr.OK(c, gin.H{"items": items})
 }
 
 // ListSilences Alertmanager 静默列表代理
@@ -201,12 +202,12 @@ func ListSilences(c *gin.Context) {
 	}
 	base := strings.TrimRight(c.DefaultQuery("alertmanager", ""), "/")
 	if base == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "alertmanager required"})
+		apierr.AbortValidation(c, "alertmanager required")
 		return
 	}
 	resp, err := http.Get(base + "/api/v2/silences")
 	if err != nil {
-		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
+		apierr.Abort(c, apierr.BadGateway(err.Error()))
 		return
 	}
 	defer resp.Body.Close()
@@ -223,18 +224,18 @@ func CreateSilence(c *gin.Context) {
 	}
 	base := strings.TrimRight(c.DefaultQuery("alertmanager", ""), "/")
 	if base == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "alertmanager required"})
+		apierr.AbortValidation(c, "alertmanager required")
 		return
 	}
 	var body map[string]any
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payload"})
+		apierr.AbortValidation(c, "invalid payload")
 		return
 	}
 	b, _ := json.Marshal(body)
 	resp, err := http.Post(base+"/api/v2/silences", "application/json", bytes.NewReader(b))
 	if err != nil {
-		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
+		apierr.Abort(c, apierr.BadGateway(err.Error()))
 		return
 	}
 	defer resp.Body.Close()
@@ -251,14 +252,14 @@ func DeleteSilence(c *gin.Context) {
 	}
 	base := strings.TrimRight(c.DefaultQuery("alertmanager", ""), "/")
 	if base == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "alertmanager required"})
+		apierr.AbortValidation(c, "alertmanager required")
 		return
 	}
 	id := c.Param("id")
 	req, _ := http.NewRequest(http.MethodDelete, base+"/api/v2/silence/"+url.PathEscape(id), nil)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
+		apierr.Abort(c, apierr.BadGateway(err.Error()))
 		return
 	}
 	defer resp.Body.Close()
@@ -275,7 +276,7 @@ func TestAlert(c *gin.Context) {
 	}
 	base := strings.TrimRight(c.DefaultQuery("alertmanager", ""), "/")
 	if base == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "alertmanager required"})
+		apierr.AbortValidation(c, "alertmanager required")
 		return
 	}
 	labels := c.DefaultQuery("labels", "severity=warning,service=test")
@@ -293,7 +294,7 @@ func TestAlert(c *gin.Context) {
 	b, _ := json.Marshal(alert)
 	resp, err := http.Post(base+"/api/v1/alerts", "application/json", bytes.NewReader(b))
 	if err != nil {
-		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
+		apierr.Abort(c, apierr.BadGateway(err.Error()))
 		return
 	}
 	defer resp.Body.Close()

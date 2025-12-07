@@ -1,12 +1,11 @@
 package services
 
 import (
-	"net/http"
-
 	polardbxv1 "github.com/alibaba/polardbx-operator/api/v1"
 	"github.com/gin-gonic/gin"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	apierr "polardbx-ui-backend/pkg/api/errors"
 	"polardbx-ui-backend/pkg/api/util"
 )
 
@@ -26,7 +25,7 @@ func (s *BackupService) GetBackupAdvice(c *gin.Context) {
 		return
 	}
 	if len(xstoreList.Items) == 0 {
-		c.JSON(http.StatusOK, gin.H{"hasFollower": false, "role": "leader", "reason": "no xstores found for cluster"})
+		apierr.OK(c, gin.H{"hasFollower": false, "role": "leader", "reason": "no xstores found for cluster"})
 		return
 	}
 	namesWithoutFollower := make([]string, 0)
@@ -36,8 +35,8 @@ func (s *BackupService) GetBackupAdvice(c *gin.Context) {
 		}
 	}
 	if len(namesWithoutFollower) == 0 {
-		c.JSON(http.StatusOK, gin.H{"hasFollower": true, "role": "follower"})
+		apierr.OK(c, gin.H{"hasFollower": true, "role": "follower"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"hasFollower": false, "role": "leader", "reason": namesWithoutFollower})
+	apierr.OK(c, gin.H{"hasFollower": false, "role": "leader", "reason": namesWithoutFollower})
 }

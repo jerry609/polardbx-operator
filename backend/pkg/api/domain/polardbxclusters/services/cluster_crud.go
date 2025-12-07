@@ -2,7 +2,6 @@ package services
 
 import (
 	"fmt"
-	"net/http"
 	"regexp"
 	"strings"
 
@@ -16,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	"polardbx-ui-backend/pkg/api/domain/polardbxclusters/k8srepo"
+	apierr "polardbx-ui-backend/pkg/api/errors"
 	"polardbx-ui-backend/pkg/api/middleware"
 	"polardbx-ui-backend/pkg/api/util"
 )
@@ -182,7 +182,7 @@ func (s *ClusterService) List(c *gin.Context) {
 		return
 	}
 	logger.Info("listed %d clusters", len(clusters))
-	c.JSON(http.StatusOK, clusters)
+	apierr.OK(c, clusters)
 }
 
 func (s *ClusterService) Create(c *gin.Context) {
@@ -195,7 +195,7 @@ func (s *ClusterService) Create(c *gin.Context) {
 	var obj polardbxv1.PolarDBXCluster
 	if err := c.ShouldBindJSON(&obj); err != nil {
 		logger.Error(err, "failed to parse cluster data")
-		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse cluster data", "details": err.Error()})
+		apierr.AbortValidation(c, "failed to parse cluster data: "+err.Error())
 		return
 	}
 	ns := obj.GetNamespace()
@@ -216,7 +216,7 @@ func (s *ClusterService) Create(c *gin.Context) {
 	}
 	logger.Info("cluster created successfully name=%s namespace=%s", obj.GetName(), ns)
 	middleware.LogAudit(c, "CREATE", "PolarDBXCluster", ns, obj.GetName(), true)
-	c.JSON(http.StatusCreated, created)
+	apierr.Created(c, created)
 }
 
 // CreateFromConfig 从用户友好的配置格式创建集群
@@ -237,7 +237,7 @@ func (s *ClusterService) CreateFromConfig(c *gin.Context) {
 	var config ClusterCreationConfig
 	if err := c.ShouldBindJSON(&config); err != nil {
 		logger.Error(err, "failed to parse cluster creation config")
-		c.JSON(http.StatusBadRequest, gin.H{"error": "配置解析失败", "details": err.Error()})
+		apierr.AbortValidation(c, "配置解析失败: "+err.Error())
 		return
 	}
 
@@ -249,10 +249,9 @@ func (s *ClusterService) CreateFromConfig(c *gin.Context) {
 			middleware.LogValidationError(c, "ClusterService", ve.Field, ve.Message)
 		}
 		logger.Warn("cluster config validation failed with %d errors", len(validationErrors))
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":            "配置校验失败",
-			"validationErrors": validationErrors,
-		})
+		apierr.Abort(c, apierr.Validation("配置校验失败").WithDetails(map[string]string{
+			"validationErrors": fmt.Sprintf("%+v", validationErrors),
+		}))
 		return
 	}
 
@@ -269,7 +268,7 @@ func (s *ClusterService) CreateFromConfig(c *gin.Context) {
 		errMsg := err.Error()
 		if strings.Contains(errMsg, "already exists") {
 			logger.Warn("cluster already exists name=%s namespace=%s", config.Name, ns)
-			c.JSON(http.StatusConflict, gin.H{"error": "集群已存在", "details": fmt.Sprintf("名为 %s 的集群在命名空间 %s 中已存在", config.Name, ns)})
+			apierr.Abort(c, apierr.AlreadyExists("集群", config.Name))
 			return
 		}
 		logger.Error(err, "failed to create cluster from config name=%s namespace=%s", config.Name, ns)
@@ -280,7 +279,7 @@ func (s *ClusterService) CreateFromConfig(c *gin.Context) {
 	}
 	logger.Info("cluster created successfully from config name=%s namespace=%s", config.Name, ns)
 	middleware.LogAudit(c, "CREATE", "PolarDBXCluster", ns, config.Name, true)
-	c.JSON(http.StatusCreated, created)
+	apierr.Created(c, created)
 }
 
 // convertConfigToCluster 将用户友好配置转换为 PolarDBXCluster 对象
@@ -497,7 +496,7 @@ func (s *ClusterService) Get(c *gin.Context) {
 	}
 	logger.Debug("cluster retrieved successfully name=%s namespace=%s phase=%s",
 		name, ns, cluster.Status.Phase)
-	c.JSON(http.StatusOK, cluster)
+	apierr.OK(c, cluster)
 }
 
 func (s *ClusterService) Update(c *gin.Context) {
@@ -512,7 +511,7 @@ func (s *ClusterService) Update(c *gin.Context) {
 	var body polardbxv1.PolarDBXCluster
 	if err := c.ShouldBindJSON(&body); err != nil {
 		logger.Error(err, "failed to parse cluster data for update")
-		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse cluster data", "details": err.Error()})
+		apierr.AbortValidation(c, "failed to parse cluster data: "+err.Error())
 		return
 	}
 	logger.Info("updating cluster name=%s namespace=%s", name, ns)
@@ -537,7 +536,7 @@ func (s *ClusterService) Update(c *gin.Context) {
 	}
 	logger.Info("cluster updated successfully name=%s namespace=%s", name, ns)
 	middleware.LogAudit(c, "UPDATE", "PolarDBXCluster", ns, name, true)
-	c.JSON(http.StatusOK, updated)
+	apierr.OK(c, updated)
 }
 
 func (s *ClusterService) Delete(c *gin.Context) {
@@ -562,5 +561,5 @@ func (s *ClusterService) Delete(c *gin.Context) {
 	}
 	logger.Info("cluster deletion initiated successfully name=%s namespace=%s", name, ns)
 	middleware.LogAudit(c, "DELETE", "PolarDBXCluster", ns, name, true)
-	c.JSON(http.StatusOK, gin.H{"message": "cluster deletion initiated successfully"})
+	apierr.OK(c, gin.H{"message": "cluster deletion initiated successfully"})
 }

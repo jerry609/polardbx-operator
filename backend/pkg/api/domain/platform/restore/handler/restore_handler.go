@@ -2,7 +2,6 @@ package handler
 
 import (
 	"fmt"
-	"net/http"
 	"strings"
 	"time"
 
@@ -13,6 +12,7 @@ import (
 	polardbx "github.com/alibaba/polardbx-operator/api/v1/polardbx"
 
 	"polardbx-ui-backend/pkg/api/domain/platform/restore/repository"
+	apierr "polardbx-ui-backend/pkg/api/errors"
 	"polardbx-ui-backend/pkg/api/util"
 )
 
@@ -62,7 +62,7 @@ func (h *RestoreHandler) restoreCluster(c *gin.Context) {
 		TimeZone string `json:"timezone,omitempty"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid restore request", "details": err.Error()})
+		apierr.AbortValidation(c, "invalid restore request")
 		return
 	}
 	if req.BackupSet == "" && req.BackupName != "" {
@@ -72,7 +72,7 @@ func (h *RestoreHandler) restoreCluster(c *gin.Context) {
 		req.TargetCluster = req.TargetName
 	}
 	if strings.TrimSpace(req.BackupSet) == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid restore request", "details": "backupSet (or backupName) is required"})
+		apierr.AbortValidation(c, "backupSet (or backupName) is required")
 		return
 	}
 
@@ -84,7 +84,7 @@ func (h *RestoreHandler) restoreCluster(c *gin.Context) {
 			return
 		}
 		if backup.Status.Phase != polardbxv1.BackupFinished {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "backup not ready", "details": fmt.Sprintf("phase=%s", backup.Status.Phase)})
+			apierr.AbortValidation(c, fmt.Sprintf("backup not ready: phase=%s", backup.Status.Phase))
 			return
 		}
 	}
@@ -96,7 +96,7 @@ func (h *RestoreHandler) restoreCluster(c *gin.Context) {
 
 	// 确保目标集群不存在
 	if _, err := h.repo.GetCluster(c.Request.Context(), namespace, target); err == nil {
-		c.JSON(http.StatusConflict, gin.H{"error": "target cluster exists", "details": fmt.Sprintf("%s/%s", namespace, target)})
+		apierr.Abort(c, apierr.Conflict(fmt.Sprintf("target cluster %s/%s already exists", namespace, target)))
 		return
 	}
 
@@ -143,7 +143,7 @@ func (h *RestoreHandler) restoreCluster(c *gin.Context) {
 		util.HandleK8sError(c, "failed to create restored cluster", err)
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"message": "cluster restore initiated successfully", "sourceCluster": clusterName, "targetCluster": target, "namespace": namespace, "backupSet": req.BackupSet, "restoreTime": req.Time, "status": "creating"})
+	apierr.Created(c, gin.H{"message": "cluster restore initiated successfully", "sourceCluster": clusterName, "targetCluster": target, "namespace": namespace, "backupSet": req.BackupSet, "restoreTime": req.Time, "status": "creating"})
 }
 
 // InitiatePITR POST /clusters/:namespace/:name/pitr
@@ -173,7 +173,7 @@ func (h *RestoreHandler) initiatePITR(c *gin.Context) {
 		} `json:"storageProvider"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid PITR request", "details": err.Error()})
+		apierr.AbortValidation(c, "invalid PITR request: "+err.Error())
 		return
 	}
 
@@ -189,7 +189,7 @@ func (h *RestoreHandler) initiatePITR(c *gin.Context) {
 	}
 
 	if strings.TrimSpace(req.Time) == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid PITR request", "details": "time (or targetTime) is required"})
+		apierr.AbortValidation(c, "time (or targetTime) is required")
 		return
 	}
 
@@ -201,7 +201,7 @@ func (h *RestoreHandler) initiatePITR(c *gin.Context) {
 			return
 		}
 		if backup.Status.Phase != polardbxv1.BackupFinished {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "backup not ready", "details": fmt.Sprintf("phase=%s", backup.Status.Phase)})
+			apierr.AbortValidation(c, fmt.Sprintf("backup not ready: phase=%s", backup.Status.Phase))
 			return
 		}
 	}
@@ -213,7 +213,7 @@ func (h *RestoreHandler) initiatePITR(c *gin.Context) {
 
 	// 确保目标集群不存在
 	if _, err := h.repo.GetCluster(c.Request.Context(), namespace, target); err == nil {
-		c.JSON(http.StatusConflict, gin.H{"error": "target cluster exists", "details": fmt.Sprintf("%s/%s", namespace, target)})
+		apierr.Abort(c, apierr.Conflict(fmt.Sprintf("target cluster exists: %s/%s", namespace, target)))
 		return
 	}
 
@@ -263,7 +263,7 @@ func (h *RestoreHandler) initiatePITR(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{
+	apierr.Created(c, gin.H{
 		"message":       "PITR initiated successfully",
 		"sourceCluster": sourceName,
 		"targetCluster": target,
@@ -406,7 +406,7 @@ func (h *RestoreHandler) getRestoreStatus(c *gin.Context) {
 	} else {
 		resp["isRestoreCluster"] = false
 	}
-	c.JSON(http.StatusOK, resp)
+	apierr.OK(c, resp)
 }
 
 // ListJobs GET /restore-jobs
@@ -436,7 +436,7 @@ func (h *RestoreHandler) listJobs(c *gin.Context) {
 		job := gin.H{"name": cl.Name, "namespace": cl.Namespace, "phase": string(cl.Status.Phase)}
 		jobs = append(jobs, job)
 	}
-	c.JSON(http.StatusOK, gin.H{"items": jobs, "count": len(jobs)})
+	apierr.OK(c, gin.H{"items": jobs, "count": len(jobs)})
 }
 
 // GetJob GET /restore-jobs/:namespace/:name
@@ -457,9 +457,9 @@ func CancelJob(c *gin.Context) {
 	_, err := h.repo.GetBackup(c.Request.Context(), ns, name)
 	if err != nil {
 		// Job 不存在
-		c.JSON(http.StatusNotFound, gin.H{"error": "restore job not found", "namespace": ns, "name": name})
+		apierr.AbortNotFound(c, "restore job", fmt.Sprintf("%s/%s", ns, name))
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "cancel requested", "namespace": ns, "name": name, "status": "pending_implementation"})
+	apierr.OK(c, gin.H{"message": "cancel requested", "namespace": ns, "name": name, "status": "pending_implementation"})
 }
