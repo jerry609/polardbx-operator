@@ -10,7 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// FollowersService 封装 XStoreFollower 相关编排（使用 k8srepo）。
+// FollowersService encapsulates XStoreFollower related orchestration (using k8srepo).
 type FollowersService struct {
 	repo k8srepo.XStoreRepository
 }
@@ -39,9 +39,9 @@ func (s *FollowersService) Create(c *gin.Context) {
 		return
 	}
 	ns := c.DefaultQuery("namespace", util.DefaultNamespace(c, "default"))
-	// 兼容两种请求体：
-	// 1) 直接提交完整 CR（含 spec）
-	// 2) 简化体：{"name":"...","xStoreName":"...","role":"(可选)"}
+	// Compatible with two request body formats:
+	// 1) Submit complete CR directly (with spec)
+	// 2) Simplified body: {"name":"...","xStoreName":"...","role":"(optional)"}
 	type createPayload struct {
 		polardbxv1.XStoreFollower `json:",inline"`
 		Name                      string `json:"name,omitempty"`
@@ -131,7 +131,7 @@ func (s *FollowersService) Delete(c *gin.Context) {
 	apierr.OK(c, gin.H{"message": "xstore follower deleted"})
 }
 
-// Retry: 重试失败的 XStoreFollower 任务（删除旧任务并创建新任务）
+// Retry: Retry failed XStoreFollower task (delete old task and create new task)
 func (s *FollowersService) Retry(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -140,31 +140,31 @@ func (s *FollowersService) Retry(c *gin.Context) {
 	ns := c.Param("namespace")
 	name := c.Param("name")
 
-	// 获取原任务
+	// Get original task
 	original, err := s.repo.GetFollower(c.Request.Context(), cli, ns, name)
 	if err != nil {
 		util.HandleK8sError(c, "failed to get original follower", err)
 		return
 	}
 
-	// 检查是否可以重试（只有失败的任务才能重试）
+	// Check if retry is allowed (only failed tasks can be retried)
 	if original.Status.Phase != polardbxv1xstore.FollowerPhaseFailed {
 		apierr.AbortValidation(c, "only failed tasks can be retried, current_phase: "+string(original.Status.Phase))
 		return
 	}
 
-	// 删除原任务
+	// Delete original task
 	if err := s.repo.DeleteFollower(c.Request.Context(), cli, ns, name); err != nil {
 		util.HandleK8sError(c, "failed to delete original follower", err)
 		return
 	}
 
-	// 创建新任务（保持原有配置）
+	// Create new task (keep original configuration)
 	newFollower := &polardbxv1.XStoreFollower{
 		ObjectMeta: original.ObjectMeta,
 		Spec:       original.Spec,
 	}
-	// 重置状态和资源版本
+	// Reset status and resource version
 	newFollower.Status = polardbxv1.XStoreFollowerStatus{}
 	newFollower.ResourceVersion = ""
 	newFollower.Generation = 0
@@ -182,7 +182,7 @@ func (s *FollowersService) Retry(c *gin.Context) {
 	})
 }
 
-// Cancel: 取消指定的 XStoreFollower 任务
+// Cancel: Cancel specified XStoreFollower task
 func (s *FollowersService) Cancel(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -191,14 +191,14 @@ func (s *FollowersService) Cancel(c *gin.Context) {
 	ns := c.Param("namespace")
 	name := c.Param("name")
 
-	// 获取任务信息
+	// Get task information
 	follower, err := s.repo.GetFollower(c.Request.Context(), cli, ns, name)
 	if err != nil {
 		util.HandleK8sError(c, "failed to get follower", err)
 		return
 	}
 
-	// 检查是否可以取消（终态任务不能取消）
+	// Check if cancellation is allowed (terminal state tasks cannot be cancelled)
 	if follower.Status.Phase == polardbxv1xstore.FollowerPhaseSuccess ||
 		follower.Status.Phase == polardbxv1xstore.FollowerPhaseFailed ||
 		follower.Status.Phase == polardbxv1xstore.FollowerPhaseDeleting {
@@ -206,7 +206,7 @@ func (s *FollowersService) Cancel(c *gin.Context) {
 		return
 	}
 
-	// 删除任务
+	// Delete task
 	if err := s.repo.DeleteFollower(c.Request.Context(), cli, ns, name); err != nil {
 		util.HandleK8sError(c, "failed to cancel follower", err)
 		return

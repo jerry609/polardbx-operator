@@ -9,7 +9,7 @@ import (
 	"polardbx-ui-backend/pkg/api/util"
 )
 
-// BackupBinlogService 封装 XStore 标准版增量日志备份（XStoreBackupBinlog）的最小 CRUD
+// BackupBinlogService encapsulates minimal CRUD for XStore standard edition incremental log backup (XStoreBackupBinlog)
 type BackupBinlogService struct{}
 
 func NewBackupBinlogService() *BackupBinlogService { return &BackupBinlogService{} }

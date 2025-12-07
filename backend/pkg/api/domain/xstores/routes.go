@@ -4,7 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// RegisterRoutes 统一注册“存储/引擎域”的入口（薄壳，转发到既有 handlers）。
+// RegisterRoutes unified registration of "storage/engine domain" entry point (thin shell, forwards to existing handlers).
 func RegisterRoutes(v1 *gin.RouterGroup) {
 	g := v1.Group("/xstores")
 

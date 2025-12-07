@@ -10,7 +10,7 @@ import (
 	"polardbx-ui-backend/pkg/k8s"
 )
 
-// ClusterRepository 抽象集群相关的 K8s 访问。
+// ClusterRepository abstracts cluster-related K8s access.
 type ClusterRepository interface {
 	List(ctx context.Context, cli client.Client, namespace string) ([]polardbxv1.PolarDBXCluster, error)
 	Create(ctx context.Context, cli client.Client, namespace string, obj *polardbxv1.PolarDBXCluster) (*polardbxv1.PolarDBXCluster, error)

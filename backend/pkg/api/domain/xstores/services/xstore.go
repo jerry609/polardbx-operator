@@ -9,7 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// XStoreService 封装 XStore 基础 CRUD 与 Pod 列表
+// XStoreService encapsulates XStore basic CRUD and Pod listing
 type XStoreService struct {
 	repo k8srepo.XStoreRepository
 }
