@@ -28,12 +28,25 @@ import (
 	domain_monitoring "polardbx-ui-backend/pkg/api/domain/monitoring"
 	domain_parameters "polardbx-ui-backend/pkg/api/domain/platform/parameters/handler"
 	domain_restore "polardbx-ui-backend/pkg/api/domain/platform/restore/handler"
+	"polardbx-ui-backend/pkg/api/provider"
 	"polardbx-ui-backend/pkg/k8s"
 
 	// domain handlers
 	domain_pxc "polardbx-ui-backend/pkg/api/domain/polardbxclusters"
 	domain_xs "polardbx-ui-backend/pkg/api/domain/xstores"
 )
+
+func extractErr(resp map[string]interface{}) string {
+	switch v := resp["error"].(type) {
+	case string:
+		return v
+	case map[string]interface{}:
+		if msg, ok := v["message"].(string); ok {
+			return msg
+		}
+	}
+	return ""
+}
 
 // IntegrationTestSuite provides comprehensive integration testing for all API endpoints
 type IntegrationTestSuite struct {
@@ -69,6 +82,7 @@ func setupIntegrationTestRouter(k8sClientProvider k8s.ClientProvider) *gin.Engin
 
 	// API routes with middleware
 	v1 := router.Group("/api/v1")
+	v1.Use(provider.Inject(provider.NewDefaultProvider()))
 	v1.Use(KubeconfigAuthMiddleware())
 	{
 		// Cluster routes (domain)
@@ -295,7 +309,7 @@ func (suite *IntegrationTestSuite) TestAuthenticationMiddleware() {
 	var response map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(suite.T(), err)
-	assert.Contains(suite.T(), response["error"], "kubeconfig not provided")
+	assert.Contains(suite.T(), extractErr(response), "kubeconfig not provided")
 }
 
 func (suite *IntegrationTestSuite) TestErrorHandling() {
@@ -311,7 +325,7 @@ func (suite *IntegrationTestSuite) TestErrorHandling() {
 	var response map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(suite.T(), err)
-	assert.Contains(suite.T(), response["error"], "invalid kubeconfig base64")
+	assert.Contains(suite.T(), extractErr(response), "invalid kubeconfig base64")
 }
 
 func (suite *IntegrationTestSuite) TestConcurrentRequests() {

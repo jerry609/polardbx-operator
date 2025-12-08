@@ -62,6 +62,25 @@ func DynamicClientFromContext(c *gin.Context) (dynamic.Interface, bool) {
 	return dynClient, true
 }
 
+// GetK8sClients returns ctrl-runtime client, clientset and dynamic client together.
+// It aborts with proper apierr responses when any client is missing.
+func GetK8sClients(c *gin.Context) (client.Client, kubernetes.Interface, dynamic.Interface, bool) {
+	cli, ok := K8sClientFromContext(c)
+	if !ok {
+		return nil, nil, nil, false
+	}
+	cs, ok := ClientsetFromContext(c)
+	if !ok {
+		apierr.AbortUnauthorized(c, "Kubernetes clientset not initialized")
+		return nil, nil, nil, false
+	}
+	dyn, ok := DynamicClientFromContext(c)
+	if !ok {
+		return nil, nil, nil, false
+	}
+	return cli, cs, dyn, true
+}
+
 // DefaultNamespace returns query namespace or the middleware-injected default.
 func DefaultNamespace(c *gin.Context, fallback string) string {
 	if ns := c.Query("namespace"); ns != "" {
@@ -75,13 +94,24 @@ func DefaultNamespace(c *gin.Context, fallback string) string {
 	return fallback
 }
 
+// GetNamespace tries path param first, then query, then fallback or injected default namespace.
+func GetNamespace(c *gin.Context, fallback string) string {
+	if ns := c.Param("namespace"); ns != "" {
+		return ns
+	}
+	if ns := c.Query("namespace"); ns != "" {
+		return ns
+	}
+	return DefaultNamespace(c, fallback)
+}
+
 // HandleK8sError maps common k8s errors to HTTP codes using unified error handling.
 // It logs the full error internally and returns a sanitized response to the client.
 func HandleK8sError(c *gin.Context, operation string, err error) {
 	// Log full error details internally
 	user := c.GetString("k8sUser")
 	requestID := c.GetString("requestId")
-	log.Printf("[K8S_ERROR] operation=%s user=%s request_id=%s error=%v",
+	log.Printf("[K8S_ERROR] operation=%s user=%s requestId=%s error=%v",
 		operation, user, requestID, err)
 
 	// Use the unified error handler which sanitizes the response
@@ -108,6 +138,26 @@ func ListCtx(c *gin.Context) (context.Context, context.CancelFunc) {
 
 func CrudCtx(c *gin.Context) (context.Context, context.CancelFunc) {
 	return context.WithTimeout(c.Request.Context(), DefaultCRUDTimeout)
+}
+
+// BindValidateAndCtx binds JSON to dst, runs optional validators, and returns ctx with timeout.
+// On validation error it aborts and returns ok=false.
+func BindValidateAndCtx(c *gin.Context, dst interface{}, timeout time.Duration, validators ...func(interface{}) error) (context.Context, context.CancelFunc, bool) {
+	if err := c.ShouldBindJSON(dst); err != nil {
+		apierr.AbortValidation(c, "invalid request body: "+err.Error())
+		return nil, nil, false
+	}
+	for _, validate := range validators {
+		if validate == nil {
+			continue
+		}
+		if err := validate(dst); err != nil {
+			apierr.AbortValidation(c, err.Error())
+			return nil, nil, false
+		}
+	}
+	ctx, cancel := context.WithTimeout(c.Request.Context(), timeout)
+	return ctx, cancel, true
 }
 
 // ExtractKubeconfigB64 extracts kubeconfig (base64) from header/query/body.

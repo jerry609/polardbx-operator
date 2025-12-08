@@ -60,6 +60,17 @@ func TestBackupScheduleEndpoints(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(sampleBackupSchedule).Build()
 
 	router := gin.New()
+	getErr := func(resp map[string]interface{}) string {
+		switch v := resp["error"].(type) {
+		case string:
+			return v
+		case map[string]interface{}:
+			if msg, ok := v["message"].(string); ok {
+				return msg
+			}
+		}
+		return ""
+	}
 	router.Use(func(c *gin.Context) {
 		c.Set("k8sClient", fakeClient)
 		c.Next()
@@ -191,7 +202,7 @@ func TestBackupScheduleEndpoints(t *testing.T) {
 		var response map[string]interface{}
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
-		assert.Contains(t, response["error"], "invalid schedule")
+		assert.Contains(t, getErr(response), "invalid schedule")
 	})
 
 	// --- Test GetBackupSchedule for non-existent schedule ---
@@ -204,7 +215,7 @@ func TestBackupScheduleEndpoints(t *testing.T) {
 		var response map[string]interface{}
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
-		assert.Contains(t, response["error"], "failed to get backup schedule")
+		assert.Contains(t, getErr(response), "Resource not found")
 	})
 
 	// --- Test DeleteBackupSchedule for non-existent schedule ---
@@ -217,7 +228,7 @@ func TestBackupScheduleEndpoints(t *testing.T) {
 		var response map[string]interface{}
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
-		assert.Contains(t, response["error"], "failed to delete backup schedule")
+		assert.Contains(t, getErr(response), "Resource not found")
 	})
 }
 

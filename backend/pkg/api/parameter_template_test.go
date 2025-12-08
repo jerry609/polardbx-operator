@@ -99,6 +99,17 @@ func TestParameterTemplateEndpoints(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(sampleParameterTemplate).Build()
 
 	router := gin.New()
+	getErr := func(resp map[string]interface{}) string {
+		switch v := resp["error"].(type) {
+		case string:
+			return v
+		case map[string]interface{}:
+			if msg, ok := v["message"].(string); ok {
+				return msg
+			}
+		}
+		return ""
+	}
 	router.Use(func(c *gin.Context) {
 		c.Set("k8sClient", fakeClient)
 		c.Next()
@@ -276,7 +287,7 @@ func TestParameterTemplateEndpoints(t *testing.T) {
 		var response map[string]interface{}
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
-		assert.Contains(t, response["error"], "invalid parameter template")
+		assert.Contains(t, getErr(response), "invalid parameter template")
 	})
 
 	// --- Test GetParameterTemplate for non-existent template ---
@@ -289,7 +300,7 @@ func TestParameterTemplateEndpoints(t *testing.T) {
 		var response map[string]interface{}
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
-		assert.Contains(t, response["error"], "failed to get parameter template")
+		assert.Contains(t, getErr(response), "Resource not found")
 	})
 
 	// --- Test DeleteParameterTemplate for non-existent template ---
@@ -302,7 +313,7 @@ func TestParameterTemplateEndpoints(t *testing.T) {
 		var response map[string]interface{}
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
-		assert.Contains(t, response["error"], "failed to delete parameter template")
+		assert.Contains(t, getErr(response), "Resource not found")
 	})
 }
 

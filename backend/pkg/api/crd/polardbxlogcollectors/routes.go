@@ -2,20 +2,22 @@ package polardbxlogcollectors
 
 import (
 	domain_logcollector "polardbx-ui-backend/pkg/api/domain/platform/logcollector/handler"
+	"polardbx-ui-backend/pkg/api/routerutil"
 
 	"github.com/gin-gonic/gin"
 )
 
 func RegisterRoutes(crd *gin.RouterGroup) {
-	r := crd.Group("/polardbxlogcollectors")
-	r.GET("", domain_logcollector.List)
-	r.POST("", domain_logcollector.Create)
-	item := r.Group("/:namespace/:name")
-	item.GET("", domain_logcollector.Get)
-	item.PUT("", domain_logcollector.Update)
-	item.DELETE("", domain_logcollector.Delete)
+	base := "/polardbxlogcollectors"
+	routerutil.RegisterCRUDWithItemPattern(crd, base, base+"/:namespace/:name", routerutil.CRUDHandlers{
+		List:   domain_logcollector.List,
+		Create: domain_logcollector.Create,
+		Get:    domain_logcollector.Get,
+		Update: domain_logcollector.Update,
+		Delete: domain_logcollector.Delete,
+	})
 	// namespace-scoped extra endpoints
-	ns := r.Group("/:namespace")
+	ns := crd.Group(base + "/:namespace")
 	ns.GET("/pipeline", domain_logcollector.GetLogstashPipeline)
 	ns.PUT("/pipeline", domain_logcollector.UpdateLogstashPipeline)
 	ns.GET("/elastic-certs", domain_logcollector.GetElasticsearchCert)

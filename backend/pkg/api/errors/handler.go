@@ -99,20 +99,19 @@ func logError(c *gin.Context, apiErr *APIError) {
 	}
 
 	requestID := c.GetString("requestId")
-	if requestID == "" {
+	if requestID == "" && c.Request != nil {
 		requestID = c.GetHeader("X-Request-ID")
 	}
 
 	// Log with context (internal details)
-	logMsg := "[ERROR] code=%s user=%s request_id=%s method=%s path=%s message=%s"
-	logArgs := []interface{}{
-		apiErr.Code,
-		user,
-		requestID,
-		c.Request.Method,
-		c.Request.URL.Path,
-		apiErr.Message,
+	logMsg := "[ERROR] code=%s user=%s requestId=%s method=%s path=%s message=%s"
+	method := ""
+	path := ""
+	if c.Request != nil {
+		method = c.Request.Method
+		path = c.Request.URL.Path
 	}
+	logArgs := []interface{}{apiErr.Code, user, requestID, method, path, apiErr.Message}
 
 	if apiErr.Cause != nil {
 		logMsg += " cause=%v"

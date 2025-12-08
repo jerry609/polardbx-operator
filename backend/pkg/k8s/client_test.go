@@ -21,6 +21,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+type ctxKey string
+
 // MockClient implements the controller-runtime client.Client interface for testing
 type MockClient struct {
 	mock.Mock
@@ -219,7 +221,7 @@ func TestCreatePolarDBXCluster_ConflictError(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.True(t, k8serrors.IsAlreadyExists(err))
-	assert.NotNil(t, result) // function returns the cluster even on error
+	assert.Nil(t, result) // WithContext version returns nil on error (Go convention)
 	mockClient.AssertExpectations(t)
 }
 
@@ -481,6 +483,7 @@ func TestListXStores_Success(t *testing.T) {
 // Test XStoreFollower operations (DN replica fault recovery)
 func TestListXStoreFollowers_Success(t *testing.T) {
 	mockClient := new(MockClient)
+	traceCtx := context.WithValue(context.Background(), ctxKey("trace"), "tid-xf-list")
 
 	expectedFollowers := []polardbxv1.XStoreFollower{
 		{
@@ -494,13 +497,15 @@ func TestListXStoreFollowers_Success(t *testing.T) {
 		},
 	}
 
-	mockClient.On("List", mock.Anything, mock.AnythingOfType("*v1.XStoreFollowerList"), mock.Anything).
+	mockClient.On("List", mock.MatchedBy(func(ctx context.Context) bool {
+		return ctx.Value(ctxKey("trace")) == "tid-xf-list"
+	}), mock.AnythingOfType("*v1.XStoreFollowerList"), mock.Anything).
 		Run(func(args mock.Arguments) {
 			list := args.Get(1).(*polardbxv1.XStoreFollowerList)
 			list.Items = expectedFollowers
 		}).Return(nil)
 
-	followers, err := ListXStoreFollowers(mockClient, "default")
+	followers, err := ListXStoreFollowersWithContext(traceCtx, mockClient, "default")
 
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(followers))
@@ -712,7 +717,7 @@ func TestValidationErrors_InvalidObjects(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.True(t, k8serrors.IsInvalid(err))
-	assert.NotNil(t, result) // function returns cluster even on error
+	assert.Nil(t, result) // WithContext version returns nil on error (Go convention)
 	mockClient.AssertExpectations(t)
 }
 
@@ -740,7 +745,7 @@ func TestCreateXStore_ConflictError(t *testing.T) {
 	result, err := CreateXStore(mockClient, "default", xstore)
 	assert.Error(t, err)
 	assert.True(t, k8serrors.IsAlreadyExists(err))
-	assert.NotNil(t, result)
+	assert.Nil(t, result) // WithContext version returns nil on error (Go convention)
 	mockClient.AssertExpectations(t)
 }
 
@@ -884,7 +889,7 @@ func TestCreatePolarDBXMonitor_ConflictError(t *testing.T) {
 	result, err := CreatePolarDBXMonitor(mockClient, "default", monitor)
 	assert.Error(t, err)
 	assert.True(t, k8serrors.IsAlreadyExists(err))
-	assert.NotNil(t, result)
+	assert.Nil(t, result) // WithContext version returns nil on error (Go convention)
 	mockClient.AssertExpectations(t)
 }
 
@@ -1009,7 +1014,7 @@ func TestCreatePolarDBXBackupSchedule_ConflictError(t *testing.T) {
 	result, err := CreatePolarDBXBackupSchedule(mockClient, "default", schedule)
 	assert.Error(t, err)
 	assert.True(t, k8serrors.IsAlreadyExists(err))
-	assert.NotNil(t, result)
+	assert.Nil(t, result) // WithContext version returns nil on error (Go convention)
 	mockClient.AssertExpectations(t)
 }
 
@@ -1134,7 +1139,7 @@ func TestCreatePolarDBXParameterTemplate_ConflictError(t *testing.T) {
 	result, err := CreatePolarDBXParameterTemplate(mockClient, "default", template)
 	assert.Error(t, err)
 	assert.True(t, k8serrors.IsAlreadyExists(err))
-	assert.NotNil(t, result)
+	assert.Nil(t, result) // WithContext version returns nil on error (Go convention)
 	mockClient.AssertExpectations(t)
 }
 
@@ -1259,7 +1264,7 @@ func TestCreateSystemTask_ConflictError(t *testing.T) {
 	result, err := CreateSystemTask(mockClient, "default", task)
 	assert.Error(t, err)
 	assert.True(t, k8serrors.IsAlreadyExists(err))
-	assert.NotNil(t, result)
+	assert.Nil(t, result) // WithContext version returns nil on error (Go convention)
 	mockClient.AssertExpectations(t)
 }
 
@@ -1384,7 +1389,7 @@ func TestCreatePolarDBXLogCollector_ConflictError(t *testing.T) {
 	result, err := CreatePolarDBXLogCollector(mockClient, "default", logCollector)
 	assert.Error(t, err)
 	assert.True(t, k8serrors.IsAlreadyExists(err))
-	assert.NotNil(t, result)
+	assert.Nil(t, result) // WithContext version returns nil on error (Go convention)
 	mockClient.AssertExpectations(t)
 }
 
@@ -1443,15 +1448,18 @@ func TestDeletePolarDBXLogCollector_Success(t *testing.T) {
 
 func TestListPolarDBXBackupBinlogs_Success(t *testing.T) {
 	mockClient := new(MockClient)
+	traceCtx := context.WithValue(context.Background(), ctxKey("trace"), "tid-bbl-list")
 
 	backupBinlog := createTestBackupBinlog("test-backup-binlog", "default")
-	mockClient.On("List", mock.Anything, mock.AnythingOfType("*v1.PolarDBXBackupBinlogList"), mock.Anything).
+	mockClient.On("List", mock.MatchedBy(func(ctx context.Context) bool {
+		return ctx.Value(ctxKey("trace")) == "tid-bbl-list"
+	}), mock.AnythingOfType("*v1.PolarDBXBackupBinlogList"), mock.Anything).
 		Run(func(args mock.Arguments) {
 			list := args.Get(1).(*polardbxv1.PolarDBXBackupBinlogList)
 			list.Items = []polardbxv1.PolarDBXBackupBinlog{*backupBinlog}
 		}).Return(nil)
 
-	backupBinlogs, err := ListPolarDBXBackupBinlogs(mockClient, "default")
+	backupBinlogs, err := ListPolarDBXBackupBinlogsWithContext(traceCtx, mockClient, "default")
 	assert.NoError(t, err)
 	assert.Len(t, backupBinlogs, 1)
 	assert.Equal(t, "test-backup-binlog", backupBinlogs[0].Name)
@@ -1460,14 +1468,17 @@ func TestListPolarDBXBackupBinlogs_Success(t *testing.T) {
 
 func TestListPolarDBXBackupBinlogs_Empty(t *testing.T) {
 	mockClient := new(MockClient)
+	traceCtx := context.WithValue(context.Background(), ctxKey("trace"), "tid-bbl-empty")
 
-	mockClient.On("List", mock.Anything, mock.AnythingOfType("*v1.PolarDBXBackupBinlogList"), mock.Anything).
+	mockClient.On("List", mock.MatchedBy(func(ctx context.Context) bool {
+		return ctx.Value(ctxKey("trace")) == "tid-bbl-empty"
+	}), mock.AnythingOfType("*v1.PolarDBXBackupBinlogList"), mock.Anything).
 		Run(func(args mock.Arguments) {
 			list := args.Get(1).(*polardbxv1.PolarDBXBackupBinlogList)
 			list.Items = []polardbxv1.PolarDBXBackupBinlog{}
 		}).Return(nil)
 
-	backupBinlogs, err := ListPolarDBXBackupBinlogs(mockClient, "default")
+	backupBinlogs, err := ListPolarDBXBackupBinlogsWithContext(traceCtx, mockClient, "default")
 	assert.NoError(t, err)
 	assert.Len(t, backupBinlogs, 0)
 	mockClient.AssertExpectations(t)
@@ -1476,10 +1487,13 @@ func TestListPolarDBXBackupBinlogs_Empty(t *testing.T) {
 func TestCreatePolarDBXBackupBinlog_Success(t *testing.T) {
 	mockClient := new(MockClient)
 	backupBinlog := createTestBackupBinlog("test-backup-binlog", "default")
+	traceCtx := context.WithValue(context.Background(), ctxKey("trace"), "tid-bbl-create")
 
-	mockClient.On("Create", mock.Anything, mock.AnythingOfType("*v1.PolarDBXBackupBinlog"), mock.Anything).Return(nil)
+	mockClient.On("Create", mock.MatchedBy(func(ctx context.Context) bool {
+		return ctx.Value(ctxKey("trace")) == "tid-bbl-create"
+	}), mock.AnythingOfType("*v1.PolarDBXBackupBinlog"), mock.Anything).Return(nil)
 
-	result, err := CreatePolarDBXBackupBinlog(mockClient, "default", backupBinlog)
+	result, err := CreatePolarDBXBackupBinlogWithContext(traceCtx, mockClient, "default", backupBinlog)
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, "test-backup-binlog", result.Name)
@@ -1489,28 +1503,34 @@ func TestCreatePolarDBXBackupBinlog_Success(t *testing.T) {
 func TestCreatePolarDBXBackupBinlog_ConflictError(t *testing.T) {
 	mockClient := new(MockClient)
 	backupBinlog := createTestBackupBinlog("test-backup-binlog", "default")
+	traceCtx := context.WithValue(context.Background(), ctxKey("trace"), "tid-bbl-create-conflict")
 
 	conflictErr := k8serrors.NewAlreadyExists(schema.GroupResource{Group: "polardbx.aliyuncs.com", Resource: "polardbxbackupbinlogs"}, "test-backup-binlog")
-	mockClient.On("Create", mock.Anything, mock.AnythingOfType("*v1.PolarDBXBackupBinlog"), mock.Anything).Return(conflictErr)
+	mockClient.On("Create", mock.MatchedBy(func(ctx context.Context) bool {
+		return ctx.Value(ctxKey("trace")) == "tid-bbl-create-conflict"
+	}), mock.AnythingOfType("*v1.PolarDBXBackupBinlog"), mock.Anything).Return(conflictErr)
 
-	result, err := CreatePolarDBXBackupBinlog(mockClient, "default", backupBinlog)
+	result, err := CreatePolarDBXBackupBinlogWithContext(traceCtx, mockClient, "default", backupBinlog)
 	assert.Error(t, err)
 	assert.True(t, k8serrors.IsAlreadyExists(err))
-	assert.NotNil(t, result)
+	assert.Nil(t, result) // WithContext version returns nil on error (Go convention)
 	mockClient.AssertExpectations(t)
 }
 
 func TestGetPolarDBXBackupBinlog_Success(t *testing.T) {
 	mockClient := new(MockClient)
 	backupBinlog := createTestBackupBinlog("test-backup-binlog", "default")
+	traceCtx := context.WithValue(context.Background(), ctxKey("trace"), "tid-bbl-get")
 
-	mockClient.On("Get", mock.Anything, mock.Anything, mock.AnythingOfType("*v1.PolarDBXBackupBinlog"), mock.Anything).
+	mockClient.On("Get", mock.MatchedBy(func(ctx context.Context) bool {
+		return ctx.Value(ctxKey("trace")) == "tid-bbl-get"
+	}), mock.Anything, mock.AnythingOfType("*v1.PolarDBXBackupBinlog"), mock.Anything).
 		Run(func(args mock.Arguments) {
 			arg := args.Get(2).(*polardbxv1.PolarDBXBackupBinlog)
 			*arg = *backupBinlog
 		}).Return(nil)
 
-	result, err := GetPolarDBXBackupBinlog(mockClient, "default", "test-backup-binlog")
+	result, err := GetPolarDBXBackupBinlogWithContext(traceCtx, mockClient, "default", "test-backup-binlog")
 	assert.NoError(t, err)
 	assert.Equal(t, "test-backup-binlog", result.Name)
 	mockClient.AssertExpectations(t)
@@ -1518,11 +1538,14 @@ func TestGetPolarDBXBackupBinlog_Success(t *testing.T) {
 
 func TestGetPolarDBXBackupBinlog_NotFound(t *testing.T) {
 	mockClient := new(MockClient)
+	traceCtx := context.WithValue(context.Background(), ctxKey("trace"), "tid-bbl-get-notfound")
 
 	notFoundErr := k8serrors.NewNotFound(schema.GroupResource{Group: "polardbx.aliyuncs.com", Resource: "polardbxbackupbinlogs"}, "non-existent")
-	mockClient.On("Get", mock.Anything, mock.Anything, mock.AnythingOfType("*v1.PolarDBXBackupBinlog"), mock.Anything).Return(notFoundErr)
+	mockClient.On("Get", mock.MatchedBy(func(ctx context.Context) bool {
+		return ctx.Value(ctxKey("trace")) == "tid-bbl-get-notfound"
+	}), mock.Anything, mock.AnythingOfType("*v1.PolarDBXBackupBinlog"), mock.Anything).Return(notFoundErr)
 
-	result, err := GetPolarDBXBackupBinlog(mockClient, "default", "non-existent")
+	result, err := GetPolarDBXBackupBinlogWithContext(traceCtx, mockClient, "default", "non-existent")
 	assert.Error(t, err)
 	assert.True(t, k8serrors.IsNotFound(err))
 	assert.Nil(t, result)
@@ -1532,10 +1555,13 @@ func TestGetPolarDBXBackupBinlog_NotFound(t *testing.T) {
 func TestUpdatePolarDBXBackupBinlog_Success(t *testing.T) {
 	mockClient := new(MockClient)
 	backupBinlog := createTestBackupBinlog("test-backup-binlog", "default")
+	traceCtx := context.WithValue(context.Background(), ctxKey("trace"), "tid-bbl-update")
 
-	mockClient.On("Update", mock.Anything, mock.AnythingOfType("*v1.PolarDBXBackupBinlog"), mock.Anything).Return(nil)
+	mockClient.On("Update", mock.MatchedBy(func(ctx context.Context) bool {
+		return ctx.Value(ctxKey("trace")) == "tid-bbl-update"
+	}), mock.AnythingOfType("*v1.PolarDBXBackupBinlog"), mock.Anything).Return(nil)
 
-	result, err := UpdatePolarDBXBackupBinlog(mockClient, "default", backupBinlog)
+	result, err := UpdatePolarDBXBackupBinlogWithContext(traceCtx, mockClient, "default", backupBinlog)
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	mockClient.AssertExpectations(t)
@@ -1543,10 +1569,13 @@ func TestUpdatePolarDBXBackupBinlog_Success(t *testing.T) {
 
 func TestDeletePolarDBXBackupBinlog_Success(t *testing.T) {
 	mockClient := new(MockClient)
+	traceCtx := context.WithValue(context.Background(), ctxKey("trace"), "tid-bbl-delete")
 
-	mockClient.On("Delete", mock.Anything, mock.AnythingOfType("*v1.PolarDBXBackupBinlog"), mock.Anything).Return(nil)
+	mockClient.On("Delete", mock.MatchedBy(func(ctx context.Context) bool {
+		return ctx.Value(ctxKey("trace")) == "tid-bbl-delete"
+	}), mock.AnythingOfType("*v1.PolarDBXBackupBinlog"), mock.Anything).Return(nil)
 
-	err := DeletePolarDBXBackupBinlog(mockClient, "default", "test-backup-binlog")
+	err := DeletePolarDBXBackupBinlogWithContext(traceCtx, mockClient, "default", "test-backup-binlog")
 	assert.NoError(t, err)
 	mockClient.AssertExpectations(t)
 }
@@ -1578,10 +1607,13 @@ func createTestBackupBinlog(name, namespace string) *polardbxv1.PolarDBXBackupBi
 func TestCreateXStoreFollower_Success(t *testing.T) {
 	mockClient := new(MockClient)
 	follower := createTestXStoreFollower("test-follower", "default")
+	traceCtx := context.WithValue(context.Background(), ctxKey("trace"), "tid-xf-create")
 
-	mockClient.On("Create", mock.Anything, mock.AnythingOfType("*v1.XStoreFollower"), mock.Anything).Return(nil)
+	mockClient.On("Create", mock.MatchedBy(func(ctx context.Context) bool {
+		return ctx.Value(ctxKey("trace")) == "tid-xf-create"
+	}), mock.AnythingOfType("*v1.XStoreFollower"), mock.Anything).Return(nil)
 
-	result, err := CreateXStoreFollower(mockClient, "default", follower)
+	result, err := CreateXStoreFollowerWithContext(traceCtx, mockClient, "default", follower)
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, "test-follower", result.Name)
@@ -1634,10 +1666,13 @@ func TestGetXStoreFollower_NotFound(t *testing.T) {
 func TestUpdateXStoreFollower_Success(t *testing.T) {
 	mockClient := new(MockClient)
 	follower := createTestXStoreFollower("test-follower", "default")
+	traceCtx := context.WithValue(context.Background(), ctxKey("trace"), "tid-xf-update")
 
-	mockClient.On("Update", mock.Anything, mock.AnythingOfType("*v1.XStoreFollower"), mock.Anything).Return(nil)
+	mockClient.On("Update", mock.MatchedBy(func(ctx context.Context) bool {
+		return ctx.Value(ctxKey("trace")) == "tid-xf-update"
+	}), mock.AnythingOfType("*v1.XStoreFollower"), mock.Anything).Return(nil)
 
-	result, err := UpdateXStoreFollower(mockClient, "default", follower)
+	result, err := UpdateXStoreFollowerWithContext(traceCtx, mockClient, "default", follower)
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	mockClient.AssertExpectations(t)
@@ -1645,10 +1680,13 @@ func TestUpdateXStoreFollower_Success(t *testing.T) {
 
 func TestDeleteXStoreFollower_Success(t *testing.T) {
 	mockClient := new(MockClient)
+	traceCtx := context.WithValue(context.Background(), ctxKey("trace"), "tid-xf-delete")
 
-	mockClient.On("Delete", mock.Anything, mock.AnythingOfType("*v1.XStoreFollower"), mock.Anything).Return(nil)
+	mockClient.On("Delete", mock.MatchedBy(func(ctx context.Context) bool {
+		return ctx.Value(ctxKey("trace")) == "tid-xf-delete"
+	}), mock.AnythingOfType("*v1.XStoreFollower"), mock.Anything).Return(nil)
 
-	err := DeleteXStoreFollower(mockClient, "default", "test-follower")
+	err := DeleteXStoreFollowerWithContext(traceCtx, mockClient, "default", "test-follower")
 	assert.NoError(t, err)
 	mockClient.AssertExpectations(t)
 }
@@ -1678,7 +1716,7 @@ func TestCreateXStoreBackup_ConflictError(t *testing.T) {
 	result, err := CreateXStoreBackup(mockClient, "default", backup)
 	assert.Error(t, err)
 	assert.True(t, k8serrors.IsAlreadyExists(err))
-	assert.NotNil(t, result)
+	assert.Nil(t, result) // WithContext version returns nil on error (Go convention)
 	mockClient.AssertExpectations(t)
 }
 

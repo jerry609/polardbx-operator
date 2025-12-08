@@ -19,9 +19,9 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/remotecommand"
 
-	"polardbx-ui-backend/pkg/api/domain/platform/pod/repository"
 	"polardbx-ui-backend/pkg/api/domain/platform/pod/service"
 	apierr "polardbx-ui-backend/pkg/api/errors"
+	"polardbx-ui-backend/pkg/api/provider"
 	"polardbx-ui-backend/pkg/api/util"
 )
 
@@ -37,16 +37,15 @@ func NewPodHandler(svc *service.PodService) *PodHandler {
 
 // NewPodHandlerFromContext creates complete handler chain from gin.Context
 func NewPodHandlerFromContext(c *gin.Context) (*PodHandler, bool) {
-	cli, ok := util.K8sClientFromContext(c)
+	p, ok := provider.FromContext(c)
+	if !ok {
+		apierr.AbortInternal(c, "service provider missing")
+		return nil, false
+	}
+	svc, ok := p.PodService(c)
 	if !ok {
 		return nil, false
 	}
-	cs, ok := util.ClientsetFromContext(c)
-	if !ok {
-		return nil, false
-	}
-	repo := repository.NewK8sPodRepositorySimple(cli, cs)
-	svc := service.NewPodService(repo)
 	return NewPodHandler(svc), true
 }
 
@@ -60,7 +59,7 @@ func GetLogs(c *gin.Context) {
 }
 
 func (h *PodHandler) getLogs(c *gin.Context) {
-	ns := c.Param("namespace")
+	ns := util.GetNamespace(c, "default")
 	pod := c.Param("pod_name")
 	container := c.Query("container")
 	tailStr := c.DefaultQuery("tailLines", "1000")
@@ -74,7 +73,9 @@ func (h *PodHandler) getLogs(c *gin.Context) {
 			tail = maxTailLines
 		}
 	}
-	result, err := h.service.GetLogs(c.Request.Context(), ns, pod, container, tail)
+	ctx, cancel := util.ListCtx(c)
+	defer cancel()
+	result, err := h.service.GetLogs(ctx, ns, pod, container, tail)
 	if err != nil {
 		apierr.AbortK8sError(c, "get pod logs", err)
 		return
@@ -92,9 +93,11 @@ func ListForCluster(c *gin.Context) {
 }
 
 func (h *PodHandler) listForCluster(c *gin.Context) {
-	ns := c.Param("namespace")
+	ns := util.GetNamespace(c, "default")
 	cluster := c.Param("name")
-	pods, err := h.service.ListForCluster(c.Request.Context(), ns, cluster)
+	ctx, cancel := util.ListCtx(c)
+	defer cancel()
+	pods, err := h.service.ListForCluster(ctx, ns, cluster)
 	if err != nil {
 		apierr.AbortK8sError(c, "list cluster pods", err)
 		return
@@ -112,8 +115,10 @@ func List(c *gin.Context) {
 }
 
 func (h *PodHandler) list(c *gin.Context) {
-	ns := c.DefaultQuery("namespace", "default")
-	pods, err := h.service.List(c.Request.Context(), ns)
+	ns := util.GetNamespace(c, "default")
+	ctx, cancel := util.ListCtx(c)
+	defer cancel()
+	pods, err := h.service.List(ctx, ns)
 	if err != nil {
 		apierr.AbortK8sError(c, "list pods", err)
 		return
@@ -131,9 +136,11 @@ func Get(c *gin.Context) {
 }
 
 func (h *PodHandler) get(c *gin.Context) {
-	ns := c.Param("namespace")
+	ns := util.GetNamespace(c, "default")
 	name := c.Param("name")
-	pod, err := h.service.Get(c.Request.Context(), ns, name)
+	ctx, cancel := util.ListCtx(c)
+	defer cancel()
+	pod, err := h.service.Get(ctx, ns, name)
 	if err != nil {
 		apierr.AbortK8sError(c, "get pod", err)
 		return
@@ -151,9 +158,11 @@ func Delete(c *gin.Context) {
 }
 
 func (h *PodHandler) delete(c *gin.Context) {
-	ns := c.Param("namespace")
+	ns := util.GetNamespace(c, "default")
 	name := c.Param("name")
-	if err := h.service.Delete(c.Request.Context(), ns, name); err != nil {
+	ctx, cancel := util.CrudCtx(c)
+	defer cancel()
+	if err := h.service.Delete(ctx, ns, name); err != nil {
 		apierr.AbortK8sError(c, "delete pod", err)
 		return
 	}

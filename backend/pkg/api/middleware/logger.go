@@ -5,12 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
+
+	"polardbx-ui-backend/pkg/logger"
 )
 
 // RequestLogConfig 请求日志配置
@@ -37,9 +39,10 @@ var DefaultLogConfig = RequestLogConfig{
 }
 
 // RequestIDKey 请求 ID 上下文键
-const RequestIDKey = "request_id"
+const RequestIDKey = "requestId"
 
 // bodyLogWriter 用于捕获响应体
+// (仅在 LogResponseBody 启用时使用)
 type bodyLogWriter struct {
 	gin.ResponseWriter
 	body *bytes.Buffer
@@ -50,7 +53,7 @@ func (w bodyLogWriter) Write(b []byte) (int, error) {
 	return w.ResponseWriter.Write(b)
 }
 
-// RequestLogger 请求日志中间件
+// RequestLogger 请求日志中间件（zap 结构化）
 func RequestLogger(config ...RequestLogConfig) gin.HandlerFunc {
 	cfg := DefaultLogConfig
 	if len(config) > 0 {
@@ -58,7 +61,6 @@ func RequestLogger(config ...RequestLogConfig) gin.HandlerFunc {
 	}
 
 	return func(c *gin.Context) {
-		// 跳过特定路径
 		path := c.Request.URL.Path
 		for _, skip := range cfg.SkipPaths {
 			if strings.HasPrefix(path, skip) {
@@ -67,28 +69,37 @@ func RequestLogger(config ...RequestLogConfig) gin.HandlerFunc {
 			}
 		}
 
-		// 生成请求 ID
-		requestID := uuid.New().String()[:8]
-		c.Set(RequestIDKey, requestID)
+		requestID := c.GetString(RequestIDKey)
+		if requestID == "" {
+			requestID = uuid.New().String()[:8]
+			c.Set(RequestIDKey, requestID)
+		}
 
-		// 记录开始时间
 		startTime := time.Now()
-
-		// 获取请求信息
 		method := c.Request.Method
 		clientIP := c.ClientIP()
-		userAgent := c.Request.UserAgent()
+		userAgent := truncateString(c.Request.UserAgent(), 80)
+
+		l := logger.L().With(
+			zap.String("requestId", requestID),
+			zap.String("method", method),
+			zap.String("path", path),
+			zap.String("clientIP", clientIP),
+			zap.String("userAgent", userAgent),
+		)
 
 		// 读取请求体（如果需要）
-		var requestBody string
 		if cfg.LogRequestBody && c.Request.Body != nil && c.Request.ContentLength > 0 {
 			bodyBytes, _ := io.ReadAll(c.Request.Body)
 			c.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+			body := string(bodyBytes)
 			if len(bodyBytes) > cfg.MaxBodyLogSize {
-				requestBody = string(bodyBytes[:cfg.MaxBodyLogSize]) + "...(truncated)"
-			} else {
-				requestBody = maskSensitiveFields(string(bodyBytes), cfg.SensitiveFields)
+				body = body[:cfg.MaxBodyLogSize] + "...(truncated)"
 			}
+			body = maskSensitiveFields(body, cfg.SensitiveFields)
+			l.Info("request received", zap.String("requestBody", truncateString(body, cfg.MaxBodyLogSize)))
+		} else {
+			l.Info("request received")
 		}
 
 		// 捕获响应体（如果需要）
@@ -98,60 +109,42 @@ func RequestLogger(config ...RequestLogConfig) gin.HandlerFunc {
 			c.Writer = blw
 		}
 
-		// 记录请求开始
-		log.Printf("[%s] ▶ %s %s from %s | User-Agent: %s",
-			requestID, method, path, clientIP, truncateString(userAgent, 50))
-
-		if requestBody != "" && method != "GET" {
-			log.Printf("[%s] 📤 Request Body: %s", requestID, truncateString(requestBody, 500))
-		}
-
-		// 执行请求
 		c.Next()
 
-		// 计算耗时
 		latency := time.Since(startTime)
 		statusCode := c.Writer.Status()
-
-		// 获取用户身份（如果有）
 		user := c.GetString("k8sUser")
-		context := c.GetString("k8sContext")
+		k8sContext := c.GetString("k8sContext")
 
-		// 构建日志消息
-		logLevel := "INFO"
-		emoji := "✓"
-		if statusCode >= 400 && statusCode < 500 {
-			logLevel = "WARN"
-			emoji = "⚠"
-		} else if statusCode >= 500 {
-			logLevel = "ERROR"
-			emoji = "✗"
+		fields := []zap.Field{
+			zap.Int("status", statusCode),
+			zap.Duration("latency", latency),
 		}
-
-		// 记录请求完成
-		identityInfo := ""
 		if user != "" {
-			identityInfo = fmt.Sprintf(" | user=%s context=%s", user, context)
+			fields = append(fields, zap.String("user", user))
+		}
+		if k8sContext != "" {
+			fields = append(fields, zap.String("k8sContext", k8sContext))
+		}
+		if len(c.Errors) > 0 {
+			fields = append(fields, zap.String("errors", c.Errors.String()))
 		}
 
-		log.Printf("[%s] %s %s %s %s | %d | %v%s",
-			requestID, emoji, logLevel, method, path,
-			statusCode, latency, identityInfo)
-
-		// 记录响应体（如果是错误响应）
 		if cfg.LogResponseBody && blw != nil && statusCode >= 400 {
 			responseBody := blw.body.String()
 			if len(responseBody) > cfg.MaxBodyLogSize {
 				responseBody = responseBody[:cfg.MaxBodyLogSize] + "...(truncated)"
 			}
-			log.Printf("[%s] 📥 Response Body: %s", requestID, responseBody)
+			fields = append(fields, zap.String("responseBody", responseBody))
 		}
 
-		// 记录错误信息
-		if len(c.Errors) > 0 {
-			for _, e := range c.Errors {
-				log.Printf("[%s] ❌ Error: %s", requestID, e.Error())
-			}
+		switch {
+		case statusCode >= 500:
+			l.With(fields...).Error("request completed")
+		case statusCode >= 400:
+			l.With(fields...).Warn("request completed")
+		default:
+			l.With(fields...).Info("request completed")
 		}
 	}
 }
@@ -160,26 +153,30 @@ func RequestLogger(config ...RequestLogConfig) gin.HandlerFunc {
 func K8sOperationLogger(c *gin.Context, operation, resource, namespace, name string) func(err error) {
 	requestID := c.GetString(RequestIDKey)
 	startTime := time.Now()
+	l := logger.L().With(
+		zap.String("requestId", requestID),
+		zap.String("operation", operation),
+		zap.String("resource", resource),
+		zap.String("namespace", namespace),
+		zap.String("name", name),
+	)
 
-	log.Printf("[%s] 🔄 K8s %s %s/%s/%s starting",
-		requestID, operation, resource, namespace, name)
+	l.Info("k8s operation starting")
 
 	return func(err error) {
 		latency := time.Since(startTime)
 		if err != nil {
-			log.Printf("[%s] ❌ K8s %s %s/%s/%s failed after %v: %v",
-				requestID, operation, resource, namespace, name, latency, err)
+			l.Error("k8s operation failed", zap.Duration("latency", latency), zap.Error(err))
 		} else {
-			log.Printf("[%s] ✓ K8s %s %s/%s/%s completed in %v",
-				requestID, operation, resource, namespace, name, latency)
+			l.Info("k8s operation completed", zap.Duration("latency", latency))
 		}
 	}
 }
 
 // BusinessLogger 业务日志记录器
+// 维持与旧接口兼容，同时输出结构化字段。
 type BusinessLogger struct {
-	RequestID string
-	Component string
+	logger *zap.SugaredLogger
 }
 
 // NewBusinessLogger 从上下文创建业务日志记录器
@@ -188,41 +185,67 @@ func NewBusinessLogger(c *gin.Context, component string) *BusinessLogger {
 	if requestID == "" {
 		requestID = "no-req-id"
 	}
-	return &BusinessLogger{
-		RequestID: requestID,
-		Component: component,
-	}
+	l := logger.L().With(
+		zap.String("requestId", requestID),
+		zap.String("component", component),
+	).Sugar()
+	return &BusinessLogger{logger: l}
 }
 
 // Info 记录信息日志
 func (l *BusinessLogger) Info(format string, args ...interface{}) {
-	msg := fmt.Sprintf(format, args...)
-	log.Printf("[%s] [%s] ℹ️ %s", l.RequestID, l.Component, msg)
+	l.logger.Infof(format, args...)
 }
 
 // Warn 记录警告日志
 func (l *BusinessLogger) Warn(format string, args ...interface{}) {
-	msg := fmt.Sprintf(format, args...)
-	log.Printf("[%s] [%s] ⚠️ %s", l.RequestID, l.Component, msg)
+	l.logger.Warnf(format, args...)
 }
 
 // Error 记录错误日志
 func (l *BusinessLogger) Error(err error, format string, args ...interface{}) {
-	msg := fmt.Sprintf(format, args...)
-	log.Printf("[%s] [%s] ❌ %s: %v", l.RequestID, l.Component, msg, err)
+	if err != nil {
+		args = append(args, err)
+		l.logger.With("error", err).Errorf(format, args...)
+	} else {
+		l.logger.Errorf(format, args...)
+	}
 }
 
 // Debug 记录调试日志
 func (l *BusinessLogger) Debug(format string, args ...interface{}) {
-	msg := fmt.Sprintf(format, args...)
-	log.Printf("[%s] [%s] 🔍 %s", l.RequestID, l.Component, msg)
+	l.logger.Debugf(format, args...)
 }
 
 // WithField 添加额外字段
 func (l *BusinessLogger) WithField(key string, value interface{}) *BusinessLogger {
-	return &BusinessLogger{
-		RequestID: l.RequestID,
-		Component: fmt.Sprintf("%s.%s=%v", l.Component, key, value),
+	return &BusinessLogger{logger: l.logger.With(key, value)}
+}
+
+// StructuredLog 结构化日志
+// (保留给需要 JSON 形式的场景)
+type StructuredLog struct {
+	Timestamp   string                 `json:"timestamp"`
+	Level       string                 `json:"level"`
+	RequestID   string                 `json:"request_id,omitempty"`
+	Component   string                 `json:"component,omitempty"`
+	Message     string                 `json:"message"`
+	Method      string                 `json:"method,omitempty"`
+	Path        string                 `json:"path,omitempty"`
+	StatusCode  int                    `json:"status_code,omitempty"`
+	Latency     string                 `json:"latency,omitempty"`
+	ClientIP    string                 `json:"client_ip,omitempty"`
+	User        string                 `json:"user,omitempty"`
+	Context     string                 `json:"context,omitempty"`
+	Error       string                 `json:"error,omitempty"`
+	ExtraFields map[string]interface{} `json:"extra,omitempty"`
+}
+
+// LogJSON 输出 JSON 格式日志
+func LogJSON(l StructuredLog) {
+	l.Timestamp = time.Now().UTC().Format(time.RFC3339)
+	if data, err := json.Marshal(l); err == nil {
+		logger.L().Info(string(data))
 	}
 }
 
@@ -248,30 +271,4 @@ func truncateString(s string, maxLen int) string {
 		return s
 	}
 	return s[:maxLen] + "..."
-}
-
-// StructuredLog 结构化日志
-type StructuredLog struct {
-	Timestamp   string                 `json:"timestamp"`
-	Level       string                 `json:"level"`
-	RequestID   string                 `json:"request_id,omitempty"`
-	Component   string                 `json:"component,omitempty"`
-	Message     string                 `json:"message"`
-	Method      string                 `json:"method,omitempty"`
-	Path        string                 `json:"path,omitempty"`
-	StatusCode  int                    `json:"status_code,omitempty"`
-	Latency     string                 `json:"latency,omitempty"`
-	ClientIP    string                 `json:"client_ip,omitempty"`
-	User        string                 `json:"user,omitempty"`
-	Context     string                 `json:"context,omitempty"`
-	Error       string                 `json:"error,omitempty"`
-	ExtraFields map[string]interface{} `json:"extra,omitempty"`
-}
-
-// LogJSON 输出 JSON 格式日志
-func LogJSON(l StructuredLog) {
-	l.Timestamp = time.Now().UTC().Format(time.RFC3339)
-	if data, err := json.Marshal(l); err == nil {
-		log.Println(string(data))
-	}
 }

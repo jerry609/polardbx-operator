@@ -169,7 +169,7 @@ func (s *ClusterService) List(c *gin.Context) {
 		logger.Error(nil, "failed to get k8s client from context")
 		return
 	}
-	ns := c.DefaultQuery("namespace", "")
+	ns := util.GetNamespace(c, "")
 	logger.Info("listing clusters in namespace=%s", ns)
 
 	ctx, cancel := util.ListCtx(c)
@@ -193,18 +193,16 @@ func (s *ClusterService) Create(c *gin.Context) {
 		return
 	}
 	var obj polardbxv1.PolarDBXCluster
-	if err := c.ShouldBindJSON(&obj); err != nil {
-		logger.Error(err, "failed to parse cluster data")
-		apierr.AbortValidation(c, "failed to parse cluster data: "+err.Error())
+	ctx, cancel, ok := util.BindValidateAndCtx(c, &obj, util.DefaultCRUDTimeout)
+	if !ok {
 		return
 	}
-	ns := obj.GetNamespace()
+	ns := util.GetNamespace(c, obj.GetNamespace())
 	if ns == "" {
 		ns = "default"
 	}
 	logger.Info("creating cluster name=%s namespace=%s", obj.GetName(), ns)
 
-	ctx, cancel := util.CrudCtx(c)
 	defer cancel()
 	created, err := k8srepo.NewClusterRepository().Create(ctx, cli, ns, &obj)
 	if err != nil {
@@ -229,17 +227,14 @@ func (s *ClusterService) CreateFromConfig(c *gin.Context) {
 	}
 
 	// 从URL参数获取namespace
-	ns := c.Param("namespace")
-	if ns == "" {
-		ns = "default"
-	}
+	ns := util.GetNamespace(c, "default")
 
 	var config ClusterCreationConfig
-	if err := c.ShouldBindJSON(&config); err != nil {
-		logger.Error(err, "failed to parse cluster creation config")
-		apierr.AbortValidation(c, "配置解析失败: "+err.Error())
+	ctx, cancel, ok := util.BindValidateAndCtx(c, &config, util.DefaultCRUDTimeout)
+	if !ok {
 		return
 	}
+	defer cancel()
 
 	logger.Info("creating cluster from config name=%s namespace=%s", config.Name, ns)
 
@@ -260,8 +255,6 @@ func (s *ClusterService) CreateFromConfig(c *gin.Context) {
 	logger.Debug("converted config to PolarDBXCluster: CN=%d DN=%d",
 		config.Topology.CN.Replicas, config.Topology.DN.Replicas)
 
-	ctx, cancel := util.CrudCtx(c)
-	defer cancel()
 	created, err := k8srepo.NewClusterRepository().Create(ctx, cli, ns, cluster)
 	if err != nil {
 		// 提取更有意义的错误信息
@@ -481,7 +474,7 @@ func (s *ClusterService) Get(c *gin.Context) {
 		logger.Error(nil, "failed to get k8s client from context")
 		return
 	}
-	ns := c.Param("namespace")
+	ns := util.GetNamespace(c, "default")
 	name := c.Param("name")
 	logger.Debug("getting cluster name=%s namespace=%s", name, ns)
 
@@ -506,17 +499,15 @@ func (s *ClusterService) Update(c *gin.Context) {
 		logger.Error(nil, "failed to get k8s client from context")
 		return
 	}
-	ns := c.Param("namespace")
+	ns := util.GetNamespace(c, "default")
 	name := c.Param("name")
 	var body polardbxv1.PolarDBXCluster
-	if err := c.ShouldBindJSON(&body); err != nil {
-		logger.Error(err, "failed to parse cluster data for update")
-		apierr.AbortValidation(c, "failed to parse cluster data: "+err.Error())
+	ctx, cancel, ok := util.BindValidateAndCtx(c, &body, util.DefaultCRUDTimeout)
+	if !ok {
 		return
 	}
 	logger.Info("updating cluster name=%s namespace=%s", name, ns)
 
-	ctx, cancel := util.CrudCtx(c)
 	defer cancel()
 	existing, err := k8srepo.NewClusterRepository().Get(ctx, cli, ns, name)
 	if err != nil {
@@ -546,7 +537,7 @@ func (s *ClusterService) Delete(c *gin.Context) {
 		logger.Error(nil, "failed to get k8s client from context")
 		return
 	}
-	ns := c.Param("namespace")
+	ns := util.GetNamespace(c, "default")
 	name := c.Param("name")
 	logger.Info("deleting cluster name=%s namespace=%s", name, ns)
 

@@ -2,18 +2,21 @@ package xstores
 
 import (
 	domain_xs "polardbx-ui-backend/pkg/api/domain/xstores"
+	"polardbx-ui-backend/pkg/api/routerutil"
 
 	"github.com/gin-gonic/gin"
 )
 
 // RegisterRoutes adds /crd/xstores CRUD aliases.
 func RegisterRoutes(crd *gin.RouterGroup) {
-	r := crd.Group("/xstores")
-	r.GET("", domain_xs.List)
-	r.POST("", domain_xs.Create)
-	item := r.Group("/:namespace/:name")
-	item.GET("", domain_xs.Get)
-	item.PUT("", domain_xs.Update)
-	item.DELETE("", domain_xs.Delete)
+	base := "/xstores"
+	routerutil.RegisterCRUDWithItemPattern(crd, base, base+"/:namespace/:name", routerutil.CRUDHandlers{
+		List:   domain_xs.List,
+		Create: domain_xs.Create,
+		Get:    domain_xs.Get,
+		Update: domain_xs.Update,
+		Delete: domain_xs.Delete,
+	})
+	item := crd.Group(base + "/:namespace/:name")
 	item.GET("/pods", domain_xs.ListPods)
 }

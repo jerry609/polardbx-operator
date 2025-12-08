@@ -5,6 +5,7 @@ import (
 	domain_logs "polardbx-ui-backend/pkg/api/domain/platform/logs/handler"
 	domain_logservice "polardbx-ui-backend/pkg/api/domain/platform/logservice/handler"
 	domain_logstrategy "polardbx-ui-backend/pkg/api/domain/platform/logstrategy/handler"
+	"polardbx-ui-backend/pkg/api/routerutil"
 
 	"github.com/gin-gonic/gin"
 )
@@ -12,11 +13,14 @@ import (
 // RegisterLogsRoutes registers log-related routes
 func RegisterLogsRoutes(v1 *gin.RouterGroup) {
 	// Log Collectors
-	v1.GET("/log-collectors", domain_logcollector.List)
-	v1.POST("/log-collectors", domain_logcollector.Create)
-	v1.GET("/log-collectors/:namespace/:name", domain_logcollector.Get)
-	v1.PUT("/log-collectors/:namespace/:name", domain_logcollector.Update)
-	v1.DELETE("/log-collectors/:namespace/:name", domain_logcollector.Delete)
+	base := "/log-collectors"
+	routerutil.RegisterCRUDWithItemPattern(v1, base, base+"/:namespace/:name", routerutil.CRUDHandlers{
+		List:   domain_logcollector.List,
+		Create: domain_logcollector.Create,
+		Get:    domain_logcollector.Get,
+		Update: domain_logcollector.Update,
+		Delete: domain_logcollector.Delete,
+	})
 	v1.GET("/log-collectors/:namespace/pipeline", domain_logcollector.GetLogstashPipeline)
 	v1.PUT("/log-collectors/:namespace/pipeline", domain_logcollector.UpdateLogstashPipeline)
 	v1.GET("/log-collectors/:namespace/elastic-certs", domain_logcollector.GetElasticsearchCert)

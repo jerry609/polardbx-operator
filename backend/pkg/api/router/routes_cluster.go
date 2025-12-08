@@ -6,6 +6,7 @@ import (
 	domain_clusterknobs "polardbx-ui-backend/pkg/api/domain/platform/clusterknobs/handler"
 	domain_pod "polardbx-ui-backend/pkg/api/domain/platform/pod/handler"
 	domain_pxc "polardbx-ui-backend/pkg/api/domain/polardbxclusters"
+	"polardbx-ui-backend/pkg/api/routerutil"
 
 	"github.com/gin-gonic/gin"
 )
@@ -44,23 +45,31 @@ func RegisterClusterRoutes(v1 *gin.RouterGroup) {
 	v1.GET("/alerts", domain_alerts.List)
 
 	// Parameters
-	v1.GET("/parameters", domain_pxc.ListParameters)
-	v1.POST("/parameters", domain_pxc.CreateParameter)
-	v1.GET("/parameters/:name", domain_pxc.GetParameter)
-	v1.PUT("/parameters/:name", domain_pxc.UpdateParameter)
-	v1.DELETE("/parameters/:name", domain_pxc.DeleteParameter)
+	routerutil.RegisterCRUD(v1, "/parameters", routerutil.CRUDHandlers{
+		List:   domain_pxc.ListParameters,
+		Create: domain_pxc.CreateParameter,
+		Get:    domain_pxc.GetParameter,
+		Update: domain_pxc.UpdateParameter,
+		Delete: domain_pxc.DeleteParameter,
+	})
 
 	// Parameter Templates
-	v1.GET("/parameter-templates", domain_pxc.ListTemplates)
-	v1.POST("/parameter-templates", domain_pxc.CreateTemplate)
-	v1.GET("/parameter-templates/:namespace/:name", domain_pxc.GetTemplate)
-	v1.PUT("/parameter-templates/:namespace/:name", domain_pxc.UpdateTemplate)
-	v1.DELETE("/parameter-templates/:namespace/:name", domain_pxc.DeleteTemplate)
+	baseTpl := "/parameter-templates"
+	routerutil.RegisterCRUDWithItemPattern(v1, baseTpl, baseTpl+"/:namespace/:name", routerutil.CRUDHandlers{
+		List:   domain_pxc.ListTemplates,
+		Create: domain_pxc.CreateTemplate,
+		Get:    domain_pxc.GetTemplate,
+		Update: domain_pxc.UpdateTemplate,
+		Delete: domain_pxc.DeleteTemplate,
+	})
 
 	// Cluster Knobs
-	v1.GET("/cluster-knobs", domain_clusterknobs.GetList)
-	v1.POST("/cluster-knobs", domain_clusterknobs.Create)
-	v1.GET("/cluster-knobs/:namespace/:name", domain_clusterknobs.Get)
-	v1.PUT("/cluster-knobs/:namespace/:name", domain_clusterknobs.Update)
-	v1.DELETE("/cluster-knobs/:namespace/:name", domain_clusterknobs.Delete)
+	baseKnobs := "/cluster-knobs"
+	routerutil.RegisterCRUDWithItemPattern(v1, baseKnobs, baseKnobs+"/:namespace/:name", routerutil.CRUDHandlers{
+		List:   domain_clusterknobs.GetList,
+		Create: domain_clusterknobs.Create,
+		Get:    domain_clusterknobs.Get,
+		Update: domain_clusterknobs.Update,
+		Delete: domain_clusterknobs.Delete,
+	})
 }

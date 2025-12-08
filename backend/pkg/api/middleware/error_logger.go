@@ -197,7 +197,7 @@ func RecoveryWithLogger() gin.HandlerFunc {
 
 				c.AbortWithStatusJSON(500, gin.H{
 					"error":      "Internal Server Error",
-					"request_id": requestID,
+					"requestId": requestID,
 				})
 			}
 		}()

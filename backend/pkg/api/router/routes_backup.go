@@ -3,6 +3,7 @@ package router
 import (
 	domain_settings "polardbx-ui-backend/pkg/api/domain/platform/settings/handler"
 	domain_pxc "polardbx-ui-backend/pkg/api/domain/polardbxclusters"
+	"polardbx-ui-backend/pkg/api/routerutil"
 
 	"github.com/gin-gonic/gin"
 )
@@ -25,18 +26,24 @@ func RegisterBackupRoutes(v1 *gin.RouterGroup) {
 	v1.GET("/backups/binlog/metrics", domain_pxc.GetBinlogMetrics)
 
 	// Backup Schedules
-	v1.GET("/backup-schedules", domain_pxc.ListSchedules)
-	v1.POST("/backup-schedules", domain_pxc.CreateSchedule)
-	v1.GET("/backup-schedules/:namespace/:name", domain_pxc.GetSchedule)
-	v1.PUT("/backup-schedules/:namespace/:name", domain_pxc.UpdateSchedule)
-	v1.DELETE("/backup-schedules/:namespace/:name", domain_pxc.DeleteSchedule)
+	baseSchedules := "/backup-schedules"
+	routerutil.RegisterCRUDWithItemPattern(v1, baseSchedules, baseSchedules+"/:namespace/:name", routerutil.CRUDHandlers{
+		List:   domain_pxc.ListSchedules,
+		Create: domain_pxc.CreateSchedule,
+		Get:    domain_pxc.GetSchedule,
+		Update: domain_pxc.UpdateSchedule,
+		Delete: domain_pxc.DeleteSchedule,
+	})
 
 	// Backup Binlogs
-	v1.GET("/backup-binlogs", domain_pxc.ListBackupBinlogs)
-	v1.POST("/backup-binlogs", domain_pxc.CreateBackupBinlog)
-	v1.GET("/backup-binlogs/:namespace/:name", domain_pxc.GetBackupBinlog)
-	v1.PUT("/backup-binlogs/:namespace/:name", domain_pxc.UpdateBackupBinlog)
-	v1.DELETE("/backup-binlogs/:namespace/:name", domain_pxc.DeleteBackupBinlog)
+	baseBinlogs := "/backup-binlogs"
+	routerutil.RegisterCRUDWithItemPattern(v1, baseBinlogs, baseBinlogs+"/:namespace/:name", routerutil.CRUDHandlers{
+		List:   domain_pxc.ListBackupBinlogs,
+		Create: domain_pxc.CreateBackupBinlog,
+		Get:    domain_pxc.GetBackupBinlog,
+		Update: domain_pxc.UpdateBackupBinlog,
+		Delete: domain_pxc.DeleteBackupBinlog,
+	})
 
 	// HPFS sinks
 	v1.GET("/hpfs/sinks", domain_pxc.ListHpfsSinks)

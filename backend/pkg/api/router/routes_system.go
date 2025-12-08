@@ -3,6 +3,7 @@ package router
 import (
 	domain_system "polardbx-ui-backend/pkg/api/domain/platform/system/handler"
 	domain_st "polardbx-ui-backend/pkg/api/domain/systemtasks"
+	"polardbx-ui-backend/pkg/api/routerutil"
 
 	"github.com/gin-gonic/gin"
 )
@@ -17,9 +18,12 @@ func RegisterSystemRoutes(v1 *gin.RouterGroup) {
 	v1.GET("/namespaces", domain_system.ListNamespaces)
 
 	// System Tasks
-	v1.GET("/system-tasks", domain_st.List)
-	v1.POST("/system-tasks", domain_st.Create)
-	v1.GET("/system-tasks/:namespace/:name", domain_st.Get)
-	v1.PUT("/system-tasks/:namespace/:name", domain_st.Update)
-	v1.DELETE("/system-tasks/:namespace/:name", domain_st.Delete)
+	base := "/system-tasks"
+	routerutil.RegisterCRUDWithItemPattern(v1, base, base+"/:namespace/:name", routerutil.CRUDHandlers{
+		List:   domain_st.List,
+		Create: domain_st.Create,
+		Get:    domain_st.Get,
+		Update: domain_st.Update,
+		Delete: domain_st.Delete,
+	})
 }

@@ -4,6 +4,7 @@ import (
 	domain_monitoring "polardbx-ui-backend/pkg/api/domain/monitoring"
 	domain_grafana "polardbx-ui-backend/pkg/api/domain/platform/grafana/handler"
 	domain_prometheusrule "polardbx-ui-backend/pkg/api/domain/platform/prometheusrule/handler"
+	"polardbx-ui-backend/pkg/api/routerutil"
 
 	"github.com/gin-gonic/gin"
 )
@@ -11,11 +12,14 @@ import (
 // RegisterMonitoringRoutes registers monitoring-related routes
 func RegisterMonitoringRoutes(v1 *gin.RouterGroup) {
 	// Monitor CRD routes
-	v1.GET("/monitors", domain_monitoring.ListMonitors)
-	v1.POST("/monitors", domain_monitoring.CreateMonitor)
-	v1.GET("/monitors/:namespace/:name", domain_monitoring.GetMonitor)
-	v1.PUT("/monitors/:namespace/:name", domain_monitoring.UpdateMonitor)
-	v1.DELETE("/monitors/:namespace/:name", domain_monitoring.DeleteMonitor)
+	base := "/monitors"
+	routerutil.RegisterCRUDWithItemPattern(v1, base, base+"/:namespace/:name", routerutil.CRUDHandlers{
+		List:   domain_monitoring.ListMonitors,
+		Create: domain_monitoring.CreateMonitor,
+		Get:    domain_monitoring.GetMonitor,
+		Update: domain_monitoring.UpdateMonitor,
+		Delete: domain_monitoring.DeleteMonitor,
+	})
 
 	// Monitoring workflow endpoints
 	v1.POST("/monitoring/bootstrap", domain_monitoring.Bootstrap)

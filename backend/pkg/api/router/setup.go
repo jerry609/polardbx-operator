@@ -8,6 +8,7 @@ import (
 	"polardbx-ui-backend/pkg/api"
 	apierr "polardbx-ui-backend/pkg/api/errors"
 	"polardbx-ui-backend/pkg/api/middleware"
+	"polardbx-ui-backend/pkg/api/provider"
 	"polardbx-ui-backend/pkg/config"
 
 	"github.com/gin-gonic/gin"
@@ -67,6 +68,7 @@ func setupRoutes(r *gin.Engine) {
 
 	// API v1 group
 	v1 := r.Group("/api/v1")
+	v1.Use(provider.Inject(provider.NewDefaultProvider()))
 
 	// Public routes (no kubeconfig required)
 	RegisterPublicRoutes(v1)

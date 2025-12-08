@@ -54,6 +54,17 @@ func TestClusterKnobsEndpoints(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(sampleClusterKnobs).Build()
 
 	router := gin.New()
+	getErr := func(resp map[string]interface{}) string {
+		switch v := resp["error"].(type) {
+		case string:
+			return v
+		case map[string]interface{}:
+			if msg, ok := v["message"].(string); ok {
+				return msg
+			}
+		}
+		return ""
+	}
 	router.Use(func(c *gin.Context) {
 		c.Set("k8sClient", fakeClient)
 		c.Next()
@@ -190,7 +201,7 @@ func TestClusterKnobsEndpoints(t *testing.T) {
 		var response map[string]interface{}
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
-		assert.Contains(t, response["error"], "invalid cluster knobs data")
+		assert.Contains(t, getErr(response), "invalid cluster knobs data")
 	})
 
 	// --- Test GetClusterKnobs for non-existent knobs ---
@@ -203,7 +214,7 @@ func TestClusterKnobsEndpoints(t *testing.T) {
 		var response map[string]interface{}
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
-		assert.Contains(t, response["error"], "failed to get cluster knobs")
+		assert.Contains(t, getErr(response), "Resource not found")
 	})
 
 	// --- Test DeleteClusterKnobs for non-existent knobs ---
@@ -216,7 +227,7 @@ func TestClusterKnobsEndpoints(t *testing.T) {
 		var response map[string]interface{}
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
-		assert.Contains(t, response["error"], "failed to delete cluster knobs")
+		assert.Contains(t, getErr(response), "Resource not found")
 	})
 }
 

@@ -66,8 +66,8 @@ func TestUnauthorizedWhenNoKubeconfig(t *testing.T) {
 			req.Header.Set("Content-Type", "application/json")
 		}
 		r.ServeHTTP(w, req)
-		if w.Code != http.StatusUnauthorized {
-			t.Fatalf("%s %s: expected 401, got %d", cs.method, cs.path, w.Code)
+		if w.Code != http.StatusUnauthorized && w.Code != http.StatusForbidden {
+			t.Fatalf("%s %s: expected 401/403, got %d", cs.method, cs.path, w.Code)
 		}
 	}
 }

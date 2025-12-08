@@ -2,16 +2,18 @@ package polardbxparametertemplates
 
 import (
 	domain_parameters "polardbx-ui-backend/pkg/api/domain/platform/parameters/handler"
+	"polardbx-ui-backend/pkg/api/routerutil"
 
 	"github.com/gin-gonic/gin"
 )
 
 func RegisterRoutes(crd *gin.RouterGroup) {
-	r := crd.Group("/polardbxparametertemplates")
-	r.GET("", domain_parameters.ListTemplates)
-	r.POST("", domain_parameters.CreateTemplate)
-	item := r.Group("/:namespace/:name")
-	item.GET("", domain_parameters.GetTemplate)
-	item.PUT("", domain_parameters.UpdateTemplate)
-	item.DELETE("", domain_parameters.DeleteTemplate)
+	base := "/polardbxparametertemplates"
+	routerutil.RegisterCRUDWithItemPattern(crd, base, base+"/:namespace/:name", routerutil.CRUDHandlers{
+		List:   domain_parameters.ListTemplates,
+		Create: domain_parameters.CreateTemplate,
+		Get:    domain_parameters.GetTemplate,
+		Update: domain_parameters.UpdateTemplate,
+		Delete: domain_parameters.DeleteTemplate,
+	})
 }

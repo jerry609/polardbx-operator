@@ -2,6 +2,7 @@ package router
 
 import (
 	domain_restore "polardbx-ui-backend/pkg/api/domain/platform/restore/handler"
+	"polardbx-ui-backend/pkg/api/routerutil"
 
 	"github.com/gin-gonic/gin"
 )
@@ -14,7 +15,9 @@ func RegisterRestoreRoutes(v1 *gin.RouterGroup) {
 	v1.GET("/clusters/:namespace/:name/restore-status", domain_restore.GetRestoreStatus)
 
 	// Restore jobs
-	v1.GET("/restore-jobs", domain_restore.ListJobs)
-	v1.GET("/restore-jobs/:namespace/:name", domain_restore.GetJob)
-	v1.DELETE("/restore-jobs/:namespace/:name", domain_restore.CancelJob)
+	routerutil.RegisterLGD(v1, "/restore-jobs", "/restore-jobs/:namespace/:name", routerutil.LGDHandlers{
+		List:   domain_restore.ListJobs,
+		Get:    domain_restore.GetJob,
+		Delete: domain_restore.CancelJob,
+	})
 }

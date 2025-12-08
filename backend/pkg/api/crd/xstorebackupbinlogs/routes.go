@@ -2,17 +2,19 @@ package xstorebackupbinlogs
 
 import (
 	domain_xstores "polardbx-ui-backend/pkg/api/domain/xstores"
+	"polardbx-ui-backend/pkg/api/routerutil"
 
 	"github.com/gin-gonic/gin"
 )
 
 // RegisterRoutes under /api/v1/crd/xstorebackupbinlogs
 func RegisterRoutes(crd *gin.RouterGroup) {
-	r := crd.Group("/xstorebackupbinlogs")
-	r.GET("", domain_xstores.ListBackupBinlogs)
-	r.POST("", domain_xstores.CreateBackupBinlog)
-	item := r.Group("/:namespace/:name")
-	item.GET("", domain_xstores.GetBackupBinlog)
-	item.PUT("", domain_xstores.UpdateBackupBinlog)
-	item.DELETE("", domain_xstores.DeleteBackupBinlog)
+	base := "/xstorebackupbinlogs"
+	routerutil.RegisterCRUDWithItemPattern(crd, base, base+"/:namespace/:name", routerutil.CRUDHandlers{
+		List:   domain_xstores.ListBackupBinlogs,
+		Create: domain_xstores.CreateBackupBinlog,
+		Get:    domain_xstores.GetBackupBinlog,
+		Update: domain_xstores.UpdateBackupBinlog,
+		Delete: domain_xstores.DeleteBackupBinlog,
+	})
 }

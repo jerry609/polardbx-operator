@@ -2,15 +2,18 @@ package polardbxclusters
 
 import (
 	"polardbx-ui-backend/pkg/api/domain/polardbxclusters/services"
+	"polardbx-ui-backend/pkg/api/provider"
 
 	"github.com/gin-gonic/gin"
 )
 
 // --- Thin handlers forwarding to services ---
 
-func List(c *gin.Context)             { services.NewClusterService().List(c) }
-func Create(c *gin.Context)           { services.NewClusterService().Create(c) }
-func CreateFromConfig(c *gin.Context) { services.NewClusterService().CreateFromConfig(c) }
-func Get(c *gin.Context)              { services.NewClusterService().Get(c) }
-func Update(c *gin.Context)           { services.NewClusterService().Update(c) }
-func Delete(c *gin.Context)           { services.NewClusterService().Delete(c) }
+func svc(c *gin.Context) *services.ClusterService { return provider.Must(c).ClusterService(c) }
+
+func List(c *gin.Context)             { svc(c).List(c) }
+func Create(c *gin.Context)           { svc(c).Create(c) }
+func CreateFromConfig(c *gin.Context) { svc(c).CreateFromConfig(c) }
+func Get(c *gin.Context)              { svc(c).Get(c) }
+func Update(c *gin.Context)           { svc(c).Update(c) }
+func Delete(c *gin.Context)           { svc(c).Delete(c) }
