@@ -162,3 +162,128 @@ func TestRegisterHealthRoutes(t *testing.T) {
 		assert.Contains(t, routes, k)
 	}
 }
+
+func TestRegisterPublicRoutes(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	engine := gin.New()
+	RegisterPublicRoutes(engine.Group("/api"))
+
+	routes := collectRoutes(engine)
+	// Check that public routes are registered
+	assert.NotEmpty(t, routes)
+}
+
+func TestRegisterAuthRoutes(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	engine := gin.New()
+	RegisterAuthRoutes(engine.Group("/api"))
+
+	routes := collectRoutes(engine)
+	expected := []string{
+		routeKey("POST", "/api/auth/login"),
+		routeKey("GET", "/api/auth/me"),
+	}
+	for _, k := range expected {
+		assert.Contains(t, routes, k)
+	}
+}
+
+func TestRegisterClusterRoutes(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	engine := gin.New()
+	RegisterClusterRoutes(engine.Group("/api"))
+
+	routes := collectRoutes(engine)
+	expected := []string{
+		routeKey("GET", "/api/clusters"),
+		routeKey("POST", "/api/clusters"),
+		routeKey("GET", "/api/clusters/:namespace/:name"),
+		routeKey("PUT", "/api/clusters/:namespace/:name"),
+		routeKey("DELETE", "/api/clusters/:namespace/:name"),
+	}
+	for _, k := range expected {
+		assert.Contains(t, routes, k)
+	}
+}
+
+func TestRegisterBackupRoutes(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	engine := gin.New()
+	RegisterBackupRoutes(engine.Group("/api"))
+
+	routes := collectRoutes(engine)
+	// Simply check routes are registered
+	assert.NotEmpty(t, routes)
+}
+
+func TestRegisterXStoreRoutes(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	engine := gin.New()
+	RegisterXStoreRoutes(engine.Group("/api"))
+
+	routes := collectRoutes(engine)
+	// XStore routes include backups and followers
+	expected := []string{
+		routeKey("GET", "/api/xstore-backups"),
+		routeKey("POST", "/api/xstore-backups"),
+		routeKey("GET", "/api/xstore-followers"),
+		routeKey("POST", "/api/xstore-followers"),
+	}
+	for _, k := range expected {
+		assert.Contains(t, routes, k)
+	}
+}
+
+func TestRegisterSystemRoutes(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	engine := gin.New()
+	RegisterSystemRoutes(engine.Group("/api"))
+
+	routes := collectRoutes(engine)
+	expected := []string{
+		routeKey("GET", "/api/namespaces"),
+		routeKey("GET", "/api/system-tasks"),
+	}
+	for _, k := range expected {
+		assert.Contains(t, routes, k)
+	}
+}
+
+func TestRegisterCRDAliasRoutes(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	engine := gin.New()
+	RegisterCRDAliasRoutes(engine.Group("/api"))
+
+	routes := collectRoutes(engine)
+	// CRD alias routes register additional paths
+	assert.NotEmpty(t, routes)
+}
+
+func TestRegisterDomainRoutes(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	engine := gin.New()
+	RegisterDomainRoutes(engine.Group("/api"))
+
+	routes := collectRoutes(engine)
+	// Domain routes use xstores path without domain prefix
+	expected := []string{
+		routeKey("GET", "/api/xstores"),
+		routeKey("POST", "/api/xstores"),
+		routeKey("GET", "/api/xstores/:namespace/:name"),
+	}
+	for _, k := range expected {
+		assert.Contains(t, routes, k)
+	}
+}
+
+func TestLogGroupedRoutes(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	engine := gin.New()
+	engine.GET("/test1", func(c *gin.Context) {})
+	engine.POST("/test2", func(c *gin.Context) {})
+
+	// LogGroupedRoutes should not panic
+	assert.NotPanics(t, func() {
+		LogGroupedRoutes(engine)
+	})
+}

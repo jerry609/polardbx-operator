@@ -5,6 +5,11 @@ FROM golang:1.21-alpine AS builder
 # Set the working directory
 WORKDIR /app
 
+ARG VERSION=dev
+ARG COMMIT=unknown
+ARG BUILD_DATE=unknown
+ARG GO_VERSION=unknown
+
 # Copy the Go module files
 # We copy them first to leverage Docker layer caching
 COPY go.mod go.sum ./
@@ -22,7 +27,12 @@ RUN go mod download
 # Build the Go app, creating a static binary
 # CGO_ENABLED=0 is important for a static build
 # -ldflags="-w -s" strips debug information to reduce binary size
-RUN CGO_ENABLED=0 GOOS=linux go build -a -ldflags="-w -s" -o /polardbx-ui-backend ./main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -a -ldflags="-w -s \
+    -X 'polardbx-ui-backend/pkg/api/router.Version=${VERSION}' \
+    -X 'polardbx-ui-backend/pkg/api/router.Commit=${COMMIT}' \
+    -X 'polardbx-ui-backend/pkg/api/router.BuildDate=${BUILD_DATE}' \
+    -X 'polardbx-ui-backend/pkg/api/router.GoVersion=${GO_VERSION}'" \
+    -o /polardbx-ui-backend ./main.go
 
 # --- Stage 2: Final ---
 # Use a minimal image for the final stage

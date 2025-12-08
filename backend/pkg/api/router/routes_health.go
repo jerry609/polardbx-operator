@@ -1,16 +1,39 @@
 package router
 
 import (
+	"bytes"
+	"context"
+	"fmt"
 	"net/http"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 
 	apierr "polardbx-ui-backend/pkg/api/errors"
+	"polardbx-ui-backend/pkg/cache"
 	"polardbx-ui-backend/pkg/config"
+
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
-var startTime = time.Now()
+const (
+	readinessTimeout = 2 * time.Second
+	kubeProbeTimeout = 1500 * time.Millisecond
+)
+
+var (
+	startTime = time.Now()
+
+	// Probe functions are overridable in tests.
+	configProbe = defaultConfigProbe
+	cacheProbe  = defaultCacheProbe
+	kubeProbe   = defaultKubeProbe
+	buildProbe  = defaultBuildProbe
+)
 
 // HealthResponse represents the health check response
 type HealthResponse struct {
@@ -18,11 +41,17 @@ type HealthResponse struct {
 	Timestamp string `json:"timestamp"`
 }
 
+// ComponentStatus describes individual dependency state.
+type ComponentStatus struct {
+	Status string `json:"status"`           // ok | warn | error
+	Detail string `json:"detail,omitempty"` // optional human-readable detail
+}
+
 // ReadyResponse represents the readiness check response
 type ReadyResponse struct {
-	Status     string            `json:"status"`
-	Timestamp  string            `json:"timestamp"`
-	Components map[string]string `json:"components,omitempty"`
+	Status     string                     `json:"status"` // ready | degraded | not_ready
+	Timestamp  string                     `json:"timestamp"`
+	Components map[string]ComponentStatus `json:"components,omitempty"`
 }
 
 // VersionInfo holds build version information
@@ -64,28 +93,29 @@ func healthHandler(c *gin.Context) {
 	})
 }
 
-// readyHandler handles readiness probes
+// readyHandler handles readiness probes with dependency checks and timeouts.
 func readyHandler(c *gin.Context) {
-	components := make(map[string]string)
+	ctx, cancel := context.WithTimeout(c.Request.Context(), readinessTimeout)
+	defer cancel()
 
-	// Check Kubernetes connectivity (basic check)
-	components["kubernetes"] = "ok"
-
-	// Check if config is loaded
-	if cfg := config.GetAppConfig(); cfg != nil {
-		components["config"] = "ok"
-	} else {
-		components["config"] = "error"
+	components := map[string]ComponentStatus{
+		"config":     configProbe(ctx),
+		"cache":      cacheProbe(ctx),
+		"kubernetes": kubeProbe(ctx),
+		"build":      buildProbe(ctx),
 	}
 
-	// Determine overall status
 	status := "ready"
 	statusCode := http.StatusOK
-	for _, v := range components {
-		if v != "ok" {
+
+	for _, cs := range components {
+		if cs.Status == "error" {
 			status = "not_ready"
 			statusCode = http.StatusServiceUnavailable
 			break
+		}
+		if cs.Status == "warn" && status == "ready" {
+			status = "degraded"
 		}
 	}
 
@@ -97,9 +127,11 @@ func readyHandler(c *gin.Context) {
 
 	if statusCode == http.StatusOK {
 		apierr.OK(c, resp)
-	} else {
-		apierr.Abort(c, apierr.ServiceUnavailable("service not ready", 0))
+		return
 	}
+
+	// return detailed components for troubleshooting instead of a generic APIError
+	c.JSON(statusCode, resp)
 }
 
 // versionHandler returns build version information
@@ -113,4 +145,112 @@ func versionHandler(c *gin.Context) {
 		GoVersion: GoVersion,
 		Uptime:    uptime,
 	})
+}
+
+// BuildInfoStatus exposes build metadata status for startup validation.
+func BuildInfoStatus() ComponentStatus {
+	return defaultBuildProbe(context.Background())
+}
+
+func defaultConfigProbe(_ context.Context) ComponentStatus {
+	cfg := config.GetAppConfig()
+	if cfg == nil {
+		return ComponentStatus{Status: "error", Detail: "app config is nil"}
+	}
+	if errs := cfg.Validate(); len(errs) > 0 {
+		return ComponentStatus{Status: "error", Detail: strings.Join(errs, "; ")}
+	}
+	return ComponentStatus{Status: "ok"}
+}
+
+func defaultCacheProbe(_ context.Context) ComponentStatus {
+	c := cache.GetGlobalCache()
+	if c == nil {
+		return ComponentStatus{Status: "error", Detail: "global cache not initialized"}
+	}
+	stats := c.Stats()
+	return ComponentStatus{
+		Status: "ok",
+		Detail: fmt.Sprintf("items=%v active=%v", stats["total"], stats["active"]),
+	}
+}
+
+func defaultBuildProbe(_ context.Context) ComponentStatus {
+	missing := make([]string, 0, 4)
+	if Version == "" || Version == "dev" {
+		missing = append(missing, "version")
+	}
+	if Commit == "" || Commit == "unknown" {
+		missing = append(missing, "commit")
+	}
+	if BuildDate == "" || BuildDate == "unknown" {
+		missing = append(missing, "buildDate")
+	}
+	if GoVersion == "" || GoVersion == "unknown" {
+		missing = append(missing, "goVersion")
+	}
+
+	if len(missing) > 0 {
+		return ComponentStatus{
+			Status: "warn",
+			Detail: "build metadata not injected: " + strings.Join(missing, ","),
+		}
+	}
+
+	return ComponentStatus{Status: "ok"}
+}
+
+func defaultKubeProbe(ctx context.Context) ComponentStatus {
+	restCfg, source, err := resolveRestConfig()
+	if err != nil {
+		return ComponentStatus{Status: "error", Detail: err.Error()}
+	}
+
+	restCfg.Timeout = kubeProbeTimeout
+	clientset, err := kubernetes.NewForConfig(restCfg)
+	if err != nil {
+		return ComponentStatus{Status: "error", Detail: err.Error()}
+	}
+
+	healthCtx, cancel := context.WithTimeout(ctx, kubeProbeTimeout)
+	defer cancel()
+
+	result := clientset.Discovery().RESTClient().Get().AbsPath("/readyz").Do(healthCtx)
+	raw, err := result.Raw()
+	if err != nil {
+		return ComponentStatus{Status: "error", Detail: err.Error()}
+	}
+
+	detail := strings.TrimSpace(string(bytes.TrimSpace(raw)))
+	if detail == "" {
+		detail = "ok"
+	}
+
+	return ComponentStatus{
+		Status: "ok",
+		Detail: fmt.Sprintf("%s: %s", source, detail),
+	}
+}
+
+func resolveRestConfig() (*rest.Config, string, error) {
+	if cfg, err := rest.InClusterConfig(); err == nil {
+		return cfg, "in-cluster", nil
+	}
+
+	kubeCfg := config.GetKubeConfig()
+	if kubeCfg != nil {
+		if path := kubeCfg.GetKubeconfigPath(); path != "" {
+			data, err := os.ReadFile(path)
+			if err != nil {
+				return nil, "", fmt.Errorf("read kubeconfig %s: %w", path, err)
+			}
+			restCfg, err := clientcmd.RESTConfigFromKubeConfig(data)
+			if err != nil {
+				return nil, "", fmt.Errorf("parse kubeconfig %s: %w", path, err)
+			}
+			return restCfg, path, nil
+		}
+	}
+
+	return nil, "", fmt.Errorf("no in-cluster or kubeconfig found")
 }

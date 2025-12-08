@@ -36,8 +36,8 @@ func GetAppConfig() *AppConfig {
 // PrintConfig prints the current configuration (for debugging)
 func (c *AppConfig) PrintConfig() {
 	log.Println("=== Application Configuration ===")
-	log.Printf("Server: Port=%d, Mode=%s, LogLevel=%s",
-		c.Server.Port, c.Server.Mode, c.Server.LogLevel)
+	log.Printf("Server: Port=%d, Mode=%s, LogLevel=%s, JWTSecret=%s",
+		c.Server.Port, c.Server.Mode, c.Server.LogLevel, maskSecret(c.Server.JWTSecret))
 
 	configSource := "in-cluster"
 	if !c.Kubernetes.IsInCluster() {
@@ -53,6 +53,16 @@ func (c *AppConfig) PrintConfig() {
 		c.AutoFix.Enabled, c.AutoFix.Namespace)
 
 	log.Println("=================================")
+}
+
+func maskSecret(v string) string {
+	if v == "" {
+		return "<empty>"
+	}
+	if len(v) <= 4 {
+		return "***"
+	}
+	return v[:2] + "***" + v[len(v)-2:]
 }
 
 // Validate validates the configuration and returns any errors

@@ -1,6 +1,9 @@
 package provider
 
 import (
+	"os"
+	"strings"
+
 	"github.com/gin-gonic/gin"
 
 	podrepo "polardbx-ui-backend/pkg/api/domain/platform/pod/repository"
@@ -47,9 +50,10 @@ func FromContext(c *gin.Context) (Provider, bool) {
 func Must(c *gin.Context) Provider {
 	p, ok := FromContext(c)
 	if !ok || p == nil {
-		// Fallback to default provider for legacy code paths (e.g., tests without middleware).
+		if !allowProviderFallback() {
+			panic("service provider not injected; ensure provider.Inject middleware is registered or enable PROVIDER_FALLBACK_ENABLED for non-production paths")
+		}
 		p = NewDefaultProvider()
-		// cache it to avoid repeated creation
 		c.Set(providerKey, p)
 	}
 	return p
@@ -66,4 +70,12 @@ func (p *defaultProvider) PodService(c *gin.Context) (*podsvc.PodService, bool) 
 	}
 	repo := podrepo.NewK8sPodRepositorySimple(cli, cs)
 	return podsvc.NewPodService(repo), true
+}
+
+func allowProviderFallback() bool {
+	if gin.Mode() == gin.TestMode {
+		return true
+	}
+	enabled := strings.TrimSpace(strings.ToLower(os.Getenv("PROVIDER_FALLBACK_ENABLED")))
+	return enabled == "1" || enabled == "true" || enabled == "yes" || enabled == "on"
 }

@@ -36,6 +36,18 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Validate build metadata (warn when ldflags are missing)
+	if buildStatus := router.BuildInfoStatus(); buildStatus.Status != "ok" {
+		logger.Warn("Build metadata not fully injected", "detail", buildStatus.Detail)
+	} else {
+		logger.Info("Build metadata loaded",
+			"version", router.Version,
+			"commit", router.Commit,
+			"buildDate", router.BuildDate,
+			"goVersion", router.GoVersion,
+		)
+	}
+
 	// Print configuration in debug mode
 	if cfg.Server.IsDebug() {
 		cfg.PrintConfig()

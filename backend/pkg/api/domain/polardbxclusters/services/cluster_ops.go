@@ -12,6 +12,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// patchClusterJSON is a test-hookable wrapper around util.K8sPatchClusterJSON.
+var patchClusterJSON = util.K8sPatchClusterJSON
+
 // ClusterService 聚合与集群相关的编排。
 type ClusterService struct{}
 
@@ -54,7 +57,7 @@ func (s *ClusterService) UpdateLogConfig(ctx context.Context, c *gin.Context) er
 		nodeConfig["slowLogThreshold"] = *req.SlowLogThreshold
 	}
 	b, _ := json.Marshal(patchData)
-	if _, err := util.K8sPatchClusterJSON(ctx, cli, ns, name, b); err != nil {
+	if _, err := patchClusterJSON(ctx, cli, ns, name, b); err != nil {
 		log.Printf("ops UpdateLogConfig failed: %s duration=%s", err, time.Since(start))
 		util.HandleK8sError(c, "failed to update cluster log config", err)
 		return nil
@@ -95,7 +98,7 @@ func (s *ClusterService) Scale(ctx context.Context, c *gin.Context) error {
 		return nil
 	}
 	b, _ := json.Marshal(patch)
-	if _, err := util.K8sPatchClusterJSON(ctx, cli, ns, name, b); err != nil {
+	if _, err := patchClusterJSON(ctx, cli, ns, name, b); err != nil {
 		log.Printf("ops Scale failed: %s duration=%s", err, time.Since(start))
 		util.HandleK8sError(c, "failed to scale cluster", err)
 		return nil
@@ -125,7 +128,7 @@ func (s *ClusterService) Upgrade(ctx context.Context, c *gin.Context) error {
 		patch["spec"].(map[string]any)["upgradeStrategy"] = req.Strategy
 	}
 	b, _ := json.Marshal(patch)
-	if _, err := util.K8sPatchClusterJSON(ctx, cli, ns, name, b); err != nil {
+	if _, err := patchClusterJSON(ctx, cli, ns, name, b); err != nil {
 		log.Printf("ops Upgrade failed: %s duration=%s", err, time.Since(start))
 		util.HandleK8sError(c, "failed to upgrade cluster", err)
 		return nil

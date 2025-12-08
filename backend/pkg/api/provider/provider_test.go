@@ -4,6 +4,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"os"
+
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
@@ -52,4 +54,29 @@ func TestPodServiceWithoutClients(t *testing.T) {
 	svc, ok := dp.PodService(c)
 	assert.False(t, ok)
 	assert.Nil(t, svc)
+}
+
+func TestMustPanicWhenFallbackDisabled(t *testing.T) {
+	origMode := gin.Mode()
+	gin.SetMode(gin.ReleaseMode)
+	defer gin.SetMode(origMode)
+	_ = os.Unsetenv("PROVIDER_FALLBACK_ENABLED")
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+
+	assert.Panics(t, func() { Must(c) })
+}
+
+func TestMustFallbackWhenEnvEnabled(t *testing.T) {
+	origMode := gin.Mode()
+	gin.SetMode(gin.ReleaseMode)
+	defer gin.SetMode(origMode)
+	t.Setenv("PROVIDER_FALLBACK_ENABLED", "true")
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+
+	p := Must(c)
+	assert.NotNil(t, p)
 }

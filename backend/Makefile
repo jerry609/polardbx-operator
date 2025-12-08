@@ -8,23 +8,37 @@ BINARY_NAME=polardbx-ui-backend
 MONITORING_V2_ENABLED ?= true
 # Docker image settings
 IMG ?= polardbx/polardbx-ui-backend:latest
+VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
+COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
+BUILD_DATE ?= $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
+GO_VERSION ?= $(shell go env GOVERSION 2>/dev/null || go version | awk '{print $$3}')
+LDFLAGS := -w -s \
+	-X 'polardbx-ui-backend/pkg/api/router.Version=$(VERSION)' \
+	-X 'polardbx-ui-backend/pkg/api/router.Commit=$(COMMIT)' \
+	-X 'polardbx-ui-backend/pkg/api/router.BuildDate=$(BUILD_DATE)' \
+	-X 'polardbx-ui-backend/pkg/api/router.GoVersion=$(GO_VERSION)'
 
 # --- Build Targets ---
 
 # Build the Go application for the current OS/architecture
 build:
 	@echo "Building binary..."
-	go build -o $(BINARY_NAME) ./main.go
+	go build -ldflags "$(LDFLAGS)" -o $(BINARY_NAME) ./main.go
 
 # Run the Go application locally
 run:
 	@echo "Starting application..."
-	MONITORING_V2_ENABLED=$(MONITORING_V2_ENABLED) go run ./main.go
+	MONITORING_V2_ENABLED=$(MONITORING_V2_ENABLED) go run -ldflags "$(LDFLAGS)" ./main.go
 
 # Build the Docker image
 docker-build:
 	@echo "Building Docker image: $(IMG)..."
-	docker build -t $(IMG) .
+	docker build \
+		--build-arg VERSION=$(VERSION) \
+		--build-arg COMMIT=$(COMMIT) \
+		--build-arg BUILD_DATE=$(BUILD_DATE) \
+		--build-arg GO_VERSION=$(GO_VERSION) \
+		-t $(IMG) .
 
 # --- Cleanup ---
 
