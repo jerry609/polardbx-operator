@@ -7,7 +7,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// SystemTaskRepository 定义 SystemTask 资源的数据访问接口
+// SystemTaskRepository defines the data access interface for SystemTask resources
 type SystemTaskRepository interface {
 	List(ctx context.Context, cli client.Client, namespace string) ([]polardbxv1.SystemTask, error)
 	Get(ctx context.Context, cli client.Client, namespace, name string) (*polardbxv1.SystemTask, error)

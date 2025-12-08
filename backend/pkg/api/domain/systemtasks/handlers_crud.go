@@ -8,14 +8,14 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// 默认的 Handler 实例（使用依赖注入）
+// Default Handler instance (using dependency injection)
 var defaultHandler = handler.NewSystemTaskHandler(
 	service.NewSystemTaskService(
 		repository.NewK8sSystemTaskRepository(),
 	),
 )
 
-// 以下函数保持向后兼容，委托给 Handler
+// The following functions maintain backward compatibility and delegate to Handler
 
 func List(c *gin.Context)   { defaultHandler.List(c) }
 func Create(c *gin.Context) { defaultHandler.Create(c) }

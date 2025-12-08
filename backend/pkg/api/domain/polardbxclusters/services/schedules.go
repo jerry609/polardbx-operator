@@ -13,7 +13,7 @@ import (
 	"polardbx-ui-backend/pkg/k8s"
 )
 
-// BackupScheduleService 封装 BackupSchedule 相关编排（保持行为不变）
+// BackupScheduleService encapsulates BackupSchedule related orchestration (behavior remains unchanged)
 type BackupScheduleService struct{}
 
 func NewBackupScheduleService() *BackupScheduleService { return &BackupScheduleService{} }

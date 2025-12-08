@@ -9,15 +9,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// K8sSystemTaskRepository 是 SystemTaskRepository 的 K8s 实现
+// K8sSystemTaskRepository is the K8s implementation of SystemTaskRepository
 type K8sSystemTaskRepository struct{}
 
-// NewK8sSystemTaskRepository 创建 K8s 实现的 Repository
+// NewK8sSystemTaskRepository creates a K8s implementation of Repository
 func NewK8sSystemTaskRepository() *K8sSystemTaskRepository {
 	return &K8sSystemTaskRepository{}
 }
 
-// 确保实现接口
+// Ensure interface implementation
 var _ SystemTaskRepository = (*K8sSystemTaskRepository)(nil)
 
 func (r *K8sSystemTaskRepository) List(ctx context.Context, cli client.Client, namespace string) ([]polardbxv1.SystemTask, error) {

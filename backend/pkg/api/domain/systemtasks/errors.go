@@ -2,7 +2,7 @@ package systemtasks
 
 import "errors"
 
-// 领域错误占位：统一错误语义。
+// Domain error placeholder: Unified error semantics.
 var (
 	ErrInvalidArgument = errors.New("systemtasks: invalid argument")
 )

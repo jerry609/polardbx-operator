@@ -9,40 +9,40 @@ import (
 	"polardbx-ui-backend/pkg/api/util"
 )
 
-// SystemTaskHandler 处理 SystemTask 相关的 HTTP 请求
-// 只负责 HTTP 请求/响应处理，业务逻辑委托给 Service
+// SystemTaskHandler handles HTTP requests related to SystemTask
+// Only responsible for HTTP request/response handling, business logic delegated to Service
 type SystemTaskHandler struct {
 	service *service.SystemTaskService
 }
 
-// NewSystemTaskHandler 创建 Handler 实例
+// NewSystemTaskHandler creates a Handler instance
 func NewSystemTaskHandler(svc *service.SystemTaskService) *SystemTaskHandler {
 	return &SystemTaskHandler{service: svc}
 }
 
-// List 列出 SystemTask
+// List lists SystemTasks
 func (h *SystemTaskHandler) List(c *gin.Context) {
-	// 1. 获取 K8s 客户端
+	// 1. Get K8s client
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
 		return
 	}
 
-	// 2. 解析请求参数
+	// 2. Parse request parameters
 	namespace := util.DefaultNamespace(c, "default")
 
-	// 3. 调用 Service（传递 context.Context，不是 gin.Context）
+	// 3. Call Service (pass context.Context, not gin.Context)
 	tasks, err := h.service.List(c.Request.Context(), cli, namespace)
 	if err != nil {
 		util.HandleK8sError(c, "failed to list system tasks", err)
 		return
 	}
 
-	// 4. 返回响应
+	// 4. Return response
 	apierr.OK(c, tasks)
 }
 
-// Get 获取单个 SystemTask
+// Get retrieves a single SystemTask
 func (h *SystemTaskHandler) Get(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -61,7 +61,7 @@ func (h *SystemTaskHandler) Get(c *gin.Context) {
 	apierr.OK(c, task)
 }
 
-// Create 创建 SystemTask
+// Create creates a SystemTask
 func (h *SystemTaskHandler) Create(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -85,7 +85,7 @@ func (h *SystemTaskHandler) Create(c *gin.Context) {
 	apierr.Created(c, created)
 }
 
-// Update 更新 SystemTask
+// Update updates a SystemTask
 func (h *SystemTaskHandler) Update(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -109,7 +109,7 @@ func (h *SystemTaskHandler) Update(c *gin.Context) {
 	apierr.OK(c, updated)
 }
 
-// Delete 删除 SystemTask
+// Delete deletes a SystemTask
 func (h *SystemTaskHandler) Delete(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -127,7 +127,7 @@ func (h *SystemTaskHandler) Delete(c *gin.Context) {
 	apierr.OK(c, gin.H{"message": "system task deleted"})
 }
 
-// RegisterRoutes 注册路由
+// RegisterRoutes registers routes
 func (h *SystemTaskHandler) RegisterRoutes(rg *gin.RouterGroup) {
 	rg.GET("/system-tasks", h.List)
 	rg.POST("/system-tasks", h.Create)

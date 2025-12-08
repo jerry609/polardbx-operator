@@ -15,7 +15,7 @@ import (
 func RunRestoreFlow(c *gin.Context) {
 	rr := runner.Run(c,
 		runner.Step{Name: "precheck", Fn: func(c *gin.Context) error {
-			// 简单校验：参数存在与 kube 客户端
+			// Simple validation: parameter existence and kube client
 			if _, ok := util.K8sClientFromContext(c); !ok {
 				return errors.New("k8s client missing")
 			}
@@ -27,7 +27,7 @@ func RunRestoreFlow(c *gin.Context) {
 			return nil
 		}},
 		runner.Step{Name: "prepare", Fn: func(c *gin.Context) error {
-			// 预留更多校验；此处不阻塞
+			// Reserve more validation; not blocking here
 			return nil
 		}},
 		runner.Step{Name: "apply", Fn: func(c *gin.Context) error {
@@ -38,7 +38,7 @@ func RunRestoreFlow(c *gin.Context) {
 			return nil
 		}},
 		runner.Step{Name: "verify", Fn: func(c *gin.Context) error {
-			// 预留：根据状态轮询或即时检查一次目标集群创建态
+			// Reserve: poll based on status or check target cluster creation state once
 			return nil
 		}},
 	)

@@ -145,7 +145,7 @@ func decodeHpfsConfig(cm *corev1.ConfigMap) (hpfsconfig.Config, error) {
 	return cfg, nil
 }
 
-// evaluateStorageConnectivity 对 HPFS sinks 做轻量连通性探测（TCP 直连），返回 (status, detail)
+// evaluateStorageConnectivity performs lightweight connectivity probe on HPFS sinks (TCP direct connection), returns (status, detail)
 func (s *BackupService) evaluateStorageConnectivity(c *gin.Context) (string, string) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {

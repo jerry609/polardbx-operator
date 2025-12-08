@@ -20,17 +20,17 @@ import (
 	"polardbx-ui-backend/pkg/api/util"
 )
 
-// ValidationError 校验错误
+// ValidationError validation error
 type ValidationError struct {
 	Field   string `json:"field"`
 	Message string `json:"message"`
 }
 
-// ValidateClusterCreationConfig 校验集群创建配置
+// ValidateClusterCreationConfig validates cluster creation configuration
 func ValidateClusterCreationConfig(config *ClusterCreationConfig) []ValidationError {
 	var errors []ValidationError
 
-	// 1. 名称校验
+	// 1. Name validation
 	if config.Name == "" {
 		errors = append(errors, ValidationError{Field: "name", Message: "集群名称不能为空"})
 	} else if !isValidK8sName(config.Name) {
@@ -39,17 +39,17 @@ func ValidateClusterCreationConfig(config *ClusterCreationConfig) []ValidationEr
 		errors = append(errors, ValidationError{Field: "name", Message: "集群名称不能超过63个字符"})
 	}
 
-	// 2. 命名空间校验
+	// 2. Namespace validation
 	if config.Namespace != "" && !isValidK8sName(config.Namespace) {
 		errors = append(errors, ValidationError{Field: "namespace", Message: "命名空间格式不正确"})
 	}
 
-	// 3. 版本校验
+	// 3. Version validation
 	if config.Version != "" && !isValidVersion(config.Version) {
 		errors = append(errors, ValidationError{Field: "version", Message: "版本格式不正确，应为 x.y.z 格式"})
 	}
 
-	// 4. 拓扑校验
+	// 4. Topology validation
 	if err := validateNodeConfig("topology.cn", config.Topology.CN, 100); err != nil {
 		errors = append(errors, *err)
 	}
@@ -100,25 +100,25 @@ func ValidateClusterCreationConfig(config *ClusterCreationConfig) []ValidationEr
 	return errors
 }
 
-// isValidK8sName 检查是否是有效的 Kubernetes 名称
+// isValidK8sName checks if it's a valid Kubernetes name
 func isValidK8sName(name string) bool {
 	pattern := regexp.MustCompile(`^[a-z][a-z0-9-]*[a-z0-9]$|^[a-z]$`)
 	return pattern.MatchString(name)
 }
 
-// isValidVersion 检查版本格式
+// isValidVersion checks version format
 func isValidVersion(version string) bool {
 	pattern := regexp.MustCompile(`^\d+\.\d+\.\d+(-[a-zA-Z0-9]+)?$`)
 	return pattern.MatchString(version)
 }
 
-// isValidStorageSize 检查存储大小格式
+// isValidStorageSize checks storage size format
 func isValidStorageSize(size string) bool {
 	pattern := regexp.MustCompile(`^\d+(\.\d+)?(Ki|Mi|Gi|Ti|Pi|Ei)?$`)
 	return pattern.MatchString(size)
 }
 
-// isValidResourceQuantity 检查资源数量格式 (CPU/Memory)
+// isValidResourceQuantity checks resource quantity format (CPU/Memory)
 func isValidResourceQuantity(quantity string) bool {
 	if quantity == "" {
 		return true
@@ -128,7 +128,7 @@ func isValidResourceQuantity(quantity string) bool {
 	return cpuPattern.MatchString(quantity) || memPattern.MatchString(quantity)
 }
 
-// validateNodeConfig 校验节点配置
+// validateNodeConfig validates node configuration
 func validateNodeConfig(fieldPrefix string, node ClusterNodeConfig, maxReplicas int) *ValidationError {
 	if node.Replicas < 1 {
 		return &ValidationError{
@@ -160,7 +160,7 @@ func validateNodeConfig(fieldPrefix string, node ClusterNodeConfig, maxReplicas 
 	return nil
 }
 
-// --- Cluster CRUD (行为保持不变) ---
+// --- Cluster CRUD (behavior remains unchanged) ---
 
 func (s *ClusterService) List(c *gin.Context) {
 	logger := middleware.NewBusinessLogger(c, "ClusterService")
@@ -219,7 +219,7 @@ func (s *ClusterService) Create(c *gin.Context) {
 	apierr.Created(c, created)
 }
 
-// CreateFromConfig 从用户友好的配置格式创建集群
+// CreateFromConfig creates cluster from user-friendly configuration format
 func (s *ClusterService) CreateFromConfig(c *gin.Context) {
 	logger := middleware.NewBusinessLogger(c, "ClusterService")
 	cli, ok := util.K8sClientFromContext(c)
@@ -282,7 +282,7 @@ func (s *ClusterService) CreateFromConfig(c *gin.Context) {
 	apierr.Created(c, created)
 }
 
-// convertConfigToCluster 将用户友好配置转换为 PolarDBXCluster 对象
+// convertConfigToCluster converts user-friendly configuration to PolarDBXCluster object
 func convertConfigToCluster(config *ClusterCreationConfig, namespace string) *polardbxv1.PolarDBXCluster {
 	// 构建CN副本数指针
 	cnReplicas := int32(config.Topology.CN.Replicas)
@@ -421,12 +421,12 @@ func convertConfigToCluster(config *ClusterCreationConfig, namespace string) *po
 	return cluster
 }
 
-// boolPtr 返回 bool 值的指针
+// boolPtr returns pointer to bool value
 func boolPtr(b bool) *bool {
 	return &b
 }
 
-// buildNodeSelector 将 map 转换为 corev1.NodeSelector
+// buildNodeSelector converts map to corev1.NodeSelector
 func buildNodeSelector(labels map[string]string) corev1.NodeSelector {
 	var matchExpressions []corev1.NodeSelectorRequirement
 	for key, value := range labels {
@@ -445,14 +445,14 @@ func buildNodeSelector(labels map[string]string) corev1.NodeSelector {
 	}
 }
 
-// buildExtendedResourceRequirements 构建扩展资源需求（用于CN/DN）
+// buildExtendedResourceRequirements builds extended resource requirements (for CN/DN)
 func buildExtendedResourceRequirements(res NodeResources) polardbxcommon.ExtendedResourceRequirements {
 	return polardbxcommon.ExtendedResourceRequirements{
 		ResourceRequirements: buildResourceRequirements(res),
 	}
 }
 
-// buildResourceRequirements 构建资源需求
+// buildResourceRequirements builds resource requirements
 func buildResourceRequirements(res NodeResources) corev1.ResourceRequirements {
 	requirements := corev1.ResourceRequirements{
 		Limits:   corev1.ResourceList{},

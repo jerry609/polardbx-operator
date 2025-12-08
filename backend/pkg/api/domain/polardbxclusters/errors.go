@@ -2,7 +2,7 @@ package polardbxclusters
 
 import "errors"
 
-// 领域错误占位：统一错误语义，后续可集中映射到 util 层。
+// Domain error placeholder: Unified error semantics, can be centrally mapped to util layer later.
 var (
 	ErrInvalidArgument = errors.New("polardbxclusters: invalid argument")
 )

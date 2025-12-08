@@ -31,21 +31,21 @@ func RestoreCluster(c *gin.Context)   { domain_restore.RestoreCluster(c) }
 func InitiatePITR(c *gin.Context)     { domain_restore.InitiatePITR(c) }
 func GetRestoreStatus(c *gin.Context) { domain_restore.GetRestoreStatus(c) }
 
-// UpgradeCandidate 升级候选版本
+// UpgradeCandidate upgrade candidate version
 type UpgradeCandidate struct {
 	Version     string `json:"version"`
 	Recommended bool   `json:"recommended,omitempty"`
 	Notes       string `json:"notes,omitempty"`
 }
 
-// UpgradePlanResponse 升级计划响应
+// UpgradePlanResponse upgrade plan response
 type UpgradePlanResponse struct {
 	CurrentVersion string             `json:"currentVersion"`
 	Candidates     []UpgradeCandidate `json:"candidates"`
 	Matrix         map[string]any     `json:"matrix,omitempty"`
 }
 
-// GetUpgradePlan 获取集群升级计划（候选版本列表）
+// GetUpgradePlan gets cluster upgrade plan (candidate version list)
 func GetUpgradePlan(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -55,7 +55,7 @@ func GetUpgradePlan(c *gin.Context) {
 	namespace := c.Param("namespace")
 	name := c.Param("name")
 
-	// 获取当前集群信息
+	// Get current cluster information
 	var cluster polardbxv1.PolarDBXCluster
 	if err := cli.Get(c.Request.Context(), client.ObjectKey{Namespace: namespace, Name: name}, &cluster); err != nil {
 		apierr.AbortNotFound(c, "cluster", name)
@@ -67,8 +67,8 @@ func GetUpgradePlan(c *gin.Context) {
 		currentVersion = "unknown"
 	}
 
-	// 构建候选版本列表
-	// 实际环境中可从 ConfigMap 或外部服务获取可用版本
+	// Build candidate version list
+	// In production environment, available versions can be obtained from ConfigMap or external service
 	candidates := buildUpgradeCandidates(currentVersion)
 
 	resp := UpgradePlanResponse{
@@ -83,14 +83,14 @@ func GetUpgradePlan(c *gin.Context) {
 	apierr.OK(c, resp)
 }
 
-// buildUpgradeCandidates 构建升级候选列表
+// buildUpgradeCandidates builds upgrade candidate list
 func buildUpgradeCandidates(currentVersion string) []UpgradeCandidate {
-	// 预定义的版本列表（实际可从 ConfigMap 读取）
+	// Predefined version list (can be read from ConfigMap in practice)
 	allVersions := []string{"5.4.19", "5.4.18", "5.4.17", "5.4.16", "5.4.15", "5.4.14", "5.4.13"}
 
 	var candidates []UpgradeCandidate
 	for i, v := range allVersions {
-		// 跳过当前版本及更低版本
+		// Skip current version and lower versions
 		if v == currentVersion {
 			break
 		}
@@ -99,15 +99,15 @@ func buildUpgradeCandidates(currentVersion string) []UpgradeCandidate {
 		}
 		if i == 0 {
 			candidate.Recommended = true
-			candidate.Notes = "最新稳定版本"
+			candidate.Notes = "Latest stable version"
 		}
 		candidates = append(candidates, candidate)
 	}
 
-	// 如果没有更高版本，返回默认候选
+	// If no higher versions, return default candidates
 	if len(candidates) == 0 {
 		candidates = []UpgradeCandidate{
-			{Version: "5.4.19", Recommended: true, Notes: "最新稳定版本"},
+			{Version: "5.4.19", Recommended: true, Notes: "Latest stable version"},
 			{Version: "5.4.18"},
 		}
 	}
