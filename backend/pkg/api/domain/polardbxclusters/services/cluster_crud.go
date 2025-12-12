@@ -32,21 +32,21 @@ func ValidateClusterCreationConfig(config *ClusterCreationConfig) []ValidationEr
 
 	// 1. Name validation
 	if config.Name == "" {
-		errors = append(errors, ValidationError{Field: "name", Message: "集群名称不能为空"})
+		errors = append(errors, ValidationError{Field: "name", Message: "cluster name cannot be empty"})
 	} else if !isValidK8sName(config.Name) {
-		errors = append(errors, ValidationError{Field: "name", Message: "集群名称只能包含小写字母、数字和连字符，且必须以字母开头"})
+		errors = append(errors, ValidationError{Field: "name", Message: "cluster name can only contain lowercase letters, numbers, and hyphens, and must start with a letter"})
 	} else if len(config.Name) > 63 {
-		errors = append(errors, ValidationError{Field: "name", Message: "集群名称不能超过63个字符"})
+		errors = append(errors, ValidationError{Field: "name", Message: "cluster name cannot exceed 63 characters"})
 	}
 
 	// 2. Namespace validation
 	if config.Namespace != "" && !isValidK8sName(config.Namespace) {
-		errors = append(errors, ValidationError{Field: "namespace", Message: "命名空间格式不正确"})
+		errors = append(errors, ValidationError{Field: "namespace", Message: "namespace format is incorrect"})
 	}
 
 	// 3. Version validation
 	if config.Version != "" && !isValidVersion(config.Version) {
-		errors = append(errors, ValidationError{Field: "version", Message: "版本格式不正确，应为 x.y.z 格式"})
+		errors = append(errors, ValidationError{Field: "version", Message: "version format is incorrect, should be in x.y.z format"})
 	}
 
 	// 4. Topology validation
@@ -65,35 +65,35 @@ func ValidateClusterCreationConfig(config *ClusterCreationConfig) []ValidationEr
 		}
 	}
 
-	// 5. 存储校验
+	// 5. Storage validation
 	if config.Storage.Size != "" && !isValidStorageSize(config.Storage.Size) {
-		errors = append(errors, ValidationError{Field: "storage.size", Message: "存储大小格式不正确，应为如 10Gi, 100Gi, 1Ti 格式"})
+		errors = append(errors, ValidationError{Field: "storage.size", Message: "storage size format is incorrect, should be in format like 10Gi, 100Gi, 1Ti"})
 	}
 
-	// 6. 网络校验
+	// 6. Network validation
 	if config.Network != nil {
 		if config.Network.ServiceType != "" &&
 			config.Network.ServiceType != "ClusterIP" &&
 			config.Network.ServiceType != "NodePort" &&
 			config.Network.ServiceType != "LoadBalancer" {
-			errors = append(errors, ValidationError{Field: "network.serviceType", Message: "服务类型必须是 ClusterIP, NodePort 或 LoadBalancer"})
+			errors = append(errors, ValidationError{Field: "network.serviceType", Message: "service type must be ClusterIP, NodePort, or LoadBalancer"})
 		}
 	}
 
-	// 7. 安全配置校验
+	// 7. Security configuration validation
 	if config.Security != nil {
 		if config.Security.EnableTLS && config.Security.SecretName == "" {
-			errors = append(errors, ValidationError{Field: "security.secretName", Message: "启用 TLS 时必须指定 Secret 名称"})
+			errors = append(errors, ValidationError{Field: "security.secretName", Message: "secret name must be specified when TLS is enabled"})
 		}
 	}
 
-	// 8. 镜像配置校验
+	// 8. Image configuration validation
 	if config.Image != nil {
 		if config.Image.PullPolicy != "" &&
 			config.Image.PullPolicy != "Always" &&
 			config.Image.PullPolicy != "IfNotPresent" &&
 			config.Image.PullPolicy != "Never" {
-			errors = append(errors, ValidationError{Field: "image.pullPolicy", Message: "拉取策略必须是 Always, IfNotPresent 或 Never"})
+			errors = append(errors, ValidationError{Field: "image.pullPolicy", Message: "pull policy must be Always, IfNotPresent, or Never"})
 		}
 	}
 
@@ -133,27 +133,27 @@ func validateNodeConfig(fieldPrefix string, node ClusterNodeConfig, maxReplicas 
 	if node.Replicas < 1 {
 		return &ValidationError{
 			Field:   fieldPrefix + ".replicas",
-			Message: fmt.Sprintf("%s 副本数必须至少为 1", fieldPrefix),
+			Message: fmt.Sprintf("%s replicas must be at least 1", fieldPrefix),
 		}
 	}
 
 	if node.Replicas > maxReplicas {
 		return &ValidationError{
 			Field:   fieldPrefix + ".replicas",
-			Message: fmt.Sprintf("%s 副本数不能超过 %d", fieldPrefix, maxReplicas),
+			Message: fmt.Sprintf("%s replicas cannot exceed %d", fieldPrefix, maxReplicas),
 		}
 	}
 
 	if node.Resources.CPU != "" && !isValidResourceQuantity(node.Resources.CPU) {
 		return &ValidationError{
 			Field:   fieldPrefix + ".resources.cpu",
-			Message: "CPU 资源格式不正确",
+			Message: "CPU resource format is incorrect",
 		}
 	}
 	if node.Resources.Memory != "" && !isValidResourceQuantity(node.Resources.Memory) {
 		return &ValidationError{
 			Field:   fieldPrefix + ".resources.memory",
-			Message: "内存资源格式不正确",
+			Message: "memory resource format is incorrect",
 		}
 	}
 
@@ -226,7 +226,7 @@ func (s *ClusterService) CreateFromConfig(c *gin.Context) {
 		return
 	}
 
-	// 从URL参数获取namespace
+	// Get namespace from URL parameter
 	ns := util.GetNamespace(c, "default")
 
 	var config ClusterCreationConfig
@@ -238,36 +238,36 @@ func (s *ClusterService) CreateFromConfig(c *gin.Context) {
 
 	logger.Info("creating cluster from config name=%s namespace=%s", config.Name, ns)
 
-	// 参数校验
+	// Parameter validation
 	if validationErrors := ValidateClusterCreationConfig(&config); len(validationErrors) > 0 {
 		for _, ve := range validationErrors {
 			middleware.LogValidationError(c, "ClusterService", ve.Field, ve.Message)
 		}
 		logger.Warn("cluster config validation failed with %d errors", len(validationErrors))
-		apierr.Abort(c, apierr.Validation("配置校验失败").WithDetails(map[string]string{
+		apierr.Abort(c, apierr.Validation("configuration validation failed").WithDetails(map[string]string{
 			"validationErrors": fmt.Sprintf("%+v", validationErrors),
 		}))
 		return
 	}
 
-	// 转换为 PolarDBXCluster 对象
+	// Convert to PolarDBXCluster object
 	cluster := convertConfigToCluster(&config, ns)
 	logger.Debug("converted config to PolarDBXCluster: CN=%d DN=%d",
 		config.Topology.CN.Replicas, config.Topology.DN.Replicas)
 
 	created, err := k8srepo.NewClusterRepository().Create(ctx, cli, ns, cluster)
 	if err != nil {
-		// 提取更有意义的错误信息
+		// Extract more meaningful error information
 		errMsg := err.Error()
 		if strings.Contains(errMsg, "already exists") {
 			logger.Warn("cluster already exists name=%s namespace=%s", config.Name, ns)
-			apierr.Abort(c, apierr.AlreadyExists("集群", config.Name))
+			apierr.Abort(c, apierr.AlreadyExists("cluster", config.Name))
 			return
 		}
 		logger.Error(err, "failed to create cluster from config name=%s namespace=%s", config.Name, ns)
 		middleware.LogK8sError(c, "Create", "PolarDBXCluster", ns, config.Name, err)
 		middleware.LogAudit(c, "CREATE", "PolarDBXCluster", ns, config.Name, false)
-		util.HandleK8sError(c, "创建集群失败", err)
+		util.HandleK8sError(c, "failed to create cluster", err)
 		return
 	}
 	logger.Info("cluster created successfully from config name=%s namespace=%s", config.Name, ns)
@@ -277,10 +277,10 @@ func (s *ClusterService) CreateFromConfig(c *gin.Context) {
 
 // convertConfigToCluster converts user-friendly configuration to PolarDBXCluster object
 func convertConfigToCluster(config *ClusterCreationConfig, namespace string) *polardbxv1.PolarDBXCluster {
-	// 构建CN副本数指针
+	// Build CN replicas pointer
 	cnReplicas := int32(config.Topology.CN.Replicas)
 
-	// 处理 HostNetwork 配置
+	// Handle HostNetwork configuration
 	var cnHostNetwork, dnHostNetwork bool
 	if config.Network != nil {
 		cnHostNetwork = config.Network.HostNetwork
@@ -315,7 +315,7 @@ func convertConfigToCluster(config *ClusterCreationConfig, namespace string) *po
 		},
 	}
 
-	// 设置镜像配置
+	// Set image configuration
 	if config.Image != nil {
 		if config.Image.Repository != "" || config.Image.Tag != "" {
 			image := config.Image.Repository
@@ -326,12 +326,12 @@ func convertConfigToCluster(config *ClusterCreationConfig, namespace string) *po
 					image = config.Image.Tag
 				}
 			}
-			// 设置CN镜像
+			// Set CN image
 			cluster.Spec.Topology.Nodes.CN.Template.Image = image
-			// 设置DN镜像
+			// Set DN image
 			cluster.Spec.Topology.Nodes.DN.Template.Image = image
 		}
-		// 设置镜像拉取策略
+		// Set image pull policy
 		if config.Image.PullPolicy != "" {
 			pullPolicy := corev1.PullPolicy(config.Image.PullPolicy)
 			cluster.Spec.Topology.Nodes.CN.Template.ImagePullPolicy = pullPolicy
@@ -339,12 +339,12 @@ func convertConfigToCluster(config *ClusterCreationConfig, namespace string) *po
 		}
 	}
 
-	// 设置 ShareGMS 模式
+	// Set ShareGMS mode
 	if config.Advanced != nil && config.Advanced.ShareGMS {
 		cluster.Spec.ShareGMS = true
 	}
 
-	// 设置描述
+	// Set description
 	if config.Description != "" {
 		if cluster.Annotations == nil {
 			cluster.Annotations = make(map[string]string)
@@ -352,24 +352,24 @@ func convertConfigToCluster(config *ClusterCreationConfig, namespace string) *po
 		cluster.Annotations["description"] = config.Description
 	}
 
-	// 设置CDC配置（如果有）
+	// Set CDC configuration (if any)
 	if config.Topology.CDC != nil && config.Topology.CDC.Replicas > 0 {
 		cluster.Spec.Topology.Nodes.CDC = &polardbx.TopologyNodeCDC{
 			Replicas: intstr.FromInt(config.Topology.CDC.Replicas),
 			Template: polardbx.CDCTemplate{
 				Resources:   buildResourceRequirements(config.Topology.CDC.Resources),
-				HostNetwork: cnHostNetwork, // CDC 也使用相同的 HostNetwork 配置
+				HostNetwork: cnHostNetwork, // CDC also uses the same HostNetwork configuration
 			},
 		}
 	}
 
-	// 设置网络服务类型
+	// Set network service type
 	if config.Network != nil && config.Network.ServiceType != "" {
 		serviceType := corev1.ServiceType(config.Network.ServiceType)
 		cluster.Spec.ServiceType = serviceType
 	}
 
-	// 设置TLS配置
+	// Set TLS configuration
 	if config.Security != nil && config.Security.EnableTLS {
 		if cluster.Spec.Security == nil {
 			cluster.Spec.Security = &polardbx.Security{}
@@ -379,7 +379,7 @@ func convertConfigToCluster(config *ClusterCreationConfig, namespace string) *po
 		}
 	}
 
-	// 设置自定义标签、注解和节点选择器
+	// Set custom labels, annotations, and node selectors
 	if config.Advanced != nil {
 		if len(config.Advanced.CustomLabels) > 0 {
 			if cluster.Labels == nil {
@@ -397,7 +397,7 @@ func convertConfigToCluster(config *ClusterCreationConfig, namespace string) *po
 				cluster.Annotations[k] = v
 			}
 		}
-		// 设置节点选择器（通过 TopologyRules）
+		// Set node selector (via TopologyRules)
 		if len(config.Advanced.NodeSelector) > 0 {
 			nodeSelector := buildNodeSelector(config.Advanced.NodeSelector)
 			cluster.Spec.Topology.Rules = polardbx.TopologyRules{

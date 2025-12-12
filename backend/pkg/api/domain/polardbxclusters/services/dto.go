@@ -22,19 +22,19 @@ type ClusterUpgradeRequest struct {
 	MaxUnavailable *int32 `json:"maxUnavailable,omitempty"`
 }
 
-// NodeResources 节点资源配置
+// NodeResources is the node resource configuration
 type NodeResources struct {
 	CPU    string `json:"cpu,omitempty"`
 	Memory string `json:"memory,omitempty"`
 }
 
-// ClusterNodeConfig 集群节点配置
+// ClusterNodeConfig is the cluster node configuration
 type ClusterNodeConfig struct {
 	Replicas  int           `json:"replicas"`
 	Resources NodeResources `json:"resources,omitempty"`
 }
 
-// ClusterTopologyConfig 集群拓扑配置
+// ClusterTopologyConfig is the cluster topology configuration
 type ClusterTopologyConfig struct {
 	CN  ClusterNodeConfig  `json:"cn"`
 	DN  ClusterNodeConfig  `json:"dn"`
@@ -42,7 +42,7 @@ type ClusterTopologyConfig struct {
 	CDC *ClusterNodeConfig `json:"cdc,omitempty"`
 }
 
-// StorageConfig 存储配置
+// StorageConfig is the storage configuration
 type StorageConfig struct {
 	StorageClassName string   `json:"storageClassName,omitempty"`
 	Size             string   `json:"size,omitempty"`
@@ -50,44 +50,44 @@ type StorageConfig struct {
 	AccessModes      []string `json:"accessModes,omitempty"`
 }
 
-// NetworkConfig 网络配置
+// NetworkConfig is the network configuration
 type NetworkConfig struct {
 	ServiceType       string `json:"serviceType,omitempty"`
 	LoadBalancerClass string `json:"loadBalancerClass,omitempty"`
-	HostNetwork       bool   `json:"hostNetwork,omitempty"` // 使用宿主网络模式
+	HostNetwork       bool   `json:"hostNetwork,omitempty"` // Use host network mode
 }
 
-// SecurityConfig 安全配置
+// SecurityConfig is the security configuration
 type SecurityConfig struct {
 	EnableTLS  bool   `json:"enableTLS,omitempty"`
 	SecretName string `json:"secretName,omitempty"`
 }
 
-// AdvancedConfig 高级配置
+// AdvancedConfig is the advanced configuration
 type AdvancedConfig struct {
 	EnableMonitoring    bool              `json:"enableMonitoring,omitempty"`
 	EnableBackup        bool              `json:"enableBackup,omitempty"`
 	EnableLogCollection bool              `json:"enableLogCollection,omitempty"`
 	CustomLabels        map[string]string `json:"customLabels,omitempty"`
 	CustomAnnotations   map[string]string `json:"customAnnotations,omitempty"`
-	NodeSelector        map[string]string `json:"nodeSelector,omitempty"` // 节点选择器
-	ShareGMS            bool              `json:"shareGMS,omitempty"`     // GMS共享极简模式
+	NodeSelector        map[string]string `json:"nodeSelector,omitempty"` // Node selector
+	ShareGMS            bool              `json:"shareGMS,omitempty"`     // GMS shared minimal mode
 }
 
-// ImageConfig 镜像配置
+// ImageConfig is the image configuration
 type ImageConfig struct {
-	Repository string `json:"repository,omitempty"` // 镜像仓库
-	Tag        string `json:"tag,omitempty"`        // 镜像标签
-	PullPolicy string `json:"pullPolicy,omitempty"` // 拉取策略: Always, IfNotPresent, Never
+	Repository string `json:"repository,omitempty"` // Image repository
+	Tag        string `json:"tag,omitempty"`        // Image tag
+	PullPolicy string `json:"pullPolicy,omitempty"` // Pull policy: Always, IfNotPresent, Never
 }
 
-// ClusterCreationConfig 集群创建配置（用户友好格式）
+// ClusterCreationConfig is the cluster creation configuration (user-friendly format)
 type ClusterCreationConfig struct {
 	Name        string                `json:"name" binding:"required"`
 	Namespace   string                `json:"namespace,omitempty"`
 	Description string                `json:"description,omitempty"`
 	Version     string                `json:"version,omitempty"`
-	Image       *ImageConfig          `json:"image,omitempty"` // 镜像配置
+	Image       *ImageConfig          `json:"image,omitempty"` // Image configuration
 	Topology    ClusterTopologyConfig `json:"topology" binding:"required"`
 	Storage     StorageConfig         `json:"storage"`
 	Network     *NetworkConfig        `json:"network,omitempty"`

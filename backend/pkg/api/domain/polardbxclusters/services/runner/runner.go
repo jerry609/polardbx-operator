@@ -23,7 +23,7 @@ type RunResult struct {
 	Status string       `json:"status"`
 }
 
-// Run 顺序执行步骤；出现错误即返回，并以 200 输出简要结果（由上层自行设定具体 HTTP 码）。
+// Run executes steps sequentially; returns immediately on error and outputs a brief result with 200 status (upper layer sets the specific HTTP code).
 func Run(c *gin.Context, steps ...Step) *RunResult {
 	results := make([]StepResult, 0, len(steps))
 	for _, s := range steps {
@@ -45,7 +45,7 @@ func Run(c *gin.Context, steps ...Step) *RunResult {
 	return &RunResult{Steps: results, Status: "succeeded"}
 }
 
-// JSON 响应帮助函数。
+// JSON response helper function.
 func RespondOK(c *gin.Context, rr *RunResult) {
 	if !c.Writer.Written() {
 		apierr.OK(c, rr)

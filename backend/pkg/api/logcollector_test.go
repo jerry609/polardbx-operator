@@ -73,7 +73,7 @@ func TestPolarDBXLogCollectorEndpoints(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, resp.Code)
 
-		// API 返回 PolarDBXLogCollectorList 结构（包含 Items 字段）
+		// API returns PolarDBXLogCollectorList structure (contains Items field)
 		var collectorList polardbxv1.PolarDBXLogCollectorList
 		err := json.Unmarshal(resp.Body.Bytes(), &collectorList)
 		assert.NoError(t, err)

@@ -43,20 +43,20 @@ func RegisterCRDAliasRoutes(v1 *gin.RouterGroup) {
 	domain_platform.RegisterRoutes(v1)
 }
 
-// RegisterDomainRoutes 在 /api/v1/* 下注册“领域入口”别名（不改变旧路由）。
-// 注意：为避免与旧路由冲突，此处仅注册不会重复的前缀。
+// RegisterDomainRoutes registers "domain entry" aliases under /api/v1/* (without changing old routes).
+// Note: To avoid conflicts with old routes, only non-duplicate prefixes are registered here.
 func RegisterDomainRoutes(v1 *gin.RouterGroup) {
-	// 逻辑集群域：/api/v1/polardbxclusters （旧路由是 /api/v1/clusters）
+	// Logical cluster domain: /api/v1/polardbxclusters (old route is /api/v1/clusters)
 	domain_polardbxclusters.RegisterRoutes(v1)
 
-	// 平台任务域：/api/v1/systemtasks （旧路由是 /api/v1/system-tasks）
+	// Platform task domain: /api/v1/systemtasks (old route is /api/v1/system-tasks)
 	domain_systemtasks.RegisterRoutes(v1)
 
-	// 存储域：/api/v1/xstores （与旧路由并存提供域入口别名）
+	// Storage domain: /api/v1/xstores (coexists with old route to provide domain entry alias)
 	domain_xstores.RegisterRoutes(v1)
 }
 
-// LogGroupedRoutes 将所有已注册路由按领域分组输出概要日志，便于发现性。
+// LogGroupedRoutes outputs summary logs of all registered routes grouped by domain for discoverability.
 func LogGroupedRoutes(engine *gin.Engine) {
 	counters := map[string]int{
 		"polardbxclusters": 0,

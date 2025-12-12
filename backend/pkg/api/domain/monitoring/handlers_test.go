@@ -83,7 +83,7 @@ func TestDetectEnvironment(t *testing.T) {
 			},
 		},
 		HealthScore:     &health,
-		Recommendations: []string{"校准 Grafana 数据源配置"},
+		Recommendations: []string{"Calibrate Grafana data source configuration"},
 	}
 	SetDetectionService(service.NewDetectionService(
 		service.WithClock(func() time.Time { return fixed }),
@@ -109,7 +109,7 @@ func TestDetectEnvironment(t *testing.T) {
 	require.NotNil(t, snapshot.HealthScore)
 	require.Equal(t, int32(92), *snapshot.HealthScore)
 	require.NotNil(t, snapshot.Recommendations)
-	require.Contains(t, *snapshot.Recommendations, "校准 Grafana 数据源配置")
+	require.Contains(t, *snapshot.Recommendations, "Calibrate Grafana data source configuration")
 }
 
 func TestDetectEnvironmentNotImplemented(t *testing.T) {

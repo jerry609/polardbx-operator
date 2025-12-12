@@ -15,34 +15,34 @@ import (
 	"polardbx-ui-backend/pkg/logger"
 )
 
-// RequestLogConfig 请求日志配置
+// RequestLogConfig is the configuration for request logging
 type RequestLogConfig struct {
-	// LogRequestBody 是否记录请求体
+	// LogRequestBody indicates whether to log request body
 	LogRequestBody bool
-	// LogResponseBody 是否记录响应体
+	// LogResponseBody indicates whether to log response body
 	LogResponseBody bool
-	// MaxBodyLogSize 最大记录的 body 大小
+	// MaxBodyLogSize is the maximum size of body to log
 	MaxBodyLogSize int
-	// SkipPaths 跳过日志的路径
+	// SkipPaths are paths to skip logging
 	SkipPaths []string
-	// SensitiveFields 需要脱敏的字段
+	// SensitiveFields are fields that need to be masked
 	SensitiveFields []string
 }
 
-// DefaultLogConfig 默认日志配置
+// DefaultLogConfig is the default logging configuration
 var DefaultLogConfig = RequestLogConfig{
 	LogRequestBody:  true,
-	LogResponseBody: false, // 响应体通常较大，默认不记录
+	LogResponseBody: false, // Response body is usually large, not logged by default
 	MaxBodyLogSize:  4096,
 	SkipPaths:       []string{"/ping", "/health", "/metrics"},
 	SensitiveFields: []string{"password", "token", "secret", "kubeconfig", "authorization"},
 }
 
-// RequestIDKey 请求 ID 上下文键
+// RequestIDKey is the context key for request ID
 const RequestIDKey = "requestId"
 
-// bodyLogWriter 用于捕获响应体
-// (仅在 LogResponseBody 启用时使用)
+// bodyLogWriter is used to capture response body
+// (only used when LogResponseBody is enabled)
 type bodyLogWriter struct {
 	gin.ResponseWriter
 	body *bytes.Buffer
@@ -53,7 +53,7 @@ func (w bodyLogWriter) Write(b []byte) (int, error) {
 	return w.ResponseWriter.Write(b)
 }
 
-// RequestLogger 请求日志中间件（zap 结构化）
+// RequestLogger is a request logging middleware (zap structured)
 func RequestLogger(config ...RequestLogConfig) gin.HandlerFunc {
 	cfg := DefaultLogConfig
 	if len(config) > 0 {
@@ -88,7 +88,7 @@ func RequestLogger(config ...RequestLogConfig) gin.HandlerFunc {
 			zap.String("userAgent", userAgent),
 		)
 
-		// 读取请求体（如果需要）
+		// Read request body (if needed)
 		if cfg.LogRequestBody && c.Request.Body != nil && c.Request.ContentLength > 0 {
 			bodyBytes, _ := io.ReadAll(c.Request.Body)
 			c.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
@@ -102,7 +102,7 @@ func RequestLogger(config ...RequestLogConfig) gin.HandlerFunc {
 			l.Info("request received")
 		}
 
-		// 捕获响应体（如果需要）
+		// Capture response body (if needed)
 		var blw *bodyLogWriter
 		if cfg.LogResponseBody {
 			blw = &bodyLogWriter{body: bytes.NewBufferString(""), ResponseWriter: c.Writer}
@@ -149,7 +149,7 @@ func RequestLogger(config ...RequestLogConfig) gin.HandlerFunc {
 	}
 }
 
-// K8sOperationLogger 记录 K8s 操作的辅助函数
+// K8sOperationLogger is a helper function for logging K8s operations
 func K8sOperationLogger(c *gin.Context, operation, resource, namespace, name string) func(err error) {
 	requestID := c.GetString(RequestIDKey)
 	startTime := time.Now()
@@ -173,13 +173,13 @@ func K8sOperationLogger(c *gin.Context, operation, resource, namespace, name str
 	}
 }
 
-// BusinessLogger 业务日志记录器
-// 维持与旧接口兼容，同时输出结构化字段。
+// BusinessLogger is a business log recorder
+// Maintains compatibility with old interface while outputting structured fields.
 type BusinessLogger struct {
 	logger *zap.SugaredLogger
 }
 
-// NewBusinessLogger 从上下文创建业务日志记录器
+// NewBusinessLogger creates a business logger from context
 func NewBusinessLogger(c *gin.Context, component string) *BusinessLogger {
 	requestID := c.GetString(RequestIDKey)
 	if requestID == "" {
@@ -192,17 +192,17 @@ func NewBusinessLogger(c *gin.Context, component string) *BusinessLogger {
 	return &BusinessLogger{logger: l}
 }
 
-// Info 记录信息日志
+// Info logs an info message
 func (l *BusinessLogger) Info(format string, args ...interface{}) {
 	l.logger.Infof(format, args...)
 }
 
-// Warn 记录警告日志
+// Warn logs a warning message
 func (l *BusinessLogger) Warn(format string, args ...interface{}) {
 	l.logger.Warnf(format, args...)
 }
 
-// Error 记录错误日志
+// Error logs an error message
 func (l *BusinessLogger) Error(err error, format string, args ...interface{}) {
 	if err != nil {
 		args = append(args, err)
@@ -212,18 +212,18 @@ func (l *BusinessLogger) Error(err error, format string, args ...interface{}) {
 	}
 }
 
-// Debug 记录调试日志
+// Debug logs a debug message
 func (l *BusinessLogger) Debug(format string, args ...interface{}) {
 	l.logger.Debugf(format, args...)
 }
 
-// WithField 添加额外字段
+// WithField adds an extra field
 func (l *BusinessLogger) WithField(key string, value interface{}) *BusinessLogger {
 	return &BusinessLogger{logger: l.logger.With(key, value)}
 }
 
-// StructuredLog 结构化日志
-// (保留给需要 JSON 形式的场景)
+// StructuredLog is structured log
+// (reserved for scenarios requiring JSON format)
 type StructuredLog struct {
 	Timestamp   string                 `json:"timestamp"`
 	Level       string                 `json:"level"`
@@ -241,7 +241,7 @@ type StructuredLog struct {
 	ExtraFields map[string]interface{} `json:"extra,omitempty"`
 }
 
-// LogJSON 输出 JSON 格式日志
+// LogJSON outputs log in JSON format
 func LogJSON(l StructuredLog) {
 	l.Timestamp = time.Now().UTC().Format(time.RFC3339)
 	if data, err := json.Marshal(l); err == nil {
@@ -249,11 +249,11 @@ func LogJSON(l StructuredLog) {
 	}
 }
 
-// maskSensitiveFields 脱敏敏感字段
+// maskSensitiveFields masks sensitive fields
 func maskSensitiveFields(body string, fields []string) string {
 	result := body
 	for _, field := range fields {
-		// JSON 字段脱敏
+		// Mask JSON fields
 		patterns := []string{
 			fmt.Sprintf(`"%s"\s*:\s*"[^"]*"`, field),
 			fmt.Sprintf(`"%s"\s*:\s*'[^']*'`, field),
@@ -265,7 +265,7 @@ func maskSensitiveFields(body string, fields []string) string {
 	return result
 }
 
-// truncateString 截断字符串
+// truncateString truncates a string
 func truncateString(s string, maxLen int) string {
 	if len(s) <= maxLen {
 		return s

@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Flow: Validate → Create (行为保持不变：内部直接转发原 handler)
+// Flow: Validate → Create (behavior remains unchanged: internally forwards to original handler)
 func RunBackupFlow(c *gin.Context) {
 	bs := NewBackupService()
 	rr := runner.Run(c,

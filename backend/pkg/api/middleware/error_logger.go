@@ -10,7 +10,7 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
-// ErrorContext 错误上下文
+// ErrorContext is the error context
 type ErrorContext struct {
 	RequestID  string
 	Component  string
@@ -22,15 +22,15 @@ type ErrorContext struct {
 	StackTrace string
 }
 
-// LogError 记录带上下文的错误
+// LogError logs an error with context
 func LogError(c *gin.Context, component, operation string, err error, extra ...string) {
 	requestID := c.GetString(RequestIDKey)
 	user := c.GetString("k8sUser")
 
-	// 获取调用栈
+	// Get stack trace
 	stackTrace := getStackTrace(3)
 
-	// 构建错误上下文
+	// Build error context
 	ctx := ErrorContext{
 		RequestID:  requestID,
 		Component:  component,
@@ -39,7 +39,7 @@ func LogError(c *gin.Context, component, operation string, err error, extra ...s
 		StackTrace: stackTrace,
 	}
 
-	// 解析 K8s 错误
+	// Parse K8s error
 	errType := "UNKNOWN"
 	errDetail := err.Error()
 	if k8serrors.IsNotFound(err) {
@@ -64,7 +64,7 @@ func LogError(c *gin.Context, component, operation string, err error, extra ...s
 		errType = "INVALID"
 	}
 
-	// 构建额外信息
+	// Build extra information
 	extraInfo := ""
 	if len(extra) > 0 {
 		extraInfo = " | " + strings.Join(extra, " | ")
@@ -83,12 +83,12 @@ func LogError(c *gin.Context, component, operation string, err error, extra ...s
 	)
 }
 
-// LogK8sError 记录 K8s API 错误
+// LogK8sError logs K8s API errors
 func LogK8sError(c *gin.Context, operation, resourceType, namespace, name string, err error) {
 	requestID := c.GetString(RequestIDKey)
 	user := c.GetString("k8sUser")
 
-	// 解析 K8s 错误类型和状态码
+	// Parse K8s error type and status code
 	errType := "UNKNOWN"
 	statusCode := 500
 	reason := ""
@@ -124,14 +124,14 @@ func LogK8sError(c *gin.Context, operation, resourceType, namespace, name string
 	)
 }
 
-// LogValidationError 记录验证错误
+// LogValidationError logs validation errors
 func LogValidationError(c *gin.Context, component string, field, message string) {
 	requestID := c.GetString(RequestIDKey)
 	log.Printf("[%s] ⚠️ VALIDATION [%s] field=%s | %s",
 		requestID, component, field, message)
 }
 
-// LogSecurityEvent 记录安全事件
+// LogSecurityEvent logs security events
 func LogSecurityEvent(c *gin.Context, eventType, message string) {
 	requestID := c.GetString(RequestIDKey)
 	clientIP := c.ClientIP()
@@ -142,7 +142,7 @@ func LogSecurityEvent(c *gin.Context, eventType, message string) {
 		requestID, eventType, clientIP, user, context, message)
 }
 
-// LogAudit 记录审计日志
+// LogAudit logs audit events
 func LogAudit(c *gin.Context, action, resourceType, namespace, name string, success bool) {
 	requestID := c.GetString(RequestIDKey)
 	user := c.GetString("k8sUser")
@@ -159,7 +159,7 @@ func LogAudit(c *gin.Context, action, resourceType, namespace, name string, succ
 		requestID, emoji, status, action, resourceType, namespace, name, user, clientIP)
 }
 
-// getStackTrace 获取调用栈
+// getStackTrace gets the stack trace
 func getStackTrace(skip int) string {
 	var pcs [10]uintptr
 	n := runtime.Callers(skip, pcs[:])
@@ -168,7 +168,7 @@ func getStackTrace(skip int) string {
 	var sb strings.Builder
 	for {
 		frame, more := frames.Next()
-		// 跳过运行时和标准库
+		// Skip runtime and standard library
 		if strings.Contains(frame.File, "runtime/") ||
 			strings.Contains(frame.File, "net/http/") {
 			if !more {
@@ -184,7 +184,7 @@ func getStackTrace(skip int) string {
 	return sb.String()
 }
 
-// RecoveryWithLogger Panic 恢复中间件，带日志
+// RecoveryWithLogger is a panic recovery middleware with logging
 func RecoveryWithLogger() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		defer func() {
@@ -196,7 +196,7 @@ func RecoveryWithLogger() gin.HandlerFunc {
 					requestID, c.Request.URL.Path, err, stack)
 
 				c.AbortWithStatusJSON(500, gin.H{
-					"error":      "Internal Server Error",
+					"error":     "Internal Server Error",
 					"requestId": requestID,
 				})
 			}

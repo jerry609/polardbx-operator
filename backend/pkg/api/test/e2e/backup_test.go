@@ -1,4 +1,4 @@
-package api
+package e2e
 
 import (
 	"bytes"
@@ -11,52 +11,16 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	k8sfake "k8s.io/client-go/kubernetes/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	crfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	crd_polardbxbackups "polardbx-ui-backend/pkg/api/crd/polardbxbackups"
-	domain_pxc "polardbx-ui-backend/pkg/api/domain/polardbxclusters"
+	"polardbx-ui-backend/pkg/api/test/fixtures"
 )
 
 // setupBackupRouter sets up a test router with backup routes
 func setupBackupRouter(t *testing.T, objs ...runtime.Object) (*gin.Engine, client.Client) {
-	t.Helper()
-	gin.SetMode(gin.TestMode)
-	r := gin.New()
-	v1 := r.Group("/api/v1")
-
-	// Build scheme with all required types
-	scheme := runtime.NewScheme()
-	_ = corev1.AddToScheme(scheme)
-	_ = polardbxv1.AddToScheme(scheme)
-
-	ctrlClient := crfake.NewClientBuilder().
-		WithScheme(scheme).
-		WithRuntimeObjects(objs...).
-		Build()
-	cs := k8sfake.NewSimpleClientset()
-
-	v1.Use(func(c *gin.Context) {
-		c.Set("k8sClient", ctrlClient)
-		c.Set("clientset", cs)
-		c.Set("k8sDefaultNamespace", "default")
-		c.Next()
-	})
-
-	// Register backup routes
-	crdGroup := v1.Group("/crd")
-	crd_polardbxbackups.RegisterRoutes(crdGroup)
-
-	// Also register domain routes for backup operations
-	v1.GET("/backups/overview", domain_pxc.GetBackupOverview)
-	v1.GET("/backups/binlog/metrics", domain_pxc.GetBinlogMetrics)
-	v1.POST("/backups/validate", domain_pxc.ValidateBackup)
-
-	return r, ctrlClient
+	return fixtures.SetupBackupRouter(t, objs...)
 }
 
 // ==================== PolarDBXBackup E2E Tests ====================

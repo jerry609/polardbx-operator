@@ -17,12 +17,12 @@ import (
 	"polardbx-ui-backend/pkg/k8s"
 )
 
-// BackupService：集群备份核心操作
+// BackupService provides core backup operations for clusters
 type BackupService struct{}
 
 func NewBackupService() *BackupService { return &BackupService{} }
 
-// List 列出集群的备份
+// List lists backups for a cluster
 func (s *BackupService) List(c *gin.Context) {
 	logger := middleware.NewBusinessLogger(c, "BackupService")
 	cli, ok := util.K8sClientFromContext(c)
@@ -45,7 +45,7 @@ func (s *BackupService) List(c *gin.Context) {
 	apierr.OK(c, backups)
 }
 
-// Create 为集群创建备份
+// Create creates a backup for a cluster
 func (s *BackupService) Create(c *gin.Context) {
 	logger := middleware.NewBusinessLogger(c, "BackupService")
 	cli, ok := util.K8sClientFromContext(c)
@@ -79,7 +79,7 @@ func (s *BackupService) Create(c *gin.Context) {
 	apierr.Created(c, created)
 }
 
-// Validate 通过 dry-run 校验备份
+// Validate validates backup through dry-run
 func (s *BackupService) Validate(c *gin.Context) {
 	logger := middleware.NewBusinessLogger(c, "BackupService")
 	cli, ok := util.K8sClientFromContext(c)
@@ -111,7 +111,7 @@ func (s *BackupService) Validate(c *gin.Context) {
 	apierr.OK(c, gin.H{"valid": true})
 }
 
-// StreamEvents 以 SSE 方式输出备份事件（轮询）
+// StreamEvents outputs backup events via SSE (polling)
 func (s *BackupService) StreamEvents(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -176,7 +176,7 @@ func (s *BackupService) StreamEvents(c *gin.Context) {
 	}
 }
 
-// GetMetrics 获取粗粒度备份进度
+// GetMetrics gets coarse-grained backup progress
 func (s *BackupService) GetMetrics(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -218,7 +218,7 @@ func (s *BackupService) GetMetrics(c *gin.Context) {
 	apierr.OK(c, gin.H{"phase": phase, "progress": progress, "estimated": true, "children": gin.H{"total": total, "finished": finished, "failed": failed}})
 }
 
-// ForceDelete 移除 PolarDBXBackup 的 finalizers 并触发删除
+// ForceDelete removes finalizers from PolarDBXBackup and triggers deletion
 func (s *BackupService) ForceDelete(c *gin.Context) {
 	logger := middleware.NewBusinessLogger(c, "BackupService")
 	cli, ok := util.K8sClientFromContext(c)
@@ -239,11 +239,11 @@ func (s *BackupService) ForceDelete(c *gin.Context) {
 		return
 	}
 
-	// 记录原有 finalizers
+	// Record original finalizers
 	originalFinalizers := bk.GetFinalizers()
 	logger.Info("removing %d finalizers from backup name=%s: %v", len(originalFinalizers), name, originalFinalizers)
 
-	// 清空 finalizers
+	// Clear finalizers
 	bk.SetFinalizers([]string{})
 	if err := cli.Update(c.Request.Context(), &bk); err != nil {
 		logger.Error(err, "failed to remove finalizers from backup name=%s namespace=%s", name, ns)
@@ -253,7 +253,7 @@ func (s *BackupService) ForceDelete(c *gin.Context) {
 	}
 	logger.Info("finalizers removed successfully from backup name=%s", name)
 
-	// 触发删除
+	// Trigger deletion
 	if err := k8s.DeletePolarDBXBackupWithContext(c.Request.Context(), cli, ns, name); err != nil {
 		logger.Error(err, "failed to delete backup after removing finalizers name=%s namespace=%s", name, ns)
 		middleware.LogK8sError(c, "Delete", "PolarDBXBackup", ns, name, err)
@@ -526,7 +526,7 @@ func isBackupNewer(a, b polardbxv1.PolarDBXBackup) bool {
 	return a.CreationTimestamp.After(b.CreationTimestamp.Time)
 }
 
-// Delete 删除备份
+// Delete deletes a backup
 func (s *BackupService) Delete(c *gin.Context) {
 	logger := middleware.NewBusinessLogger(c, "BackupService")
 	cli, ok := util.K8sClientFromContext(c)

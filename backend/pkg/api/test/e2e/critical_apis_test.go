@@ -1,4 +1,4 @@
-package api
+package e2e
 
 import (
 	"bytes"
@@ -12,67 +12,17 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	k8sfake "k8s.io/client-go/kubernetes/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	crfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	domain_diagnostics "polardbx-ui-backend/pkg/api/domain/platform/diagnostics/handler"
-	domain_logcollector "polardbx-ui-backend/pkg/api/domain/platform/logcollector/handler"
-	domain_restore "polardbx-ui-backend/pkg/api/domain/platform/restore/handler"
+	"polardbx-ui-backend/pkg/api/test/fixtures"
 )
 
 // setupCriticalAPIsRouter sets up test router with critical API routes
 func setupCriticalAPIsRouter(t *testing.T, objs ...runtime.Object) (*gin.Engine, client.Client) {
-	t.Helper()
-	gin.SetMode(gin.TestMode)
-	r := gin.New()
-	v1 := r.Group("/api/v1")
-
-	// Build scheme with all required types
-	scheme := runtime.NewScheme()
-	_ = corev1.AddToScheme(scheme)
-	_ = batchv1.AddToScheme(scheme)
-	_ = polardbxv1.AddToScheme(scheme)
-
-	ctrlClient := crfake.NewClientBuilder().
-		WithScheme(scheme).
-		WithRuntimeObjects(objs...).
-		Build()
-	cs := k8sfake.NewSimpleClientset()
-
-	v1.Use(func(c *gin.Context) {
-		c.Set("k8sClient", ctrlClient)
-		c.Set("clientset", cs)
-		c.Set("k8sDefaultNamespace", "default")
-		c.Next()
-	})
-
-	// Diagnostics routes
-	v1.POST("/diagnostics/:namespace/:cluster/start", domain_diagnostics.Start)
-	v1.GET("/diagnostics/:namespace/:id/status", domain_diagnostics.GetStatus)
-	v1.GET("/diagnostics/reports", domain_diagnostics.ListReports)
-	v1.DELETE("/diagnostics/:namespace/:id", domain_diagnostics.DeleteJob)
-
-	// Restore routes
-	v1.POST("/clusters/:namespace/:name/restore", domain_restore.RestoreCluster)
-	v1.GET("/clusters/:namespace/:name/restore-status", domain_restore.GetRestoreStatus)
-	v1.GET("/restore-jobs", domain_restore.ListJobs)
-	v1.GET("/restore-jobs/:namespace/:name", domain_restore.GetJob)
-	v1.DELETE("/restore-jobs/:namespace/:name", domain_restore.CancelJob)
-
-	// LogCollector routes
-	v1.GET("/log-collectors", domain_logcollector.List)
-	v1.POST("/log-collectors", domain_logcollector.Create)
-	v1.GET("/log-collectors/:namespace/:name", domain_logcollector.Get)
-	v1.PUT("/log-collectors/:namespace/:name", domain_logcollector.Update)
-	v1.DELETE("/log-collectors/:namespace/:name", domain_logcollector.Delete)
-	v1.GET("/log-collectors/:namespace/:name/status", domain_logcollector.GetLogCollectorStatus)
-
-	return r, ctrlClient
+	return fixtures.SetupCriticalAPIsRouter(t, objs...)
 }
 
 // ==================== Diagnostics E2E Tests ====================

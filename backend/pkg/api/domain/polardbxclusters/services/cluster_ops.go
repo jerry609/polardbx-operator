@@ -15,12 +15,12 @@ import (
 // patchClusterJSON is a test-hookable wrapper around util.K8sPatchClusterJSON.
 var patchClusterJSON = util.K8sPatchClusterJSON
 
-// ClusterService 聚合与集群相关的编排。
+// ClusterService aggregates cluster-related orchestration operations.
 type ClusterService struct{}
 
 func NewClusterService() *ClusterService { return &ClusterService{} }
 
-// UpdateLogConfig：最小实现，构造 JSON Patch 并调用 K8s。
+// UpdateLogConfig: minimal implementation that constructs JSON Patch and calls K8s.
 func (s *ClusterService) UpdateLogConfig(ctx context.Context, c *gin.Context) error {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -79,7 +79,7 @@ func (s *ClusterService) UpdateLogConfig(ctx context.Context, c *gin.Context) er
 	return nil
 }
 
-// Scale：最小实现，构造 replicas JSON Patch。
+// Scale: minimal implementation that constructs replicas JSON Patch.
 func (s *ClusterService) Scale(ctx context.Context, c *gin.Context) error {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -129,7 +129,7 @@ func (s *ClusterService) Scale(ctx context.Context, c *gin.Context) error {
 	return nil
 }
 
-// Upgrade：最小实现，设置目标版本与可选策略。
+// Upgrade: minimal implementation that sets target version and optional strategy.
 func (s *ClusterService) Upgrade(ctx context.Context, c *gin.Context) error {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -164,6 +164,6 @@ func (s *ClusterService) Upgrade(ctx context.Context, c *gin.Context) error {
 		"namespace", ns,
 		"name", name,
 		"duration", time.Since(start))
-	apierr.OK(c, gin.H{"message": "Cluster upgrade initiated successfully", "upgrade": gin.H{"targetVersion": req.TargetVersion, "strategy": req.Strategy, "status": "升级已启动"}})
+	apierr.OK(c, gin.H{"message": "Cluster upgrade initiated successfully", "upgrade": gin.H{"targetVersion": req.TargetVersion, "strategy": req.Strategy, "status": "upgrade initiated"}})
 	return nil
 }

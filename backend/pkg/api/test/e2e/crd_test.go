@@ -1,4 +1,4 @@
-package api
+package e2e
 
 import (
 	"bytes"
@@ -12,66 +12,16 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	k8sfake "k8s.io/client-go/kubernetes/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	crfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	crd_polardbxbackupbinlogs "polardbx-ui-backend/pkg/api/crd/polardbxbackupbinlogs"
-	crd_polardbxbackups "polardbx-ui-backend/pkg/api/crd/polardbxbackups"
-	crd_polardbxbackupschedules "polardbx-ui-backend/pkg/api/crd/polardbxbackupschedules"
-	crd_polardbxclusters "polardbx-ui-backend/pkg/api/crd/polardbxclusters"
-	crd_polardbxlogcollectors "polardbx-ui-backend/pkg/api/crd/polardbxlogcollectors"
-	crd_polardbxmonitors "polardbx-ui-backend/pkg/api/crd/polardbxmonitors"
-	crd_polardbxparameters "polardbx-ui-backend/pkg/api/crd/polardbxparameters"
-	crd_polardbxparametertemplates "polardbx-ui-backend/pkg/api/crd/polardbxparametertemplates"
-	crd_systemtasks "polardbx-ui-backend/pkg/api/crd/systemtasks"
-	crd_xstorebackupbinlogs "polardbx-ui-backend/pkg/api/crd/xstorebackupbinlogs"
-	crd_xstores "polardbx-ui-backend/pkg/api/crd/xstores"
+	"polardbx-ui-backend/pkg/api/test/fixtures"
 )
 
 // setupCRDRouter sets up a test router with all CRD routes
 func setupCRDRouter(t *testing.T, objs ...runtime.Object) (*gin.Engine, client.Client) {
-	t.Helper()
-	gin.SetMode(gin.TestMode)
-	r := gin.New()
-	v1 := r.Group("/api/v1")
-
-	// Build scheme with all required types
-	scheme := runtime.NewScheme()
-	_ = corev1.AddToScheme(scheme)
-	_ = polardbxv1.AddToScheme(scheme)
-
-	ctrlClient := crfake.NewClientBuilder().
-		WithScheme(scheme).
-		WithRuntimeObjects(objs...).
-		Build()
-	cs := k8sfake.NewSimpleClientset()
-
-	v1.Use(func(c *gin.Context) {
-		c.Set("k8sClient", ctrlClient)
-		c.Set("clientset", cs)
-		c.Set("k8sDefaultNamespace", "default")
-		c.Next()
-	})
-
-	// Register all CRD routes
-	crdGroup := v1.Group("/crd")
-	crd_polardbxclusters.RegisterRoutes(crdGroup)
-	crd_xstores.RegisterRoutes(crdGroup)
-	crd_systemtasks.RegisterRoutes(crdGroup)
-	crd_polardbxbackups.RegisterRoutes(crdGroup)
-	crd_polardbxbackupschedules.RegisterRoutes(crdGroup)
-	crd_polardbxbackupbinlogs.RegisterRoutes(crdGroup)
-	crd_xstorebackupbinlogs.RegisterRoutes(crdGroup)
-	crd_polardbxparameters.RegisterRoutes(crdGroup)
-	crd_polardbxparametertemplates.RegisterRoutes(crdGroup)
-	crd_polardbxmonitors.RegisterRoutes(crdGroup)
-	crd_polardbxlogcollectors.RegisterRoutes(crdGroup)
-
-	return r, ctrlClient
+	return fixtures.SetupCRDRouter(t, objs...)
 }
 
 // ==================== PolarDBXCluster E2E Tests ====================

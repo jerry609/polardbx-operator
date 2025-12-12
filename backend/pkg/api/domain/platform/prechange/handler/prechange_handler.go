@@ -319,34 +319,34 @@ func evaluateVersionCompat(c *gin.Context, k8sClient client.Client, namespace, n
 	ctx := c.Request.Context()
 	var cluster polardbxv1.PolarDBXCluster
 	if err := k8sClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, &cluster); err != nil {
-		return "", "", true, "无法获取集群，跳过版本检查"
+		return "", "", true, "unable to get cluster, skipping version check"
 	}
 	currentVersion = cluster.Spec.Topology.Version
 	versionOk = true
 	if op != "upgrade" {
-		return currentVersion, "", true, "非升级操作"
+		return currentVersion, "", true, "not an upgrade operation"
 	}
 	if v, ok := targetSpec["targetVersion"].(string); ok {
 		targetVersion = v
 	}
 	if targetVersion == "" {
-		return currentVersion, "", false, "升级目标版本未提供"
+		return currentVersion, "", false, "upgrade target version not provided"
 	}
 	cmj, cmn, cpt, cok := parseVersion(currentVersion)
 	tmj, tmn, tpt, tok := parseVersion(targetVersion)
 	if !cok || !tok {
-		return currentVersion, targetVersion, true, "版本号无法解析，跳过严格校验（建议使用 x.y.z 语义化版本）"
+		return currentVersion, targetVersion, true, "version number cannot be parsed, skipping strict validation (recommended to use x.y.z semantic version)"
 	}
 	if tmj != cmj {
-		return currentVersion, targetVersion, false, "不支持跨主版本升级"
+		return currentVersion, targetVersion, false, "cross-major version upgrade not supported"
 	}
 	if tmn == cmn && tpt == cpt {
-		return currentVersion, targetVersion, false, "目标版本与当前版本一致，无需升级"
+		return currentVersion, targetVersion, false, "target version is the same as current version, no upgrade needed"
 	}
 	if tmn < cmn || (tmn == cmn && tpt < cpt) {
-		return currentVersion, targetVersion, false, "不支持降级到更低版本"
+		return currentVersion, targetVersion, false, "downgrade to lower version not supported"
 	}
-	return currentVersion, targetVersion, true, "版本路径校验通过"
+	return currentVersion, targetVersion, true, "version path validation passed"
 }
 
 // parseVersion accepts strings like "8.0.18" or "8.0.18-xxx" and returns major/minor/patch
@@ -449,9 +449,9 @@ func GetPrechangeChecklist(c *gin.Context) {
 	}
 
 	plan := []map[string]any{
-		{"id": "checkStorage", "state": ternary(storageConnectivity == "configured", "ok", "warn"), "message": "HPFS 配置存在"},
-		{"id": "checkRecentBackup", "state": ternary(hasRecent, "ok", "warn"), "message": "最近窗口内存在成功的全量备份"},
-		{"id": "checkRPO", "state": ternary(rpoOk, "ok", "warn"), "message": "RPO 未超过阈值"},
+		{"id": "checkStorage", "state": ternary(storageConnectivity == "configured", "ok", "warn"), "message": "HPFS configuration exists"},
+		{"id": "checkRecentBackup", "state": ternary(hasRecent, "ok", "warn"), "message": "Successful full backup exists within recent window"},
+		{"id": "checkRPO", "state": ternary(rpoOk, "ok", "warn"), "message": "RPO has not exceeded threshold"},
 	}
 	resp := gin.H{"namespace": namespace, "name": name, "generatedAt": now.Format(time.RFC3339), "checks": gin.H{
 		"hasRecentBackup":     hasRecent,
@@ -504,56 +504,56 @@ func Precheck(c *gin.Context) {
 	conflicts := scanConflicts(c, k8sClient, ns, name)
 
 	if len(conflicts) > 0 {
-		warnings = append(warnings, fmt.Sprintf("存在可能冲突的作业 %d 项", len(conflicts)))
+		warnings = append(warnings, fmt.Sprintf("found %d potentially conflicting jobs", len(conflicts)))
 	}
 	if unsched {
-		warnings = append(warnings, "存在不可调度的 Pod，资源或亲和性可能不足")
+		warnings = append(warnings, "unschedulable pods exist, resources or affinity may be insufficient")
 	}
 	if diskPressure {
-		warnings = append(warnings, "部分节点存在磁盘压力(NodeDiskPressure)")
+		warnings = append(warnings, "some nodes have disk pressure (NodeDiskPressure)")
 	}
 	if !quotaOk {
-		warnings = append(warnings, "命名空间资源配额接近耗尽（≥95%）")
+		warnings = append(warnings, "namespace resource quota is nearly exhausted (≥95%)")
 	}
 	if !binlogOk {
-		warnings = append(warnings, "未检测到 Binlog 备份配置，PITR 能力可能不可用")
+		warnings = append(warnings, "Binlog backup configuration not detected, PITR capability may be unavailable")
 	}
 	if !rbacOk {
-		warnings = append(warnings, "RBAC/CRD 依赖校验可能失败（请检查 CRD 与权限）")
+		warnings = append(warnings, "RBAC/CRD dependency validation may fail (please check CRD and permissions)")
 	}
 	if !clusterReady {
 		if op == "upgrade" {
-			errorsArr = append(errorsArr, "集群未就绪，升级前需达到 ClusterReady")
+			errorsArr = append(errorsArr, "cluster is not ready, must reach ClusterReady before upgrade")
 		} else {
-			warnings = append(warnings, "集群未就绪，建议先排查状态")
+			warnings = append(warnings, "cluster is not ready, recommend checking status first")
 		}
 	}
 	if !controllersReady {
 		if op == "upgrade" {
-			errorsArr = append(errorsArr, "控制器未全部就绪（Deployment/StatefulSet）")
+			errorsArr = append(errorsArr, "not all controllers are ready (Deployment/StatefulSet)")
 		} else {
-			warnings = append(warnings, "控制器未全部就绪（Deployment/StatefulSet）")
+			warnings = append(warnings, "not all controllers are ready (Deployment/StatefulSet)")
 		}
 	}
 	if !podsReady {
-		warnings = append(warnings, "存在未就绪的 Pod，请关注")
+		warnings = append(warnings, "some pods are not ready, please pay attention")
 	}
 	if storageConnectivity != "configured" {
-		warnings = append(warnings, "未检测到 HPFS 配置，建议配置以保障回退点")
+		warnings = append(warnings, "HPFS configuration not detected, recommend configuring to ensure rollback point")
 	}
 	if !hasRecent {
-		warnings = append(warnings, "最近 24 小时内无成功的全量备份")
+		warnings = append(warnings, "no successful full backup in the last 24 hours")
 	}
 	if !rpoOk {
-		warnings = append(warnings, fmt.Sprintf("RPO 滞后 %d 秒超出阈值", rpoLagSeconds))
+		warnings = append(warnings, fmt.Sprintf("RPO lag %d seconds exceeds threshold", rpoLagSeconds))
 	}
 
 	if op == "upgrade" {
 		if storageConnectivity != "configured" {
-			errorsArr = append(errorsArr, "升级前必须配置 HPFS 以保证回退能力")
+			errorsArr = append(errorsArr, "HPFS must be configured before upgrade to ensure rollback capability")
 		}
 		if !hasRecent {
-			errorsArr = append(errorsArr, "升级前必须具备最近成功的全量备份")
+			errorsArr = append(errorsArr, "recent successful full backup must exist before upgrade")
 		}
 	}
 
@@ -564,18 +564,18 @@ func Precheck(c *gin.Context) {
 		return t.UTC().Format(time.RFC3339)
 	}
 	plan := []map[string]any{
-		{"id": "checkClusterReady", "state": ternary(clusterReady, "ok", ternary(op == "upgrade", "error", "warn")), "message": "ClusterReady 条件为 True"},
-		{"id": "checkControllersReady", "state": ternary(controllersReady, "ok", ternary(op == "upgrade", "error", "warn")), "message": "Deployment/StatefulSet 副本就绪"},
-		{"id": "checkPodsReady", "state": ternary(podsReady, "ok", "warn"), "message": "所有 Pod 处于 Ready"},
-		{"id": "checkStorage", "state": ternary(storageConnectivity == "configured", "ok", ternary(op == "upgrade", "error", "warn")), "message": "HPFS 配置存在"},
-		{"id": "checkRecentBackup", "state": ternary(hasRecent, "ok", ternary(op == "upgrade", "error", "warn")), "message": "最近窗口内存在成功的全量备份"},
-		{"id": "checkRPO", "state": ternary(rpoOk, "ok", "warn"), "message": "RPO 未超过阈值"},
-		{"id": "checkConflicts", "state": ternary(len(conflicts) == 0, "ok", "warn"), "message": "冲突作业扫描"},
-		{"id": "checkScheduling", "state": ternary(!unsched, "ok", "warn"), "message": "不可调度 Pod 检查"},
-		{"id": "checkNodeDiskPressure", "state": ternary(!diskPressure, "ok", "warn"), "message": "节点磁盘压力"},
-		{"id": "checkResourceQuota", "state": ternary(quotaOk, "ok", "warn"), "message": "命名空间配额健康"},
-		{"id": "checkBinlogAvailable", "state": ternary(binlogOk, "ok", ternary(op == "upgrade", "warn", "warn")), "message": "PITR Binlog 可用性"},
-		{"id": "checkRBAC", "state": ternary(rbacOk, "ok", "warn"), "message": "RBAC/CRD 依赖可用"},
+		{"id": "checkClusterReady", "state": ternary(clusterReady, "ok", ternary(op == "upgrade", "error", "warn")), "message": "ClusterReady condition is True"},
+		{"id": "checkControllersReady", "state": ternary(controllersReady, "ok", ternary(op == "upgrade", "error", "warn")), "message": "Deployment/StatefulSet replicas ready"},
+		{"id": "checkPodsReady", "state": ternary(podsReady, "ok", "warn"), "message": "All pods are Ready"},
+		{"id": "checkStorage", "state": ternary(storageConnectivity == "configured", "ok", ternary(op == "upgrade", "error", "warn")), "message": "HPFS configuration exists"},
+		{"id": "checkRecentBackup", "state": ternary(hasRecent, "ok", ternary(op == "upgrade", "error", "warn")), "message": "Successful full backup exists within recent window"},
+		{"id": "checkRPO", "state": ternary(rpoOk, "ok", "warn"), "message": "RPO has not exceeded threshold"},
+		{"id": "checkConflicts", "state": ternary(len(conflicts) == 0, "ok", "warn"), "message": "Conflict job scan"},
+		{"id": "checkScheduling", "state": ternary(!unsched, "ok", "warn"), "message": "Unschedulable pod check"},
+		{"id": "checkNodeDiskPressure", "state": ternary(!diskPressure, "ok", "warn"), "message": "Node disk pressure"},
+		{"id": "checkResourceQuota", "state": ternary(quotaOk, "ok", "warn"), "message": "Namespace quota healthy"},
+		{"id": "checkBinlogAvailable", "state": ternary(binlogOk, "ok", ternary(op == "upgrade", "warn", "warn")), "message": "PITR Binlog availability"},
+		{"id": "checkRBAC", "state": ternary(rbacOk, "ok", "warn"), "message": "RBAC/CRD dependencies available"},
 		{"id": "checkVersionCompat", "state": ternary(verOk, "ok", ternary(op == "upgrade", "error", "warn")), "message": verMsg},
 	}
 

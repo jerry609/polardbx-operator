@@ -1,4 +1,4 @@
-package api
+package integration
 
 import (
 	"bytes"
@@ -11,50 +11,15 @@ import (
 	domain_logstrategy "polardbx-ui-backend/pkg/api/domain/platform/logstrategy/handler"
 	domain_prometheusrule "polardbx-ui-backend/pkg/api/domain/platform/prometheusrule/handler"
 	domain_system "polardbx-ui-backend/pkg/api/domain/platform/system/handler"
+	"polardbx-ui-backend/pkg/api/test/fixtures"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	dynamicfake "k8s.io/client-go/dynamic/fake"
-	k8sfake "k8s.io/client-go/kubernetes/fake"
-	crfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 // setupIntegrationRouter sets up the router with all the new API routes
 func setupIntegrationRouter() *gin.Engine {
-	gin.SetMode(gin.TestMode)
-	r := gin.New()
-	v1 := r.Group("/api/v1")
-
-	// Add middleware to inject mock clients
-	v1.Use(func(c *gin.Context) {
-		// Setup mock clients
-		cs := k8sfake.NewSimpleClientset()
-		scheme := runtime.NewScheme()
-		_ = corev1.AddToScheme(scheme)
-		cli := crfake.NewClientBuilder().WithScheme(scheme).Build()
-		dynClient := dynamicfake.NewSimpleDynamicClient(scheme)
-
-		c.Set("clientset", cs)
-		c.Set("k8sClient", cli)
-		c.Set("dynamic-client", dynClient)
-		c.Next()
-	})
-
-	// Direct routes for frontend compatibility (the ones we added)
-	v1.GET("/namespaces", domain_system.ListNamespaces)
-	v1.GET("/prometheus-rules", domain_prometheusrule.List)
-	v1.GET("/prometheus-rules/:namespace/:name/yaml", domain_prometheusrule.GetYAML)
-	v1.POST("/prometheus-rules/validate", domain_prometheusrule.ValidateRule)
-	v1.GET("/log-strategies/apply-records", domain_logstrategy.ListApplyRecords)
-
-	// Include some existing routes for comparison
-	v1.GET("/system/namespaces", domain_system.ListNamespaces)
-	v1.GET("/log-strategies", domain_logstrategy.List)
-	v1.POST("/log-strategies", domain_logstrategy.Create)
-
-	return r
+	return fixtures.SetupIntegrationRouter()
 }
 
 func TestNewAPIRoutesIntegration(t *testing.T) {

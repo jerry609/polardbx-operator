@@ -1,4 +1,4 @@
-package api
+package e2e
 
 import (
 	"encoding/json"
@@ -7,51 +7,20 @@ import (
 	"testing"
 	"time"
 
-	domain_alerts "polardbx-ui-backend/pkg/api/domain/platform/alerts/handler"
-	domain_logs "polardbx-ui-backend/pkg/api/domain/platform/logs/handler"
-	domain_monitoring "polardbx-ui-backend/pkg/api/domain/monitoring"
-	"polardbx-ui-backend/pkg/api/util"
-
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	k8sfake "k8s.io/client-go/kubernetes/fake"
-	crfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
+
+	"polardbx-ui-backend/pkg/api/test/fixtures"
+	"polardbx-ui-backend/pkg/api/util"
 )
 
 // setupRouterE2E sets up a test router with necessary routes and injected fake clients.
 func setupRouterE2E(t *testing.T, objs ...runtime.Object) *gin.Engine {
-	t.Helper()
-	gin.SetMode(gin.TestMode)
-	r := gin.New()
-	v1 := r.Group("/api/v1")
-
-	// fake controller-runtime client (for CRUD/status)
-	scheme := runtime.NewScheme()
-	_ = corev1.AddToScheme(scheme)
-	_ = batchv1.AddToScheme(scheme)
-	ctrlClient := crfake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(objs...).Build()
-	// fake clientset (for pod logs listing)
-	cs := k8sfake.NewSimpleClientset()
-
-	v1.Use(func(c *gin.Context) {
-		// inject using util expected keys
-		c.Set("k8sClient", ctrlClient)
-		c.Set("clientset", cs)
-		// optional defaults
-		c.Set("k8sDefaultNamespace", "polardbx-operator-system")
-		c.Next()
-	})
-
-	// minimal routes under test
-	v1.GET("/alerts", domain_alerts.List)
-	v1.GET("/monitoring/bootstrap/status", domain_monitoring.BootstrapStatus)
-	v1.GET("/logs/bootstrap/status", domain_logs.BootstrapStatus)
-
-	return r
+	return fixtures.SetupRouterE2E(t, objs...)
 }
 
 func TestE2E_AlertsAggregate_WithAMAndEvents(t *testing.T) {

@@ -127,7 +127,7 @@ func KubeconfigAuthMiddleware() gin.HandlerFunc {
 			"clientIP", c.ClientIP())
 
 		kubeconfigB64 := c.GetHeader("X-Kubeconfig-B64")
-		// WebSocket 等场景无法自定义 Header 时，允许通过查询参数传递
+		// Allow passing via query parameter when custom headers cannot be set (e.g., WebSocket scenarios)
 		if kubeconfigB64 == "" {
 			if v := c.Query("kubeconfig"); v != "" {
 				kubeconfigB64 = v
@@ -258,7 +258,7 @@ func Connect(c *gin.Context) {
 		"defaultNamespace": defNs,
 	}
 
-	// 1) 与 apiserver 通信
+	// 1) Communicate with apiserver
 	logger.Info("Connect: querying apiserver version",
 		"context", ctxName,
 		"user", user)
@@ -291,7 +291,7 @@ func Connect(c *gin.Context) {
 		"context", ctxName,
 		"user", user)
 
-	// 2) RBAC 轻量校验：列出命名空间（限制 1）
+	// 2) Lightweight RBAC validation: list namespaces (limit 1)
 	if _, err := cs.CoreV1().Namespaces().List(c.Request.Context(), metav1.ListOptions{Limit: 1}); err != nil {
 		logger.Error("Connect: namespace list failed",
 			"context", ctxName,
