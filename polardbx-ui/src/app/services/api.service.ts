@@ -34,8 +34,8 @@ export class ApiService {
   private loadingService = inject(LoadingService);
   private performanceService = inject(PerformanceService);
 
-  // 使用相对路径，避免硬编码 localhost
-  // 生产环境部署时会使用同一域名的 /api/v1
+  // Use relative path to avoid hardcoding localhost
+  // Production deployment will use /api/v1 on the same domain
   private baseUrl = '/api/v1';
 
   private getHeaders(): HttpHeaders {
@@ -51,9 +51,9 @@ export class ApiService {
     return base;
   }
 
-  // 验证连接
+  // Validate connection
   connect(kubeconfig: string): Observable<unknown> {
-    // 使用更安全的 base64 编码方法处理 Unicode 字符
+    // Use safer base64 encoding method to handle Unicode characters
     const kubeconfigB64 = btoa(unescape(encodeURIComponent(kubeconfig)));
     const headers = appendKubeconfigHeader(new HttpHeaders({ 'Content-Type': 'application/json' })).set('X-Kubeconfig-B64', kubeconfigB64);
     return this.handleRequest(
@@ -64,7 +64,7 @@ export class ApiService {
     );
   }
 
-  // 获取集群列表
+  // Get cluster list
   getClusters(namespace?: string): Observable<PolarDBXCluster[]> {
     const params = namespace ? new HttpParams().set('namespace', namespace) : this.withNs();
     return this.handleRequest(
@@ -78,7 +78,7 @@ export class ApiService {
     );
   }
 
-  // 获取单个集群
+  // Get single cluster
   getCluster(namespace: string, name: string): Observable<PolarDBXCluster> {
     return this.handleRequest(
       this.http.get<PolarDBXCluster>(`${this.baseUrl}/clusters/${namespace}/${name}`, {
@@ -90,7 +90,7 @@ export class ApiService {
     );
   }
 
-  // 获取告警汇总（Alertmanager 或 Events 回退）
+  // Get alert summary (Alertmanager or Events fallback)
   getClusterAlertsSummary(namespace: string, name: string, alertmanager?: string): Observable<{critical:number;warning:number;info:number;total:number;source:string}> {
     const params = alertmanager ? `?alertmanager=${encodeURIComponent(alertmanager)}` : '';
     return this.handleRequest(
@@ -103,7 +103,7 @@ export class ApiService {
     );
   }
 
-  // 获取集群的 Pod 列表
+  // Get Pod list for cluster
   getPodsForCluster(namespace: string, name: string): Observable<Pod[]> {
     return this.handleRequest(
       this.http.get<Pod[]>(`${this.baseUrl}/clusters/${namespace}/${name}/pods`, {
@@ -115,7 +115,7 @@ export class ApiService {
     );
   }
 
-  // 按命名空间列出 Pod（不限定集群）
+  // List Pods by namespace (not limited to cluster)
   listPods(namespace = 'default'): Observable<Pod[]> {
     return this.handleRequest(
       this.http.get<Pod[]>(`${this.baseUrl}/pods`, {
@@ -128,7 +128,7 @@ export class ApiService {
     );
   }
 
-  // 获取 Pod 日志
+  // Get Pod logs
   getPodLogs(namespace: string, podName: string, containerName: string, tailLines = 1000): Observable<string> {
     const headers = this.getHeaders().set('Accept', 'text/plain');
     return this.handleRequest(
@@ -142,7 +142,7 @@ export class ApiService {
     );
   }
 
-  // 获取单个 Pod 明细
+  // Get single Pod details
   getPod(namespace: string, podName: string): Observable<Pod> {
     return this.handleRequest(
       this.http.get<Pod>(`${this.baseUrl}/pods/${encodeURIComponent(namespace)}/${encodeURIComponent(podName)}`, {
@@ -154,7 +154,7 @@ export class ApiService {
     );
   }
 
-  // 删除Pod (用于节点重启/重建)
+  // Delete Pod (for node restart/rebuild)
   deletePod(namespace: string, podName: string): Observable<any> {
     return this.handleRequest(
       this.http.delete(`${this.baseUrl}/pods/${encodeURIComponent(namespace)}/${encodeURIComponent(podName)}`, {
@@ -166,7 +166,7 @@ export class ApiService {
     );
   }
 
-  // 执行一次性命令（非交互），返回 stdout 文本
+  // Execute one-time command (non-interactive), returns stdout text
   execPod(namespace: string, podName: string, containerName: string, cmd: string, tty: boolean = true): Observable<string> {
     const headers = this.getHeaders().set('Accept', 'text/plain');
     const url = `${this.baseUrl}/pods/${encodeURIComponent(namespace)}/${encodeURIComponent(podName)}/exec?container=${encodeURIComponent(containerName || '')}&cmd=${encodeURIComponent(cmd)}&tty=${tty}`;
@@ -178,7 +178,7 @@ export class ApiService {
     );
   }
 
-  // 获取备份列表
+  // Get backup list
   getBackups(namespace: string, clusterName: string): Observable<PolarDBXBackup[]> {
     return this.handleRequest(
       this.http.get<PolarDBXBackup[]>(`${this.baseUrl}/clusters/${namespace}/${clusterName}/backups`, {
@@ -190,7 +190,7 @@ export class ApiService {
     );
   }
 
-  // 获取备份聚合度量（估算进度/大小）
+  // Get backup aggregated metrics (estimated progress/size)
   getBackupMetrics(namespace: string, name: string): Observable<{ progressPercent: number; estimated: boolean; sizeBytes: number | null; phase: string } & any> {
     return this.handleRequest(
       this.http.get<{ progressPercent: number; estimated: boolean; sizeBytes: number | null; phase: string } & any>(
@@ -203,7 +203,7 @@ export class ApiService {
     );
   }
 
-  // 获取备份角色建议（leader/follower）
+  // Get backup role advice (leader/follower)
   getBackupAdvice(namespace: string, clusterName: string): Observable<{ hasFollower: boolean; role: 'leader' | 'follower'; reason?: string }> {
     return this.handleRequest(
       this.http.get<{ hasFollower: boolean; role: 'leader' | 'follower'; reason?: string }>(
@@ -216,7 +216,7 @@ export class ApiService {
     );
   }
 
-  // 校验 sink 是否存在
+  // Validate if sink exists
   validateSink(name: string, type: string): Observable<{ name: string; type: string; status: string; message?: string }> {
     return this.handleRequest(
       this.http.post<{ name: string; type: string; status: string; message?: string }>(
@@ -243,12 +243,12 @@ export class ApiService {
     );
   }
 
-  // 创建备份
+  // Create backup
   createBackup(namespace: string, clusterName: string, backupObject: any): Observable<PolarDBXBackup> {
     const headers = this.getHeaders();
     const url = `${this.baseUrl}/clusters/${namespace}/${clusterName}/backups`;
 
-    // 生成符合 DNS-1123 的备份名，限制 63 字符
+    // Generate DNS-1123 compliant backup name, limit 63 characters
     const generateName = (baseClusterName: string, suffixHint?: string): string => {
       const now = new Date();
       const ts = `${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate()
@@ -260,7 +260,7 @@ export class ApiService {
       const sanitized = raw.replace(/[^a-z0-9-]/g, '-');
       if (sanitized.length <= 63) return sanitized;
       const over = sanitized.length - 63;
-      // 截断 clusterName 部分，保留后缀结构
+      // Truncate clusterName part, preserve suffix structure
       const keep = Math.max(1, baseClusterName.length - over);
       const truncated = `${baseClusterName.slice(0, keep)}-bak-${ts}${suffix}-${rand}`.toLowerCase().replace(/[^a-z0-9-]/g, '-');
       return truncated.slice(0, 63);
@@ -268,7 +268,7 @@ export class ApiService {
 
     const cloneDeep = (obj: any) => JSON.parse(JSON.stringify(obj || {}));
 
-    // 确保存在 metadata/name
+    // Ensure metadata/name exists
     const initialBody = cloneDeep(backupObject);
     initialBody.metadata = initialBody.metadata || {};
     if (!initialBody.metadata.name || typeof initialBody.metadata.name !== 'string') {
@@ -277,7 +277,7 @@ export class ApiService {
 
     const postOnce = (body: any) => this.http.post<PolarDBXBackup>(url, body, { headers });
 
-    // 首次请求，如遇 409 冲突则自动更名后重试一次
+    // First request, if 409 conflict occurs, automatically rename and retry once
     const request$ = postOnce(initialBody).pipe(
       catchError((error: HttpErrorResponse) => {
         if (error && error.status === 409) {
@@ -298,7 +298,7 @@ export class ApiService {
     );
   }
 
-  // 删除备份
+  // Delete backup
   deleteBackup(namespace: string, backupName: string): Observable<any> {
     return this.handleRequest(
       this.http.delete(`${this.baseUrl}/backups/${namespace}/${backupName}`, {
@@ -310,7 +310,7 @@ export class ApiService {
     );
   }
 
-  // 强制删除备份（移除 finalizers）
+  // Force delete backup (remove finalizers)
   forceDeleteBackup(namespace: string, backupName: string): Observable<any> {
     return this.handleRequest(
       this.http.post(`${this.baseUrl}/backups/${namespace}/${backupName}/force-delete`, {}, {
@@ -322,7 +322,7 @@ export class ApiService {
     );
   }
 
-  // 创建集群 (原始API，直接接受PolarDBXCluster对象)
+  // Create cluster (raw API, directly accepts PolarDBXCluster object)
   createCluster(cluster: PolarDBXCluster): Observable<PolarDBXCluster> {
     return this.handleRequest(
       this.http.post<PolarDBXCluster>(`${this.baseUrl}/clusters`, cluster, {
@@ -334,7 +334,7 @@ export class ApiService {
     );
   }
 
-  // 从用户友好的配置创建集群
+  // Create cluster from user-friendly configuration
   createClusterFromConfig(namespace: string, config: ClusterCreationConfig): Observable<PolarDBXCluster> {
     return this.handleRequest(
       this.http.post<PolarDBXCluster>(`${this.baseUrl}/clusters/${namespace}/create`, config, {
@@ -346,7 +346,7 @@ export class ApiService {
     );
   }
 
-  // 更新集群日志配置
+  // Update cluster log configuration
   updateClusterLogConfig(namespace: string, clusterName: string, nodeType: string, config: any): Observable<any> {
     return this.handleRequest(
       this.http.patch<any>(`${this.baseUrl}/clusters/${namespace}/${clusterName}/log-config/${nodeType}`, config, {
@@ -358,7 +358,7 @@ export class ApiService {
     );
   }
 
-  // 集群扩缩容
+  // Scale cluster
   scaleCluster(namespace: string, clusterName: string, scaling: any, precheckToken?: string, precheckSig?: string): Observable<any> {
     let headers = this.getHeaders();
     if (precheckToken) headers = headers.set('X-Precheck-Token', precheckToken);
@@ -373,7 +373,7 @@ export class ApiService {
     );
   }
 
-  // 集群升级
+  // Upgrade cluster
   upgradeCluster(namespace: string, clusterName: string, upgrade: any, precheckToken?: string, precheckSig?: string): Observable<any> {
     let headers = this.getHeaders();
     if (precheckToken) headers = headers.set('X-Precheck-Token', precheckToken);
@@ -388,7 +388,7 @@ export class ApiService {
     );
   }
 
-  // 获取集群升级规划（候选版本/兼容矩阵/推荐项），无后端时返回回退数据
+  // Get cluster upgrade plan (candidate versions/compatibility matrix/recommendations), returns fallback data when backend unavailable
   getClusterUpgradePlan(namespace: string, clusterName: string): Observable<{ currentVersion: string; candidates: Array<{ version: string; recommended?: boolean; notes?: string }>; matrix?: any }> {
     const url = `${this.baseUrl}/clusters/${encodeURIComponent(namespace)}/${encodeURIComponent(clusterName)}/upgrade-plan`;
     type UpgradePlan = { currentVersion: string; candidates: Array<{ version: string; recommended?: boolean; notes?: string }>; matrix?: any };
@@ -397,7 +397,7 @@ export class ApiService {
         const current = res?.currentVersion || res?.current || '';
         const cands = Array.isArray(res?.candidates) ? res.candidates : [];
         if (cands.length > 0) return { currentVersion: current, candidates: cands, matrix: res?.matrix };
-        // 若接口存在但无 candidates，降级为默认
+        // If interface exists but no candidates, fallback to default
         return {
           currentVersion: current,
           candidates: [
@@ -426,7 +426,7 @@ export class ApiService {
     );
   }
 
-  // 更新集群
+  // Update cluster
   updateCluster(namespace: string, name: string, cluster: PolarDBXCluster): Observable<PolarDBXCluster> {
     return this.handleRequest(
       this.http.put<PolarDBXCluster>(`${this.baseUrl}/clusters/${namespace}/${name}`, cluster, {
@@ -438,7 +438,7 @@ export class ApiService {
     );
   }
 
-  // 删除集群
+  // Delete cluster
   deleteCluster(namespace: string, name: string): Observable<unknown> {
     return this.handleRequest(
       this.http.delete(`${this.baseUrl}/clusters/${namespace}/${name}`, {
@@ -451,7 +451,7 @@ export class ApiService {
   }
 
   /**
-   * 测试连接
+   * Test connection
    */
   testConnection(): Observable<unknown> {
     return this.handleRequest(
@@ -465,21 +465,21 @@ export class ApiService {
   }
 
   private handleRequest<T>(request: Observable<T>, loadingKey: string, endpoint = '', method = 'GET', opts?: { silent?: boolean }): Observable<T> {
-    // 仅对关键操作设置全局遮罩（GLOBAL），普通 detail/list 请求只记录性能不遮挡页面
+    // Only set global overlay (GLOBAL) for critical operations, regular detail/list requests only record performance without blocking page
     const shouldShowGlobal = (loadingKey as any) === LoadingKeys.CONNECT;
-    // 防御：只在 CONNECT 时设置全局遮罩
+    // Defense: only set global overlay for CONNECT
     if (shouldShowGlobal) this.loadingService.setLoading(LoadingKeys.GLOBAL, true);
     this.loadingService.setLoading(loadingKey, true);
     const startTime = performance.now();
     
     return request.pipe(
       tap(() => {
-        // 记录成功的 API 性能
+        // Record successful API performance
         const duration = performance.now() - startTime;
         this.performanceService.recordApiPerformance(endpoint, method, duration, 200);
       }),
       catchError((error: HttpErrorResponse) => {
-        // 记录失败的 API 性能
+        // Record failed API performance
         const duration = performance.now() - startTime;
         this.performanceService.recordApiPerformance(endpoint, method, duration, error.status);
         this.performanceService.recordError();
@@ -574,7 +574,7 @@ export class ApiService {
     );
   }
 
-  // 列出某个 XStore 下的 Pods（用于目标 Pod 下拉）
+  // List Pods under an XStore (for target Pod dropdown)
   getXStorePods(namespace: string, xstoreName: string): Observable<Pod[]> {
     const url = `${this.baseUrl}/xstores/${encodeURIComponent(namespace)}/${encodeURIComponent(xstoreName)}/pods`;
     return this.handleRequest(
@@ -698,7 +698,7 @@ export class ApiService {
         }
       }
     };
-    // 删除 undefined 字段
+    // Remove undefined fields
     const cleaned = JSON.parse(JSON.stringify(body));
     return this.handleRequest(
       this.http.post<PolarDBXBackupSchedule>(`${this.baseUrl}/backup-schedules`, cleaned, {
@@ -932,7 +932,7 @@ export class ApiService {
     );
   }
 
-  // 列出 HPFS sinks（供下拉选择使用）
+  // List HPFS sinks (for dropdown selection)
   getHpfsSinks(): Observable<{ namespace: string; configMap: string; sinks: Array<{ name: string; type: string; endpoint?: string; bucket?: string; bucketLookupType?: string; host?: string; port?: number; rootPath?: string; }>}> {
     return this.handleRequest(
       this.http.get<{ namespace: string; configMap: string; sinks: Array<{ name: string; type: string; endpoint?: string; bucket?: string; bucketLookupType?: string; host?: string; port?: number; rootPath?: string; }> }>(`${this.baseUrl}/hpfs/sinks`, {
@@ -1037,7 +1037,7 @@ export class ApiService {
 
   // ============================================================================
   // 🚨 HIGH PRIORITY MISSING FUNCTIONALITY: XStoreFollower API Methods
-  // XStoreFollower for DN replica fault recovery (备库重搭) - identified as critical missing feature
+  // XStoreFollower for DN replica fault recovery (follower rebuild) - identified as critical missing feature
   // ============================================================================
 
   getXStoreFollowers(namespace?: string): Observable<XStoreFollower[]> {
@@ -1221,7 +1221,7 @@ export class ApiService {
     );
   }
 
-  // 强制删除：移除 finalizers
+  // Force delete: remove finalizers
   forceDeleteXStoreBackup(namespace: string, name: string): Observable<any> {
     return this.handleRequest(
       this.http.post(`${this.baseUrl}/xstore-backups/${namespace}/${name}/force-delete`, {}, {
@@ -1349,7 +1349,7 @@ export class ApiService {
     );
   }
 
-  // PolarDBXClusterKnobs 管理 API - 性能调优参数管理
+  // PolarDBXClusterKnobs management API - performance tuning parameter management
   getClusterKnobsList(): Observable<PolarDBXClusterKnobsList> {
     return this.handleRequest(
       this.http.get<PolarDBXClusterKnobsList>(`${this.baseUrl}/cluster-knobs`, {
@@ -1405,7 +1405,7 @@ export class ApiService {
     );
   }
 
-  // 获取备份概览（支持可选探活/存储估算参数）
+  // Get backup overview (supports optional connectivity check/storage estimation parameters)
   getBackupOverview(params?: { namespace?: string; evaluateConnectivity?: boolean; connectivityMode?: 'present'|'online'; evaluateStorage?: boolean }): Observable<any> {
     const n = params?.namespace ? `namespace=${encodeURIComponent(params.namespace)}` : '';
     const ec = params?.evaluateConnectivity ? `&evaluateConnectivity=true` : '';
@@ -1420,7 +1420,7 @@ export class ApiService {
     );
   }
 
-  // 获取各集群备份状态（最近备份、下次计划、RPO）
+  // Get backup status for each cluster (latest backup, next schedule, RPO)
   getClusterBackupState(namespace?: string): Observable<{ namespace: string; total: number; clusters: any[] }> {
     const params = namespace ? `?namespace=${encodeURIComponent(namespace)}` : '';
     return this.handleRequest(
@@ -1431,7 +1431,7 @@ export class ApiService {
     );
   }
 
-  // 获取 Binlog 聚合指标（可选估算吞吐、时间窗、返回列表）
+  // Get Binlog aggregated metrics (optional throughput estimation, time window, return list)
   getBinlogMetrics(namespace: string, estimateThroughput = false, windowSeconds = 300): Observable<any> {
     const url = `${this.baseUrl}/backups/binlog/metrics`;
     const params = this.withNs(new HttpParams()
@@ -1445,7 +1445,7 @@ export class ApiService {
     ).pipe(map(res => res?.binlogs ?? []));
   }
 
-  // 读取/更新备份看板阈值设置
+  // Read/update backup dashboard threshold settings
   getBackupDashboardSettings(): Observable<{ rpoThresholdSeconds: number; throughputLowerBoundMBps: number; diagnosisRetentionDays: number }> {
     return this.handleRequest(
       this.http.get<{ rpoThresholdSeconds: number; throughputLowerBoundMBps: number; diagnosisRetentionDays: number }>(`${this.baseUrl}/settings/backup-dashboard`, { headers: this.getHeaders() }),
@@ -1464,7 +1464,7 @@ export class ApiService {
     );
   }
 
-  // 变更前置校验（统一接口）
+  // Pre-change validation (unified interface)
   runPrecheck(namespace: string, name: string, operation: 'scale'|'upgrade'|'config', targetSpec?: any): Observable<any> {
     const url = `${this.baseUrl}/clusters/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}/precheck`;
     return this.handleRequest(
@@ -1475,7 +1475,7 @@ export class ApiService {
     );
   }
 
-  // 告警聚合
+  // Alert aggregation
   listAlerts(params?: { namespace?: string; cluster?: string; alertmanager?: string }): Observable<{ total: number; items: any[] }> {
     const q: string[] = [];
     if (params?.namespace) q.push(`namespace=${encodeURIComponent(params.namespace)}`);
@@ -1628,7 +1628,7 @@ export class ApiService {
     );
   }
 
-  // 日志收集相关接口
+  // Log collection related interfaces
   logsBootstrap(req: { mode: 'managed'|'assisted'|'byo'; namespace?: string; releaseName?: string; dryRun?: boolean; enableFilebeat?: boolean; enableLogstash?: boolean; esHost?: string; esUser?: string; esPassword?: string; esIndex?: string; deploymentType?: string }): Observable<any> {
     const url = `${this.baseUrl}/logs/bootstrap`;
     return this.handleRequest(
@@ -2041,7 +2041,7 @@ export class ApiService {
   }
 
   createLogStrategy(strategy: any): Observable<any> {
-    // 将前端策略模型映射为后端所需模型
+    // Map frontend strategy model to backend required model
     const payload = this.mapToBackendLogStrategy(strategy);
     return this.handleRequest(
       this.http.post(`${this.baseUrl}/log-strategies`, payload, { headers: this.getHeaders() }),
@@ -2079,12 +2079,12 @@ export class ApiService {
     );
   }
 
-  // 将 UI 模型转换为后端所需的 Strategy 模型
+  // Convert UI model to backend required Strategy model
   private mapToBackendLogStrategy(ui: any): any {
     const name: string = ui?.name || '';
     const clusterName: string = ui?.targetCluster || ui?.clusterName || '';
     const outputType: string = (ui?.outputType || ui?.output?.type || 'stdout').toLowerCase();
-    // 处理 ES 配置
+    // Handle ES configuration
     const es = ui?.config?.elasticsearch || {};
     const hostsArr: string[] = Array.isArray(es.hosts) ? es.hosts : (es.hosts ? [es.hosts] : []);
     const hostsJoined = hostsArr.filter(Boolean).join(',');
@@ -2096,7 +2096,7 @@ export class ApiService {
     return {
       name: name,
       clusterName: clusterName,
-      // clusterNamespace 可省略，后端默认使用 default
+      // clusterNamespace can be omitted, backend defaults to 'default'
       enableCN: true,
       enableDN: true,
       output: {
@@ -2157,7 +2157,7 @@ export class ApiService {
         map((res: any) => {
           if (Array.isArray(res)) return res as string[];
           if (Array.isArray(res?.items)) {
-            // items 可能是字符串数组或对象数组
+            // items may be string array or object array
             if (res.items.length > 0 && typeof res.items[0] === 'object') {
               return (res.items as any[]).map((it: any) => it?.name || it?.metadata?.name).filter(Boolean);
             }
@@ -2209,7 +2209,7 @@ export class ApiService {
     );
   }
 
-  // ==================== 镜像源配置 API ====================
+  // ==================== Image Registry Configuration API ====================
 
   getImageRegistryPresets(): Observable<any[]> {
     return this.handleRequest(
@@ -2244,10 +2244,10 @@ export class ApiService {
     );
   }
 
-  // ==================== 系统配置 API (用于集群创建向导) ====================
+  // ==================== System Configuration API (for cluster creation wizard) ====================
 
   /**
-   * 获取 Kubernetes 集群中可用的 StorageClass 列表
+   * Get list of available StorageClasses in Kubernetes cluster
    */
   getStorageClasses(): Observable<any[]> {
     const req = this.http.get<any>(`${this.baseUrl}/platform/system/storage-classes`, { headers: this.getHeaders() })
@@ -2267,7 +2267,7 @@ export class ApiService {
   }
 
   /**
-   * 获取支持的 PolarDB-X 版本列表
+   * Get list of supported PolarDB-X versions
    */
   getPolarDBXVersions(): Observable<any[]> {
     const req = this.http.get<any>(`${this.baseUrl}/platform/system/polardbx-versions`, { headers: this.getHeaders() })
@@ -2287,7 +2287,7 @@ export class ApiService {
   }
 
   /**
-   * 获取平台命名空间列表（用于集群创建向导）
+   * Get platform namespace list (for cluster creation wizard)
    */
   getPlatformNamespaces(): Observable<any[]> {
     const req = this.http.get<any>(`${this.baseUrl}/platform/system/namespaces`, { headers: this.getHeaders() })

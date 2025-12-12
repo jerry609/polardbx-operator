@@ -1,6 +1,6 @@
 /**
- * 定时备份任务进度计算策略
- * 定时任务可能包含多个备份周期
+ * Scheduled backup task progress calculation strategy
+ * Scheduled tasks may include multiple backup cycles
  */
 
 import { BaseProgressStrategy } from './base-strategy';
@@ -16,21 +16,21 @@ export class ScheduledBackupStrategy extends BaseProgressStrategy {
   calculateProgress(metadata: BackupProgressMetadata): number {
     const { phase, progress } = metadata;
     
-    // 优先使用后端提供的进度
+    // Prefer backend-provided progress
     if (progress?.percentage !== undefined) {
       return this.clampProgress(progress.percentage);
     }
     
-    // 定时备份通常显示当前周期的进度
+    // Scheduled backups usually show progress of current cycle
     switch (phase) {
       case 'Pending':
         return 0;
       case 'Running':
-        // 如果有字节数信息
+        // If byte count information is available
         if (progress?.processedBytes && progress?.totalBytes && progress.totalBytes > 0) {
           return this.clampProgress((progress.processedBytes / progress.totalBytes) * 100);
         }
-        // 如果有文件数信息
+        // If file count information is available
         if (progress?.processedFiles && progress?.totalFiles && progress.totalFiles > 0) {
           return this.clampProgress((progress.processedFiles / progress.totalFiles) * 100);
         }

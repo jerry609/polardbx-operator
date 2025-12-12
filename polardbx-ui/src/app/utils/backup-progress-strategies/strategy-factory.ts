@@ -1,5 +1,5 @@
 /**
- * 策略工厂：根据备份类型选择合适的进度计算策略
+ * Strategy factory: select appropriate progress calculation strategy based on backup type
  */
 
 import { ProgressStrategy } from './base-strategy';
@@ -27,26 +27,26 @@ export class ProgressStrategyFactory {
   ]);
   
   /**
-   * 获取指定类型的策略
+   * Get strategy for specified type
    */
   static getStrategy(type: BackupType): ProgressStrategy {
     const strategy = this.strategies.get(type);
     if (!strategy) {
-      // 默认使用 PolarDBX 策略
+      // Default to PolarDBX strategy
       return this.strategies.get(BackupType.POLARDBX)!;
     }
     return strategy;
   }
   
   /**
-   * 注册自定义策略
+   * Register custom strategy
    */
   static registerStrategy(type: BackupType, strategy: ProgressStrategy): void {
     this.strategies.set(type, strategy);
   }
   
   /**
-   * 获取所有可用策略
+   * Get all available strategies
    */
   static getAllStrategies(): Map<BackupType, ProgressStrategy> {
     return new Map(this.strategies);

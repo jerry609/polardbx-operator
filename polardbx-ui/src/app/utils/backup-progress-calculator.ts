@@ -1,7 +1,7 @@
 /**
- * 备份进度计算工具类
- * 提供统一的进度计算逻辑
- * 参考: Velero, Kubernetes Job Controller
+ * Backup progress calculation utility class
+ * Provides unified progress calculation logic
+ * Reference: Velero, Kubernetes Job Controller
  */
 
 import {
@@ -14,10 +14,10 @@ import {
 } from '../models/backup-progress.model';
 
 /**
- * 默认阶段权重 (总和应为100)
+ * Default phase weights (sum should be 100)
  */
 const DEFAULT_PHASE_WEIGHTS: Record<string, number> = {
-  // 主阶段权重
+  // Main phase weights
   'Pending': 0,
   'Running': 50,
   'Completed': 100,
@@ -26,7 +26,7 @@ const DEFAULT_PHASE_WEIGHTS: Record<string, number> = {
   'Paused': 0,
   'Unknown': 0,
   
-  // 子阶段权重 (在Running阶段内的分配)
+  // Sub-phase weights (allocation within Running phase)
   'Initializing': 5,
   'Validating': 10,
   'Snapshotting': 20,
@@ -40,43 +40,43 @@ const DEFAULT_PHASE_WEIGHTS: Record<string, number> = {
 
 export class BackupProgressCalculator {
   /**
-   * 计算备份进度百分比
+   * Calculate backup progress percentage
    */
   static calculateProgress(
     metadata: BackupProgressMetadata,
     options: ProgressCalculationOptions = {}
   ): number {
-    // 如果直接提供了进度信息，优先使用
+    // Prefer directly provided progress information
     if (metadata.progress?.percentage !== undefined) {
       return this.clampProgress(metadata.progress.percentage);
     }
 
-    // 基于字节数计算
+    // Calculate based on bytes
     if (options.useBytes && metadata.progress?.totalBytes) {
       return this.calculateByteProgress(metadata.progress);
     }
 
-    // 基于文件数计算
+    // Calculate based on file count
     if (options.useFiles && metadata.progress?.totalFiles) {
       return this.calculateFileProgress(metadata.progress);
     }
 
-    // 基于阶段权重计算
+    // Calculate based on phase weights
     if (options.usePhaseWeights !== false) {
       return this.calculatePhaseProgress(metadata, options.phaseWeights);
     }
 
-    // 智能估算
+    // Smart estimation
     if (options.enableSmartEstimation) {
       return this.smartEstimate(metadata);
     }
 
-    // 返回默认进度
+    // Return default progress
     return options.defaultProgress ?? this.getFallbackProgress(metadata.phase);
   }
 
   /**
-   * 基于字节数计算进度
+   * Calculate progress based on bytes
    */
   private static calculateByteProgress(progress: ProgressInfo): number {
     const { processedBytes = 0, totalBytes = 0 } = progress;
@@ -85,7 +85,7 @@ export class BackupProgressCalculator {
   }
 
   /**
-   * 基于文件数计算进度
+   * Calculate progress based on file count
    */
   private static calculateFileProgress(progress: ProgressInfo): number {
     const { processedFiles = 0, totalFiles = 0 } = progress;
@@ -94,7 +94,7 @@ export class BackupProgressCalculator {
   }
 
   /**
-   * 基于阶段权重计算进度
+   * Calculate progress based on phase weights
    */
   private static calculatePhaseProgress(
     metadata: BackupProgressMetadata,
@@ -102,15 +102,15 @@ export class BackupProgressCalculator {
   ): number {
     const weights = customWeights || DEFAULT_PHASE_WEIGHTS;
     
-    // 获取主阶段权重
+    // Get main phase weight
     const phaseWeight = weights[metadata.phase] ?? 0;
     
-    // 如果有子阶段，计算子阶段内的进度
+    // If there's a sub-phase, calculate progress within the sub-phase
     if (metadata.subPhase && metadata.phase === 'Running') {
       const subPhaseWeight = weights[metadata.subPhase] ?? 0;
-      const baseProgress = weights['Initializing'] ?? 0; // 前面子阶段的累计权重
+      const baseProgress = weights['Initializing'] ?? 0; // Cumulative weight of previous sub-phases
       
-      // 计算当前子阶段之前的所有子阶段权重总和
+      // Calculate sum of weights for all sub-phases before the current one
       const previousSubPhaseWeight = this.getPreviousSubPhaseWeight(metadata.subPhase, weights);
       
       return this.clampProgress(previousSubPhaseWeight + subPhaseWeight / 2);
@@ -120,7 +120,7 @@ export class BackupProgressCalculator {
   }
 
   /**
-   * 获取当前子阶段之前的所有子阶段权重总和
+   * Get the sum of weights for all sub-phases before the current one
    */
   private static getPreviousSubPhaseWeight(
     currentSubPhase: BackupSubPhase,
@@ -147,13 +147,13 @@ export class BackupProgressCalculator {
   }
 
   /**
-   * 智能估算进度
-   * 基于时间、阶段、历史数据等综合判断
+   * Smart progress estimation
+   * Comprehensive judgment based on time, phase, historical data, etc.
    */
   private static smartEstimate(metadata: BackupProgressMetadata): number {
     const { phase, startTime, progress } = metadata;
     
-    // 如果有传输速率，可以估算
+    // If transfer rate is available, estimate based on it
     if (progress?.transferRate && progress?.totalBytes && progress?.processedBytes !== undefined) {
       const remainingBytes = progress.totalBytes - progress.processedBytes;
       const estimatedSeconds = remainingBytes / progress.transferRate;
@@ -162,27 +162,27 @@ export class BackupProgressCalculator {
       return this.clampProgress((elapsedSeconds / totalSeconds) * 100);
     }
     
-    // 基于运行时间估算 (粗略)
+    // Estimate based on running time (rough)
     if (startTime) {
       const elapsed = Date.now() - new Date(startTime).getTime();
       const estimatedTotal = this.estimateTotalDuration(phase);
       if (estimatedTotal > 0) {
-        return Math.min(this.clampProgress((elapsed / estimatedTotal) * 100), 95); // 最多95%
+        return Math.min(this.clampProgress((elapsed / estimatedTotal) * 100), 95); // Maximum 95%
       }
     }
     
-    // 返回阶段默认值
+    // Return phase default value
     return this.getFallbackProgress(phase);
   }
 
   /**
-   * 估算总耗时 (毫秒)
+   * Estimate total duration (milliseconds)
    */
   private static estimateTotalDuration(phase: BackupPhase): number {
-    // 这些是经验值，实际应该基于历史数据
+    // These are empirical values, should be based on historical data in practice
     const estimates: Record<BackupPhase, number> = {
       'Pending': 0,
-      'Running': 30 * 60 * 1000, // 30分钟
+      'Running': 30 * 60 * 1000, // 30 minutes
       'Completed': 0,
       'Failed': 0,
       'Cancelled': 0,
@@ -193,7 +193,7 @@ export class BackupProgressCalculator {
   }
 
   /**
-   * 获取兜底进度值
+   * Get fallback progress value
    */
   private static getFallbackProgress(phase: BackupPhase): number {
     const fallbacks: Record<BackupPhase, number> = {
@@ -247,10 +247,10 @@ export class BackupProgressCalculator {
   ): string {
     const parts: string[] = [];
     
-    // 百分比
+    // Percentage
     parts.push(`${percentage.toFixed(0)}%`);
     
-    // 阶段信息
+    // Phase information
     if (options.showPhase && metadata.phase) {
       const phaseText = this.getPhaseDisplayText(metadata.phase);
       parts.push(phaseText);
@@ -261,69 +261,69 @@ export class BackupProgressCalculator {
       parts.push(subPhaseText);
     }
     
-    // 字节信息
+    // Byte information
     if (options.showBytes && metadata.progress?.processedBytes !== undefined) {
       const bytesText = this.formatBytes(metadata.progress.processedBytes, metadata.progress.totalBytes);
       parts.push(bytesText);
     }
     
-    // 文件信息
+    // File information
     if (options.showFiles && metadata.progress?.processedFiles !== undefined) {
-      const filesText = `${metadata.progress.processedFiles}/${metadata.progress.totalFiles || '?'} 文件`;
+      const filesText = `${metadata.progress.processedFiles}/${metadata.progress.totalFiles || '?'} files`;
       parts.push(filesText);
     }
     
-    // 传输速率
+    // Transfer rate
     if (options.showRate && metadata.progress?.transferRate) {
       const rateText = `${this.formatBytes(metadata.progress.transferRate)}/s`;
       parts.push(rateText);
     }
     
-    // 剩余时间
+    // Time remaining
     if (options.showTimeRemaining && metadata.progress?.estimatedTimeRemaining) {
       const timeText = this.formatDuration(metadata.progress.estimatedTimeRemaining);
-      parts.push(`剩余 ${timeText}`);
+      parts.push(`Remaining ${timeText}`);
     }
     
     return parts.join(' · ');
   }
 
   /**
-   * 获取阶段显示文本
+   * Get phase display text
    */
   private static getPhaseDisplayText(phase: BackupPhase): string {
     const texts: Record<BackupPhase, string> = {
-      'Pending': '等待中',
-      'Running': '运行中',
-      'Completed': '已完成',
-      'Failed': '失败',
-      'Cancelled': '已取消',
-      'Paused': '已暂停',
-      'Unknown': '未知'
+      'Pending': 'Pending',
+      'Running': 'Running',
+      'Completed': 'Completed',
+      'Failed': 'Failed',
+      'Cancelled': 'Cancelled',
+      'Paused': 'Paused',
+      'Unknown': 'Unknown'
     };
     return texts[phase] ?? phase;
   }
 
   /**
-   * 获取子阶段显示文本
+   * Get sub-phase display text
    */
   private static getSubPhaseDisplayText(subPhase: BackupSubPhase): string {
     const texts: Record<BackupSubPhase, string> = {
-      'Initializing': '初始化',
-      'Validating': '验证中',
-      'Snapshotting': '快照中',
-      'Transferring': '传输中',
-      'Compressing': '压缩中',
-      'Encrypting': '加密中',
-      'Verifying': '校验中',
-      'Finalizing': '完成中',
-      'CleaningUp': '清理中'
+      'Initializing': 'Initializing',
+      'Validating': 'Validating',
+      'Snapshotting': 'Snapshotting',
+      'Transferring': 'Transferring',
+      'Compressing': 'Compressing',
+      'Encrypting': 'Encrypting',
+      'Verifying': 'Verifying',
+      'Finalizing': 'Finalizing',
+      'CleaningUp': 'Cleaning Up'
     };
     return texts[subPhase] ?? subPhase;
   }
 
   /**
-   * 格式化字节大小
+   * Format byte size
    */
   private static formatBytes(bytes: number, total?: number): string {
     const units = ['B', 'KB', 'MB', 'GB', 'TB'];
@@ -353,30 +353,30 @@ export class BackupProgressCalculator {
   }
 
   /**
-   * 格式化时长
+   * Format duration
    */
   private static formatDuration(seconds: number): string {
     if (seconds < 60) {
-      return `${Math.round(seconds)}秒`;
+      return `${Math.round(seconds)}s`;
     } else if (seconds < 3600) {
       const minutes = Math.floor(seconds / 60);
-      return `${minutes}分钟`;
+      return `${minutes}m`;
     } else {
       const hours = Math.floor(seconds / 3600);
       const minutes = Math.floor((seconds % 3600) / 60);
-      return minutes > 0 ? `${hours}小时${minutes}分钟` : `${hours}小时`;
+      return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
     }
   }
 
   /**
-   * 限制进度范围在 0-100
+   * Clamp progress value to 0-100 range
    */
   private static clampProgress(value: number): number {
     return Math.max(0, Math.min(100, value));
   }
 
   /**
-   * 计算预计剩余时间
+   * Calculate estimated time remaining
    */
   static calculateEstimatedTimeRemaining(metadata: BackupProgressMetadata): number | undefined {
     const { progress, startTime } = metadata;
@@ -385,13 +385,13 @@ export class BackupProgressCalculator {
       return undefined;
     }
     
-    // 基于传输速率计算
+    // Calculate based on transfer rate
     if (progress.transferRate && progress.totalBytes && progress.processedBytes !== undefined) {
       const remainingBytes = progress.totalBytes - progress.processedBytes;
       return remainingBytes / progress.transferRate;
     }
     
-    // 基于已用时间和进度百分比估算
+    // Estimate based on elapsed time and progress percentage
     if (progress.percentage && progress.percentage > 0) {
       const elapsed = (Date.now() - new Date(startTime).getTime()) / 1000;
       const total = (elapsed / progress.percentage) * 100;

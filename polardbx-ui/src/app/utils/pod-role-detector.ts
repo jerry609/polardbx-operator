@@ -21,59 +21,59 @@ export class PodRoleDetector {
       return this.createRoleInfo('Unknown', 'unknown');
     }
 
-    // 策略1: 从Pod标签获取角色（最准确）
+    // Strategy 1: Get role from Pod labels (most accurate)
     const labelRole = this.detectFromLabels(pod);
     if (labelRole) {
       return labelRole;
     }
 
-    // 策略2: 从Pod名称模式推断
+    // Strategy 2: Infer from Pod name pattern
     const nameRole = this.detectFromName(pod.metadata.name || '');
     if (nameRole) {
       return nameRole;
     }
 
-    // 策略3: 从容器镜像推断
+    // Strategy 3: Infer from container image
     const imageRole = this.detectFromImage(pod);
     if (imageRole) {
       return imageRole;
     }
 
-    // 默认：未知角色
+    // Default: unknown role
     return this.createRoleInfo('Unknown', 'unknown');
   }
 
   /**
-   * 从Pod标签检测角色（优先级最高）
+   * Detect role from Pod labels (highest priority)
    */
   private static detectFromLabels(pod: Pod): PodRoleInfo | null {
     const labels = pod.metadata?.labels || {};
     
-    // PolarDB-X标准标签
+    // PolarDB-X standard labels
     if (labels['polardbx/role']) {
       const role = labels['polardbx/role'].toUpperCase();
       switch (role) {
-        case 'CN': return this.createRoleInfo('CN', 'compute', 'primary', '计算节点');
-        case 'DN': return this.createRoleInfo('DN', 'storage', 'accent', '数据节点');
-        case 'GMS': return this.createRoleInfo('GMS', 'service', 'warn', '全局元服务');
-        case 'CDC': return this.createRoleInfo('CDC', 'service', 'basic', '变更数据捕获');
-        case 'COLUMNAR': return this.createRoleInfo('Columnar', 'storage', 'accent', '列存储');
+        case 'CN': return this.createRoleInfo('CN', 'compute', 'primary', 'Compute Node');
+        case 'DN': return this.createRoleInfo('DN', 'storage', 'accent', 'Data Node');
+        case 'GMS': return this.createRoleInfo('GMS', 'service', 'warn', 'Global Metadata Service');
+        case 'CDC': return this.createRoleInfo('CDC', 'service', 'basic', 'Change Data Capture');
+        case 'COLUMNAR': return this.createRoleInfo('Columnar', 'storage', 'accent', 'Columnar Storage');
       }
     }
 
-    // 节点角色标签
+    // Node role label
     if (labels['node-role']) {
       return this.createRoleInfo(labels['node-role'].toUpperCase(), 'compute');
     }
 
-    // 应用标签
+    // Application label
     if (labels['app']) {
       const app = labels['app'].toLowerCase();
       if (app.includes('minio')) {
-        return this.createRoleInfo('MinIO', 'storage', 'accent', 'S3兼容存储');
+        return this.createRoleInfo('MinIO', 'storage', 'accent', 'S3 Compatible Storage');
       }
       if (app.includes('sftp')) {
-        return this.createRoleInfo('SFTP', 'service', 'basic', 'SFTP文件服务');
+        return this.createRoleInfo('SFTP', 'service', 'basic', 'SFTP File Service');
       }
     }
 
@@ -81,55 +81,55 @@ export class PodRoleDetector {
   }
 
   /**
-   * 从Pod名称模式检测角色
+   * Detect role from Pod name pattern
    */
   private static detectFromName(name: string): PodRoleInfo | null {
     if (!name) return null;
 
     const lowerName = name.toLowerCase();
 
-    // PolarDB-X组件模式
-    if (lowerName.includes('-cn-')) {
-      return this.createRoleInfo('CN', 'compute', 'primary', '计算节点');
-    }
-    if (lowerName.includes('-dn-')) {
-      return this.createRoleInfo('DN', 'storage', 'accent', '数据节点');
-    }
-    if (lowerName.includes('-gms-')) {
-      return this.createRoleInfo('GMS', 'service', 'warn', '全局元服务');
-    }
-    if (lowerName.includes('-cdc-')) {
-      return this.createRoleInfo('CDC', 'service', 'basic', '变更数据捕获');
-    }
-    if (lowerName.includes('-columnar-')) {
-      return this.createRoleInfo('Columnar', 'storage', 'accent', '列存储');
+    // PolarDB-X component patterns
+      if (lowerName.includes('-cn-')) {
+        return this.createRoleInfo('CN', 'compute', 'primary', 'Compute Node');
+      }
+      if (lowerName.includes('-dn-')) {
+        return this.createRoleInfo('DN', 'storage', 'accent', 'Data Node');
+      }
+      if (lowerName.includes('-gms-')) {
+        return this.createRoleInfo('GMS', 'service', 'warn', 'Global Metadata Service');
+      }
+      if (lowerName.includes('-cdc-')) {
+        return this.createRoleInfo('CDC', 'service', 'basic', 'Change Data Capture');
+      }
+      if (lowerName.includes('-columnar-')) {
+        return this.createRoleInfo('Columnar', 'storage', 'accent', 'Columnar Storage');
     }
 
-    // 基础设施组件模式
+    // Infrastructure component patterns
     if (lowerName.startsWith('minio') || lowerName.includes('minio')) {
-      return this.createRoleInfo('MinIO', 'storage', 'accent', 'S3兼容存储');
+      return this.createRoleInfo('MinIO', 'storage', 'accent', 'S3 Compatible Storage');
     }
     if (lowerName.startsWith('sftp') || lowerName.includes('sftp')) {
-      return this.createRoleInfo('SFTP', 'service', 'basic', 'SFTP文件服务');
+      return this.createRoleInfo('SFTP', 'service', 'basic', 'SFTP File Service');
     }
     if (lowerName.includes('hpfs')) {
-      return this.createRoleInfo('HPFS', 'service', 'basic', '高性能文件服务');
+      return this.createRoleInfo('HPFS', 'service', 'basic', 'High Performance File Service');
     }
     if (lowerName.includes('prometheus')) {
-      return this.createRoleInfo('Prometheus', 'monitor', 'basic', '监控系统');
+      return this.createRoleInfo('Prometheus', 'monitor', 'basic', 'Monitoring System');
     }
     if (lowerName.includes('grafana')) {
-      return this.createRoleInfo('Grafana', 'monitor', 'basic', '可视化面板');
+      return this.createRoleInfo('Grafana', 'monitor', 'basic', 'Visualization Dashboard');
     }
     if (lowerName.includes('alertmanager')) {
-      return this.createRoleInfo('AlertManager', 'monitor', 'basic', '告警管理');
+      return this.createRoleInfo('AlertManager', 'monitor', 'basic', 'Alert Management');
     }
 
     return null;
   }
 
   /**
-   * 从容器镜像检测角色
+   * Detect role from container image
    */
   private static detectFromImage(pod: Pod): PodRoleInfo | null {
     const containers = pod.spec?.containers || [];

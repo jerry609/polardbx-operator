@@ -444,7 +444,7 @@ interface DingTalkConfig {
       min-height: 100vh;
     }
 
-    /* 覆盖wizard-shell的深色背景 */
+    /* Override wizard-shell dark background */
     :deep(.wizard-shell) {
       background: transparent !important;
     }
@@ -631,7 +631,7 @@ interface DingTalkConfig {
       right: 8px;
     }
 
-    /* 响应式设计 */
+    /* Responsive design */
     @media (max-width: 768px) {
       .test-actions {
         flex-direction: column;
@@ -654,14 +654,14 @@ export class AlertReceiverWizardComponent implements OnInit {
   currentStep = 0;
   stepLoading = false;
 
-  // 数据源
+  // Data source
   namespaces: string[] = [];
 
-  // YAML 生成
+  // YAML generation
   generatingYaml = false;
   generatedYaml = '';
 
-  // 测试和应用
+  // Test and apply
   testingSend = false;
   applying = false;
   testResult: { success: boolean; message: string } | null = null;
@@ -681,7 +681,7 @@ export class AlertReceiverWizardComponent implements OnInit {
       channelType: ['email', Validators.required],
       namespace: ['polardbx-monitor', Validators.required],
       receiverName: ['', Validators.required],
-      // 邮件配置
+      // Email configuration
       smtpHost: [''],
       smtpFrom: [''],
       smtpUsername: [''],
@@ -689,7 +689,7 @@ export class AlertReceiverWizardComponent implements OnInit {
       smtpTLS: [true],
       emailRecipients: [''],
       emailSubject: [''],
-      // 钉钉配置
+      // DingTalk configuration
       dingTalkWebhook: [''],
       dingTalkSecret: [''],
       dingTalkTitle: ['']
@@ -712,7 +712,7 @@ export class AlertReceiverWizardComponent implements OnInit {
   }
 
   ngAfterViewInit(): void {
-    // 设置步骤模板
+    // Set step templates
     this.wizardSteps[0].template = this.step1Template;
     this.wizardSteps[1].template = this.step2Template;
     this.wizardSteps[2].template = this.step3Template;
@@ -721,17 +721,17 @@ export class AlertReceiverWizardComponent implements OnInit {
   }
 
   private setupFormValidators(): void {
-    // 监听渠道类型变化，动态设置验证器
+    // Listen to channel type changes, dynamically set validators
     this.form.get('channelType')?.valueChanges.subscribe((channelType) => {
       this.updateValidators(channelType);
     });
 
-    // 初始设置验证器
+    // Initial validator setup
     this.updateValidators(this.form.value.channelType);
   }
 
   private updateValidators(channelType: string): void {
-    // 清除所有验证器
+    // Clear all validators
     const emailFields = ['smtpHost', 'smtpFrom', 'smtpUsername', 'smtpPassword', 'emailRecipients'];
     const dingTalkFields = ['dingTalkWebhook'];
 
@@ -745,7 +745,7 @@ export class AlertReceiverWizardComponent implements OnInit {
       this.form.get(field)?.updateValueAndValidity();
     });
 
-    // 根据渠道类型设置验证器
+    // Set validators based on channel type
     if (channelType === 'email' || channelType === 'both') {
       emailFields.forEach(field => {
         this.form.get(field)?.setValidators([Validators.required]);
@@ -844,20 +844,20 @@ export class AlertReceiverWizardComponent implements OnInit {
   getStepActions(): WizardAction[] {
     const actions: WizardAction[] = [];
     
-    // 上一步按钮
+    // Previous step button
     if (this.currentStep > 0) {
       actions.push({
-        text: '上一步',
+        text: 'Previous',
         icon: 'left',
         handler: () => this.prevStep()
       });
     }
 
-    // 根据当前步骤添加特定按钮
+    // Add specific buttons based on current step
     switch (this.currentStep) {
-      case 0: // 选择渠道
+      case 0: // Select channel
         actions.push({
-          text: '下一步：配置参数',
+          text: 'Next: Configure Parameters',
           type: 'primary',
           icon: 'right',
           disabled: !this.form.get('channelType')?.valid || !this.form.get('receiverName')?.valid,
@@ -865,9 +865,9 @@ export class AlertReceiverWizardComponent implements OnInit {
         });
         break;
       
-      case 1: // 配置参数
+      case 1: // Configure parameters
         actions.push({
-          text: '下一步：YAML 预览',
+          text: 'Next: YAML Preview',
           type: 'primary',
           icon: 'right',
           disabled: !this.isConfigValid(),
@@ -875,15 +875,15 @@ export class AlertReceiverWizardComponent implements OnInit {
         });
         break;
       
-      case 2: // YAML 预览
+      case 2: // YAML preview
         actions.push({
-          text: '重新生成',
+          text: 'Regenerate',
           icon: 'sync',
           loading: this.generatingYaml,
           handler: () => this.generateYaml()
         });
         actions.push({
-          text: '下一步：测试应用',
+          text: 'Next: Test & Apply',
           type: 'primary',
           icon: 'right',
           disabled: !this.generatedYaml,
@@ -891,7 +891,7 @@ export class AlertReceiverWizardComponent implements OnInit {
         });
         break;
       
-      case 3: // 测试应用
+      case 3: // Test & apply
         actions.push({
           text: '完成',
           type: 'default',
@@ -928,7 +928,7 @@ export class AlertReceiverWizardComponent implements OnInit {
     if (this.currentStep < this.wizardSteps.length - 1) {
       this.currentStep++;
       
-      // 进入 YAML 预览步骤时自动生成
+      // Auto-generate when entering YAML preview step
       if (this.currentStep === 2) {
         this.generateYaml();
       }
@@ -954,7 +954,7 @@ export class AlertReceiverWizardComponent implements OnInit {
     const config = this.form.value;
     const channels: AlertChannel[] = [];
 
-    // 生成邮件配置
+    // Generate email configuration
     if (this.needsEmailConfig()) {
       const emailRecipients = config.emailRecipients
         .split('\n')
@@ -977,7 +977,7 @@ export class AlertReceiverWizardComponent implements OnInit {
       });
     }
 
-    // 生成钉钉配置
+    // Generate DingTalk configuration
     if (this.needsDingTalkConfig()) {
       channels.push({
         type: 'dingtalk',
@@ -991,10 +991,10 @@ export class AlertReceiverWizardComponent implements OnInit {
       });
     }
 
-    // 生成 Secret YAML
+    // Generate Secret YAML
     const secretData = this.generateSecretYaml(config.receiverName, channels);
     
-    // 模拟生成过程
+    // Simulate generation process
     setTimeout(() => {
       this.generatedYaml = secretData;
       this.generatingYaml = false;
@@ -1074,7 +1074,7 @@ data:
     this.testingSend = true;
     this.testResult = null;
 
-    // 调用测试接口
+    // Call test interface
     const testData = {
       receiverName: this.form.value.receiverName,
       channels: this.getChannelsForTest()
@@ -1137,7 +1137,7 @@ data:
   private doApplyConfiguration(): void {
     this.applying = true;
     
-    // 模拟应用过程
+    // Simulate apply process
     setTimeout(() => {
       this.applyResult = {
         success: true,

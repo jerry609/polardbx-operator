@@ -82,7 +82,7 @@ export class ClusterListComponent implements OnInit, OnDestroy {
     { label: '30 秒', value: 30000 }
   ];
 
-  // 默认关闭自动刷新（本地有配置则沿用）
+  // Auto-refresh disabled by default (use local config if available)
   private refreshMs = Number(localStorage.getItem('clusterList.refreshMs') ?? 0);
 
   constructor() {
@@ -93,7 +93,7 @@ export class ClusterListComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.loadClusters();
     this.startPolling();
-    // 页面可见性变化时控制轮询，并在恢复可见时立刻刷新
+    // Control polling on page visibility changes, and refresh immediately when visible again
     this.visibilitySub = fromEvent(document, 'visibilitychange').subscribe(() => {
       if (document.visibilityState === 'visible') {
         this.loadClusters();
@@ -115,11 +115,11 @@ export class ClusterListComponent implements OnInit, OnDestroy {
   private startPolling() {
     this.stopPolling();
     if (this.refreshMs <= 0) {
-      return; // 关闭自动刷新
+      return; // Auto-refresh disabled
     }
     this.refreshInterval = interval(this.refreshMs).subscribe(() => {
       if (document.visibilityState === 'visible') {
-        this.loadClusters(); // 静默刷新，不显示加载状态
+        this.loadClusters(); // Silent refresh, don't show loading state
       }
     });
   }
@@ -213,7 +213,7 @@ export class ClusterListComponent implements OnInit, OnDestroy {
     modal.afterClose.subscribe(result => {
       if (result && result.success) {
         this.messageService.success('集群创建成功！');
-        // 刷新集群列表
+        // Refresh cluster list
         setTimeout(() => {
           this.loadClusters();
         }, 2000);

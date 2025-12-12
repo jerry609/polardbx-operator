@@ -388,7 +388,7 @@ export class RebuildFormComponent implements OnInit, OnDestroy {
 
   private async loadNamespaces(): Promise<void> {
     try {
-      // TODO: 实现获取命名空间的 API
+      // TODO: Implement API to get namespaces
       const namespaces = ['default', 'polardbx-operator-system'];
       this.namespaces = namespaces || ['default'];
     } catch (error) {
@@ -491,7 +491,7 @@ export class RebuildFormComponent implements OnInit, OnDestroy {
     return role === 'learner' || role === 'logger';
   }
 
-  // 旧派生函数已移除（改为 refreshDerivedStates 计算好的属性）
+  // Old derived functions removed (replaced with refreshDerivedStates computed properties)
 
   getPodRole(pod: any): string {
     return pod?.metadata?.labels?.['xstore/role'] || '';
@@ -527,7 +527,7 @@ export class RebuildFormComponent implements OnInit, OnDestroy {
   }
 
   getXStoreStatusText(xstore: XStore): string {
-    return (xstore.status as any)?.phase || '未知';
+    return (xstore.status as any)?.phase || 'Unknown';
   }
 
   trackByPodName(_index: number, pod: any): string { return pod?.metadata?.name; }
@@ -541,13 +541,13 @@ export class RebuildFormComponent implements OnInit, OnDestroy {
     this.showFromPod = role === 'logger';
     this.showNodeName = !local;
     this.targetPodRequired = role === 'learner';
-    this.targetPodErrorTip = this.targetPodRequired ? '请选择目标 Pod' : '';
-    this.localHint = local ? '在当前节点进行重搭' : '跨节点或新建节点重搭';
+    this.targetPodErrorTip = this.targetPodRequired ? 'Please select target Pod' : '';
+    this.localHint = local ? 'Rebuild on current node' : 'Rebuild across nodes or create new node';
 
     const hints: string[] = [];
-    if (role === 'learner') hints.push('Learner 重搭建议选择 Running 的目标 Pod');
-    if (role === 'logger') hints.push('Logger 重搭可选源 Pod，不选将按系统策略自动选择');
-    if (!local) hints.push('跨机重搭会在其他节点新建 Pod，可指定目标节点');
+    if (role === 'learner') hints.push('Learner rebuild recommends selecting a Running target Pod');
+    if (role === 'logger') hints.push('Logger rebuild can optionally select source Pod, system will auto-select if not specified');
+    if (!local) hints.push('Cross-node rebuild will create new Pod on other nodes, target node can be specified');
     this.roleHints = hints;
   }
 
@@ -583,7 +583,7 @@ export class RebuildFormComponent implements OnInit, OnDestroy {
       )
       .subscribe({
         next: (result) => {
-          this.message.success('重搭任务创建成功');
+          this.message.success('Rebuild task created successfully');
           
           // Navigate to task detail
           if (result?.metadata?.name) {
@@ -594,7 +594,7 @@ export class RebuildFormComponent implements OnInit, OnDestroy {
         },
         error: (error) => {
           console.error('Failed to create rebuild task:', error);
-          this.message.error('创建重搭任务失败: ' + (error as any)?.message || '未知错误');
+          this.message.error('Failed to create rebuild task: ' + (error as any)?.message || 'Unknown error');
         }
       });
   }

@@ -1,6 +1,6 @@
 /**
- * PolarDBX 手动备份进度计算策略
- * 参考后端 API: /api/platform/backups
+ * PolarDBX manual backup progress calculation strategy
+ * Reference backend API: /api/platform/backups
  */
 
 import { BaseProgressStrategy } from './base-strategy';
@@ -10,24 +10,24 @@ export class PolarDBXBackupStrategy extends BaseProgressStrategy {
   readonly name = 'PolarDBX Backup';
   
   canApply(metadata: BackupProgressMetadata): boolean {
-    // 检查是否为 PolarDBX 备份类型
-    return true; // 默认策略，总是可用
+    // Check if this is a PolarDBX backup type
+    return true; // Default strategy, always available
   }
   
   calculateProgress(metadata: BackupProgressMetadata): number {
     const { phase, progress } = metadata;
     
-    // 优先使用后端提供的进度
+    // Prefer backend-provided progress
     if (progress?.percentage !== undefined) {
       return this.clampProgress(progress.percentage);
     }
     
-    // 基于阶段的粗略估算
+    // Rough estimation based on phase
     switch (phase) {
       case 'Pending':
         return 0;
       case 'Running':
-        // 运行中默认显示50%，除非有更详细的信息
+        // Default to 50% when running, unless more detailed information is available
         if (progress?.processedBytes && progress?.totalBytes) {
           return this.clampProgress((progress.processedBytes / progress.totalBytes) * 100);
         }

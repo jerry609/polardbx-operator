@@ -1,6 +1,6 @@
 /**
- * XStore 备份进度计算策略
- * 参考后端 API: /api/platform/xstore-backups
+ * XStore backup progress calculation strategy
+ * Reference backend API: /api/platform/xstore-backups
  */
 
 import { BaseProgressStrategy } from './base-strategy';
@@ -10,29 +10,29 @@ export class XStoreBackupStrategy extends BaseProgressStrategy {
   readonly name = 'XStore Backup';
   
   canApply(metadata: BackupProgressMetadata): boolean {
-    // 可以通过元数据中的标识判断是否为 XStore 备份
+    // Can determine if this is an XStore backup by identifier in metadata
     return true;
   }
   
   calculateProgress(metadata: BackupProgressMetadata): number {
     const { phase, subPhase, progress } = metadata;
     
-    // 优先使用后端提供的进度
+    // Prefer backend-provided progress
     if (progress?.percentage !== undefined) {
       return this.clampProgress(progress.percentage);
     }
     
-    // XStore 备份通常有更详细的子阶段
+    // XStore backups usually have more detailed sub-phases
     if (subPhase) {
       return this.calculateSubPhaseProgress(subPhase, progress);
     }
     
-    // 基于主阶段估算
+    // Estimate based on main phase
     switch (phase) {
       case 'Pending':
         return 0;
       case 'Running':
-        // 根据字节数或文件数计算
+        // Calculate based on bytes or file count
         if (progress?.processedBytes && progress?.totalBytes && progress.totalBytes > 0) {
           return this.clampProgress((progress.processedBytes / progress.totalBytes) * 100);
         }
@@ -51,10 +51,10 @@ export class XStoreBackupStrategy extends BaseProgressStrategy {
   }
   
   /**
-   * 基于子阶段计算进度
+   * Calculate progress based on sub-phase
    */
   private calculateSubPhaseProgress(subPhase: string, progress?: any): number {
-    // XStore 特定的子阶段权重
+    // XStore-specific sub-phase weights
     const weights: Record<string, number> = {
       'Initializing': 5,
       'Validating': 10,
@@ -67,7 +67,7 @@ export class XStoreBackupStrategy extends BaseProgressStrategy {
     
     const weight = weights[subPhase] || 50;
     
-    // 如果在当前子阶段内有更详细的进度，则细化
+    // If there's more detailed progress within the current sub-phase, refine it
     if (progress?.percentage) {
       const previousWeight = this.getPreviousWeight(subPhase, weights);
       const currentWeight = weights[subPhase] || 0;
@@ -78,7 +78,7 @@ export class XStoreBackupStrategy extends BaseProgressStrategy {
   }
   
   /**
-   * 获取当前子阶段之前的累计权重
+   * Get cumulative weight before the current sub-phase
    */
   private getPreviousWeight(currentPhase: string, weights: Record<string, number>): number {
     const order = [

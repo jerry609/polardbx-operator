@@ -430,12 +430,12 @@ interface PrometheusRule {
       font-size: 13px;
     }
 
-    /* 确保编辑器样式一致 */
+    /* Ensure editor style consistency */
     :deep(.monaco-editor) {
       font-family: 'SFMono-Regular', 'Monaco', 'Menlo', 'Courier New', monospace;
     }
 
-    /* 响应式设计 */
+    /* Responsive design */
     @media (max-width: 1200px) {
       .page-content {
         max-width: 100%;
@@ -505,7 +505,7 @@ export class PrometheusRuleViewerComponent implements OnInit {
   private loadSystemRuleInfo(): void {
     this.loading = true;
 
-    // 尝试获取系统规则信息
+    // Try to get system rule information
     this.api.getPrometheusRules('polardbx-monitor').subscribe({
       next: (rules: PrometheusRule[]) => {
         if (rules && Array.isArray(rules)) {
@@ -593,7 +593,7 @@ export class PrometheusRuleViewerComponent implements OnInit {
     this.validatingCustom = true;
     this.validationResult = null;
 
-    // 调用后端校验接口
+    // Call backend validation interface
     this.api.validatePrometheusRule(this.customRuleYaml).subscribe({
       next: (result: any) => {
         this.validationResult = result;
@@ -651,7 +651,7 @@ spec:
     this.validationResult = null;
   }
 
-  // 用于 YamlPreviewComponent 的校验函数
+  // Validation function for YamlPreviewComponent
   validatePrometheusRule = async (yaml: string): Promise<{ success: boolean; message: string }> => {
     try {
       const result = await this.api.validatePrometheusRule(yaml).toPromise();

@@ -539,7 +539,7 @@ import { XStore } from '../../models/xstore.model';
       min-width: 120px;
     }
 
-    /* 响应式设计 */
+    /* Responsive design */
     @media (max-width: 768px) {
       .xstore-management {
         padding: 8px;
@@ -584,7 +584,7 @@ import { XStore } from '../../models/xstore.model';
       }
     }
 
-    /* ng-zorro特定样式优化 */
+    /* ng-zorro specific style optimizations */
     nz-table {
       border-radius: 6px;
       overflow: hidden;
@@ -625,7 +625,7 @@ import { XStore } from '../../models/xstore.model';
       background: transparent;
     }
 
-    /* 抽屉样式 */
+    /* Drawer styles */
     .labels-container {
       display: flex;
       flex-wrap: wrap;
@@ -649,7 +649,7 @@ export class XStoreManagementComponent implements OnInit {
   xstores: XStore[] = [];
   createForm!: FormGroup;
   
-  // 详情抽屉相关
+  // Details drawer related
   detailsDrawerVisible = false;
   detailsLoading = false;
   selectedXStore: XStore | null = null;
@@ -765,23 +765,23 @@ export class XStoreManagementComponent implements OnInit {
   }
 
   /**
-   * 获取XStore副本数显示文本
-   * 优先显示 ready/total，如果没有状态信息则显示规格中的节点数
+   * Get XStore replica count display text
+   * Prioritize displaying ready/total, if no status info then display node count from spec
    */
   getReplicaDisplay(xstore: XStore): string {
-    // 优先使用运行时状态信息
+    // Prioritize using runtime status information
     if (xstore.status?.replicaStatus) {
       const ready = xstore.status.replicaStatus.ready ?? 0;
       const total = xstore.status.replicaStatus.total ?? 0;
       return `${ready}/${total}`;
     }
     
-    // 如果没有状态信息，使用规格中的节点总数
+    // If no status information, use total node count from spec
     if (xstore.spec?.topology?.nodeCount) {
       return `${xstore.spec.topology.nodeCount}`;
     }
     
-    // 如果有NodeSets配置，计算总副本数
+    // If NodeSets configuration exists, calculate total replica count
     if (xstore.spec?.topology?.nodeSets && xstore.spec.topology.nodeSets.length > 0) {
       const totalReplicas = xstore.spec.topology.nodeSets.reduce((sum: number, nodeSet: any) => {
         return sum + (nodeSet?.replicas || 0);
@@ -789,7 +789,7 @@ export class XStoreManagementComponent implements OnInit {
       return `${totalReplicas}`;
     }
     
-    // 都没有则显示未知
+    // If none available, display unknown
     return 'N/A';
   }
 
@@ -823,7 +823,7 @@ export class XStoreManagementComponent implements OnInit {
     this.detailsDrawerVisible = true;
     this.detailsLoading = true;
     
-    // 尝试获取最新的详情
+    // Try to get latest details
     this.apiService.getXStore(xstore.metadata.namespace || 'default', xstore.metadata.name).subscribe({
       next: (detail) => {
         this.selectedXStore = detail;
@@ -842,7 +842,7 @@ export class XStoreManagementComponent implements OnInit {
   }
 
   getStorageSize(xstore: XStore): string {
-    // 从 nodeSets 中获取存储配置
+    // Get storage configuration from nodeSets
     const nodeSets = xstore.spec?.topology?.nodeSets;
     if (nodeSets && nodeSets.length > 0) {
       const volumes = nodeSets[0]?.template?.spec?.volumes;
@@ -854,7 +854,7 @@ export class XStoreManagementComponent implements OnInit {
   }
 
   getStorageClass(xstore: XStore): string {
-    // 从 nodeSets 中获取存储类
+    // Get storage class from nodeSets
     const nodeSets = xstore.spec?.topology?.nodeSets;
     if (nodeSets && nodeSets.length > 0) {
       const volumes = nodeSets[0]?.template?.spec?.volumes;

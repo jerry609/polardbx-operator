@@ -5,7 +5,7 @@ import { CommonModule } from '@angular/common';
 import { finalize } from 'rxjs/operators';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
-// NG-ZORRO 组件
+// NG-ZORRO components
 import { NzCardModule } from 'ng-zorro-antd/card';
 import { NzButtonModule } from 'ng-zorro-antd/button';
 import { NzInputModule } from 'ng-zorro-antd/input';
@@ -19,7 +19,7 @@ import { NzAlertModule } from 'ng-zorro-antd/alert';
 import { NzTagModule } from 'ng-zorro-antd/tag';
 import { NzDividerModule } from 'ng-zorro-antd/divider';
 
-// 图标导入
+// Icon imports
 import {
   CloudServerOutline,
   DatabaseOutline,
@@ -46,7 +46,7 @@ import {
 import { ApiService } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
 
-// 需要使用的图标列表
+// List of icons to use
 const icons = [
   CloudServerOutline,
   DatabaseOutline,
@@ -100,7 +100,7 @@ export class ConnectComponent {
   private iconService = inject(NzIconService);
 
   constructor() {
-    // 注册图标
+    // Register icons
     this.iconService.addIcon(...icons);
   }
 

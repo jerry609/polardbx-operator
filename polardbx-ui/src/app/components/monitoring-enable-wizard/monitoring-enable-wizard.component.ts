@@ -196,13 +196,13 @@ interface WizardState {
   lastUpdated: number;
 }
 
-// 新增：安装状态接口
+// New: Installation status interface
 interface InstallStatus {
   phase: 'Pending' | 'Installing' | 'Verifying' | 'Active' | 'Failed' | 'Degraded';
   progress: number; // 0-100
   steps: InstallStep[];
   components: ComponentStatus[];
-  estimatedTimeRemaining?: number; // 秒
+  estimatedTimeRemaining?: number; // seconds
   startTime?: string;
   endTime?: string;
   logs?: string[];
@@ -265,7 +265,7 @@ interface PossibleCause {
   probability: number; // 0-100
   suggestedFix?: string;
   autoFixable: boolean;
-  fixAction?: string; // 自动修复操作标识
+  fixAction?: string; // Auto-fix action identifier
 }
 
 const STORAGE_KEY = 'polardbx.monitoring.enableWizard.state';
@@ -1476,7 +1476,7 @@ kubectl port-forward svc/alertmanager-main -n polardbx-monitor 9093</pre>
       position: relative;
     }
     
-    /* ✅ 检测中覆盖层 */
+    /* ✅ Detection overlay */
     .checking-overlay {
       position: fixed;
       top: 0;
@@ -1490,7 +1490,7 @@ kubectl port-forward svc/alertmanager-main -n polardbx-monitor 9093</pre>
       z-index: 1000;
     }
 
-    /* Step 0: 镜像源配置样式 */
+    /* Step 0: Image registry configuration styles */
     .registry-options {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -1629,7 +1629,7 @@ kubectl port-forward svc/alertmanager-main -n polardbx-monitor 9093</pre>
       line-height: 1.6;
     }
 
-    /* 覆盖wizard-shell的深色背景 */
+    /* Override wizard-shell dark background */
     :deep(.wizard-shell) {
       background: transparent !important;
     }
@@ -1987,7 +1987,7 @@ kubectl port-forward svc/alertmanager-main -n polardbx-monitor 9093</pre>
       line-height: 1.5;
     }
     
-    /* 新增：安装中状态样式 */
+    /* New: Installing status styles */
     .installing-status {
       max-width: 800px;
       margin: 0 auto;
@@ -2071,7 +2071,7 @@ kubectl port-forward svc/alertmanager-main -n polardbx-monitor 9093</pre>
       gap: 12px;
     }
     
-    /* 新增：成功状态样式 */
+    /* New: Success status styles */
     .success-status {
       max-width: 900px;
       margin: 0 auto;
@@ -2233,7 +2233,7 @@ kubectl port-forward svc/alertmanager-main -n polardbx-monitor 9093</pre>
       font-size: 12px;
     }
     
-    /* 新增：验证结果样式 */
+    /* New: Verification result styles */
     .verification-result {
       max-width: 800px;
       margin: 0 auto;
@@ -2330,7 +2330,7 @@ kubectl port-forward svc/alertmanager-main -n polardbx-monitor 9093</pre>
       gap: 12px;
     }
     
-    /* 新增：失败诊断样式 */
+    /* New: Failure diagnosis styles */
     .failure-diagnosis {
       max-width: 900px;
       margin: 0 auto;
@@ -2576,10 +2576,10 @@ export class MonitoringEnableWizardComponent implements OnInit, OnDestroy, After
   currentStep = 0;
   stepLoading = false;
   
-  // ✅ 新增：检测状态（防止向导过早显示）
-  checkingExisting = true; // 初始为 true，检测完成后设为 false
+  // ✅ New: Detection state (prevents wizard from displaying too early)
+  checkingExisting = true; // Initially true, set to false after detection completes
 
-  // 数据源
+  // Data sources
   namespaces: string[] = [];
   targets: string[] = [];
   loadingTargets = false;
@@ -2592,14 +2592,14 @@ export class MonitoringEnableWizardComponent implements OnInit, OnDestroy, After
   alertmanagerGuideCommand = '';
   readonly alertmanagerDocsUrl = 'https://doc.polardbx.com/zh/operator/ops/monitor/2-monitor-cluster-exist.html';
 
-  // 镜像源配置
+  // Image registry configuration
   availableRegistries: ImageRegistryPreset[] = [];
-  selectedRegistry = 'docker.m.daocloud.io'; // 默认 DaoCloud
+  selectedRegistry = 'docker.m.daocloud.io'; // Default DaoCloud
   customRegistryInput = '';
   loadingRegistries = false;
-  currentRegistryConfig = ''; // 当前生效的配置
+  currentRegistryConfig = ''; // Currently active configuration
 
-  // 前置检测
+  // Preflight checks
   runningPreflight = false;
   preflightChecks: PreflightCheck[] = [];
   preflightBlocking: PreflightBlocker[] = [];
@@ -2609,26 +2609,26 @@ export class MonitoringEnableWizardComponent implements OnInit, OnDestroy, After
 helm repo update
 helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{namespace}} --create-namespace`;
 
-  // YAML 生成
+  // YAML generation
   generatingYaml = false;
   generatedYaml = '';
 
-  // 应用结果
+  // Apply result
   applyResult: { success: boolean; message: string; failureReason?: string } | null = null;
   installJob: { jobName: string; namespace: string; targetNs?: string; instructions?: string } | null = null;
 
-  // 新增：安装状态跟踪
+  // New: Installation status tracking
   installStatus: InstallStatus | null = null;
   installPolling: Subscription | null = null; // interval subscription
   
-  // 新增：组件健康状态
+  // New: Component health status
   componentsHealth: ComponentHealth[] = [];
   
-  // 新增：验证结果
+  // New: Verification result
   verificationResult: VerificationResult | null = null;
   verifyingMonitoring = false;
   
-  // 新增：失败诊断
+  // New: Failure diagnosis
   failureDiagnosis: FailureDiagnosis | null = null;
   autoFixing = false;
 
@@ -2680,7 +2680,7 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
     }
     return '未知错误';
   }
-  // 日志 tail 行数设置（默认 200）
+  // Log tail lines setting (default 200)
   tailLines = 200;
   readonly tailOptions = [100, 200, 500, 1000];
 
@@ -2691,25 +2691,25 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
     this.loadNamespaces();
     this.setupFormWatchers();
     this.updateSelectorLabels();
-    // 初始化加载 targets（不依赖 watch 触发）
+    // Initialize and load targets (not dependent on watch trigger)
     setTimeout(() => this.loadTargets(), 200);
     
-    // ✅ 优先检测是否已安装，再决定是否恢复状态
-    // 检测逻辑会清理过期或失败的状态
+    // ✅ Prioritize checking if already installed, then decide whether to restore state
+    // Detection logic will clean up expired or failed states
     this.checkExistingInstallation();
     
-    // ✅ 延迟恢复状态，让检测逻辑先执行
-    // 如果检测到已安装或有 Job，会直接跳转，不会恢复状态
+    // ✅ Delay state restoration to let detection logic execute first
+    // If installation or Job is detected, it will directly navigate without restoring state
     setTimeout(() => {
       if (!this.checkingExisting) {
-        // 只有在检测完成且未跳转时才恢复状态
+        // Only restore state when detection is complete and no navigation occurred
         this.tryRestoreState();
       }
     }, 100);
   }
 
   private initializeWizardSteps(): void {
-    // 将在 ngAfterViewInit 中设置模板
+    // Templates will be set in ngAfterViewInit
     this.wizardSteps = [
       { id: 'registry', title: '镜像源配置', description: '选择镜像拉取地址' },
       { id: 'target', title: '选择目标', description: '监控类型与目标' },
@@ -2727,13 +2727,13 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
   }
 
   private setupFormWatchers(): void {
-    // 监听监控类型变化
+    // Listen to monitoring type changes
     this.form.get('monitoringType')?.valueChanges.subscribe(() => {
       this.loadTargets();
       this.updateSelectorLabels();
     });
 
-    // 监听安装模式变化，动态控制 targetName 校验
+    // Listen to install mode changes, dynamically control targetName validation
     this.form.get('installMode')?.valueChanges.subscribe((mode) => {
       const targetCtrl = this.form.get('targetName');
       if (mode === 'target') {
@@ -2747,7 +2747,7 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
       this.cdr.markForCheck();
     });
 
-    // 监听命名空间变化
+    // Listen to namespace changes
     this.form.get('namespace')?.valueChanges.subscribe((ns: string) => {
       this.selectedNamespaceExists = ns ? this.namespaces.includes(ns) : false;
       this.namespaceError = null;
@@ -2756,7 +2756,7 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
       this.cdr.markForCheck();
     });
 
-    // 监听目标名称变化，自动生成监控名称
+    // Listen to target name changes, auto-generate monitoring name
     this.form.get('targetName')?.valueChanges.subscribe((targetName) => {
       if (targetName && !this.form.get('monitorName')?.value) {
         const monitorName = `${targetName}-monitor`;
@@ -2770,13 +2770,13 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
     });
   }
 
-  // ==================== 镜像源配置相关方法 ====================
+  // ==================== Image Registry Configuration Related Methods ====================
 
   loadImageRegistryPresets(): void {
     this.loadingRegistries = true;
     this.api.getImageRegistryPresets().subscribe({
       next: (response) => {
-        // 处理 API 响应格式 {success: true, data: [...]}
+        // Handle API response format {success: true, data: [...]}
         const presets = this.unwrapApiData(response as ApiEnvelope<ImageRegistryPreset[]>);
         this.availableRegistries = Array.isArray(presets) ? presets : [
           {
@@ -2839,7 +2839,7 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
   loadCurrentImageRegistry(): void {
     this.api.getImageRegistryConfig().subscribe({
       next: (response) => {
-        // 处理 API 响应格式 {success: true, data: {...}}
+        // Handle API response format {success: true, data: {...}}
         const config = this.unwrapApiData(response as ApiEnvelope<ImageRegistryConfig & { defaultRegistry?: string }>);
         if (config.registry === 'custom' && config.customRegistry) {
           this.selectedRegistry = 'custom';
@@ -2853,8 +2853,8 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
         this.cdr.markForCheck();
       },
       error: (error) => {
-        console.error('加载当前镜像源配置失败:', error);
-        // 使用默认值
+        console.error('Failed to load current image registry configuration:', error);
+        // Use default value
         this.selectedRegistry = 'docker.m.daocloud.io';
         this.currentRegistryConfig = `镜像源: docker.m.daocloud.io (默认，原因: ${this.getErrorMessage(error)})`;
         this.cdr.markForCheck();
@@ -2886,7 +2886,7 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
     this.api.setImageRegistryConfig(config).subscribe({
       next: () => {
         this.message.success('镜像源配置已保存');
-        // 更新当前配置显示
+        // Update current configuration display
         if (this.selectedRegistry === 'custom') {
           this.currentRegistryConfig = `自定义镜像源: ${this.customRegistryInput}`;
         } else {
@@ -2903,7 +2903,7 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
   }
 
   skipImageRegistryConfig(): void {
-    // 用户选择跳过，不保存配置，直接进入下一步
+    // User chose to skip, don't save configuration, proceed directly to next step
     this.nextStep();
   }
 
@@ -2924,14 +2924,14 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
     this.api.setImageRegistryConfig(config).subscribe({
       next: () => {
         this.message.success('镜像源配置已保存');
-        // 更新当前配置显示
+        // Update current configuration display
         if (this.selectedRegistry === 'custom') {
           this.currentRegistryConfig = `自定义镜像源: ${this.customRegistryInput}`;
         } else {
           this.currentRegistryConfig = `镜像源: ${this.selectedRegistry}`;
         }
         this.stepLoading = false;
-        this.nextStep(); // 进入下一步
+        this.nextStep(); // Proceed to next step
         this.cdr.markForCheck();
       },
       error: (error) => {
@@ -2952,7 +2952,7 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
     }
   }
 
-  // ==================== 命名空间相关方法 ====================
+  // ==================== Namespace Related Methods ====================
 
   private loadNamespaces(): void {
     this.api.getNamespaces().subscribe({
@@ -2983,7 +2983,7 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
     this.loadingTargets = true;
     
     if (monitoringType === 'enterprise') {
-      // 加载 PolarDB-X 集群
+      // Load PolarDB-X clusters
       this.api.getClusters(namespace).subscribe({
         next: (clusters) => {
           this.targets = clusters
@@ -3000,7 +3000,7 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
         }
       });
     } else {
-      // 加载 XStore
+      // Load XStore
       this.api.getXStores(namespace).subscribe({
         next: (xstores) => {
           this.targets = xstores
@@ -3174,7 +3174,7 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
   getStepActions(): WizardAction[] {
     const actions: WizardAction[] = [];
     
-    // 上一步按钮 - 如果配置已应用成功，则禁用
+    // Previous step button - disabled if configuration has been successfully applied
     if (this.currentStep > 0 && !this.applyResult?.success) {
       actions.push({
         text: '上一步',
@@ -3183,9 +3183,9 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
       });
     }
 
-    // 根据当前步骤添加特定按钮
+    // Add specific buttons based on current step
     switch (this.currentStep) {
-      case 0: // 镜像源配置
+      case 0: // Image registry configuration
         actions.push({
           text: '跳过',
           icon: 'arrow-right',
@@ -3201,7 +3201,7 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
         });
         break;
 
-      case 1: // 选择目标
+      case 1: // Select target
         actions.push({
           text: '下一步：环境检测',
           type: 'primary',
@@ -3211,7 +3211,7 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
         });
         break;
       
-      case 2: // 前置检测
+      case 2: // Preflight checks
         actions.push({
           text: '重新检测',
           icon: 'sync',
@@ -3227,7 +3227,7 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
         });
         break;
       
-      case 3: // 采集参数
+      case 3: // Collection parameters
         actions.push({
           text: '下一步：YAML 预览',
           type: 'primary',
@@ -3237,7 +3237,7 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
         });
         break;
       
-      case 4: // YAML 预览
+      case 4: // YAML preview
         if (this.form.value.installMode === 'target') {
           actions.push({
             text: '重新生成',
@@ -3255,8 +3255,8 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
         });
         break;
       
-      case 5: // 应用验证
-        // 合并「自动应用」和「完成」为一个按钮
+      case 5: // Apply and verify
+        // Merge "Auto Apply" and "Finish" into one button
         if (this.form.value.installChannel === 'helm') {
           actions.push({
             text: '完成',
@@ -3289,14 +3289,14 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
 
   private isStep3Valid(): boolean {
     const v = this.form.value;
-    // 基本参数验证
+    // Basic parameter validation
     if (!v.scrapeInterval || !v.scrapeTimeout) return false;
     
-    // 如果是 target 模式，需要验证目标是否已选择
+    // If in target mode, need to verify if target is selected
     if (v.installMode === 'target') {
       if (!v.targetName) return false;
       
-      // 如果是 ServiceMonitor，需要验证标签选择器
+      // If ServiceMonitor, need to verify label selector
       if (v.monitoringType === 'standard') {
         if (!this.validateSelectorLabels(v.selectorLabels, v.targetName)) {
           return false;
@@ -3311,17 +3311,17 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
     if (this.currentStep < this.wizardSteps.length - 1) {
       this.currentStep++;
 
-      // 进入特定步骤时的自动操作
+      // Auto operations when entering specific steps
       switch (this.currentStep) {
-        case 2: // 进入前置检测 (现在是第3个步骤, index=2)
+        case 2: // Enter preflight checks (now the 3rd step, index=2)
           this.runPreflightChecks();
           break;
-        case 4: // 进入 YAML 预览 (现在是第5个步骤, index=4)
+        case 4: // Enter YAML preview (now the 5th step, index=4)
           this.generateYaml();
           break;
       }
 
-      this.saveState(); // 保存状态
+      this.saveState(); // Save state
       this.cdr.markForCheck();
     }
   }
@@ -3378,7 +3378,7 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
 
     const ns = this.form.value.namespace || 'polardbx-monitor';
 
-    // 初始化检查项
+    // Initialize check items
     this.preflightChecks = [
       {
         id: 'namespace',
@@ -3855,12 +3855,12 @@ kubectl patch alertmanager alertmanager-main -n ${ns} --type merge -p '{"spec":{
   generateYaml(): void {
     this.generatingYaml = true;
     
-    // 根据表单数据生成 YAML
+    // Generate YAML based on form data
     const config = this.form.value;
     let yaml = '';
     
     if (config.installMode !== 'target') {
-      // 仅安装监控组件时不生成 CRD YAML
+      // Don't generate CRD YAML when only installing monitoring components
       setTimeout(() => {
         this.generatedYaml = '';
         this.generatingYaml = false;
@@ -3901,7 +3901,7 @@ ${matchLabelsYaml}
     scrapeTimeout: ${config.scrapeTimeout}`;
     }
     
-    // 直接生成，无需模拟延迟
+    // Generate directly, no need to simulate delay
     this.generatedYaml = yaml;
     this.generatingYaml = false;
     this.cdr.markForCheck();
@@ -4113,10 +4113,10 @@ ${matchLabelsYaml}
     navigator.clipboard.writeText(snippet).then(() => this.message.success('values 片段已复制'));
   }
   
-  // ==================== 新增：模板辅助方法 ====================
+  // ==================== New: Template Helper Methods ====================
   
   /**
-   * 获取安装步骤图标
+   * Get installation step icon
    */
   getStepIcon(status: string): string {
     const iconMap: Record<string, string> = {
@@ -4129,14 +4129,14 @@ ${matchLabelsYaml}
   }
   
   /**
-   * 获取步骤图标主题
+   * Get step icon theme
    */
   getStepIconTheme(status: string): 'fill' | 'outline' | 'twotone' {
     return status === 'success' ? 'fill' : 'outline';
   }
   
   /**
-   * 格式化时间（秒 -> 分钟秒）
+   * Format time (seconds -> minutes seconds)
    */
   formatTime(seconds: number): string {
     const mins = Math.floor(seconds / 60);
@@ -4145,7 +4145,7 @@ ${matchLabelsYaml}
   }
   
   /**
-   * 获取健康状态文本
+   * Get health status text
    */
   getHealthStatusText(status: string): string {
     const textMap: Record<string, string> = {
@@ -4157,7 +4157,7 @@ ${matchLabelsYaml}
   }
   
   /**
-   * 获取验证检查 Tag 颜色
+   * Get verification check tag color
    */
   getCheckTagColor(status: string): string {
     const colorMap: Record<string, string> = {
@@ -4169,7 +4169,7 @@ ${matchLabelsYaml}
   }
   
   /**
-   * 获取验证检查状态文本
+   * Get verification check status text
    */
   getCheckStatusText(status: string): string {
     const textMap: Record<string, string> = {
@@ -4181,7 +4181,7 @@ ${matchLabelsYaml}
   }
   
   /**
-   * 格式化时间戳
+   * Format timestamp
    */
   formatTimestamp(timestamp: string): string {
     const date = new Date(timestamp);
@@ -4189,7 +4189,7 @@ ${matchLabelsYaml}
   }
   
   /**
-   * 获取当前安装阶段
+   * Get current installation stage
    */
   getCurrentInstallStage(): string {
     if (this.installStatus?.steps) {
@@ -4200,7 +4200,7 @@ ${matchLabelsYaml}
   }
   
   /**
-   * 查看完整日志（模态框）
+   * View full logs (modal)
    */
   viewFullLogs(): void {
     if (!this.failureDiagnosis) return;
@@ -4306,7 +4306,7 @@ ${matchLabelsYaml}
   }
 
   goToMonitoring(): void {
-    // 安装完成后跳转到监控概览页面
+    // Navigate to monitoring overview page after installation completes
     this.router.navigate(['/operations/monitoring/overview']);
   }
 
@@ -4380,7 +4380,7 @@ ${matchLabelsYaml}
         if (accessUrl.startsWith('http')) {
           window.open(accessUrl, '_blank');
         } else if (accessUrl.startsWith('NodePort:')) {
-          // Extract port from "NodePort: <port> (需要使用 <node-ip>:<port> 访问)"
+          // Extract port from "NodePort: <port> (need to access using <node-ip>:<port>)"
           const portMatch = accessUrl.match(/(\d+)/);
           if (portMatch) {
             this.modal.info({
@@ -4407,11 +4407,11 @@ ${matchLabelsYaml}
     this.router.navigate(['/operations/monitoring/overview']);
   }
 
-  // ==================== localStorage 持久化功能 ====================
+  // ==================== localStorage Persistence Functionality ====================
 
   private saveState(): void {
     try {
-      // 裁剪冗余字段以减小存储体积
+      // Trim redundant fields to reduce storage size
       const compactFormValues: WizardFormValue = {
         installChannel: this.form.value.installChannel,
         installMode: this.form.value.installMode,
@@ -4448,22 +4448,22 @@ ${matchLabelsYaml}
 
       const state: WizardState = JSON.parse(savedData);
 
-      // 版本校验
+      // Version validation
       if (!state.version || state.version !== STATE_VERSION) {
-        console.log('状态版本不匹配，清除旧状态');
+        console.log('State version mismatch, clearing old state');
         this.clearSavedState();
         return;
       }
 
-      // 检查状态是否太旧
+      // Check if state is too old
       const hoursOld = (Date.now() - (state.lastUpdated || state.timestamp)) / (1000 * 60 * 60);
       if (hoursOld > MAX_STATE_AGE_HOURS) {
-        console.log(`状态已过期 (${Math.round(hoursOld)}小时)，清除旧状态`);
+        console.log(`State expired (${Math.round(hoursOld)} hours), clearing old state`);
         this.clearSavedState();
         return;
       }
 
-      // 确认是否恢复状态
+      // Confirm whether to restore state
       if (state.currentStep > 0 || state.installJob) {
         this.confirmStateRestore(state);
       }
@@ -4506,14 +4506,14 @@ ${matchLabelsYaml}
 
   private restoreState(state: WizardState): void {
     try {
-      // 恢复表单值
+      // Restore form values
       this.form.patchValue(state.formValues);
       this.updateSelectorLabels();
 
-      // 恢复步骤
+      // Restore step
       this.currentStep = state.currentStep;
 
-      // 恢复其他状态
+      // Restore other state
       if (state.preflightChecks) {
         this.preflightChecks = state.preflightChecks;
       }
@@ -4525,12 +4525,12 @@ ${matchLabelsYaml}
       }
       if (state.installJob) {
         this.installJob = state.installJob;
-        // ✅ 不再在向导中启动轮询
-        // 如果有安装任务，应该直接跳转到 Overview
-        console.log('检测到保存的安装任务，应该已在 checkExistingInstallation() 中处理');
+        // ✅ No longer start polling in wizard
+        // If there's an installation job, should directly navigate to Overview
+        console.log('Detected saved installation job, should have been handled in checkExistingInstallation()');
       }
 
-      // 重新加载数据
+      // Reload data
       this.loadTargets();
 
       this.message.success('已恢复向导状态');
@@ -4550,17 +4550,17 @@ ${matchLabelsYaml}
     }
   }
 
-  // ==================== Job 状态轮询 ====================
+  // ==================== Job Status Polling ====================
 
   private pollingInterval: ReturnType<typeof setTimeout> | null = null;
   private pollingRetryCount = 0;
-  private basePollingInterval = 5000; // 5秒基础间隔
-  private maxPollingInterval = 60000; // 最大60秒间隔
+  private basePollingInterval = 5000; // 5 second base interval
+  private maxPollingInterval = 60000; // Maximum 60 second interval
 
   private startJobStatusPolling(): void {
-    // ⚠️ 已弃用：向导不应该轮询 Job 状态
-    // 所有进度追踪应该在 Overview 组件中进行
-    console.warn('startJobStatusPolling() 在向导中被调用，这不应该发生。应该跳转到 Overview。');
+    // ⚠️ Deprecated: Wizard should not poll Job status
+    // All progress tracking should be done in Overview component
+    console.warn('startJobStatusPolling() called in wizard, this should not happen. Should navigate to Overview.');
     return;
   }
 
@@ -4572,10 +4572,10 @@ ${matchLabelsYaml}
     this.pollingRetryCount = 0;
   }
 
-  // ==================== 新增：安装状态轮询（增强版） ====================
+  // ==================== New: Installation Status Polling (Enhanced) ====================
   
   /**
-   * 启动安装状态实时轮询（每3秒）
+   * Start real-time installation status polling (every 3 seconds)
    */
   private startInstallPolling(): void {
     if (!this.installJob?.jobName) return;
@@ -4589,7 +4589,7 @@ ${matchLabelsYaml}
         next: (status: MonitoringBootstrapStatusResponse) => {
           this.updateInstallStatus(status);
           
-          // 终止条件
+          // Termination condition
           if (this.installStatus?.phase === 'Active' || this.installStatus?.phase === 'Failed') {
             this.stopInstallPolling();
             this.onInstallComplete(this.installStatus);
@@ -4598,8 +4598,8 @@ ${matchLabelsYaml}
           this.cdr.markForCheck();
         },
         error: (error: unknown) => {
-          console.error('轮询安装状态失败:', error);
-          // 失败时降级到旧的轮询机制
+          console.error('Failed to poll installation status:', error);
+          // Fallback to old polling mechanism on failure
           if (typeof (error as { status?: number })?.status === 'number' && (error as { status?: number }).status === 404) {
             this.stopInstallPolling();
           }
@@ -4608,7 +4608,7 @@ ${matchLabelsYaml}
   }
   
   /**
-   * 停止安装状态轮询
+   * Stop installation status polling
    */
   private stopInstallPolling(): void {
     if (this.installPolling) {
@@ -4618,11 +4618,11 @@ ${matchLabelsYaml}
   }
   
   /**
-   * 更新安装状态（从 API 响应解析）
+   * Update installation status (parse from API response)
    */
   private updateInstallStatus(apiStatus: MonitoringBootstrapStatusResponse): void {
-    // 解析后端实际返回的数据格式
-    // 后端返回: { phase: "Running"|"Succeeded"|"Failed"|"Pending", startTime, active, succeeded, failed, failureReason, conditions }
+    // Parse the actual data format returned by backend
+    // Backend returns: { phase: "Running"|"Succeeded"|"Failed"|"Pending", startTime, active, succeeded, failed, failureReason, conditions }
   const phase = apiStatus?.phase || 'Running';
     const progress = this.calculateProgress(apiStatus);
     
@@ -4634,17 +4634,17 @@ ${matchLabelsYaml}
       estimatedTimeRemaining: this.estimateTimeRemaining(progress),
       startTime: apiStatus?.startTime,
       endTime: apiStatus?.completionTime,
-      logs: []  // 日志需要单独调用 /bootstrap/logs API
+      logs: []  // Logs need to be fetched separately via /bootstrap/logs API
     };
     
-    // 如果失败，提取失败原因用于诊断
+    // If failed, extract failure reason for diagnosis
     if (phase === 'Failed' && apiStatus?.failureReason) {
       this.installStatus.logs = [apiStatus.failureReason];
     }
   }
   
   /**
-   * 映射 API phase 到标准状态
+   * Map API phase to standard status
    */
   private mapPhaseToStatus(phase: string): InstallStatus['phase'] {
     const phaseMap: Record<string, InstallStatus['phase']> = {
@@ -4659,41 +4659,41 @@ ${matchLabelsYaml}
   }
   
   /**
-   * 计算安装进度（0-100）
-   * 后端返回的字段: active, succeeded, failed
-   * 我们根据 Job 的状态估算进度
+   * Calculate installation progress (0-100)
+   * Backend returns fields: active, succeeded, failed
+   * We estimate progress based on Job status
    */
   private calculateProgress(apiStatus: MonitoringBootstrapStatusResponse): number {
   const phase = apiStatus?.phase;
   const succeeded = apiStatus?.succeeded ?? 0;
     
-    // 精确的进度映射
+    // Precise progress mapping
     if (phase === 'Succeeded') return 100;
-  if (phase === 'Failed') return succeeded > 0 ? 95 : 50; // 失败时根据是否有成功的任务判断
+  if (phase === 'Failed') return succeeded > 0 ? 95 : 50; // When failed, judge based on whether there are successful tasks
     if (phase === 'Pending') return 10;
     
-    // Running 状态：根据时间估算（假设平均需要 5 分钟）
+    // Running state: estimate based on time (assume average 5 minutes needed)
     if (phase === 'Running' && apiStatus?.startTime) {
       const startTime = new Date(apiStatus.startTime);
       const now = new Date();
       const elapsedSeconds = (now.getTime() - startTime.getTime()) / 1000;
-      const estimatedTotalSeconds = 300; // 5 分钟
+      const estimatedTotalSeconds = 300; // 5 minutes
       const progress = Math.min(95, Math.floor((elapsedSeconds / estimatedTotalSeconds) * 100));
-      return Math.max(15, progress); // 至少 15%，最多 95%
+      return Math.max(15, progress); // At least 15%, at most 95%
     }
     
-    // 默认值
+    // Default value
     return 30;
   }
   
   /**
-   * 提取安装步骤
-   * 后端暂时没有返回详细步骤，我们根据 conditions 或 phase 生成合理的步骤显示
+   * Extract installation steps
+   * Backend doesn't return detailed steps yet, we generate reasonable step display based on conditions or phase
    */
   private extractInstallSteps(apiStatus: MonitoringBootstrapStatusResponse): InstallStep[] {
   const phase = apiStatus?.phase;
     
-    // 基础步骤模板
+    // Basic step template
     const steps: InstallStep[] = [
       { name: 'Job 已创建', status: 'success', startTime: apiStatus?.startTime },
       { name: 'Helm Chart 准备', status: phase === 'Pending' ? 'pending' : 'success' },
@@ -4702,7 +4702,7 @@ ${matchLabelsYaml}
       { name: '健康检查', status: 'pending' }
     ];
     
-    // 根据 phase 更新步骤状态
+    // Update step status based on phase
     if (phase === 'Running') {
       steps[1].status = 'success';
       steps[2].status = 'running';
@@ -4724,20 +4724,20 @@ ${matchLabelsYaml}
   }
   
   /**
-   * 提取组件状态
-   * 后端暂时没有返回组件级别的状态，我们根据 phase 生成合理的显示
+   * Extract component status
+   * Backend doesn't return component-level status yet, we generate reasonable display based on phase
    */
   private extractComponentStatus(apiStatus: MonitoringBootstrapStatusResponse): ComponentStatus[] {
     const phase = apiStatus?.phase;
     
-    // 基础组件列表
+    // Basic component list
     const components: ComponentStatus[] = [
       { name: 'prometheus', status: 'pending', readyPods: '0/2', port: 9090 },
       { name: 'grafana', status: 'pending', readyPods: '0/1', port: 3000 },
       { name: 'alertmanager', status: 'pending', readyPods: '0/3', port: 9093 }
     ];
     
-    // 根据 phase 更新状态
+    // Update status based on phase
     if (phase === 'Running') {
       components[0].status = 'running';
       components[0].readyPods = '1/2';
@@ -4756,7 +4756,7 @@ ${matchLabelsYaml}
   }
   
   /**
-   * 估算剩余时间（秒）
+   * Estimate remaining time (seconds)
    */
   private estimateTimeRemaining(progress: number): number {
     if (progress >= 90) return 30;
@@ -4766,33 +4766,33 @@ ${matchLabelsYaml}
   }
   
   /**
-   * 安装完成回调
+   * Installation completion callback
    */
   private onInstallComplete(status: InstallStatus): void {
     if (status.phase === 'Active') {
       this.message.success('监控栈安装成功！');
-      this.loadComponentsHealth(); // 加载组件健康状态
+      this.loadComponentsHealth(); // Load component health status
       this.clearSavedState();
     } else if (status.phase === 'Failed') {
       this.message.error('监控栈安装失败');
-      this.diagnoseFailure(status); // 诊断失败原因
+      this.diagnoseFailure(status); // Diagnose failure reason
     }
   }
   
   /**
-   * 加载组件健康状态（成功后）
+   * Load component health status (after success)
    */
   private loadComponentsHealth(): void {
-    // 调用实际 API 获取监控组件的 Pod 状态
+    // Call actual API to get monitoring component Pod status
     const monitoringNs = this.installJob?.targetNs || 'polardbx-monitor';
     
     this.api.listPods(monitoringNs).subscribe({
       next: (pods: Pod[]) => {
         this.componentsHealth = this.parseComponentsFromPods(pods);
         
-        // 如果没有找到任何组件，显示警告而不是假数据
+        // If no components found, show warning instead of fake data
         if (this.componentsHealth.length === 0) {
-          console.warn('未找到任何监控组件 Pod');
+          console.warn('No monitoring component Pods found');
           this.message.warning('监控组件可能尚未完全启动，请稍后刷新');
         }
         
@@ -4808,12 +4808,12 @@ ${matchLabelsYaml}
   }
   
   /**
-   * 从 Pods 列表解析组件健康状态
+   * Parse component health status from Pods list
    */
   private parseComponentsFromPods(pods: Pod[]): ComponentHealth[] {
     const components: ComponentHealth[] = [];
     
-    // 定义监控组件的匹配规则
+    // Define matching rules for monitoring components
     const componentRules: {
       name: string;
       port: number;
@@ -4836,7 +4836,7 @@ ${matchLabelsYaml}
           return conditions.some(condition => condition.type === 'Ready' && condition.status === 'True');
         }).length;
         
-        // 判断健康状态
+        // Determine health status
         let status: 'healthy' | 'degraded' | 'unhealthy';
         if (readyPods === totalPods) {
           status = 'healthy';
@@ -4861,15 +4861,15 @@ ${matchLabelsYaml}
       }
     });
     
-    // 不返回假数据，返回空数组
+    // Don't return fake data, return empty array
     return components;
   }
   
   /**
-   * 诊断失败原因
+   * Diagnose failure reason
    */
   private diagnoseFailure(status: InstallStatus): void {
-    // 首先尝试获取详细日志
+    // First try to get detailed logs
     if (this.installJob?.jobName) {
       this.loadFailureLogs(status);
     } else {
@@ -4878,7 +4878,7 @@ ${matchLabelsYaml}
   }
   
   /**
-   * 加载失败日志用于诊断
+   * Load failure logs for diagnosis
    */
   private loadFailureLogs(status: InstallStatus): void {
     if (!this.installJob) return;
@@ -4896,19 +4896,19 @@ ${matchLabelsYaml}
   }
   
   /**
-   * 执行诊断分析
+   * Perform diagnosis analysis
    */
   private performDiagnosis(status: InstallStatus, logs: string[]): void {
     const logsText = logs.join('\n');
-    // 也检查 status.logs（可能包含 failureReason）
+    // Also check status.logs (may contain failureReason)
     const statusLogs = status.logs || [];
     const combinedText = logsText + '\n' + statusLogs.join('\n');
     
-    // 智能分析错误类型
+    // Intelligently analyze error type
     let errorType: FailureDiagnosis['errorType'] = 'Unknown';
     const possibleCauses: PossibleCause[] = [];
     
-    // ImagePullBackOff 检测
+    // ImagePullBackOff detection
     if (combinedText.includes('ImagePull') || combinedText.includes('ErrImagePull') || 
         combinedText.includes('image pull') || combinedText.includes('Back-off pulling image')) {
       errorType = 'ImagePull';
@@ -4933,7 +4933,7 @@ ${matchLabelsYaml}
       });
     }
     
-    // 资源不足检测
+    // Insufficient resources detection
     else if (combinedText.includes('Insufficient') || combinedText.includes('OutOfMemory') ||
              combinedText.includes('resources') || combinedText.includes('quota')) {
       errorType = 'ResourceLimit';
@@ -4952,7 +4952,7 @@ ${matchLabelsYaml}
       });
     }
     
-    // 网络错误检测
+    // Network error detection
     else if (combinedText.includes('dial tcp') || combinedText.includes('timeout') ||
              combinedText.includes('connection refused') || combinedText.includes('network')) {
       errorType = 'NetworkIssue';
@@ -4970,7 +4970,7 @@ ${matchLabelsYaml}
       });
     }
     
-    // 权限错误
+    // Permission error
     else if (combinedText.includes('forbidden') || combinedText.includes('Unauthorized') ||
              combinedText.includes('permission denied') || combinedText.includes('RBAC')) {
       errorType = 'PermissionDenied';
@@ -4988,7 +4988,7 @@ ${matchLabelsYaml}
       });
     }
     
-    // 配置错误检测
+    // Configuration error detection
     else if (combinedText.includes('invalid') || combinedText.includes('malformed') ||
              combinedText.includes('parse error') || combinedText.includes('validation')) {
       errorType = 'ConfigError';
@@ -5000,7 +5000,7 @@ ${matchLabelsYaml}
       });
     }
     
-    // 如果没有匹配到具体错误，提供通用建议
+    // If no specific error matched, provide general suggestions
     if (possibleCauses.length === 0) {
       possibleCauses.push({
         description: '未知错误，需要查看详细日志',
@@ -5010,7 +5010,7 @@ ${matchLabelsYaml}
       });
     }
     
-    // 提取错误消息
+    // Extract error message
     const failedStep = status.steps.find(s => s.status === 'failed');
     const errorMessage = failedStep?.message || statusLogs[0] || '安装失败';
     
@@ -5018,7 +5018,7 @@ ${matchLabelsYaml}
       errorType,
       errorMessage,
       possibleCauses: possibleCauses.sort((a, b) => b.probability - a.probability),
-      relatedLogs: logs.length > 0 ? logs.slice(-20) : statusLogs, // 最后 20 行日志
+      relatedLogs: logs.length > 0 ? logs.slice(-20) : statusLogs, // Last 20 lines of logs
       timestamp: new Date().toISOString()
     };
     
@@ -5026,7 +5026,7 @@ ${matchLabelsYaml}
   }
   
   /**
-   * 自动修复
+   * Auto fix
    */
   async autoFix(cause: PossibleCause): Promise<void> {
     if (!cause.autoFixable || !cause.fixAction) {
@@ -5061,7 +5061,7 @@ ${matchLabelsYaml}
   }
   
   /**
-   * 自动切换镜像源
+   * Auto switch image registry
    */
   private autoSwitchImageRegistry(): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -5085,33 +5085,33 @@ ${matchLabelsYaml}
   }
   
   /**
-   * 自动调整资源配置
+   * Auto adjust resource configuration
    */
   private autoAdjustResources(): Promise<void> {
     return new Promise((resolve) => {
-      // 这里可以调用 API 更新 Helm values
+      // Here can call API to update Helm values
       this.message.info('调整资源配置...');
       setTimeout(() => resolve(), 1000);
     });
   }
   
   /**
-   * 重试安装
+   * Retry installation
    */
   private async retryInstallation(): Promise<void> {
-    // 清除失败状态
+    // Clear failure state
     this.failureDiagnosis = null;
     this.installStatus = null;
     this.applyResult = null;
     
-    // 重新执行应用步骤
+    // Re-execute apply step
     this.applyConfiguration();
   }
   
-  // ==================== 新增：监控功能验证 ====================
+  // ==================== New: Monitoring Function Verification ====================
   
   /**
-   * 验证监控功能（自动健康检查）
+   * Verify monitoring functionality (automatic health check)
    */
   async verifyMonitoring(): Promise<void> {
     this.verifyingMonitoring = true;
@@ -5120,30 +5120,30 @@ ${matchLabelsYaml}
     try {
       const checks: VerificationCheck[] = [];
       
-      // 1. Prometheus API 测试
+      // 1. Prometheus API test
       const prometheusCheck = await this.checkPrometheusAPI();
       checks.push(prometheusCheck);
       
-      // 2. Grafana API 测试
+      // 2. Grafana API test
       const grafanaCheck = await this.checkGrafanaAPI();
       checks.push(grafanaCheck);
       
-      // 3. Alertmanager API 测试
+      // 3. Alertmanager API test
       const alertmanagerCheck = await this.checkAlertmanagerAPI();
       checks.push(alertmanagerCheck);
       
-      // 4. 指标采集检测
+      // 4. Metrics collection detection
       const metricsCheck = await this.checkMetricsCollection();
       checks.push(metricsCheck);
       
-      // 5. 仪表板检测
+      // 5. Dashboard detection
       const dashboardCheck = await this.checkDashboards();
       checks.push(dashboardCheck);
       
-      // 计算总体健康度
+      // Calculate overall health
       const overallHealth = this.calculateHealth(checks);
       
-      // 提取警告和建议
+      // Extract warnings and recommendations
       const warnings = this.extractWarnings(checks);
       const recommendations = this.generateRecommendations(checks);
       
@@ -5173,11 +5173,11 @@ ${matchLabelsYaml}
   }
   
   /**
-   * 检查 Prometheus API
+   * Check Prometheus API
    */
   private async checkPrometheusAPI(): Promise<VerificationCheck> {
     try {
-      // 基于组件健康状态进行验证
+      // Verify based on component health status
       const prometheusComponent = this.componentsHealth.find(c => c.name === 'Prometheus');
       
       if (!prometheusComponent) {
@@ -5219,7 +5219,7 @@ ${matchLabelsYaml}
   }
   
   /**
-   * 检查 Grafana API
+   * Check Grafana API
    */
   private async checkGrafanaAPI(): Promise<VerificationCheck> {
     try {
@@ -5264,7 +5264,7 @@ ${matchLabelsYaml}
   }
   
   /**
-   * 检查 Alertmanager API
+   * Check Alertmanager API
    */
   private async checkAlertmanagerAPI(): Promise<VerificationCheck> {
     try {
@@ -5309,7 +5309,7 @@ ${matchLabelsYaml}
   }
   
   /**
-   * 检查指标采集
+   * Check metrics collection
    */
   private async checkMetricsCollection(): Promise<VerificationCheck> {
     try {
@@ -5368,7 +5368,7 @@ ${matchLabelsYaml}
   }
   
   /**
-   * 检查仪表板
+   * Check dashboards
    */
   private async checkDashboards(): Promise<VerificationCheck> {
     try {
@@ -5384,7 +5384,7 @@ ${matchLabelsYaml}
         };
       }
       
-      // 基于 Grafana 运行状态推断
+      // Infer based on Grafana running status
       return {
         name: '默认仪表板',
         category: 'dashboard',
@@ -5404,7 +5404,7 @@ ${matchLabelsYaml}
   }
   
   /**
-   * 计算总体健康度
+   * Calculate overall health
    */
   private calculateHealth(checks: VerificationCheck[]): number {
     if (checks.length === 0) return 0;
@@ -5420,7 +5420,7 @@ ${matchLabelsYaml}
   }
   
   /**
-   * 提取警告信息
+   * Extract warning information
    */
   private extractWarnings(checks: VerificationCheck[]): string[] {
     return checks
@@ -5429,7 +5429,7 @@ ${matchLabelsYaml}
   }
   
   /**
-   * 生成建议
+   * Generate recommendations
    */
   private generateRecommendations(checks: VerificationCheck[]): string[] {
     const recommendations: string[] = [];
@@ -5455,14 +5455,14 @@ ${matchLabelsYaml}
 
     this.api.monitoringBootstrapStatus(this.installJob.jobName, this.installJob.namespace).subscribe({
       next: (status: MonitoringBootstrapStatusResponse) => {
-        this.pollingRetryCount = 0; // 重置重试计数
+        this.pollingRetryCount = 0; // Reset retry count
         const phase = status?.phase;
 
         if (phase === 'Succeeded') {
           this.applyResult = { success: true, message: '监控安装已完成！' };
           this.stopJobStatusPolling();
           this.message.success('监控安装已完成');
-          // 成功后清理本地保存的向导状态
+          // Clear locally saved wizard state after success
           this.clearSavedState();
         } else if (phase === 'Failed') {
           const reason = status?.failureReason || '未知错误';
@@ -5474,7 +5474,7 @@ ${matchLabelsYaml}
           this.stopJobStatusPolling();
           this.message.error('监控安装失败');
         } else if (phase === 'ImagePullError') {
-          // 镜像拉取错误 - 给出明确提示
+          // Image pull error - provide clear prompt
           const reason = status?.failureReason || '镜像拉取失败';
           this.applyResult = {
             success: false,
@@ -5484,14 +5484,14 @@ ${matchLabelsYaml}
           this.stopJobStatusPolling();
           this.message.error('镜像拉取失败，请检查网络或配置镜像加速器');
         }
-        // 运行中的任务继续轮询
-        this.saveState(); // 保存最新状态
+        // Running tasks continue polling
+        this.saveState(); // Save latest state
         this.cdr.markForCheck();
       },
       error: (error: unknown) => {
         this.pollingRetryCount++;
 
-        // 404 表示 Job 不存在或已被清理
+        // 404 means Job doesn't exist or has been cleaned up
         if ((error as { status?: number })?.status === 404) {
           this.applyResult = {
             success: false,
@@ -5505,9 +5505,9 @@ ${matchLabelsYaml}
           return;
         }
 
-        console.warn(`检查任务状态失败 (重试${this.pollingRetryCount}次):`, error);
+        console.warn(`Failed to check task status (retry ${this.pollingRetryCount} times):`, error);
 
-        // 达到最大重试次数后停止轮询
+        // Stop polling after reaching maximum retry count
         if (this.pollingRetryCount >= 5) {
           this.stopJobStatusPolling();
           this.message.warning('无法获取安装状态，请手动检查任务进度');
@@ -5517,39 +5517,39 @@ ${matchLabelsYaml}
   }
 
   /**
-   * 检测是否已安装监控系统或有正在进行的安装任务
+   * Check if monitoring system is already installed or there's an ongoing installation task
    */
   private checkExistingInstallation(): void {
-    this.checkingExisting = true; // ✅ 开始检测
+    this.checkingExisting = true; // ✅ Start detection
     this.cdr.markForCheck();
     
-    // 1. 先检查 localStorage 是否有进行中的任务
+    // 1. First check if there's an ongoing task in localStorage
     const savedJobInfo = localStorage.getItem('polardbx-monitor-install-job');
     if (savedJobInfo) {
       try {
         const jobInfo = JSON.parse(savedJobInfo);
         
-        // ✅ 验证是否过期（Job TTL 是 10 分钟，localStorage 保存 15 分钟）
+        // ✅ Verify if expired (Job TTL is 10 minutes, localStorage saves for 15 minutes)
         if (jobInfo.expiresAt && Date.now() > jobInfo.expiresAt) {
-          console.log('Job 信息已过期，清理 localStorage');
+          console.log('Job info expired, clearing localStorage');
           localStorage.removeItem('polardbx-monitor-install-job');
-          // 继续检查组件是否已安装
+          // Continue checking if components are installed
           this.checkComponentsInstallation();
           return;
         }
         
-        // 验证 Job 是否还在运行
+        // Verify if Job is still running
         this.api.monitoringBootstrapStatus(jobInfo.jobName, jobInfo.namespace).subscribe({
           next: (jobStatus: MonitoringBootstrapStatusResponse) => {
             const phase = jobStatus?.phase;
 
             if (phase === 'Running' || phase === 'Pending') {
-              // ✅ 有正在进行的安装任务 → 直接跳转 Overview（不询问）
+              // ✅ There's an ongoing installation task → directly navigate to Overview (no prompt)
               this.message.info('检测到正在进行的安装任务，正在跳转到监控总览...');
               setTimeout(() => {
                 this.router.navigate(['/operations/monitoring/overview']);
               }, 1000);
-              return; // 停止后续检查
+              return; // Stop subsequent checks
             }
 
             if (phase === 'Succeeded' || phase === 'Failed' || phase === 'ImagePullError') {
@@ -5557,14 +5557,14 @@ ${matchLabelsYaml}
                 ...jobInfo,
                 phase,
                 finishedAt: Date.now(),
-                expiresAt: Date.now() + (15 * 60 * 1000) // 延长可见期，便于在 Overview 查看结果
+                expiresAt: Date.now() + (15 * 60 * 1000) // Extend visibility period for viewing results in Overview
               };
               localStorage.setItem('polardbx-monitor-install-job', JSON.stringify(updatedInfo));
 
-              // ✅ 清理向导状态，避免回到步骤六
+              // ✅ Clear wizard state to avoid returning to step 6
               this.clearSavedState();
 
-              // ✅ 提示用户前往 Overview 查看结果
+              // ✅ Prompt user to go to Overview to view results
               if (phase === 'Succeeded') {
                 this.message.success('检测到最近一次监控安装已完成，正在跳转到监控总览...');
               } else {
@@ -5577,15 +5577,15 @@ ${matchLabelsYaml}
               return;
             }
 
-            // 未能识别的状态，继续检查组件安装情况
+            // Unrecognized state, continue checking component installation
             this.checkComponentsInstallation();
           },
           error: (error: unknown) => {
-            console.warn('检测安装任务失败:', error);
+            console.warn('Failed to detect installation task:', error);
             
-            // ✅ 如果 Job 不存在（404），清理 localStorage 并跳转 Overview
+            // ✅ If Job doesn't exist (404), clear localStorage and navigate to Overview
             if ((error as { status?: number })?.status === 404) {
-              console.log('Job 已不存在（可能被 TTL 清理），清理 localStorage 和向导状态');
+              console.log('Job no longer exists (possibly cleaned up by TTL), clearing localStorage and wizard state');
               localStorage.removeItem('polardbx-monitor-install-job');
               this.clearSavedState();
               this.message.warning('最近的监控安装任务不存在，正在跳转到监控总览。');
@@ -5595,23 +5595,23 @@ ${matchLabelsYaml}
               return;
             }
             
-            // 其他错误暂时忽略，继续检查是否已安装
+            // Other errors temporarily ignored, continue checking if installed
             this.checkComponentsInstallation();
           }
         });
       } catch (e) {
-        console.warn('解析安装任务信息失败:', e);
+        console.warn('Failed to parse installation task info:', e);
         localStorage.removeItem('polardbx-monitor-install-job');
         this.checkComponentsInstallation();
       }
     } else {
-      // 没有进行中的任务，检查是否已安装
+      // No ongoing task, check if installed
       this.checkComponentsInstallation();
     }
   }
 
   /**
-   * 检测监控组件是否已安装
+   * Check if monitoring components are installed
    */
   private checkComponentsInstallation(): void {
     this.api.getMonitoringStatus().subscribe({
@@ -5624,8 +5624,8 @@ ${matchLabelsYaml}
         );
 
         if (isInstalled) {
-          // ✅ 检测到已安装 → 清理所有状态 → 直接跳转 Overview
-          console.log('检测到监控系统已安装，清理向导状态');
+          // ✅ Detected installed → clear all state → directly navigate to Overview
+          console.log('Detected monitoring system installed, clearing wizard state');
           localStorage.removeItem('polardbx-monitor-install-job');
           this.clearSavedState();
           
@@ -5633,16 +5633,16 @@ ${matchLabelsYaml}
           setTimeout(() => {
             this.router.navigate(['/operations/monitoring/overview']);
           }, 1000);
-          // 不需要设置 checkingExisting = false，因为会跳转
+          // No need to set checkingExisting = false, as will navigate
         } else {
-          // ✅ 未安装 → 显示向导
+          // ✅ Not installed → show wizard
           this.checkingExisting = false;
           this.cdr.markForCheck();
         }
       },
       error: (error: unknown) => {
-        console.warn('检测已安装状态失败:', error);
-        // ✅ 检测失败不阻塞流程，显示向导让用户继续
+        console.warn('Failed to detect installed status:', error);
+        // ✅ Detection failure doesn't block flow, show wizard for user to continue
         this.checkingExisting = false;
         this.cdr.markForCheck();
       }
@@ -5650,7 +5650,7 @@ ${matchLabelsYaml}
   }
 
   /**
-   * 显示已安装警告对话框
+   * Show installed warning dialog
    */
   private showInstalledWarning(components: MonitoringStatusResponse['components'] | undefined): void {
     const installedComponents: string[] = [];
@@ -5687,11 +5687,11 @@ ${matchLabelsYaml}
       nzCancelText: '继续配置',
       nzWidth: 500,
       nzOnOk: () => {
-        // 跳转到 overview 查看状态
+        // Navigate to overview to view status
         this.router.navigate(['/operations/monitoring/overview']);
       },
       nzOnCancel: () => {
-        // 继续使用向导
+        // Continue using wizard
         this.message.info('继续配置流程。如需重新安装，请先在监控总览页面卸载现有组件。');
       }
     });
@@ -5705,7 +5705,7 @@ ${matchLabelsYaml}
     this.destroy$.complete();
   }
 
-  // 镜像拉取错误提示的辅助方法
+  // Helper method for image pull error prompts
   getMirrorConfigCommands(): string {
     return `# 配置 Docker 镜像加速器（以 minikube 为例）
 minikube ssh

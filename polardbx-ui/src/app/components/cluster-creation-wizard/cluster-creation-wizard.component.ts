@@ -88,12 +88,12 @@ export class ClusterCreationWizardComponent implements OnInit, OnDestroy {
   networkForm!: FormGroup;
   advancedForm!: FormGroup;
   
-  // 模板和静态选项
+  // Templates and static options
   clusterTemplates = CLUSTER_TEMPLATES;
   serviceTypes = SERVICE_TYPES;
   storageSizes = STORAGE_SIZES;
   
-  // 动态加载的选项
+  // Dynamically loaded options
   storageClasses: StorageClassOption[] = [...STORAGE_CLASSES];
   namespaces: NamespaceOption[] = [];
   polardbxVersions: PolarDBXVersionInfo[] = [...DEFAULT_POLARDBX_VERSIONS];
@@ -102,7 +102,7 @@ export class ClusterCreationWizardComponent implements OnInit, OnDestroy {
   isCreating = false;
   isLoadingOptions = false;
   
-  // 后端校验错误
+  // Backend validation errors
   validationErrors: ValidationError[] = [];
 
   constructor(
@@ -126,7 +126,7 @@ export class ClusterCreationWizardComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * 从后端加载动态选项（存储类、命名空间、版本）
+   * Load dynamic options from backend (storage classes, namespaces, versions)
    */
   private loadDynamicOptions(): void {
     this.isLoadingOptions = true;
@@ -137,7 +137,7 @@ export class ClusterCreationWizardComponent implements OnInit, OnDestroy {
       versions: this.apiService.getPolarDBXVersions().pipe(catchError(() => of([])))
     }).pipe(takeUntil(this.destroy$)).subscribe({
       next: (result) => {
-        // 处理存储类
+        // Process storage classes
         if (result.storageClasses && result.storageClasses.length > 0) {
           this.storageClasses = result.storageClasses.map((sc: any) => ({
             value: sc.name,
@@ -146,7 +146,7 @@ export class ClusterCreationWizardComponent implements OnInit, OnDestroy {
             isDefault: sc.isDefault || false,
             provisioner: sc.provisioner
           }));
-          // 设置默认存储类
+          // Set default storage class
           const defaultSc = this.storageClasses.find(sc => sc.isDefault);
           if (defaultSc) {
             this.storageForm.patchValue({ storageClassName: defaultSc.value });
@@ -155,7 +155,7 @@ export class ClusterCreationWizardComponent implements OnInit, OnDestroy {
           }
         }
         
-        // 处理命名空间
+        // Process namespaces
         if (result.namespaces && result.namespaces.length > 0) {
           this.namespaces = result.namespaces
             .filter((ns: any) => ns.status === 'Active')
@@ -165,7 +165,7 @@ export class ClusterCreationWizardComponent implements OnInit, OnDestroy {
             }));
         }
         
-        // 处理版本
+        // Process versions
         if (result.versions && result.versions.length > 0) {
           this.polardbxVersions = result.versions.map((v: any) => ({
             version: v.version,
@@ -247,7 +247,7 @@ export class ClusterCreationWizardComponent implements OnInit, OnDestroy {
       tlsSecretName: ['']
     });
     
-    // 监听 enableTLS 变化，动态添加/移除 tlsSecretName 的必填验证
+    // Listen to enableTLS changes, dynamically add/remove required validation for tlsSecretName
     this.networkForm.get('enableTLS')?.valueChanges
       .pipe(takeUntil(this.destroy$))
       .subscribe(enabled => {
@@ -272,7 +272,7 @@ export class ClusterCreationWizardComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * 资源格式验证器 (CPU/Memory)
+   * Resource format validator (CPU/Memory)
    */
   private resourceValidator() {
     return (control: AbstractControl): ValidationErrors | null => {
@@ -287,7 +287,7 @@ export class ClusterCreationWizardComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * JSON 格式验证器
+   * JSON format validator
    */
   private jsonValidator() {
     return (control: AbstractControl): ValidationErrors | null => {
@@ -432,13 +432,13 @@ export class ClusterCreationWizardComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * 处理创建错误，提取更有意义的错误信息
+   * Handle creation errors, extract more meaningful error messages
    */
   private handleCreateError(error: any): void {
     let errorMessage = '创建集群失败';
     
     if (error.error) {
-      // 处理后端返回的结构化错误
+      // Process structured errors returned by backend
       if (error.error.validationErrors && Array.isArray(error.error.validationErrors)) {
         this.validationErrors = error.error.validationErrors;
         const firstError = this.validationErrors[0];
@@ -455,7 +455,7 @@ export class ClusterCreationWizardComponent implements OnInit, OnDestroy {
       errorMessage = error.message;
     }
     
-    // 特殊错误处理
+    // Special error handling
     if (error.status === 409) {
       errorMessage = '集群名称已存在，请使用其他名称';
     } else if (error.status === 403) {
@@ -468,7 +468,7 @@ export class ClusterCreationWizardComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * 获取指定字段的验证错误
+   * Get validation error for specified field
    */
   getFieldError(field: string): string | null {
     const error = this.validationErrors.find(e => e.field === field);
