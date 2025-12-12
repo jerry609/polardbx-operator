@@ -1,6 +1,8 @@
 package router
 
 import (
+	"strings"
+
 	"github.com/gin-gonic/gin"
 
 	crd_polardbxbackupbinlogs "polardbx-ui-backend/pkg/api/crd/polardbxbackupbinlogs"
@@ -15,13 +17,10 @@ import (
 	crd_xstorebackupbinlogs "polardbx-ui-backend/pkg/api/crd/xstorebackupbinlogs"
 	crd_xstores "polardbx-ui-backend/pkg/api/crd/xstores"
 	domain_platform "polardbx-ui-backend/pkg/api/domain/platform"
-
-	// new imports for domain functions and logging
-	"log"
 	domain_polardbxclusters "polardbx-ui-backend/pkg/api/domain/polardbxclusters"
 	domain_systemtasks "polardbx-ui-backend/pkg/api/domain/systemtasks"
 	domain_xstores "polardbx-ui-backend/pkg/api/domain/xstores"
-	"strings"
+	"polardbx-ui-backend/pkg/logger"
 )
 
 // RegisterCRDAliasRoutes registers /api/v1/crd/* alias routes that forward to existing handlers.
@@ -109,7 +108,12 @@ func LogGroupedRoutes(engine *gin.Engine) {
 		counters[group]++
 	}
 
-	log.Printf("Route groups: polardbxclusters=%d xstores=%d systemtasks=%d platform=%d crd=%d others=%d",
-		counters["polardbxclusters"], counters["xstores"], counters["systemtasks"], counters["platform"], counters["crd"], counters["others"],
+	logger.Info("Route groups registered",
+		"polardbxclusters", counters["polardbxclusters"],
+		"xstores", counters["xstores"],
+		"systemtasks", counters["systemtasks"],
+		"platform", counters["platform"],
+		"crd", counters["crd"],
+		"others", counters["others"],
 	)
 }

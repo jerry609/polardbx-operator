@@ -1,11 +1,10 @@
 package runner
 
 import (
-	"log"
+	"github.com/gin-gonic/gin"
 
 	apierr "polardbx-ui-backend/pkg/api/errors"
-
-	"github.com/gin-gonic/gin"
+	"polardbx-ui-backend/pkg/logger"
 )
 
 type Step struct {
@@ -28,18 +27,20 @@ type RunResult struct {
 func Run(c *gin.Context, steps ...Step) *RunResult {
 	results := make([]StepResult, 0, len(steps))
 	for _, s := range steps {
-		log.Printf("flow step start: %s", s.Name)
+		logger.Info("flow step start", "step", s.Name)
 		r := StepResult{Name: s.Name, Status: "pending"}
 		if err := s.Fn(c); err != nil {
 			r.Status = "failed"
 			r.Error = err.Error()
 			results = append(results, r)
-			log.Printf("flow step failed: %s, err=%s", s.Name, err.Error())
+			logger.Error("flow step failed",
+				"step", s.Name,
+				"error", err)
 			return &RunResult{Steps: results, Status: "failed"}
 		}
 		r.Status = "succeeded"
 		results = append(results, r)
-		log.Printf("flow step succeeded: %s", s.Name)
+		logger.Info("flow step succeeded", "step", s.Name)
 	}
 	return &RunResult{Steps: results, Status: "succeeded"}
 }

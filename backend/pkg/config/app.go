@@ -3,6 +3,8 @@ package config
 import (
 	"log"
 	"sync"
+
+	"polardbx-ui-backend/pkg/logger"
 )
 
 // AppConfig is the unified application configuration
@@ -28,31 +30,59 @@ func GetAppConfig() *AppConfig {
 			Image:      GetGlobalConfig(),
 			AutoFix:    GetAutoFixOverlayConfig(),
 		}
-		log.Println("AppConfig initialized: All configuration modules loaded")
+		// Use logger if available, otherwise fallback to standard log
+		if logger.L() != nil {
+			logger.Info("AppConfig initialized: All configuration modules loaded")
+		} else {
+			log.Println("AppConfig initialized: All configuration modules loaded")
+		}
 	})
 	return appConfig
 }
 
 // PrintConfig prints the current configuration (for debugging)
 func (c *AppConfig) PrintConfig() {
-	log.Println("=== Application Configuration ===")
-	log.Printf("Server: Port=%d, Mode=%s, LogLevel=%s, JWTSecret=%s",
-		c.Server.Port, c.Server.Mode, c.Server.LogLevel, maskSecret(c.Server.JWTSecret))
+	// Use logger if available, otherwise fallback to standard log
+	useLogger := logger.L() != nil
+
+	if useLogger {
+		logger.Info("=== Application Configuration ===")
+		logger.Info("Server configuration",
+			"port", c.Server.Port,
+			"mode", c.Server.Mode,
+			"logLevel", c.Server.LogLevel,
+			"jwtSecret", maskSecret(c.Server.JWTSecret))
+	} else {
+		log.Println("=== Application Configuration ===")
+		log.Printf("Server: Port=%d, Mode=%s, LogLevel=%s, JWTSecret=%s",
+			c.Server.Port, c.Server.Mode, c.Server.LogLevel, maskSecret(c.Server.JWTSecret))
+	}
 
 	configSource := "in-cluster"
 	if !c.Kubernetes.IsInCluster() {
 		configSource = c.Kubernetes.ConfigPath
 	}
-	log.Printf("Kubernetes: Source=%s, DefaultNamespace=%s",
-		configSource, c.Kubernetes.DefaultNamespace)
 
-	log.Printf("Image: DefaultRegistry=%s, Mirrors=%v",
-		c.Image.GetDefaultRegistry(), c.Image.GetMirrors())
-
-	log.Printf("AutoFix: Enabled=%t, Namespace=%s",
-		c.AutoFix.Enabled, c.AutoFix.Namespace)
-
-	log.Println("=================================")
+	if useLogger {
+		logger.Info("Kubernetes configuration",
+			"source", configSource,
+			"defaultNamespace", c.Kubernetes.DefaultNamespace)
+		logger.Info("Image configuration",
+			"defaultRegistry", c.Image.GetDefaultRegistry(),
+			"mirrors", c.Image.GetMirrors())
+		logger.Info("AutoFix configuration",
+			"enabled", c.AutoFix.Enabled,
+			"namespace", c.AutoFix.Namespace)
+		logger.Info("=================================")
+	} else {
+		log.Printf("Kubernetes: Source=%s, DefaultNamespace=%s",
+			configSource, c.Kubernetes.DefaultNamespace)
+		log.Printf("Image: DefaultRegistry=%s, Mirrors=%v",
+			c.Image.GetDefaultRegistry(), c.Image.GetMirrors())
+		log.Printf("AutoFix: Enabled=%t, Namespace=%s",
+			c.AutoFix.Enabled, c.AutoFix.Namespace)
+		log.Println("=================================")
+	}
 }
 
 func maskSecret(v string) string {

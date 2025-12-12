@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"log"
 	"net"
 	"os"
 	"path/filepath"
@@ -20,6 +19,7 @@ import (
 	apierr "polardbx-ui-backend/pkg/api/errors"
 	apiutil "polardbx-ui-backend/pkg/api/util"
 	"polardbx-ui-backend/pkg/k8s"
+	"polardbx-ui-backend/pkg/logger"
 )
 
 var newAllClientsFromKubeconfig = k8s.NewAllClientsFromKubeconfig
@@ -38,7 +38,9 @@ func normalizeKubeconfig(raw []byte) ([]byte, *clientcmdapi.Config, error) {
 			continue
 		}
 		if len(cluster.CertificateAuthorityData) == 0 && cluster.CertificateAuthority != "" {
-			log.Printf("normalizeKubeconfig: inlining certificate authority for cluster=%s from path=%s", name, cluster.CertificateAuthority)
+			logger.Info("normalizeKubeconfig: inlining certificate authority",
+				"cluster", name,
+				"path", cluster.CertificateAuthority)
 			data, err := readCredentialFile(cluster.CertificateAuthority)
 			if err != nil {
 				return nil, nil, fmt.Errorf("cluster %q certificate-authority %q: %w", name, cluster.CertificateAuthority, err)
@@ -53,7 +55,9 @@ func normalizeKubeconfig(raw []byte) ([]byte, *clientcmdapi.Config, error) {
 			continue
 		}
 		if len(authInfo.ClientCertificateData) == 0 && authInfo.ClientCertificate != "" {
-			log.Printf("normalizeKubeconfig: inlining client certificate for user=%s from path=%s", name, authInfo.ClientCertificate)
+			logger.Info("normalizeKubeconfig: inlining client certificate",
+				"user", name,
+				"path", authInfo.ClientCertificate)
 			data, err := readCredentialFile(authInfo.ClientCertificate)
 			if err != nil {
 				return nil, nil, fmt.Errorf("user %q client-certificate %q: %w", name, authInfo.ClientCertificate, err)
@@ -62,7 +66,9 @@ func normalizeKubeconfig(raw []byte) ([]byte, *clientcmdapi.Config, error) {
 			authInfo.ClientCertificate = ""
 		}
 		if len(authInfo.ClientKeyData) == 0 && authInfo.ClientKey != "" {
-			log.Printf("normalizeKubeconfig: inlining client key for user=%s from path=%s", name, authInfo.ClientKey)
+			logger.Info("normalizeKubeconfig: inlining client key",
+				"user", name,
+				"path", authInfo.ClientKey)
 			data, err := readCredentialFile(authInfo.ClientKey)
 			if err != nil {
 				return nil, nil, fmt.Errorf("user %q client-key %q: %w", name, authInfo.ClientKey, err)
@@ -115,7 +121,10 @@ func KubeconfigAuthMiddleware() gin.HandlerFunc {
 		if requestPath == "" {
 			requestPath = c.Request.URL.Path
 		}
-		log.Printf("KubeconfigAuthMiddleware: handling %s %s from %s", c.Request.Method, requestPath, c.ClientIP())
+		logger.Info("KubeconfigAuthMiddleware: handling request",
+			"method", c.Request.Method,
+			"path", requestPath,
+			"clientIP", c.ClientIP())
 
 		kubeconfigB64 := c.GetHeader("X-Kubeconfig-B64")
 		// WebSocket 等场景无法自定义 Header 时，允许通过查询参数传递
@@ -130,7 +139,9 @@ func KubeconfigAuthMiddleware() gin.HandlerFunc {
 			}
 		}
 		if kubeconfigB64 == "" {
-			log.Printf("KubeconfigAuthMiddleware: missing kubeconfig for %s from %s", requestPath, c.ClientIP())
+			logger.Warn("KubeconfigAuthMiddleware: missing kubeconfig",
+				"path", requestPath,
+				"clientIP", c.ClientIP())
 			apierr.AbortUnauthorized(c, "kubeconfig not provided")
 			return
 		}
@@ -138,14 +149,20 @@ func KubeconfigAuthMiddleware() gin.HandlerFunc {
 		// Decode the base64 kubeconfig
 		kubeconfig, err := base64.StdEncoding.DecodeString(kubeconfigB64)
 		if err != nil {
-			log.Printf("KubeconfigAuthMiddleware: base64 decode failed for %s from %s: %v", requestPath, c.ClientIP(), err)
+			logger.Error("KubeconfigAuthMiddleware: base64 decode failed",
+				"path", requestPath,
+				"clientIP", c.ClientIP(),
+				"error", err)
 			apierr.Abort(c, apierr.Validation("invalid kubeconfig base64"))
 			return
 		}
 
 		normalized, cfg, err := normalizeKubeconfig(kubeconfig)
 		if err != nil {
-			log.Printf("KubeconfigAuthMiddleware: normalize failed for %s from %s: %v", requestPath, c.ClientIP(), err)
+			logger.Error("KubeconfigAuthMiddleware: normalize failed",
+				"path", requestPath,
+				"clientIP", c.ClientIP(),
+				"error", err)
 			apiErr := apierr.Validation("failed to normalize kubeconfig")
 			switch {
 			case errors.Is(err, fs.ErrPermission):
@@ -160,7 +177,10 @@ func KubeconfigAuthMiddleware() gin.HandlerFunc {
 		// Create Kubernetes clients with normalized kubeconfig
 		ctrlClient, clientset, dynClient, err := newAllClientsFromKubeconfig(normalized)
 		if err != nil {
-			log.Printf("KubeconfigAuthMiddleware: client creation failed for %s from %s: %v", requestPath, c.ClientIP(), err)
+			logger.Error("KubeconfigAuthMiddleware: client creation failed",
+				"path", requestPath,
+				"clientIP", c.ClientIP(),
+				"error", err)
 			apierr.AbortUnauthorized(c, "failed to create kubernetes clients")
 			return
 		}
@@ -183,10 +203,15 @@ func KubeconfigAuthMiddleware() gin.HandlerFunc {
 			}
 			c.Set("k8sUser", user)
 			c.Set("k8sContext", ctxName)
-			log.Printf("KubeconfigAuthMiddleware: authenticated context=%s user=%s namespace=%s for %s", ctxName, user, c.GetString("k8sDefaultNamespace"), requestPath)
+			logger.Info("KubeconfigAuthMiddleware: authenticated",
+				"context", ctxName,
+				"user", user,
+				"namespace", c.GetString("k8sDefaultNamespace"),
+				"path", requestPath)
 		}
 		c.Set("normalizedKubeconfig", normalized)
-		log.Printf("KubeconfigAuthMiddleware: kubeconfig normalized and clients stored for %s", requestPath)
+		logger.Info("KubeconfigAuthMiddleware: kubeconfig normalized and clients stored",
+			"path", requestPath)
 		c.Next()
 	}
 }
@@ -195,7 +220,8 @@ func KubeconfigAuthMiddleware() gin.HandlerFunc {
 func Connect(c *gin.Context) {
 	cs, ok := apiutil.ClientsetFromContext(c)
 	if !ok {
-		log.Printf("Connect: clientset missing for request from %s", c.ClientIP())
+		logger.Warn("Connect: clientset missing",
+			"clientIP", c.ClientIP())
 		apierr.AbortUnauthorized(c, "kubeconfig not provided or invalid")
 		return
 	}
@@ -219,7 +245,11 @@ func Connect(c *gin.Context) {
 		}
 	}
 
-	log.Printf("Connect: verifying access for context=%s user=%s namespace=%s from %s", ctxName, user, defNs, c.ClientIP())
+	logger.Info("Connect: verifying access",
+		"context", ctxName,
+		"user", user,
+		"namespace", defNs,
+		"clientIP", c.ClientIP())
 
 	resp := gin.H{
 		"message":          "connection successful",
@@ -229,10 +259,15 @@ func Connect(c *gin.Context) {
 	}
 
 	// 1) 与 apiserver 通信
-	log.Printf("Connect: querying apiserver version for context=%s user=%s", ctxName, user)
+	logger.Info("Connect: querying apiserver version",
+		"context", ctxName,
+		"user", user)
 	sv, err := cs.Discovery().ServerVersion()
 	if err != nil {
-		log.Printf("Connect: server version query failed for context=%s user=%s: %T %v", ctxName, user, err, err)
+		logger.Error("Connect: server version query failed",
+			"context", ctxName,
+			"user", user,
+			"error", err)
 		switch {
 		case k8serrors.IsUnauthorized(err):
 			apierr.AbortUnauthorized(c, "authentication failed")
@@ -252,11 +287,16 @@ func Connect(c *gin.Context) {
 		}
 		return
 	}
-	log.Printf("Connect: apiserver version query succeeded for context=%s user=%s", ctxName, user)
+	logger.Info("Connect: apiserver version query succeeded",
+		"context", ctxName,
+		"user", user)
 
 	// 2) RBAC 轻量校验：列出命名空间（限制 1）
 	if _, err := cs.CoreV1().Namespaces().List(c.Request.Context(), metav1.ListOptions{Limit: 1}); err != nil {
-		log.Printf("Connect: namespace list failed for context=%s user=%s: %v", ctxName, user, err)
+		logger.Error("Connect: namespace list failed",
+			"context", ctxName,
+			"user", user,
+			"error", err)
 		apiutil.HandleK8sError(c, "failed to list namespaces", err)
 		return
 	}
@@ -264,11 +304,17 @@ func Connect(c *gin.Context) {
 	if sv != nil {
 		resp["apiserverVersion"] = sv.GitVersion
 		resp["platform"] = sv.Platform
-		log.Printf("Connect: apiserverVersion=%s platform=%s context=%s user=%s", sv.GitVersion, sv.Platform, ctxName, user)
+		logger.Info("Connect: apiserver info",
+			"apiserverVersion", sv.GitVersion,
+			"platform", sv.Platform,
+			"context", ctxName,
+			"user", user)
 	}
 
 	apierr.OK(c, resp)
-	log.Printf("Connect: connection successful for context=%s user=%s", ctxName, user)
+	logger.Info("Connect: connection successful",
+		"context", ctxName,
+		"user", user)
 }
 
 // Note: error handling and client getters are centralized in api/util.

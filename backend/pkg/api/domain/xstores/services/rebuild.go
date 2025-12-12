@@ -1,19 +1,20 @@
 package services
 
 import (
-	"log"
 	"strconv"
 	"time"
+
+	"github.com/gin-gonic/gin"
+	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	polardbxv1 "github.com/alibaba/polardbx-operator/api/v1"
+	polardbxv1xstore "github.com/alibaba/polardbx-operator/api/v1/xstore"
 
 	"polardbx-ui-backend/pkg/api/domain/xstores/k8srepo"
 	apierr "polardbx-ui-backend/pkg/api/errors"
 	"polardbx-ui-backend/pkg/api/util"
-
-	polardbxv1 "github.com/alibaba/polardbx-operator/api/v1"
-	polardbxv1xstore "github.com/alibaba/polardbx-operator/api/v1/xstore"
-	"github.com/gin-gonic/gin"
-	corev1 "k8s.io/api/core/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	"polardbx-ui-backend/pkg/logger"
 )
 
 // RebuildService: Migrate Status first, other entries to be orchestrated later
@@ -85,7 +86,10 @@ func (s *RebuildService) Wait(c *gin.Context) {
 			apierr.Abort(c, apierr.New(apierr.ErrTimeout, "timeout waiting for follower "+f.Name+" (phase: "+string(f.Status.Phase)+")"))
 			return
 		}
-		log.Printf("rebuild wait: ns=%s follower=%s phase=%s", ns, name, f.Status.Phase)
+		logger.Info("rebuild wait",
+			"namespace", ns,
+			"follower", name,
+			"phase", f.Status.Phase)
 		time.Sleep(time.Duration(intervalSec) * time.Second)
 	}
 }
@@ -176,7 +180,9 @@ func createFollowerWithRole(c *gin.Context, role polardbxv1xstore.FollowerRole) 
 	_ = c.ShouldBindJSON(&body)
 	name := body.Name
 	if name == "" {
-		log.Printf("rebuild create missing name: ns=%s, xstore=%s", ns, xstoreName)
+		logger.Warn("rebuild create missing name",
+			"namespace", ns,
+			"xstore", xstoreName)
 		util.NotFound(c)
 		return
 	}
@@ -184,7 +190,9 @@ func createFollowerWithRole(c *gin.Context, role polardbxv1xstore.FollowerRole) 
 		xstoreName = body.XStoreName
 	}
 	if xstoreName == "" {
-		log.Printf("rebuild create missing xStoreName: ns=%s, name=%s", ns, name)
+		logger.Warn("rebuild create missing xStoreName",
+			"namespace", ns,
+			"name", name)
 		apierr.AbortValidation(c, "xStoreName is required")
 		return
 	}
@@ -229,10 +237,20 @@ func createFollowerWithRole(c *gin.Context, role polardbxv1xstore.FollowerRole) 
 	}
 	obj.Labels["xstore/rebuild-type"] = string(role)
 	if err := cli.Create(c.Request.Context(), obj); err != nil {
-		log.Printf("rebuild create failed: ns=%s name=%s xstore=%s role=%s err=%v", ns, name, xstoreName, role, err)
+		logger.Error("rebuild create failed",
+			"namespace", ns,
+			"name", name,
+			"xstore", xstoreName,
+			"role", role,
+			"error", err)
 		util.HandleK8sError(c, "failed to create xstore follower", err)
 		return
 	}
-	log.Printf("rebuild create ok: ns=%s name=%s xstore=%s role=%s target=%s", ns, name, xstoreName, role, obj.Spec.TargetPodName)
+	logger.Info("rebuild create ok",
+		"namespace", ns,
+		"name", name,
+		"xstore", xstoreName,
+		"role", role,
+		"target", obj.Spec.TargetPodName)
 	apierr.Created(c, obj)
 }

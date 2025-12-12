@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"sync"
 	"time"
+
+	"polardbx-ui-backend/pkg/logger"
 )
 
 // ServerConfig holds all server configuration
@@ -53,8 +55,16 @@ var (
 func GetServerConfig() *ServerConfig {
 	serverConfigOnce.Do(func() {
 		serverConfig = loadServerConfig()
-		log.Printf("ServerConfig initialized: Port=%d, Mode=%s, LogLevel=%s",
-			serverConfig.Port, serverConfig.Mode, serverConfig.LogLevel)
+		// Use logger if available, otherwise fallback to standard log
+		if logger.L() != nil {
+			logger.Info("ServerConfig initialized",
+				"port", serverConfig.Port,
+				"mode", serverConfig.Mode,
+				"logLevel", serverConfig.LogLevel)
+		} else {
+			log.Printf("ServerConfig initialized: Port=%d, Mode=%s, LogLevel=%s",
+				serverConfig.Port, serverConfig.Mode, serverConfig.LogLevel)
+		}
 	})
 	return serverConfig
 }
@@ -111,7 +121,15 @@ func getEnvInt(key string, defaultValue int) int {
 		if intVal, err := strconv.Atoi(value); err == nil {
 			return intVal
 		}
-		log.Printf("Warning: invalid integer value for %s: %s, using default: %d", key, value, defaultValue)
+		// Use logger if available, otherwise fallback to standard log
+		if logger.L() != nil {
+			logger.Warn("Invalid integer value, using default",
+				"key", key,
+				"value", value,
+				"default", defaultValue)
+		} else {
+			log.Printf("Warning: invalid integer value for %s: %s, using default: %d", key, value, defaultValue)
+		}
 	}
 	return defaultValue
 }
@@ -128,7 +146,15 @@ func getEnvDuration(key string, defaultValue time.Duration) time.Duration {
 		if duration, err := time.ParseDuration(value); err == nil {
 			return duration
 		}
-		log.Printf("Warning: invalid duration value for %s: %s, using default: %v", key, value, defaultValue)
+		// Use logger if available, otherwise fallback to standard log
+		if logger.L() != nil {
+			logger.Warn("Invalid duration value, using default",
+				"key", key,
+				"value", value,
+				"default", defaultValue)
+		} else {
+			log.Printf("Warning: invalid duration value for %s: %s, using default: %v", key, value, defaultValue)
+		}
 	}
 	return defaultValue
 }

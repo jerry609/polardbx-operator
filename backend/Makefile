@@ -115,6 +115,10 @@ generate-monitoring-types:
 	@echo "Generating monitoring v2 API models..."
 	cd pkg/api/monitoringv2/spec && go run github.com/deepmap/oapi-codegen/cmd/oapi-codegen --config server.cfg.yaml installation-openapi.yaml
 
-.PHONY: all build run docker-build clean tidy test test-coverage test-integration test-benchmark test-race test-all format lint vet security quality generate-monitoring-types 
+# Generate Swagger documentation
+generate-swagger:
+	@echo "Generating Swagger documentation..."
+	@which swag > /dev/null || (echo "swag not found, installing..." && go install github.com/swaggo/swag/cmd/swag@latest)
+	swag init -g main.go -o ./docs
 
-.PHONY: all build run docker-build clean tidy test test-coverage test-integration test-benchmark test-race test-all format lint vet security quality 
+.PHONY: all build run docker-build clean tidy test test-coverage test-integration test-benchmark test-race test-all format lint vet security quality generate-monitoring-types generate-swagger 

@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -23,6 +22,7 @@ import (
 	apierr "polardbx-ui-backend/pkg/api/errors"
 	"polardbx-ui-backend/pkg/api/provider"
 	"polardbx-ui-backend/pkg/api/util"
+	"polardbx-ui-backend/pkg/logger"
 )
 
 // PodHandler handles Pod-related HTTP requests
@@ -270,7 +270,9 @@ func checkOrigin(r *http.Request) bool {
 	}
 
 	// Log rejected origins for security audit
-	log.Printf("SECURITY: WebSocket origin rejected: %s from %s", origin, r.RemoteAddr)
+	logger.Warn("SECURITY: WebSocket origin rejected",
+		"origin", origin,
+		"remoteAddr", r.RemoteAddr)
 	return false
 }
 
@@ -300,12 +302,17 @@ func handleExecWebSocketSecure(c *gin.Context, rows, cols int) {
 
 	// Security audit log
 	user := c.GetString("k8sUser")
-	log.Printf("AUDIT: Pod exec requested by user=%s for pod=%s/%s container=%s from=%s",
-		user, ns, name, container, c.ClientIP())
+	logger.Info("AUDIT: Pod exec requested",
+		"user", user,
+		"namespace", ns,
+		"pod", name,
+		"container", container,
+		"clientIP", c.ClientIP())
 
 	restCfg, err := clientcmd.RESTConfigFromKubeConfig(kubeconfig)
 	if err != nil {
-		log.Printf("ERROR: Failed to create REST config for exec: %v", err)
+		logger.Error("ERROR: Failed to create REST config for exec",
+			"error", err)
 		apierr.AbortInternal(c, "configuration error")
 		return
 	}
@@ -315,7 +322,8 @@ func handleExecWebSocketSecure(c *gin.Context, rows, cols int) {
 
 	clientset, err := kubernetes.NewForConfig(restCfg)
 	if err != nil {
-		log.Printf("ERROR: Failed to create clientset for exec: %v", err)
+		logger.Error("ERROR: Failed to create clientset for exec",
+			"error", err)
 		apierr.AbortInternal(c, "client initialization failed")
 		return
 	}
@@ -328,7 +336,8 @@ func handleExecWebSocketSecure(c *gin.Context, rows, cols int) {
 	}
 	ws, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
-		log.Printf("ERROR: WebSocket upgrade failed for exec: %v", err)
+		logger.Error("ERROR: WebSocket upgrade failed for exec",
+			"error", err)
 		return
 	}
 	defer ws.Close()
@@ -354,7 +363,8 @@ func handleExecWebSocketSecure(c *gin.Context, rows, cols int) {
 
 	executor, err := remotecommand.NewSPDYExecutor(restCfg, http.MethodPost, req.URL())
 	if err != nil {
-		log.Printf("ERROR: Failed to create SPDY executor for exec: %v", err)
+		logger.Error("ERROR: Failed to create SPDY executor for exec",
+			"error", err)
 		ws.WriteMessage(websocket.TextMessage, []byte(`{"op":"error","data":"exec initialization failed"}`))
 		return
 	}
@@ -408,7 +418,10 @@ func handleExecWebSocketSecure(c *gin.Context, rows, cols int) {
 			Tty:               true,
 			TerminalSizeQueue: resizeQ,
 		})
-		log.Printf("AUDIT: Pod exec session ended for user=%s pod=%s/%s", user, ns, name)
+		logger.Info("AUDIT: Pod exec session ended",
+		"user", user,
+		"namespace", ns,
+		"pod", name)
 	}()
 
 	<-done

@@ -18,10 +18,18 @@ import (
 
 func main() {
 	// Initialize unified logger
+	// Note: We use os.Stderr here because logger might not be initialized yet
 	if err := logger.InitDefault(); err != nil {
-		panic("Failed to initialize logger: " + err.Error())
+		// Use stderr directly since logger initialization failed
+		os.Stderr.WriteString("FATAL: Failed to initialize logger: " + err.Error() + "\n")
+		os.Exit(1)
 	}
-	defer logger.Sync()
+	defer func() {
+		if err := logger.Sync(); err != nil {
+			// Log sync errors are usually non-critical (e.g., on Windows)
+			os.Stderr.WriteString("WARN: Failed to sync logger: " + err.Error() + "\n")
+		}
+	}()
 
 	// Initialize controller-runtime logger (for K8s client compatibility)
 	zapLogger := zap.New(zap.UseDevMode(true))

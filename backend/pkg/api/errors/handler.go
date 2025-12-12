@@ -1,13 +1,17 @@
 package errors
 
 import (
+	"crypto/rand"
 	"log"
 	"net/http"
 	"runtime/debug"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+
+	"polardbx-ui-backend/pkg/logger"
 )
 
 // ============================================================================
@@ -103,22 +107,28 @@ func logError(c *gin.Context, apiErr *APIError) {
 		requestID = c.GetHeader("X-Request-ID")
 	}
 
-	// Log with context (internal details)
-	logMsg := "[ERROR] code=%s user=%s requestId=%s method=%s path=%s message=%s"
+	// Log with context (internal details) using structured logger
 	method := ""
 	path := ""
 	if c.Request != nil {
 		method = c.Request.Method
 		path = c.Request.URL.Path
 	}
-	logArgs := []interface{}{apiErr.Code, user, requestID, method, path, apiErr.Message}
 
-	if apiErr.Cause != nil {
-		logMsg += " cause=%v"
-		logArgs = append(logArgs, apiErr.Cause)
+	logFields := []interface{}{
+		"code", apiErr.Code,
+		"user", user,
+		"requestId", requestID,
+		"method", method,
+		"path", path,
+		"message", apiErr.Message,
 	}
 
-	log.Printf(logMsg, logArgs...)
+	if apiErr.Cause != nil {
+		logFields = append(logFields, "cause", apiErr.Cause)
+	}
+
+	logger.Error("API error occurred", logFields...)
 }
 
 // sendErrorResponse sends sanitized error response to client
@@ -129,7 +139,7 @@ func sendErrorResponse(c *gin.Context, apiErr *APIError) {
 	// Add retry headers if applicable
 	if details, ok := apiErr.Details.(map[string]interface{}); ok {
 		if retryAfter, ok := details["retry_after_seconds"].(int); ok && retryAfter > 0 {
-			c.Header("Retry-After", string(rune(retryAfter)))
+			c.Header("Retry-After", strconv.Itoa(retryAfter))
 		}
 	}
 
@@ -269,18 +279,32 @@ func RequestIDMiddleware() gin.HandlerFunc {
 	}
 }
 
-// generateRequestID generates a simple request ID
+// generateRequestID generates a cryptographically secure request ID
 func generateRequestID() string {
-	return time.Now().Format("20060102150405") + "-" + randomString(8)
+	// Use timestamp prefix for readability, then add secure random suffix
+	timestamp := time.Now().Format("20060102150405")
+	randomSuffix := randomString(8)
+	return timestamp + "-" + randomSuffix
 }
 
-// randomString generates a random string of given length
+// randomString generates a cryptographically secure random string of given length
+// Uses crypto/rand for security-critical identifiers like request IDs
 func randomString(n int) string {
 	const letters = "abcdefghijklmnopqrstuvwxyz0123456789"
 	b := make([]byte, n)
+	// Read random bytes
+	if _, err := rand.Read(b); err != nil {
+		// Fallback to timestamp-based (not ideal, but better than panic)
+		// This should rarely happen in practice
+		for i := range b {
+			b[i] = letters[time.Now().UnixNano()%int64(len(letters))]
+			time.Sleep(time.Nanosecond)
+		}
+		return string(b)
+	}
+	// Map random bytes to letters
 	for i := range b {
-		b[i] = letters[time.Now().UnixNano()%int64(len(letters))]
-		time.Sleep(time.Nanosecond)
+		b[i] = letters[b[i]%byte(len(letters))]
 	}
 	return string(b)
 }

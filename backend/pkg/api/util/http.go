@@ -3,7 +3,6 @@ package util
 import (
 	"context"
 	"encoding/base64"
-	"log"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -13,6 +12,7 @@ import (
 
 	apierr "polardbx-ui-backend/pkg/api/errors"
 	"polardbx-ui-backend/pkg/k8s"
+	"polardbx-ui-backend/pkg/logger"
 
 	"k8s.io/client-go/tools/clientcmd"
 
@@ -108,11 +108,14 @@ func GetNamespace(c *gin.Context, fallback string) string {
 // HandleK8sError maps common k8s errors to HTTP codes using unified error handling.
 // It logs the full error internally and returns a sanitized response to the client.
 func HandleK8sError(c *gin.Context, operation string, err error) {
-	// Log full error details internally
+	// Log full error details internally using structured logger
 	user := c.GetString("k8sUser")
 	requestID := c.GetString("requestId")
-	log.Printf("[K8S_ERROR] operation=%s user=%s requestId=%s error=%v",
-		operation, user, requestID, err)
+	logger.Error("K8s operation failed",
+		"operation", operation,
+		"user", user,
+		"requestId", requestID,
+		"error", err)
 
 	// Use the unified error handler which sanitizes the response
 	apierr.AbortK8sError(c, operation, err)

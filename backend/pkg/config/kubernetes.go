@@ -4,6 +4,8 @@ import (
 	"log"
 	"os"
 	"sync"
+
+	"polardbx-ui-backend/pkg/logger"
 )
 
 // KubeConfig holds Kubernetes client configuration
@@ -36,8 +38,15 @@ func GetKubeConfig() *KubeConfig {
 		if kubeConfig.ConfigPath != "" {
 			configSource = kubeConfig.ConfigPath
 		}
-		log.Printf("KubeConfig initialized: Source=%s, DefaultNamespace=%s",
-			configSource, kubeConfig.DefaultNamespace)
+		// Use logger if available, otherwise fallback to standard log
+		if logger.L() != nil {
+			logger.Info("KubeConfig initialized",
+				"source", configSource,
+				"defaultNamespace", kubeConfig.DefaultNamespace)
+		} else {
+			log.Printf("KubeConfig initialized: Source=%s, DefaultNamespace=%s",
+				configSource, kubeConfig.DefaultNamespace)
+		}
 	})
 	return kubeConfig
 }

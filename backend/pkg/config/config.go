@@ -5,6 +5,8 @@ import (
 	"os"
 	"strings"
 	"sync"
+
+	"polardbx-ui-backend/pkg/logger"
 )
 
 // ImageRegistryConfig holds image registry configuration
@@ -41,8 +43,16 @@ func GetGlobalConfig() *ImageRegistryConfig {
 			HelmImage:       getDefaultHelmImage(),
 			Mirrors:         getDefaultMirrors(),
 		}
-		log.Printf("ImageRegistryConfig initialized: DefaultRegistry=%s, HelmImage=%s, Mirrors=%v",
-			globalConfig.DefaultRegistry, globalConfig.HelmImage, globalConfig.Mirrors)
+		// Use logger if available, otherwise fallback to standard log
+		if logger.L() != nil {
+			logger.Info("ImageRegistryConfig initialized",
+				"defaultRegistry", globalConfig.DefaultRegistry,
+				"helmImage", globalConfig.HelmImage,
+				"mirrors", globalConfig.Mirrors)
+		} else {
+			log.Printf("ImageRegistryConfig initialized: DefaultRegistry=%s, HelmImage=%s, Mirrors=%v",
+				globalConfig.DefaultRegistry, globalConfig.HelmImage, globalConfig.Mirrors)
+		}
 	})
 	return globalConfig
 }
@@ -50,7 +60,11 @@ func GetGlobalConfig() *ImageRegistryConfig {
 // GetDefaultRegistry returns the default registry, respecting environment variables
 func getDefaultRegistry() string {
 	if reg := os.Getenv("DEFAULT_IMAGE_REGISTRY"); reg != "" {
-		log.Printf("Using image registry from env DEFAULT_IMAGE_REGISTRY: %s", reg)
+		if logger.L() != nil {
+			logger.Info("Using image registry from env", "env", "DEFAULT_IMAGE_REGISTRY", "registry", reg)
+		} else {
+			log.Printf("Using image registry from env DEFAULT_IMAGE_REGISTRY: %s", reg)
+		}
 		return reg
 	}
 
@@ -62,7 +76,11 @@ func getDefaultRegistry() string {
 // GetDefaultHelmImage returns the default helm image
 func getDefaultHelmImage() string {
 	if img := os.Getenv("HELM_IMAGE"); img != "" {
-		log.Printf("Using helm image from env HELM_IMAGE: %s", img)
+		if logger.L() != nil {
+			logger.Info("Using helm image from env", "env", "HELM_IMAGE", "image", img)
+		} else {
+			log.Printf("Using helm image from env HELM_IMAGE: %s", img)
+		}
 		return img
 	}
 
@@ -83,7 +101,11 @@ func getDefaultMirrors() []string {
 
 	// Allow override via environment variable (comma-separated)
 	if mirrorsEnv := os.Getenv("IMAGE_REGISTRY_MIRRORS"); mirrorsEnv != "" {
-		log.Printf("Using image registry mirrors from env: %s", mirrorsEnv)
+		if logger.L() != nil {
+			logger.Info("Using image registry mirrors from env", "env", "IMAGE_REGISTRY_MIRRORS", "mirrors", mirrorsEnv)
+		} else {
+			log.Printf("Using image registry mirrors from env: %s", mirrorsEnv)
+		}
 		// Parse comma-separated list
 		// For simplicity, just use the env value as-is
 		return []string{mirrorsEnv}
@@ -105,7 +127,13 @@ func (c *ImageRegistryConfig) SetDefaultRegistry(registry string) {
 		c.HelmImage = registry + "/alpine/helm:3.12.3"
 	}
 
-	log.Printf("Updated default registry to: %s, HelmImage: %s", c.DefaultRegistry, c.HelmImage)
+	if logger.L() != nil {
+		logger.Info("Updated default registry",
+			"defaultRegistry", c.DefaultRegistry,
+			"helmImage", c.HelmImage)
+	} else {
+		log.Printf("Updated default registry to: %s, HelmImage: %s", c.DefaultRegistry, c.HelmImage)
+	}
 }
 
 // GetHelmImage returns the current helm image (thread-safe)
@@ -169,7 +197,14 @@ func GetAutoFixOverlayConfig() *AutoFixOverlayConfig {
 			GrafanaTargets:      parseListEnv("MONITORING_AUTOFIX_GRAFANA", []string{"grafana", "kube-prometheus-stack-grafana"}),
 			AlertmanagerTargets: parseListEnv("MONITORING_AUTOFIX_ALERTMANAGER", []string{"main", "kube-prometheus-stack-alertmanager"}),
 		}
-		log.Printf("AutoFixOverlayConfig initialized: enabled=%v, namespace=%s, serviceAccount=%s", autoFixOverlayConfig.Enabled, autoFixOverlayConfig.Namespace, autoFixOverlayConfig.ServiceAccount)
+		if logger.L() != nil {
+			logger.Info("AutoFixOverlayConfig initialized",
+				"enabled", autoFixOverlayConfig.Enabled,
+				"namespace", autoFixOverlayConfig.Namespace,
+				"serviceAccount", autoFixOverlayConfig.ServiceAccount)
+		} else {
+			log.Printf("AutoFixOverlayConfig initialized: enabled=%v, namespace=%s, serviceAccount=%s", autoFixOverlayConfig.Enabled, autoFixOverlayConfig.Namespace, autoFixOverlayConfig.ServiceAccount)
+		}
 	})
 	return autoFixOverlayConfig
 }

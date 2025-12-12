@@ -3,13 +3,13 @@ package services
 import (
 	"context"
 	"encoding/json"
-	"log"
 	"time"
+
+	"github.com/gin-gonic/gin"
 
 	apierr "polardbx-ui-backend/pkg/api/errors"
 	"polardbx-ui-backend/pkg/api/util"
-
-	"github.com/gin-gonic/gin"
+	"polardbx-ui-backend/pkg/logger"
 )
 
 // patchClusterJSON is a test-hookable wrapper around util.K8sPatchClusterJSON.
@@ -30,7 +30,10 @@ func (s *ClusterService) UpdateLogConfig(ctx context.Context, c *gin.Context) er
 	name := c.Param("name")
 	nodeType := c.Param("nodeType")
 	start := time.Now()
-	log.Printf("ops UpdateLogConfig begin: %s/%s nodeType=%s", ns, name, nodeType)
+	logger.Info("ops UpdateLogConfig begin",
+		"namespace", ns,
+		"name", name,
+		"nodeType", nodeType)
 	switch nodeType {
 	case "cn", "dn", "gms", "cdc":
 	default:
@@ -58,11 +61,20 @@ func (s *ClusterService) UpdateLogConfig(ctx context.Context, c *gin.Context) er
 	}
 	b, _ := json.Marshal(patchData)
 	if _, err := patchClusterJSON(ctx, cli, ns, name, b); err != nil {
-		log.Printf("ops UpdateLogConfig failed: %s duration=%s", err, time.Since(start))
+		logger.Error("ops UpdateLogConfig failed",
+			"namespace", ns,
+			"name", name,
+			"nodeType", nodeType,
+			"duration", time.Since(start),
+			"error", err)
 		util.HandleK8sError(c, "failed to update cluster log config", err)
 		return nil
 	}
-	log.Printf("ops UpdateLogConfig ok duration=%s", time.Since(start))
+	logger.Info("ops UpdateLogConfig ok",
+		"namespace", ns,
+		"name", name,
+		"nodeType", nodeType,
+		"duration", time.Since(start))
 	apierr.OK(c, gin.H{"message": nodeType + " log config updated successfully"})
 	return nil
 }
@@ -76,7 +88,9 @@ func (s *ClusterService) Scale(ctx context.Context, c *gin.Context) error {
 	ns := c.Param("namespace")
 	name := c.Param("name")
 	start := time.Now()
-	log.Printf("ops Scale begin: %s/%s", ns, name)
+	logger.Info("ops Scale begin",
+		"namespace", ns,
+		"name", name)
 	var req ClusterScalingRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		apierr.AbortValidation(c, "invalid scaling request: "+err.Error())
@@ -99,11 +113,18 @@ func (s *ClusterService) Scale(ctx context.Context, c *gin.Context) error {
 	}
 	b, _ := json.Marshal(patch)
 	if _, err := patchClusterJSON(ctx, cli, ns, name, b); err != nil {
-		log.Printf("ops Scale failed: %s duration=%s", err, time.Since(start))
+		logger.Error("ops Scale failed",
+			"namespace", ns,
+			"name", name,
+			"duration", time.Since(start),
+			"error", err)
 		util.HandleK8sError(c, "failed to scale cluster", err)
 		return nil
 	}
-	log.Printf("ops Scale ok duration=%s", time.Since(start))
+	logger.Info("ops Scale ok",
+		"namespace", ns,
+		"name", name,
+		"duration", time.Since(start))
 	apierr.OK(c, gin.H{"message": "Cluster scaling initiated successfully"})
 	return nil
 }
@@ -117,7 +138,9 @@ func (s *ClusterService) Upgrade(ctx context.Context, c *gin.Context) error {
 	ns := c.Param("namespace")
 	name := c.Param("name")
 	start := time.Now()
-	log.Printf("ops Upgrade begin: %s/%s", ns, name)
+	logger.Info("ops Upgrade begin",
+		"namespace", ns,
+		"name", name)
 	var req ClusterUpgradeRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		apierr.AbortValidation(c, "invalid upgrade request: "+err.Error())
@@ -129,11 +152,18 @@ func (s *ClusterService) Upgrade(ctx context.Context, c *gin.Context) error {
 	}
 	b, _ := json.Marshal(patch)
 	if _, err := patchClusterJSON(ctx, cli, ns, name, b); err != nil {
-		log.Printf("ops Upgrade failed: %s duration=%s", err, time.Since(start))
+		logger.Error("ops Upgrade failed",
+			"namespace", ns,
+			"name", name,
+			"duration", time.Since(start),
+			"error", err)
 		util.HandleK8sError(c, "failed to upgrade cluster", err)
 		return nil
 	}
-	log.Printf("ops Upgrade ok duration=%s", time.Since(start))
+	logger.Info("ops Upgrade ok",
+		"namespace", ns,
+		"name", name,
+		"duration", time.Since(start))
 	apierr.OK(c, gin.H{"message": "Cluster upgrade initiated successfully", "upgrade": gin.H{"targetVersion": req.TargetVersion, "strategy": req.Strategy, "status": "升级已启动"}})
 	return nil
 }

@@ -1,17 +1,17 @@
 package router
 
 import (
-	"log"
 	"strconv"
 	"strings"
+
+	"github.com/gin-gonic/gin"
 
 	"polardbx-ui-backend/pkg/api"
 	apierr "polardbx-ui-backend/pkg/api/errors"
 	"polardbx-ui-backend/pkg/api/middleware"
 	"polardbx-ui-backend/pkg/api/provider"
 	"polardbx-ui-backend/pkg/config"
-
-	"github.com/gin-gonic/gin"
+	"polardbx-ui-backend/pkg/logger"
 )
 
 // SetupRouter creates and configures the main Gin router
@@ -58,6 +58,9 @@ func setupMiddleware(r *gin.Engine, cfg *config.ServerConfig) {
 
 // setupRoutes registers all route groups
 func setupRoutes(r *gin.Engine) {
+	// Swagger/OpenAPI documentation (only in debug mode or when enabled)
+	RegisterSwaggerRoutes(r)
+
 	// Health check endpoints (no auth required)
 	RegisterHealthRoutes(r)
 
@@ -149,9 +152,9 @@ func CORSMiddleware(cfg *config.ServerConfig) gin.HandlerFunc {
 
 // LogRoutes logs all registered routes
 func LogRoutes(r *gin.Engine) {
-	log.Println("=== Registered Routes ===")
+	logger.Info("=== Registered Routes ===")
 	for _, route := range r.Routes() {
-		log.Printf("  %s %s", route.Method, route.Path)
+		logger.Info("Route registered", "method", route.Method, "path", route.Path)
 	}
-	log.Printf("=== Total: %d routes ===", len(r.Routes()))
+	logger.Info("=== Total routes ===", "count", len(r.Routes()))
 }

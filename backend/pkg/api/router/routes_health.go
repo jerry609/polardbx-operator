@@ -71,7 +71,11 @@ var (
 	GoVersion = "unknown"
 )
 
-// RegisterHealthRoutes registers health check endpoints
+// RegisterHealthRoutes registers health check endpoints.
+// It sets up the following routes:
+//   - GET /health, /healthz - Liveness probe
+//   - GET /ready, /readyz - Readiness probe with dependency checks
+//   - GET /version - Version information endpoint
 func RegisterHealthRoutes(r *gin.Engine) {
 	// Liveness probe - simple check that the service is running
 	r.GET("/health", healthHandler)
@@ -85,7 +89,8 @@ func RegisterHealthRoutes(r *gin.Engine) {
 	r.GET("/version", versionHandler)
 }
 
-// healthHandler handles liveness probes
+// healthHandler handles liveness probes.
+// Returns a simple health status indicating the service is running.
 func healthHandler(c *gin.Context) {
 	apierr.OK(c, HealthResponse{
 		Status:    "healthy",
@@ -94,6 +99,8 @@ func healthHandler(c *gin.Context) {
 }
 
 // readyHandler handles readiness probes with dependency checks and timeouts.
+// Checks the status of config, cache, kubernetes, and build components.
+// Returns "ready", "degraded", or "not_ready" status based on component health.
 func readyHandler(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(c.Request.Context(), readinessTimeout)
 	defer cancel()
@@ -134,7 +141,7 @@ func readyHandler(c *gin.Context) {
 	c.JSON(statusCode, resp)
 }
 
-// versionHandler returns build version information
+// versionHandler returns build version information including version, commit, build date, Go version, and uptime.
 func versionHandler(c *gin.Context) {
 	uptime := time.Since(startTime).Round(time.Second).String()
 

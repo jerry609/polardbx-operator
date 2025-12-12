@@ -2,6 +2,7 @@ package k8s
 
 import (
 	"context"
+	"log"
 
 	polardbxv1 "github.com/alibaba/polardbx-operator/api/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -10,8 +11,10 @@ import (
 
 // ListPodsForPolarDBXCluster lists all pods for a PolarDBXCluster.
 // Deprecated: Use ListPodsForPolarDBXClusterWithContext for better context control.
+// This function uses context.Background() which cannot be cancelled or timed out.
 func ListPodsForPolarDBXCluster(c client.Client, namespace, clusterName string) ([]corev1.Pod, error) {
-	return ListPodsForPolarDBXClusterWithContext(context.TODO(), c, namespace, clusterName)
+	log.Printf("WARNING: Using deprecated ListPodsForPolarDBXCluster without context. Please migrate to ListPodsForPolarDBXClusterWithContext.")
+	return ListPodsForPolarDBXClusterWithContext(context.Background(), c, namespace, clusterName)
 }
 
 func ListPodsForPolarDBXClusterWithContext(ctx context.Context, c client.Client, namespace, clusterName string) ([]corev1.Pod, error) {
@@ -31,28 +34,38 @@ func ListPodsForPolarDBXClusterWithContext(ctx context.Context, c client.Client,
 // ---- PolarDBXParameter CRUD ----
 
 // Deprecated: Use ListPolarDBXParametersWithContext for better context control.
+// This function uses context.Background() which cannot be cancelled or timed out.
 func ListPolarDBXParameters(c client.Client, namespace string) ([]polardbxv1.PolarDBXParameter, error) {
-	return ListPolarDBXParametersWithContext(context.TODO(), c, namespace)
+	log.Printf("WARNING: Using deprecated ListPolarDBXParameters without context. Please migrate to ListPolarDBXParametersWithContext.")
+	return ListPolarDBXParametersWithContext(context.Background(), c, namespace)
 }
 
 // Deprecated: Use GetPolarDBXParameterWithContext for better context control.
+// This function uses context.Background() which cannot be cancelled or timed out.
 func GetPolarDBXParameter(c client.Client, namespace, name string) (*polardbxv1.PolarDBXParameter, error) {
-	return GetPolarDBXParameterWithContext(context.TODO(), c, namespace, name)
+	log.Printf("WARNING: Using deprecated GetPolarDBXParameter without context. Please migrate to GetPolarDBXParameterWithContext.")
+	return GetPolarDBXParameterWithContext(context.Background(), c, namespace, name)
 }
 
 // Deprecated: Use CreatePolarDBXParameterWithContext for better context control.
+// This function uses context.Background() which cannot be cancelled or timed out.
 func CreatePolarDBXParameter(c client.Client, namespace string, param *polardbxv1.PolarDBXParameter) (*polardbxv1.PolarDBXParameter, error) {
-	return CreatePolarDBXParameterWithContext(context.TODO(), c, namespace, param)
+	log.Printf("WARNING: Using deprecated CreatePolarDBXParameter without context. Please migrate to CreatePolarDBXParameterWithContext.")
+	return CreatePolarDBXParameterWithContext(context.Background(), c, namespace, param)
 }
 
 // Deprecated: Use UpdatePolarDBXParameterWithContext for better context control.
+// This function uses context.Background() which cannot be cancelled or timed out.
 func UpdatePolarDBXParameter(c client.Client, namespace string, param *polardbxv1.PolarDBXParameter) (*polardbxv1.PolarDBXParameter, error) {
-	return UpdatePolarDBXParameterWithContext(context.TODO(), c, namespace, param)
+	log.Printf("WARNING: Using deprecated UpdatePolarDBXParameter without context. Please migrate to UpdatePolarDBXParameterWithContext.")
+	return UpdatePolarDBXParameterWithContext(context.Background(), c, namespace, param)
 }
 
 // Deprecated: Use DeletePolarDBXParameterWithContext for better context control.
+// This function uses context.Background() which cannot be cancelled or timed out.
 func DeletePolarDBXParameter(c client.Client, namespace, name string) error {
-	return DeletePolarDBXParameterWithContext(context.TODO(), c, namespace, name)
+	log.Printf("WARNING: Using deprecated DeletePolarDBXParameter without context. Please migrate to DeletePolarDBXParameterWithContext.")
+	return DeletePolarDBXParameterWithContext(context.Background(), c, namespace, name)
 }
 
 func ListPolarDBXParametersWithContext(ctx context.Context, c client.Client, namespace string) ([]polardbxv1.PolarDBXParameter, error) {
@@ -98,28 +111,38 @@ func DeletePolarDBXParameterWithContext(ctx context.Context, c client.Client, na
 // ---- PolarDBXParameterTemplate CRUD ----
 
 // Deprecated: Use ListPolarDBXParameterTemplatesWithContext for better context control.
+// This function uses context.Background() which cannot be cancelled or timed out.
 func ListPolarDBXParameterTemplates(c client.Client, namespace string) ([]polardbxv1.PolarDBXParameterTemplate, error) {
-	return ListPolarDBXParameterTemplatesWithContext(context.TODO(), c, namespace)
+	log.Printf("WARNING: Using deprecated ListPolarDBXParameterTemplates without context. Please migrate to ListPolarDBXParameterTemplatesWithContext.")
+	return ListPolarDBXParameterTemplatesWithContext(context.Background(), c, namespace)
 }
 
 // Deprecated: Use CreatePolarDBXParameterTemplateWithContext for better context control.
+// This function uses context.Background() which cannot be cancelled or timed out.
 func CreatePolarDBXParameterTemplate(c client.Client, namespace string, template *polardbxv1.PolarDBXParameterTemplate) (*polardbxv1.PolarDBXParameterTemplate, error) {
-	return CreatePolarDBXParameterTemplateWithContext(context.TODO(), c, namespace, template)
+	log.Printf("WARNING: Using deprecated CreatePolarDBXParameterTemplate without context. Please migrate to CreatePolarDBXParameterTemplateWithContext.")
+	return CreatePolarDBXParameterTemplateWithContext(context.Background(), c, namespace, template)
 }
 
 // Deprecated: Use GetPolarDBXParameterTemplateWithContext for better context control.
+// This function uses context.Background() which cannot be cancelled or timed out.
 func GetPolarDBXParameterTemplate(c client.Client, namespace, name string) (*polardbxv1.PolarDBXParameterTemplate, error) {
-	return GetPolarDBXParameterTemplateWithContext(context.TODO(), c, namespace, name)
+	log.Printf("WARNING: Using deprecated GetPolarDBXParameterTemplate without context. Please migrate to GetPolarDBXParameterTemplateWithContext.")
+	return GetPolarDBXParameterTemplateWithContext(context.Background(), c, namespace, name)
 }
 
 // Deprecated: Use UpdatePolarDBXParameterTemplateWithContext for better context control.
+// This function uses context.Background() which cannot be cancelled or timed out.
 func UpdatePolarDBXParameterTemplate(c client.Client, namespace string, template *polardbxv1.PolarDBXParameterTemplate) (*polardbxv1.PolarDBXParameterTemplate, error) {
-	return UpdatePolarDBXParameterTemplateWithContext(context.TODO(), c, namespace, template)
+	log.Printf("WARNING: Using deprecated UpdatePolarDBXParameterTemplate without context. Please migrate to UpdatePolarDBXParameterTemplateWithContext.")
+	return UpdatePolarDBXParameterTemplateWithContext(context.Background(), c, namespace, template)
 }
 
 // Deprecated: Use DeletePolarDBXParameterTemplateWithContext for better context control.
+// This function uses context.Background() which cannot be cancelled or timed out.
 func DeletePolarDBXParameterTemplate(c client.Client, namespace, name string) error {
-	return DeletePolarDBXParameterTemplateWithContext(context.TODO(), c, namespace, name)
+	log.Printf("WARNING: Using deprecated DeletePolarDBXParameterTemplate without context. Please migrate to DeletePolarDBXParameterTemplateWithContext.")
+	return DeletePolarDBXParameterTemplateWithContext(context.Background(), c, namespace, name)
 }
 
 func ListPolarDBXParameterTemplatesWithContext(ctx context.Context, c client.Client, namespace string) ([]polardbxv1.PolarDBXParameterTemplate, error) {
@@ -165,28 +188,38 @@ func DeletePolarDBXParameterTemplateWithContext(ctx context.Context, c client.Cl
 // ---- SystemTask CRUD ----
 
 // Deprecated: Use ListSystemTasksWithContext for better context control.
+// This function uses context.Background() which cannot be cancelled or timed out.
 func ListSystemTasks(c client.Client, namespace string) ([]polardbxv1.SystemTask, error) {
-	return ListSystemTasksWithContext(context.TODO(), c, namespace)
+	log.Printf("WARNING: Using deprecated ListSystemTasks without context. Please migrate to ListSystemTasksWithContext.")
+	return ListSystemTasksWithContext(context.Background(), c, namespace)
 }
 
 // Deprecated: Use CreateSystemTaskWithContext for better context control.
+// This function uses context.Background() which cannot be cancelled or timed out.
 func CreateSystemTask(c client.Client, namespace string, task *polardbxv1.SystemTask) (*polardbxv1.SystemTask, error) {
-	return CreateSystemTaskWithContext(context.TODO(), c, namespace, task)
+	log.Printf("WARNING: Using deprecated CreateSystemTask without context. Please migrate to CreateSystemTaskWithContext.")
+	return CreateSystemTaskWithContext(context.Background(), c, namespace, task)
 }
 
 // Deprecated: Use GetSystemTaskWithContext for better context control.
+// This function uses context.Background() which cannot be cancelled or timed out.
 func GetSystemTask(c client.Client, namespace, name string) (*polardbxv1.SystemTask, error) {
-	return GetSystemTaskWithContext(context.TODO(), c, namespace, name)
+	log.Printf("WARNING: Using deprecated GetSystemTask without context. Please migrate to GetSystemTaskWithContext.")
+	return GetSystemTaskWithContext(context.Background(), c, namespace, name)
 }
 
 // Deprecated: Use UpdateSystemTaskWithContext for better context control.
+// This function uses context.Background() which cannot be cancelled or timed out.
 func UpdateSystemTask(c client.Client, namespace string, task *polardbxv1.SystemTask) (*polardbxv1.SystemTask, error) {
-	return UpdateSystemTaskWithContext(context.TODO(), c, namespace, task)
+	log.Printf("WARNING: Using deprecated UpdateSystemTask without context. Please migrate to UpdateSystemTaskWithContext.")
+	return UpdateSystemTaskWithContext(context.Background(), c, namespace, task)
 }
 
 // Deprecated: Use DeleteSystemTaskWithContext for better context control.
+// This function uses context.Background() which cannot be cancelled or timed out.
 func DeleteSystemTask(c client.Client, namespace, name string) error {
-	return DeleteSystemTaskWithContext(context.TODO(), c, namespace, name)
+	log.Printf("WARNING: Using deprecated DeleteSystemTask without context. Please migrate to DeleteSystemTaskWithContext.")
+	return DeleteSystemTaskWithContext(context.Background(), c, namespace, name)
 }
 
 func ListSystemTasksWithContext(ctx context.Context, c client.Client, namespace string) ([]polardbxv1.SystemTask, error) {
@@ -235,28 +268,38 @@ func DeleteSystemTaskWithContext(ctx context.Context, c client.Client, namespace
 // ---- PolarDBXMonitor CRUD ----
 
 // Deprecated: Use ListPolarDBXMonitorsWithContext for better context control.
+// This function uses context.Background() which cannot be cancelled or timed out.
 func ListPolarDBXMonitors(c client.Client, namespace string) ([]polardbxv1.PolarDBXMonitor, error) {
-	return ListPolarDBXMonitorsWithContext(context.TODO(), c, namespace)
+	log.Printf("WARNING: Using deprecated ListPolarDBXMonitors without context. Please migrate to ListPolarDBXMonitorsWithContext.")
+	return ListPolarDBXMonitorsWithContext(context.Background(), c, namespace)
 }
 
 // Deprecated: Use CreatePolarDBXMonitorWithContext for better context control.
+// This function uses context.Background() which cannot be cancelled or timed out.
 func CreatePolarDBXMonitor(c client.Client, namespace string, monitor *polardbxv1.PolarDBXMonitor) (*polardbxv1.PolarDBXMonitor, error) {
-	return CreatePolarDBXMonitorWithContext(context.TODO(), c, namespace, monitor)
+	log.Printf("WARNING: Using deprecated CreatePolarDBXMonitor without context. Please migrate to CreatePolarDBXMonitorWithContext.")
+	return CreatePolarDBXMonitorWithContext(context.Background(), c, namespace, monitor)
 }
 
 // Deprecated: Use GetPolarDBXMonitorWithContext for better context control.
+// This function uses context.Background() which cannot be cancelled or timed out.
 func GetPolarDBXMonitor(c client.Client, namespace, name string) (*polardbxv1.PolarDBXMonitor, error) {
-	return GetPolarDBXMonitorWithContext(context.TODO(), c, namespace, name)
+	log.Printf("WARNING: Using deprecated GetPolarDBXMonitor without context. Please migrate to GetPolarDBXMonitorWithContext.")
+	return GetPolarDBXMonitorWithContext(context.Background(), c, namespace, name)
 }
 
 // Deprecated: Use UpdatePolarDBXMonitorWithContext for better context control.
+// This function uses context.Background() which cannot be cancelled or timed out.
 func UpdatePolarDBXMonitor(c client.Client, namespace string, monitor *polardbxv1.PolarDBXMonitor) (*polardbxv1.PolarDBXMonitor, error) {
-	return UpdatePolarDBXMonitorWithContext(context.TODO(), c, namespace, monitor)
+	log.Printf("WARNING: Using deprecated UpdatePolarDBXMonitor without context. Please migrate to UpdatePolarDBXMonitorWithContext.")
+	return UpdatePolarDBXMonitorWithContext(context.Background(), c, namespace, monitor)
 }
 
 // Deprecated: Use DeletePolarDBXMonitorWithContext for better context control.
+// This function uses context.Background() which cannot be cancelled or timed out.
 func DeletePolarDBXMonitor(c client.Client, namespace, name string) error {
-	return DeletePolarDBXMonitorWithContext(context.TODO(), c, namespace, name)
+	log.Printf("WARNING: Using deprecated DeletePolarDBXMonitor without context. Please migrate to DeletePolarDBXMonitorWithContext.")
+	return DeletePolarDBXMonitorWithContext(context.Background(), c, namespace, name)
 }
 
 func ListPolarDBXMonitorsWithContext(ctx context.Context, c client.Client, namespace string) ([]polardbxv1.PolarDBXMonitor, error) {
@@ -302,8 +345,10 @@ func DeletePolarDBXMonitorWithContext(ctx context.Context, c client.Client, name
 // ---- ClusterKnobs ----
 
 // Deprecated: Use GetClusterKnobsListWithContext for better context control.
+// This function uses context.Background() which cannot be cancelled or timed out.
 func GetClusterKnobsList(c client.Client) (*polardbxv1.PolarDBXClusterKnobsList, error) {
-	return GetClusterKnobsListWithContext(context.TODO(), c)
+	log.Printf("WARNING: Using deprecated GetClusterKnobsList without context. Please migrate to GetClusterKnobsListWithContext.")
+	return GetClusterKnobsListWithContext(context.Background(), c)
 }
 
 func GetClusterKnobsListWithContext(ctx context.Context, c client.Client) (*polardbxv1.PolarDBXClusterKnobsList, error) {
@@ -313,8 +358,10 @@ func GetClusterKnobsListWithContext(ctx context.Context, c client.Client) (*pola
 }
 
 // Deprecated: Use CreateClusterKnobsWithContext for better context control.
+// This function uses context.Background() which cannot be cancelled or timed out.
 func CreateClusterKnobs(c client.Client, knobs *polardbxv1.PolarDBXClusterKnobs) (*polardbxv1.PolarDBXClusterKnobs, error) {
-	return CreateClusterKnobsWithContext(context.TODO(), c, knobs)
+	log.Printf("WARNING: Using deprecated CreateClusterKnobs without context. Please migrate to CreateClusterKnobsWithContext.")
+	return CreateClusterKnobsWithContext(context.Background(), c, knobs)
 }
 
 func CreateClusterKnobsWithContext(ctx context.Context, c client.Client, knobs *polardbxv1.PolarDBXClusterKnobs) (*polardbxv1.PolarDBXClusterKnobs, error) {
@@ -323,8 +370,10 @@ func CreateClusterKnobsWithContext(ctx context.Context, c client.Client, knobs *
 }
 
 // Deprecated: Use GetClusterKnobsWithContext for better context control.
+// This function uses context.Background() which cannot be cancelled or timed out.
 func GetClusterKnobs(c client.Client, namespace, name string) (*polardbxv1.PolarDBXClusterKnobs, error) {
-	return GetClusterKnobsWithContext(context.TODO(), c, namespace, name)
+	log.Printf("WARNING: Using deprecated GetClusterKnobs without context. Please migrate to GetClusterKnobsWithContext.")
+	return GetClusterKnobsWithContext(context.Background(), c, namespace, name)
 }
 
 func GetClusterKnobsWithContext(ctx context.Context, c client.Client, namespace, name string) (*polardbxv1.PolarDBXClusterKnobs, error) {
@@ -337,8 +386,10 @@ func GetClusterKnobsWithContext(ctx context.Context, c client.Client, namespace,
 }
 
 // Deprecated: Use UpdateClusterKnobsWithContext for better context control.
+// This function uses context.Background() which cannot be cancelled or timed out.
 func UpdateClusterKnobs(c client.Client, knobs *polardbxv1.PolarDBXClusterKnobs) (*polardbxv1.PolarDBXClusterKnobs, error) {
-	return UpdateClusterKnobsWithContext(context.TODO(), c, knobs)
+	log.Printf("WARNING: Using deprecated UpdateClusterKnobs without context. Please migrate to UpdateClusterKnobsWithContext.")
+	return UpdateClusterKnobsWithContext(context.Background(), c, knobs)
 }
 
 func UpdateClusterKnobsWithContext(ctx context.Context, c client.Client, knobs *polardbxv1.PolarDBXClusterKnobs) (*polardbxv1.PolarDBXClusterKnobs, error) {
@@ -347,8 +398,10 @@ func UpdateClusterKnobsWithContext(ctx context.Context, c client.Client, knobs *
 }
 
 // Deprecated: Use DeleteClusterKnobsWithContext for better context control.
+// This function uses context.Background() which cannot be cancelled or timed out.
 func DeleteClusterKnobs(c client.Client, namespace, name string) error {
-	return DeleteClusterKnobsWithContext(context.TODO(), c, namespace, name)
+	log.Printf("WARNING: Using deprecated DeleteClusterKnobs without context. Please migrate to DeleteClusterKnobsWithContext.")
+	return DeleteClusterKnobsWithContext(context.Background(), c, namespace, name)
 }
 
 func DeleteClusterKnobsWithContext(ctx context.Context, c client.Client, namespace, name string) error {
@@ -361,28 +414,38 @@ func DeleteClusterKnobsWithContext(ctx context.Context, c client.Client, namespa
 // ---- PolarDBXLogCollector CRUD ----
 
 // Deprecated: Use ListPolarDBXLogCollectorsWithContext for better context control.
+// This function uses context.Background() which cannot be cancelled or timed out.
 func ListPolarDBXLogCollectors(c client.Client, namespace string) ([]polardbxv1.PolarDBXLogCollector, error) {
-	return ListPolarDBXLogCollectorsWithContext(context.TODO(), c, namespace)
+	log.Printf("WARNING: Using deprecated ListPolarDBXLogCollectors without context. Please migrate to ListPolarDBXLogCollectorsWithContext.")
+	return ListPolarDBXLogCollectorsWithContext(context.Background(), c, namespace)
 }
 
 // Deprecated: Use CreatePolarDBXLogCollectorWithContext for better context control.
+// This function uses context.Background() which cannot be cancelled or timed out.
 func CreatePolarDBXLogCollector(c client.Client, namespace string, obj *polardbxv1.PolarDBXLogCollector) (*polardbxv1.PolarDBXLogCollector, error) {
-	return CreatePolarDBXLogCollectorWithContext(context.TODO(), c, namespace, obj)
+	log.Printf("WARNING: Using deprecated CreatePolarDBXLogCollector without context. Please migrate to CreatePolarDBXLogCollectorWithContext.")
+	return CreatePolarDBXLogCollectorWithContext(context.Background(), c, namespace, obj)
 }
 
 // Deprecated: Use GetPolarDBXLogCollectorWithContext for better context control.
+// This function uses context.Background() which cannot be cancelled or timed out.
 func GetPolarDBXLogCollector(c client.Client, namespace, name string) (*polardbxv1.PolarDBXLogCollector, error) {
-	return GetPolarDBXLogCollectorWithContext(context.TODO(), c, namespace, name)
+	log.Printf("WARNING: Using deprecated GetPolarDBXLogCollector without context. Please migrate to GetPolarDBXLogCollectorWithContext.")
+	return GetPolarDBXLogCollectorWithContext(context.Background(), c, namespace, name)
 }
 
 // Deprecated: Use UpdatePolarDBXLogCollectorWithContext for better context control.
+// This function uses context.Background() which cannot be cancelled or timed out.
 func UpdatePolarDBXLogCollector(c client.Client, namespace string, obj *polardbxv1.PolarDBXLogCollector) (*polardbxv1.PolarDBXLogCollector, error) {
-	return UpdatePolarDBXLogCollectorWithContext(context.TODO(), c, namespace, obj)
+	log.Printf("WARNING: Using deprecated UpdatePolarDBXLogCollector without context. Please migrate to UpdatePolarDBXLogCollectorWithContext.")
+	return UpdatePolarDBXLogCollectorWithContext(context.Background(), c, namespace, obj)
 }
 
 // Deprecated: Use DeletePolarDBXLogCollectorWithContext for better context control.
+// This function uses context.Background() which cannot be cancelled or timed out.
 func DeletePolarDBXLogCollector(c client.Client, namespace, name string) error {
-	return DeletePolarDBXLogCollectorWithContext(context.TODO(), c, namespace, name)
+	log.Printf("WARNING: Using deprecated DeletePolarDBXLogCollector without context. Please migrate to DeletePolarDBXLogCollectorWithContext.")
+	return DeletePolarDBXLogCollectorWithContext(context.Background(), c, namespace, name)
 }
 
 func ListPolarDBXLogCollectorsWithContext(ctx context.Context, c client.Client, namespace string) ([]polardbxv1.PolarDBXLogCollector, error) {

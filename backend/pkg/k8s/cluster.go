@@ -2,6 +2,7 @@ package k8s
 
 import (
 	"context"
+	"log"
 
 	polardbxv1 "github.com/alibaba/polardbx-operator/api/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -10,38 +11,50 @@ import (
 
 // ListPolarDBXClusters lists all PolarDBXCluster resources in the given namespace.
 // Deprecated: Use ListPolarDBXClustersWithContext for better context control.
+// This function uses context.Background() which cannot be cancelled or timed out.
 func ListPolarDBXClusters(c client.Client, namespace string) ([]polardbxv1.PolarDBXCluster, error) {
-	return ListPolarDBXClustersWithContext(context.TODO(), c, namespace)
+	log.Printf("WARNING: Using deprecated ListPolarDBXClusters without context. Please migrate to ListPolarDBXClustersWithContext.")
+	return ListPolarDBXClustersWithContext(context.Background(), c, namespace)
 }
 
 // CreatePolarDBXCluster creates a PolarDBXCluster resource.
 // Deprecated: Use CreatePolarDBXClusterWithContext for better context control.
+// This function uses context.Background() which cannot be cancelled or timed out.
 func CreatePolarDBXCluster(c client.Client, namespace string, cluster *polardbxv1.PolarDBXCluster) (*polardbxv1.PolarDBXCluster, error) {
-	return CreatePolarDBXClusterWithContext(context.TODO(), c, namespace, cluster)
+	log.Printf("WARNING: Using deprecated CreatePolarDBXCluster without context. Please migrate to CreatePolarDBXClusterWithContext.")
+	return CreatePolarDBXClusterWithContext(context.Background(), c, namespace, cluster)
 }
 
 // GetPolarDBXCluster gets a PolarDBXCluster resource by name.
 // Deprecated: Use GetPolarDBXClusterWithContext for better context control.
+// This function uses context.Background() which cannot be cancelled or timed out.
 func GetPolarDBXCluster(c client.Client, namespace, name string) (*polardbxv1.PolarDBXCluster, error) {
-	return GetPolarDBXClusterWithContext(context.TODO(), c, namespace, name)
+	log.Printf("WARNING: Using deprecated GetPolarDBXCluster without context. Please migrate to GetPolarDBXClusterWithContext.")
+	return GetPolarDBXClusterWithContext(context.Background(), c, namespace, name)
 }
 
 // DeletePolarDBXCluster deletes a PolarDBXCluster resource by name.
 // Deprecated: Use DeletePolarDBXClusterWithContext for better context control.
+// This function uses context.Background() which cannot be cancelled or timed out.
 func DeletePolarDBXCluster(c client.Client, namespace, name string) error {
-	return DeletePolarDBXClusterWithContext(context.TODO(), c, namespace, name)
+	log.Printf("WARNING: Using deprecated DeletePolarDBXCluster without context. Please migrate to DeletePolarDBXClusterWithContext.")
+	return DeletePolarDBXClusterWithContext(context.Background(), c, namespace, name)
 }
 
 // UpdatePolarDBXCluster updates a PolarDBXCluster resource.
 // Deprecated: Use UpdatePolarDBXClusterWithContext for better context control.
+// This function uses context.Background() which cannot be cancelled or timed out.
 func UpdatePolarDBXCluster(c client.Client, namespace string, cluster *polardbxv1.PolarDBXCluster) (*polardbxv1.PolarDBXCluster, error) {
-	return UpdatePolarDBXClusterWithContext(context.TODO(), c, namespace, cluster)
+	log.Printf("WARNING: Using deprecated UpdatePolarDBXCluster without context. Please migrate to UpdatePolarDBXClusterWithContext.")
+	return UpdatePolarDBXClusterWithContext(context.Background(), c, namespace, cluster)
 }
 
 // PatchPolarDBXCluster patches a PolarDBXCluster resource.
 // Deprecated: Use PatchPolarDBXClusterWithContext for better context control.
+// This function uses context.Background() which cannot be cancelled or timed out.
 func PatchPolarDBXCluster(c client.Client, namespace, name string, patchData []byte) (*polardbxv1.PolarDBXCluster, error) {
-	return PatchPolarDBXClusterWithContext(context.TODO(), c, namespace, name, patchData)
+	log.Printf("WARNING: Using deprecated PatchPolarDBXCluster without context. Please migrate to PatchPolarDBXClusterWithContext.")
+	return PatchPolarDBXClusterWithContext(context.Background(), c, namespace, name, patchData)
 }
 
 // Context-aware variants for cluster operations
