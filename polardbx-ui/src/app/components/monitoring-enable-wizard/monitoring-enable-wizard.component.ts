@@ -301,50 +301,50 @@ const MAX_STATE_AGE_HOURS = 24;
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="monitoring-enable-wizard">
-      <!-- ✅ 检测中状态 -->
+      <!-- ✅ Checking status -->
       <div class="checking-overlay" *ngIf="checkingExisting">
-        <nz-spin nzSimple [nzSize]="'large'" nzTip="正在检测监控系统状态..."></nz-spin>
+        <nz-spin nzSimple [nzSize]="'large'" nzTip="Detecting monitoring system status..."></nz-spin>
       </div>
       
-      <!-- ✅ 检测完成后显示向导 -->
+      <!-- ✅ Show wizard after check completes -->
       <div *ngIf="!checkingExisting">
         <div class="page-header">
           <div class="header-content">
             <h1 class="page-title">
               <i nz-icon nzType="tool" class="page-icon"></i>
-              监控一键开启向导
+              Monitoring Quick Start Wizard
             </h1>
-            <p class="subtitle">快速启用 PolarDB-X 集群监控（企业版 PolarDBXMonitor / 标准版 ServiceMonitor）</p>
+            <p class="subtitle">Quickly enable PolarDB-X cluster monitoring (Enterprise PolarDBXMonitor / Standard ServiceMonitor)</p>
           </div>
         </div>
       </div>
       
       <app-wizard-shell
         *ngIf="!checkingExisting"
-        title="监控开启向导"
-        subtitle="快速启用 PolarDB-X 集群监控"
+        title="Monitoring Enablement Wizard"
+        subtitle="Quickly enable PolarDB-X cluster monitoring"
         [namespace]="form.value.namespace"
         [objectName]="getObjectName()"
-        objectLabel="目标"
+        objectLabel="Target"
         docLink="https://docs.polardbx.com/monitoring"
         [steps]="wizardSteps"
         [currentStepIndex]="currentStep"
         [actions]="getStepActions()"
         [loading]="stepLoading">
 
-      <!-- 步骤0：镜像源配置 -->
+      <!-- Step 0: Image registry configuration -->
       <ng-template #step0Template>
         <div class="step-content">
           <nz-alert 
             nzType="info"
-            nzMessage="镜像源配置"
-            nzDescription="为监控安装选择镜像拉取渠道。推荐使用已经验证可用的 DaoCloud 镜像加速；如果您已完成配置，也可以直接跳过本步骤。"
+            nzMessage="Image Registry Configuration"
+            nzDescription="Choose an image registry for monitoring installation. DaoCloud mirror acceleration is recommended; if already configured, you can skip this step."
             nzShowIcon
             class="step-alert">
           </nz-alert>
 
           <nz-spin [nzSpinning]="loadingRegistries">
-            <!-- 当前配置显示 -->
+            <!-- Current configuration display -->
             <nz-alert 
               *ngIf="currentRegistryConfig"
               nzType="info"
@@ -352,7 +352,7 @@ const MAX_STATE_AGE_HOURS = 24;
               class="current-config-alert"
               style="margin-bottom: 16px;">
               <div nz-alert-message>
-                <strong>当前镜像源配置</strong>
+                <strong>Current image registry configuration</strong>
               </div>
               <div nz-alert-description>
                 {{ currentRegistryConfig }}
@@ -373,9 +373,9 @@ const MAX_STATE_AGE_HOURS = 24;
                   <div class="registry-name">
                     <span>{{ registry.name }}</span>
                     <span class="registry-badge" [ngClass]="getRegistryStatusBadgeClass(registry.status)">
-                      <span *ngIf="registry.status === 'verified'">已验证</span>
-                      <span *ngIf="registry.status === 'slow'">网络较慢</span>
-                      <span *ngIf="registry.status === 'custom'">自定义</span>
+                      <span *ngIf="registry.status === 'verified'">Verified</span>
+                      <span *ngIf="registry.status === 'slow'">Slow network</span>
+                      <span *ngIf="registry.status === 'custom'">Custom</span>
                     </span>
                   </div>
                   <i nz-icon 
@@ -388,14 +388,14 @@ const MAX_STATE_AGE_HOURS = 24;
                 <div class="registry-url" *ngIf="registry.registry !== 'custom'">{{ registry.registry }}</div>
               </div>
 
-              <!-- 自定义镜像源输入框 -->
+              <!-- Custom image registry input -->
               <div *ngIf="selectedRegistry === 'custom'" class="custom-registry-input">
                 <nz-input-group nzSearch nzSize="large" [nzAddOnAfter]="suffixButton">
                   <input 
                     type="text" 
                     nz-input 
                     [(ngModel)]="customRegistryInput"
-                    placeholder="例如：registry.example.com 或 my-registry.com:5000" />
+                    placeholder="e.g., registry.example.com or my-registry.com:5000" />
                 </nz-input-group>
                 <ng-template #suffixButton>
                   <button nz-button nzType="primary" nzSearch (click)="saveImageRegistryConfig()">
@@ -404,31 +404,31 @@ const MAX_STATE_AGE_HOURS = 24;
                 </ng-template>
                 <div class="custom-registry-tips">
                   <i nz-icon nzType="info-circle" nzTheme="fill"></i>
-                  请确保您的自定义镜像源包含所需的 Helm Chart 和镜像资源
+                  Ensure your custom image registry contains required Helm charts and images
                 </div>
               </div>
             </div>
 
-            <!-- 额外说明 -->
+            <!-- Additional notes -->
             <div class="registry-notes">
-              <h4>镜像源说明</h4>
+              <h4>Image registry notes</h4>
               <ul>
-                <li><strong>DaoCloud</strong>：经过验证可用的镜像加速源，适合快速拉取镜像</li>
-                <li><strong>Docker Hub</strong>：官方公共镜像源，访问可能较慢或受到限流</li>
-                <li><strong>自定义</strong>：使用企业/私有镜像仓库时，在下方输入自定义地址</li>
+                <li><strong>DaoCloud</strong>: Verified mirror acceleration source, good for fast pulls</li>
+                <li><strong>Docker Hub</strong>: Official public registry; may be slow or rate-limited</li>
+                <li><strong>Custom</strong>: For enterprise/private registries, enter a custom address below</li>
               </ul>
             </div>
           </nz-spin>
         </div>
       </ng-template>
 
-      <!-- 步骤1：选择目标 -->
+      <!-- Step 1: Select target -->
       <ng-template #step1Template>
         <div class="step-content">
           <nz-alert 
             nzType="info"
-            nzMessage="选择监控目标"
-            nzDescription="选择要启用监控的集群类型和具体目标。企业版使用 PolarDBXMonitor，标准版使用 ServiceMonitor。"
+            nzMessage="Select monitoring target"
+            nzDescription="Choose the cluster type and specific target to enable monitoring. Enterprise uses PolarDBXMonitor, Standard uses ServiceMonitor."
             nzShowIcon
             class="step-alert">
           </nz-alert>
@@ -438,12 +438,12 @@ const MAX_STATE_AGE_HOURS = 24;
             nzType="warning"
             nzShowIcon
             class="step-alert"
-            [nzMessage]="'命名空间 ' + form.value.namespace + ' 尚未创建'"
+            [nzMessage]="'Namespace ' + form.value.namespace + ' is not created yet'"
             [nzDescription]="namespaceGuideTpl">
           </nz-alert>
 
           <ng-template #namespaceGuideTpl>
-            <p>请在 Kubernetes 集群中创建该命名空间后再继续，或切换到已存在的命名空间。</p>
+            <p>Please create this namespace in the Kubernetes cluster before continuing, or switch to an existing namespace.</p>
             <ng-container *ngIf="form.value.namespace as ns">
               <pre>{{ getNamespaceCreateCommand(ns) }}</pre>
               <button 
@@ -452,7 +452,7 @@ const MAX_STATE_AGE_HOURS = 24;
                 nzSize="small"
                 (click)="copyCommand(getNamespaceCreateCommand(ns))">
                 <i nz-icon nzType="copy"></i>
-                复制命令
+                Copy command
               </button>
             </ng-container>
           </ng-template>
@@ -462,7 +462,7 @@ const MAX_STATE_AGE_HOURS = 24;
             nzType="error"
             nzShowIcon
             class="step-alert"
-            nzMessage="无法确认命名空间状态"
+            nzMessage="Cannot confirm namespace status"
             [nzDescription]="namespaceError">
           </nz-alert>
 
@@ -470,50 +470,50 @@ const MAX_STATE_AGE_HOURS = 24;
             <nz-row [nzGutter]="16">
               <nz-col [nzSpan]="12">
                 <nz-form-item>
-                  <nz-form-label [nzSpan]="6" nzRequired>安装模式</nz-form-label>
+                  <nz-form-label [nzSpan]="6" nzRequired>Install mode</nz-form-label>
                   <nz-form-control [nzSpan]="18">
                     <nz-select 
                       formControlName="installMode"
-                      nzPlaceholder="选择安装模式">
-                      <nz-option nzValue="stack" nzLabel="仅安装监控组件 (Prometheus/Grafana)"></nz-option>
-                      <nz-option nzValue="target" nzLabel="安装并为目标启用采集 (生成CRD)"></nz-option>
+                      nzPlaceholder="Select install mode">
+                      <nz-option nzValue="stack" nzLabel="Install monitoring stack only (Prometheus/Grafana)"></nz-option>
+                      <nz-option nzValue="target" nzLabel="Install and enable scraping for target (generate CRDs)"></nz-option>
                     </nz-select>
                   </nz-form-control>
                 </nz-form-item>
               </nz-col>
               <nz-col [nzSpan]="12">
                 <nz-form-item>
-                  <nz-form-label [nzSpan]="6" nzRequired>安装渠道</nz-form-label>
+                  <nz-form-label [nzSpan]="6" nzRequired>Install channel</nz-form-label>
                   <nz-form-control [nzSpan]="18">
                     <nz-select
                       formControlName="installChannel"
-                      nzPlaceholder="选择安装渠道">
-                      <nz-option nzValue="console" nzLabel="控制台自动安装 (推荐)"></nz-option>
-                      <nz-option nzValue="helm" nzLabel="Helm 命令手动安装"></nz-option>
+                      nzPlaceholder="Select install channel">
+                      <nz-option nzValue="console" nzLabel="Console auto-install (recommended)"></nz-option>
+                      <nz-option nzValue="helm" nzLabel="Helm command manual install"></nz-option>
                     </nz-select>
                   </nz-form-control>
                 </nz-form-item>
               </nz-col>
               <nz-col [nzSpan]="12">
                 <nz-form-item>
-                  <nz-form-label [nzSpan]="6" nzRequired>监控类型</nz-form-label>
+                  <nz-form-label [nzSpan]="6" nzRequired>Monitoring type</nz-form-label>
                   <nz-form-control [nzSpan]="18">
                     <nz-select 
                       formControlName="monitoringType" 
-                      nzPlaceholder="选择监控类型">
-                      <nz-option nzValue="enterprise" nzLabel="企业版 (PolarDBXMonitor)"></nz-option>
-                      <nz-option nzValue="standard" nzLabel="标准版 (ServiceMonitor)"></nz-option>
+                      nzPlaceholder="Select monitoring type">
+                      <nz-option nzValue="enterprise" nzLabel="Enterprise (PolarDBXMonitor)"></nz-option>
+                      <nz-option nzValue="standard" nzLabel="Standard (ServiceMonitor)"></nz-option>
                     </nz-select>
                   </nz-form-control>
                 </nz-form-item>
               </nz-col>
               <nz-col [nzSpan]="12">
                 <nz-form-item>
-                  <nz-form-label [nzSpan]="6" nzRequired>命名空间</nz-form-label>
+                  <nz-form-label [nzSpan]="6" nzRequired>Namespace</nz-form-label>
                   <nz-form-control [nzSpan]="18">
                     <nz-select 
                       formControlName="namespace" 
-                      nzPlaceholder="选择命名空间"
+                      nzPlaceholder="Select namespace"
                       nzShowSearch
                       nzAllowClear>
                       <nz-option 
@@ -534,11 +534,11 @@ const MAX_STATE_AGE_HOURS = 24;
                   <nz-form-control [nzSpan]="18">
                     <nz-select 
                       formControlName="targetName" 
-                      [nzPlaceHolder]="loadingTargets ? '正在加载...' : '选择目标'"
+                      [nzPlaceHolder]="loadingTargets ? 'Loading...' : 'Select target'"
                       nzShowSearch
                       nzAllowClear
                       [nzLoading]="loadingTargets"
-                      nzNotFoundContent="暂无可用资源，请先确保集群/XStore 已创建">
+                      nzNotFoundContent="No resources available; ensure cluster/XStore exists">
                       <nz-option-group *ngIf="targets.length > 0" nzLabel="{{ getTargetLabel() }}">
                         <nz-option 
                           *ngFor="let target of targets" 
@@ -546,9 +546,9 @@ const MAX_STATE_AGE_HOURS = 24;
                           [nzLabel]="target">
                         </nz-option>
                       </nz-option-group>
-                      <nz-option-group *ngIf="targets.length === 0 && !loadingTargets" nzLabel="提示">
+                      <nz-option-group *ngIf="targets.length === 0 && !loadingTargets" nzLabel="Hint">
                         <p style="padding: 8px 12px; color: rgba(0,0,0,0.45); font-size: 12px; margin: 0;">
-                          {{ form.value.namespace ? '没有找到任何' + getTargetLabel() : '请先选择命名空间' }}
+                          {{ form.value.namespace ? 'No ' + getTargetLabel() + ' found' : 'Please select a namespace first' }}
                         </p>
                       </nz-option-group>
                     </nz-select>
@@ -557,12 +557,12 @@ const MAX_STATE_AGE_HOURS = 24;
               </nz-col>
               <nz-col [nzSpan]="12">
                 <nz-form-item>
-                  <nz-form-label [nzSpan]="6">Monitor 名称</nz-form-label>
+                  <nz-form-label [nzSpan]="6">Monitor Name</nz-form-label>
                   <nz-form-control [nzSpan]="18">
                     <input 
                       nz-input 
                       formControlName="monitorName"
-                      placeholder="自动生成（可自定义）">
+                      placeholder="Auto-generated (customizable)">
                   </nz-form-control>
                 </nz-form-item>
               </nz-col>
@@ -576,13 +576,13 @@ const MAX_STATE_AGE_HOURS = 24;
         </div>
       </ng-template>
 
-      <!-- 步骤2：前置检测 -->
+      <!-- Step 2: Preflight checks -->
       <ng-template #step2Template>
         <div class="step-content">
           <nz-alert 
             nzType="info"
-            nzMessage="环境检测"
-            nzDescription="检查 CRD、权限和监控组件状态，确保监控配置可以正常应用。"
+            nzMessage="Environment checks"
+            nzDescription="Check CRDs, permissions, and monitoring components to ensure configuration can be applied."
             nzShowIcon
             class="step-alert">
           </nz-alert>
@@ -604,7 +604,7 @@ const MAX_STATE_AGE_HOURS = 24;
                     <pre>{{ block.command }}</pre>
                     <button nz-button nzType="dashed" nzSize="small" (click)="copyCommand(block.command)">
                       <i nz-icon nzType="copy"></i>
-                      复制命令
+                      Copy command
                     </button>
                   </div>
                   <button
@@ -614,7 +614,7 @@ const MAX_STATE_AGE_HOURS = 24;
                     class="blocking-link"
                     (click)="openDocsUrl(block.docsUrl)">
                     <i nz-icon nzType="book"></i>
-                    查看官方文档
+                    View documentation
                   </button>
                 </li>
               </ul>
@@ -627,18 +627,18 @@ const MAX_STATE_AGE_HOURS = 24;
                   (click)="startStackInstallFromPreflight()"
                   [nzLoading]="preflightStackInstalling">
                   <i nz-icon nzType="cloud-upload"></i>
-                  一键安装监控组件
+                  One-click install monitoring stack
                 </button>
                 <button
                   nz-button
                   [nzType]="form.value.installChannel === 'helm' ? 'primary' : 'default'"
                   (click)="copyCommand(getHelmInstallScript())">
                   <i nz-icon nzType="copy"></i>
-                  复制 Helm 安装脚本
+                  Copy Helm install script
                 </button>
                 <button nz-button nzType="link" (click)="openDocsUrl(installDocsUrl)">
                   <i nz-icon nzType="book"></i>
-                  查看安装指南
+                  View install guide
                 </button>
               </div>
             </ng-template>
@@ -646,7 +646,7 @@ const MAX_STATE_AGE_HOURS = 24;
 
           <div class="preflight-section">
             <nz-spin [nzSpinning]="runningPreflight">
-              <div class="loading-tip" *ngIf="runningPreflight">正在检查环境...</div>
+              <div class="loading-tip" *ngIf="runningPreflight">Checking environment...</div>
               <div class="check-items">
                 <div class="check-item" *ngFor="let check of preflightChecks">
                   <div class="check-info">
@@ -657,7 +657,7 @@ const MAX_STATE_AGE_HOURS = 24;
                       </i>
                     </span>
                     <span class="check-name">{{ check.name }}</span>
-                    <span class="check-optional" *ngIf="check.optional">可选</span>
+                    <span class="check-optional" *ngIf="check.optional">Optional</span>
                     <span class="check-description">{{ check.description }}</span>
                   </div>
                   <div class="check-result" [ngClass]="check.status">
@@ -670,7 +670,7 @@ const MAX_STATE_AGE_HOURS = 24;
                       nzSize="small"
                       (click)="copyCommand(check.command!)">
                       <i nz-icon nzType="copy"></i>
-                      复制命令
+                      Copy command
                     </button>
                   </div>
                 </div>
@@ -680,27 +680,27 @@ const MAX_STATE_AGE_HOURS = 24;
         </div>
       </ng-template>
 
-      <!-- 步骤3：采集参数 -->
+      <!-- Step 3: Collection parameters -->
       <ng-template #step3Template>
         <div class="step-content">
           <nz-alert 
             nzType="info"
-            nzMessage="监控参数配置"
-            nzDescription="配置监控采集间隔、超时时间等参数。使用默认值即可满足大多数场景。"
+            nzMessage="Monitoring parameter configuration"
+            nzDescription="Configure scrape interval and timeout. Defaults fit most scenarios."
             nzShowIcon
             class="step-alert">
           </nz-alert>
 
           <form [formGroup]="form" class="config-form">
             <div class="config-section">
-              <h4>{{ form.value.monitoringType === 'enterprise' ? 'PolarDBXMonitor 参数' : 'ServiceMonitor 参数' }}</h4>
+              <h4>{{ form.value.monitoringType === 'enterprise' ? 'PolarDBXMonitor parameters' : 'ServiceMonitor parameters' }}</h4>
               
-              <!-- 显示已选择的目标 -->
+              <!-- Show selected target -->
               <div *ngIf="form.value.installMode === 'target'" style="margin-bottom: 16px;">
                 <nz-alert 
                   nzType="info"
-                  nzMessage="当前监控目标"
-                  [nzDescription]="'命名空间: ' + form.value.namespace + ' / ' + getTargetLabel() + ': ' + (form.value.targetName || '未选择')"
+                  nzMessage="Current monitoring target"
+                  [nzDescription]="'Namespace: ' + form.value.namespace + ' / ' + getTargetLabel() + ': ' + (form.value.targetName || 'Not selected')"
                   nzShowIcon>
                 </nz-alert>
               </div>
@@ -708,23 +708,23 @@ const MAX_STATE_AGE_HOURS = 24;
               <nz-row [nzGutter]="16">
                 <nz-col [nzSpan]="12">
                   <nz-form-item>
-                    <nz-form-label [nzSpan]="6">采集间隔</nz-form-label>
+                    <nz-form-label [nzSpan]="6">Scrape interval</nz-form-label>
                     <nz-form-control [nzSpan]="18">
                       <input 
                         nz-input 
                         formControlName="scrapeInterval"
-                        placeholder="例如: 30s">
+                        placeholder="e.g., 30s">
                     </nz-form-control>
                   </nz-form-item>
                 </nz-col>
                 <nz-col [nzSpan]="12">
                   <nz-form-item>
-                    <nz-form-label [nzSpan]="6">超时时间</nz-form-label>
+                    <nz-form-label [nzSpan]="6">Timeout</nz-form-label>
                     <nz-form-control [nzSpan]="18">
                       <input 
                         nz-input 
                         formControlName="scrapeTimeout"
-                        placeholder="例如: 10s">
+                        placeholder="e.g., 10s">
                     </nz-form-control>
                   </nz-form-item>
                 </nz-col>
@@ -734,18 +734,18 @@ const MAX_STATE_AGE_HOURS = 24;
                 <nz-row [nzGutter]="16">
                   <nz-col [nzSpan]="24">
                     <nz-form-item>
-                      <nz-form-label [nzSpan]="3" nzRequired>标签选择器</nz-form-label>
+                      <nz-form-label [nzSpan]="3" nzRequired>Label selector</nz-form-label>
                       <nz-form-control [nzSpan]="21">
                         <textarea
                           nz-input
                           formControlName="selectorLabels"
                           [nzAutosize]="{ minRows: 3, maxRows: 6 }"
-                          placeholder="请输入标签，每行一个 key: value，例如 xstore/name: my-xstore"></textarea>
+                          placeholder="Enter labels, one per line key: value, e.g., xstore/name: my-xstore"></textarea>
                         <p class="selector-helper">
-                          使用 <code>key: value</code> 格式，每行一个标签；系统会自动补全 <code>xstore/service: metrics</code>
+                          Use <code>key: value</code> per line; system auto-completes <code>xstore/service: metrics</code>
                         </p>
                         <div class="selector-preview" *ngIf="recommendedSelectorPreview">
-                          <div class="selector-preview-title">推荐示例</div>
+                          <div class="selector-preview-title">Recommended example</div>
                           <pre>{{ recommendedSelectorPreview }}</pre>
                         </div>
                       </nz-form-control>
@@ -756,25 +756,25 @@ const MAX_STATE_AGE_HOURS = 24;
             </div>
 
             <div class="config-preview">
-              <h4>配置预览</h4>
+              <h4>Configuration preview</h4>
               <nz-descriptions nzBordered nzSize="small">
-                <nz-descriptions-item nzTitle="安装模式">
-                  {{ form.value.installMode === 'stack' ? '仅安装监控组件' : '安装并启用目标采集' }}
+                <nz-descriptions-item nzTitle="Install mode">
+                  {{ form.value.installMode === 'stack' ? 'Install monitoring stack only' : 'Install and enable target scraping' }}
                 </nz-descriptions-item>
-                <nz-descriptions-item nzTitle="监控类型">
+                <nz-descriptions-item nzTitle="Monitoring type">
                   {{ form.value.monitoringType === 'enterprise' ? 'PolarDBXMonitor' : 'ServiceMonitor' }}
                 </nz-descriptions-item>
-                <nz-descriptions-item nzTitle="命名空间">{{ form.value.namespace }}</nz-descriptions-item>
-                <nz-descriptions-item nzTitle="目标" *ngIf="form.value.installMode === 'target'">
-                  {{ form.value.targetName || '未选择' }}
+                <nz-descriptions-item nzTitle="Namespace">{{ form.value.namespace }}</nz-descriptions-item>
+                <nz-descriptions-item nzTitle="Target" *ngIf="form.value.installMode === 'target'">
+                  {{ form.value.targetName || 'Not selected' }}
                 </nz-descriptions-item>
-                <nz-descriptions-item nzTitle="采集间隔">{{ form.value.scrapeInterval }}</nz-descriptions-item>
-                <nz-descriptions-item nzTitle="超时时间">{{ form.value.scrapeTimeout }}</nz-descriptions-item>
+                <nz-descriptions-item nzTitle="Scrape interval">{{ form.value.scrapeInterval }}</nz-descriptions-item>
+                <nz-descriptions-item nzTitle="Timeout">{{ form.value.scrapeTimeout }}</nz-descriptions-item>
                 <nz-descriptions-item 
-                  nzTitle="标签选择器" 
+                  nzTitle="Label selector" 
                   *ngIf="form.value.monitoringType === 'standard' && form.value.installMode === 'target'"
                   [nzSpan]="3">
-                  {{ form.value.selectorLabels || '未设置' }}
+                  {{ form.value.selectorLabels || 'Not set' }}
                 </nz-descriptions-item>
               </nz-descriptions>
             </div>
@@ -782,14 +782,14 @@ const MAX_STATE_AGE_HOURS = 24;
         </div>
       </ng-template>
 
-      <!-- 步骤4：YAML 预览 -->
+      <!-- Step 4: YAML preview -->
       <ng-template #step4Template>
         <div class="step-content">
           <nz-alert 
             *ngIf="form.value.installMode === 'stack'"
             nzType="info"
-            nzMessage="监控组件安装模式"
-            nzDescription="当前选择的是「仅安装监控组件」模式，无需生成 CRD YAML。安装完成后，您可以手动创建 PolarDBXMonitor 或 ServiceMonitor 来为集群/XStore 启用监控。"
+            nzMessage="Monitoring stack installation mode"
+            nzDescription="Current mode installs monitoring stack only; no CRD YAML is needed. After installation, you can manually create PolarDBXMonitor or ServiceMonitor to enable monitoring for a cluster/XStore."
             nzShowIcon
             class="step-alert">
           </nz-alert>
@@ -805,22 +805,22 @@ const MAX_STATE_AGE_HOURS = 24;
           <nz-result
             *ngIf="form.value.installMode !== 'target'"
             nzStatus="info"
-            nzTitle="无需生成 YAML"
-            nzSubTitle="仅安装监控组件模式下，不需要生成 CRD 配置文件">
+            nzTitle="No YAML generation needed"
+            nzSubTitle="In stack-only mode, CRD manifests are not required">
           </nz-result>
         </div>
       </ng-template>
 
-      <!-- 步骤5：应用与验证 -->
+      <!-- Step 5: Apply & verify -->
       <ng-template #step5Template>
         <div class="step-content">
           
-          <!-- 新增：安装中状态（实时进度） -->
+          <!-- Installation in progress (live progress) -->
           <div class="installing-status" *ngIf="installStatus && installStatus.phase === 'Installing'">
             <nz-card [nzBordered]="true">
               <div slot="title">
                 <i nz-icon nzType="rocket" nzTheme="twotone"></i>
-                正在安装监控栈...
+                Installing monitoring stack...
               </div>
               <div class="progress-section">
                 <nz-progress 
@@ -847,49 +847,49 @@ const MAX_STATE_AGE_HOURS = 24;
                 
                 <div class="estimated-time" *ngIf="installStatus.estimatedTimeRemaining">
                   <i nz-icon nzType="clock-circle"></i>
-                  预计剩余时间: {{ formatTime(installStatus.estimatedTimeRemaining) }}
+                  Estimated remaining time: {{ formatTime(installStatus.estimatedTimeRemaining) }}
                 </div>
                 
                 <div class="install-actions" style="margin-top: 16px;">
                   <button nz-button nzType="default" nzSize="small" (click)="viewInstallLogs()" *ngIf="installJob">
                     <i nz-icon nzType="file-text"></i>
-                    查看详细日志
+                    View detailed logs
                   </button>
                   <button nz-button nzType="dashed" nzSize="small" (click)="goToMonitoring()">
                     <i nz-icon nzType="desktop"></i>
-                    后台运行
+                    Run in background
                   </button>
                 </div>
               </div>
             </nz-card>
           </div>
           
-          <!-- 新增：安装成功状态（组件健康卡片） -->
+          <!-- Installation success (component health cards) -->
           <div class="success-status" *ngIf="installStatus && installStatus.phase === 'Active'">
             <nz-result 
               nzStatus="success"
-              nzSubTitle="所有组件已正常运行">
+              nzSubTitle="All components are running">
               <div slot="title">
                 <i nz-icon nzType="check-circle" nzTheme="twotone" [style.color]="'#52c41a'"></i>
-                监控栈安装成功！
+                Monitoring stack installed successfully!
               </div>
               
               <div nz-result-content>
-                <!-- 下一步操作引导 -->
+                <!-- Next actions -->
                 <div class="next-actions">
                   <h4>
                     <i nz-icon nzType="aim" style="margin-right: 8px;"></i>
-                    下一步操作
+                    Next steps
                   </h4>
                   <div class="action-cards">
                     <nz-card nzHoverable class="action-card" (click)="verifyMonitoring()">
                       <div class="action-icon">
                         <i nz-icon nzType="search" [style.fontSize]="'32px'" [style.color]="'#52c41a'"></i>
                       </div>
-                      <div class="action-title">验证监控功能</div>
-                      <div class="action-desc">自动检查所有组件</div>
+                      <div class="action-title">Verify monitoring</div>
+                      <div class="action-desc">Auto-check all components</div>
                       <button nz-button nzType="primary" nzSize="small" [nzLoading]="verifyingMonitoring">
-                        开始验证
+                        Start verification
                       </button>
                     </nz-card>
                     
@@ -897,20 +897,20 @@ const MAX_STATE_AGE_HOURS = 24;
                       <div class="action-icon">
                         <i nz-icon nzType="dashboard" [style.fontSize]="'32px'" [style.color]="'#1890ff'"></i>
                       </div>
-                      <div class="action-title">查看监控大盘</div>
-                      <div class="action-desc">访问 Grafana 仪表板</div>
+                      <div class="action-title">View monitoring dashboards</div>
+                      <div class="action-desc">Visit Grafana dashboards</div>
                       <button nz-button nzType="default" nzSize="small">
-                        立即查看
+                        Open now
                       </button>
                     </nz-card>
                   </div>
                 </div>
                 
-                <!-- 组件状态 -->
+                <!-- Component status -->
                 <div class="components-status">
                   <h4>
                     <i nz-icon nzType="build" style="margin-right: 8px;"></i>
-                    组件状态
+                    Component status
                   </h4>
                   <nz-card [nzBordered]="true">
                     <div class="component-item" *ngFor="let comp of componentsHealth">
@@ -923,21 +923,21 @@ const MAX_STATE_AGE_HOURS = 24;
                           {{ getHealthStatusText(comp.status) }}
                         </nz-tag>
                         <span class="comp-pods">{{ comp.readyPods }} Pods</span>
-                        <span class="comp-port">{{ comp.port }}端口</span>
+                        <span class="comp-port">{{ comp.port }} port</span>
                         <a *ngIf="comp.url" [href]="comp.url" target="_blank" class="comp-link">
                           <i nz-icon nzType="link"></i>
-                          访问
+                          Open
                         </a>
                       </div>
                     </div>
                   </nz-card>
                 </div>
                 
-                <!-- 快速访问链接 -->
+                <!-- Quick access links -->
                 <div class="quick-access" *ngIf="componentsHealth.length > 0">
                   <h4>
                     <i nz-icon nzType="link" style="margin-right: 8px;"></i>
-                    快速访问
+                    Quick access
                   </h4>
                   <ul class="access-list">
                     <li *ngFor="let comp of componentsHealth">
@@ -954,10 +954,10 @@ const MAX_STATE_AGE_HOURS = 24;
                     style="margin-top: 16px;">
                     <div nz-alert-message>
                       <i nz-icon nzType="bulb" nzTheme="outline" style="margin-right: 4px;"></i>
-                      提示
+                      Tip
                     </div>
                     <div nz-alert-description>
-                      监控数据需要 3-5 分钟开始收集
+                      Monitoring data may take 3-5 minutes to start collecting
                     </div>
                   </nz-alert>
                 </div>
@@ -966,26 +966,26 @@ const MAX_STATE_AGE_HOURS = 24;
               <div nz-result-extra>
                 <button nz-button nzType="primary" (click)="goToMonitoring()">
                   <i nz-icon nzType="check-circle"></i>
-                  完成配置
+                  Finish configuration
                 </button>
                 <button nz-button nzType="default" (click)="verifyMonitoring()" [nzLoading]="verifyingMonitoring">
                   <i nz-icon nzType="safety-certificate"></i>
-                  验证功能
+                  Verify features
                 </button>
                 <button nz-button nzType="default">
                   <i nz-icon nzType="book"></i>
-                  查看文档
+                  View docs
                 </button>
               </div>
             </nz-result>
           </div>
           
-          <!-- 新增：验证结果展示 -->
+          <!-- Verification results -->
           <div class="verification-result" *ngIf="verificationResult">
             <nz-card [nzBordered]="true">
               <div slot="title">
                 <i nz-icon nzType="search" style="margin-right: 8px;"></i>
-                监控功能验证
+                Monitoring verification
               </div>
               <div class="verification-checks">
                 <div class="check-item" *ngFor="let check of verificationResult.checks">
@@ -1010,7 +1010,7 @@ const MAX_STATE_AGE_HOURS = 24;
               
               <div class="overall-health" style="margin-top: 24px;">
                 <div class="health-score">
-                  <span class="score-label">总体健康度:</span>
+                  <span class="score-label">Overall health:</span>
                   <nz-progress 
                     [nzPercent]="verificationResult.overallHealth" 
                     [nzStatus]="verificationResult.overallHealth >= 80 ? 'success' : (verificationResult.overallHealth >= 60 ? 'normal' : 'exception')"
@@ -1022,7 +1022,7 @@ const MAX_STATE_AGE_HOURS = 24;
               <div class="warnings" *ngIf="verificationResult.warnings.length > 0">
                 <h5>
                   <i nz-icon nzType="warning" style="margin-right: 4px; color: #faad14;"></i>
-                  发现 {{ verificationResult.warnings.length }} 个警告
+                  Found {{ verificationResult.warnings.length }} warning(s)
                 </h5>
                 <ul>
                   <li *ngFor="let warning of verificationResult.warnings">{{ warning }}</li>
@@ -1032,7 +1032,7 @@ const MAX_STATE_AGE_HOURS = 24;
               <div class="recommendations" *ngIf="verificationResult.recommendations.length > 0">
                 <h5>
                   <i nz-icon nzType="bulb" nzTheme="outline" style="margin-right: 4px; color: #1890ff;"></i>
-                  建议
+                  Recommendations
                 </h5>
                 <ul>
                   <li *ngFor="let rec of verificationResult.recommendations">{{ rec }}</li>
@@ -1042,45 +1042,45 @@ const MAX_STATE_AGE_HOURS = 24;
               <div class="verification-actions" style="margin-top: 16px;">
                 <button nz-button nzType="primary" (click)="goToMonitoring()">
                   <i nz-icon nzType="check"></i>
-                  继续
+                  Continue
                 </button>
                 <button nz-button nzType="default" (click)="verifyMonitoring()" [nzLoading]="verifyingMonitoring">
                   <i nz-icon nzType="reload"></i>
-                  重新验证
+                  Re-run verification
                 </button>
               </div>
             </nz-card>
           </div>
           
-          <!-- 新增：失败诊断（智能建议） -->
+          <!-- Failure diagnosis (smart suggestion) -->
           <div class="failure-diagnosis" *ngIf="failureDiagnosis">
             <nz-result 
               nzStatus="error"
               [nzSubTitle]="failureDiagnosis.errorMessage">
               <div slot="title">
                 <i nz-icon nzType="close-circle" nzTheme="twotone" [style.color]="'#ff4d4f'"></i>
-                安装失败
+                Installation failed
               </div>
               
               <div nz-result-content>
-                <!-- 失败详情 -->
+                <!-- Failure details -->
                 <div class="diagnosis-details">
                   <h4>
                     <i nz-icon nzType="file-text" style="margin-right: 8px;"></i>
-                    失败详情
+                    Failure details
                   </h4>
                   <nz-descriptions nzBordered nzSize="small">
-                    <nz-descriptions-item nzTitle="时间">{{ formatTimestamp(failureDiagnosis.timestamp) }}</nz-descriptions-item>
-                    <nz-descriptions-item nzTitle="阶段">{{ getCurrentInstallStage() }}</nz-descriptions-item>
-                    <nz-descriptions-item nzTitle="错误">{{ failureDiagnosis.errorType }}</nz-descriptions-item>
+                    <nz-descriptions-item nzTitle="Time">{{ formatTimestamp(failureDiagnosis.timestamp) }}</nz-descriptions-item>
+                    <nz-descriptions-item nzTitle="Stage">{{ getCurrentInstallStage() }}</nz-descriptions-item>
+                    <nz-descriptions-item nzTitle="Error">{{ failureDiagnosis.errorType }}</nz-descriptions-item>
                   </nz-descriptions>
                 </div>
                 
-                <!-- 可能原因 -->
+                <!-- Possible causes -->
                 <div class="possible-causes" style="margin-top: 24px;">
                   <h4>
                     <i nz-icon nzType="search" style="margin-right: 8px;"></i>
-                    可能原因
+                    Possible causes
                   </h4>
                   <div class="cause-list">
                     <div 
@@ -1090,10 +1090,10 @@ const MAX_STATE_AGE_HOURS = 24;
                       <div class="cause-header">
                         <span class="cause-number">{{ i + 1 }}</span>
                         <span class="cause-desc">{{ cause.description }}</span>
-                        <nz-tag nzColor="blue">可能性 {{ cause.probability }}%</nz-tag>
+                        <nz-tag nzColor="blue">Probability {{ cause.probability }}%</nz-tag>
                       </div>
                       <div class="cause-fix" *ngIf="cause.suggestedFix">
-                        <span class="fix-label">建议:</span>
+                        <span class="fix-label">Recommendation:</span>
                         <span>{{ cause.suggestedFix }}</span>
                       </div>
                       <div class="cause-action" *ngIf="cause.autoFixable">
@@ -1104,14 +1104,14 @@ const MAX_STATE_AGE_HOURS = 24;
                           (click)="autoFix(cause)"
                           [nzLoading]="autoFixing">
                           <i nz-icon nzType="tool"></i>
-                          一键修复
+                          Auto-fix
                         </button>
                       </div>
                     </div>
                   </div>
                 </div>
                 
-                <!-- 智能建议（高亮显示） -->
+                <!-- Smart suggestion -->
                 <nz-alert 
                   nzType="warning"
                   nzShowIcon
@@ -1119,7 +1119,7 @@ const MAX_STATE_AGE_HOURS = 24;
                   *ngIf="failureDiagnosis.possibleCauses[0]?.autoFixable">
                   <div nz-alert-message>
                     <i nz-icon nzType="bulb" nzTheme="outline" style="margin-right: 4px;"></i>
-                    <strong>智能建议</strong>
+                    <strong>Smart suggestion</strong>
                   </div>
                   <div nz-alert-description>
                     <div class="smart-suggestion">
@@ -1129,23 +1129,23 @@ const MAX_STATE_AGE_HOURS = 24;
                         nzType="primary"
                         (click)="autoFix(failureDiagnosis.possibleCauses[0])"
                         [nzLoading]="autoFixing">
-                        一键{{ failureDiagnosis.possibleCauses[0].fixAction === 'switchImageRegistry' ? '切换镜像源并重试' : '自动修复' }}
+                        {{ failureDiagnosis.possibleCauses[0].fixAction === 'switchImageRegistry' ? 'Switch registry & retry' : 'Auto-fix' }}
                       </button>
                     </div>
                   </div>
                 </nz-alert>
                 
-                <!-- 详细日志 -->
+                <!-- Detailed logs -->
                 <div class="error-logs" *ngIf="failureDiagnosis.relatedLogs.length > 0" style="margin-top: 24px;">
                   <h4>
                     <i nz-icon nzType="file-text" style="margin-right: 8px;"></i>
-                    详细日志
+                    Detailed logs
                   </h4>
                   <nz-card [nzBordered]="true">
                     <pre class="log-content">{{ failureDiagnosis.relatedLogs.join('\n') }}</pre>
                     <button nz-button nzType="dashed" nzSize="small" (click)="viewFullLogs()">
                       <i nz-icon nzType="fullscreen"></i>
-                      展开完整日志
+                      Expand full logs
                     </button>
                   </nz-card>
                 </div>
@@ -1154,7 +1154,7 @@ const MAX_STATE_AGE_HOURS = 24;
               <div nz-result-extra>
                 <button nz-button nzType="primary" (click)="retryApply()">
                   <i nz-icon nzType="reload"></i>
-                  手动重试
+                  Retry manually
                 </button>
                 <button 
                   nz-button 
@@ -1162,17 +1162,17 @@ const MAX_STATE_AGE_HOURS = 24;
                   (click)="viewInstallLogs()"
                   *ngIf="installJob?.jobName">
                   <i nz-icon nzType="file-text"></i>
-                  查看日志
+                  View logs
                 </button>
                 <button nz-button nzType="default" (click)="goToPrevStep()">
                   <i nz-icon nzType="left"></i>
-                  返回配置
+                  Back to configuration
                 </button>
               </div>
             </nz-result>
           </div>
           
-          <!-- 原有的 nz-result（降级展示） -->
+          <!-- Fallback nz-result (legacy display) -->
           <nz-result 
             *ngIf="!installStatus && !failureDiagnosis"
             [nzStatus]="applyResult?.success ? 'success' : (applyResult ? 'error' : 'info')"
@@ -1181,11 +1181,11 @@ const MAX_STATE_AGE_HOURS = 24;
             
             <div nz-result-content *ngIf="!applyResult">
               <div class="apply-options">
-                <h4>应用方式</h4>
+                <h4>Apply options</h4>
                 <nz-alert 
                   nzType="info"
-                  nzMessage="安装指引"
-                  [nzDescription]="form.value.installChannel === 'helm' ? '您选择了 Helm 手动安装，请在 Kubernetes 集群中执行下面的命令后，再返回此向导点击“完成”。' : '您可以复制命令手动执行，或者让系统自动应用配置。'"
+                  nzMessage="Installation guidance"
+                  [nzDescription]="form.value.installChannel === 'helm' ? 'You chose Helm manual install. Run the following commands in the cluster, then return and click \"Finish\".' : 'You can copy commands to run manually, or let the system apply automatically.'"
                   nzShowIcon
                   class="apply-alert">
                 </nz-alert>
@@ -1193,7 +1193,7 @@ const MAX_STATE_AGE_HOURS = 24;
                 <div 
                   class="kubectl-command"
                   *ngIf="form.value.installChannel === 'helm'">
-                  <h5>Helm 安装脚本</h5>
+                  <h5>Helm install script</h5>
                   <div class="command-block">
                     <pre>{{ getHelmInstallScript() }}</pre>
                     <button 
@@ -1202,13 +1202,13 @@ const MAX_STATE_AGE_HOURS = 24;
                       nzSize="small"
                       (click)="copyCommand(getHelmInstallScript())">
                       <i nz-icon nzType="copy"></i>
-                      复制脚本
+                      Copy script
                     </button>
                   </div>
                 </div>
 
                 <div class="kubectl-command" *ngIf="form.value.installMode === 'target'">
-                  <h5>kubectl 命令</h5>
+                  <h5>kubectl command</h5>
                   <div class="command-block">
                     <pre>{{ getKubectlCommand() }}</pre>
                     <button 
@@ -1217,7 +1217,7 @@ const MAX_STATE_AGE_HOURS = 24;
                       nzSize="small"
                       (click)="copyKubectlCommand()">
                       <i nz-icon nzType="copy"></i>
-                      复制命令
+                      Copy command
                     </button>
                   </div>
                 </div>
@@ -1226,15 +1226,15 @@ const MAX_STATE_AGE_HOURS = 24;
 
             <div nz-result-content *ngIf="applyResult?.success && installJob">
               <div class="apply-options">
-                <h4>安装任务已创建</h4>
+                <h4>Install job created</h4>
                 <nz-descriptions nzBordered nzSize="small">
-                  <nz-descriptions-item nzTitle="Job 名称">{{ installJob.jobName }}</nz-descriptions-item>
-                  <nz-descriptions-item nzTitle="Job 命名空间">{{ installJob.namespace }}</nz-descriptions-item>
-                  <nz-descriptions-item nzTitle="目标命名空间">{{ installJob.targetNs || 'polardbx-monitor' }}</nz-descriptions-item>
+                  <nz-descriptions-item nzTitle="Job name">{{ installJob.jobName }}</nz-descriptions-item>
+                  <nz-descriptions-item nzTitle="Job namespace">{{ installJob.namespace }}</nz-descriptions-item>
+                  <nz-descriptions-item nzTitle="Target namespace">{{ installJob.targetNs || 'polardbx-monitor' }}</nz-descriptions-item>
                 </nz-descriptions>
 
                 <div class="kubectl-command">
-                  <h5>查看安装日志</h5>
+                  <h5>View install logs</h5>
                   <div class="command-block">
                     <pre>{{ getJobLogsCommand() }}</pre>
                     <button 
@@ -1243,11 +1243,11 @@ const MAX_STATE_AGE_HOURS = 24;
                       nzSize="small"
                       (click)="copyJobLogsCommand()">
                       <i nz-icon nzType="copy"></i>
-                      复制命令
+                      Copy command
                     </button>
                   </div>
               <div style="margin-top:8px; display:flex; align-items:center; gap:8px;">
-                <span style="color: rgba(0,0,0,0.65);">Tail 行数:</span>
+                <span style="color: rgba(0,0,0,0.65);">Tail lines:</span>
                 <nz-select
                   [ngModel]="tailLines"
                   (ngModelChange)="tailLines = $event"
@@ -1259,7 +1259,7 @@ const MAX_STATE_AGE_HOURS = 24;
                 </div>
 
                 <div class="kubectl-command" style="margin-top: 12px;">
-                  <h5>检查组件状态</h5>
+                  <h5>Check component status</h5>
                   <div class="command-block">
                     <pre>{{ getPodsCheckCommand() }}</pre>
                     <button 
@@ -1268,13 +1268,13 @@ const MAX_STATE_AGE_HOURS = 24;
                       nzSize="small"
                       (click)="copyPodsCheckCommand()">
                       <i nz-icon nzType="copy"></i>
-                      复制命令
+                      Copy command
                     </button>
                   </div>
                 </div>
 
                 <div class="kubectl-command" style="margin-top: 12px;">
-                  <h5>端口转发（本地访问）</h5>
+                  <h5>Port-forward (local access)</h5>
                   <div class="command-block">
                     <pre>kubectl port-forward svc/grafana -n polardbx-monitor 3000
 kubectl port-forward svc/prometheus-k8s -n polardbx-monitor 9090
@@ -1285,13 +1285,13 @@ kubectl port-forward svc/alertmanager-main -n polardbx-monitor 9093</pre>
                       nzSize="small"
                       (click)="copyPortForwardCommands()">
                       <i nz-icon nzType="copy"></i>
-                      复制全部
+                      Copy all
                     </button>
                   </div>
                 </div>
 
                 <div class="kubectl-command" style="margin-top: 12px;">
-                  <h5>LoadBalancer 示例（可选，values.yaml）</h5>
+                  <h5>LoadBalancer example (optional, values.yaml)</h5>
                   <div class="command-block">
                     <pre>{{ getLoadBalancerValuesSnippet() }}</pre>
                     <button 
@@ -1300,7 +1300,7 @@ kubectl port-forward svc/alertmanager-main -n polardbx-monitor 9093</pre>
                       nzSize="small"
                       (click)="copyLoadBalancerValues()">
                       <i nz-icon nzType="copy"></i>
-                      复制片段
+                      Copy snippet
                     </button>
                   </div>
                 </div>
@@ -1310,7 +1310,7 @@ kubectl port-forward svc/alertmanager-main -n polardbx-monitor 9093</pre>
             <div nz-result-extra *ngIf="applyResult?.success">
               <button nz-button nzType="primary" (click)="goToMonitoring()">
                 <i nz-icon nzType="dashboard"></i>
-                查看监控
+                View monitoring
               </button>
               <button nz-button nzType="default" (click)="goToPrometheus()">
                 <i nz-icon nzType="line-chart"></i>
@@ -1325,7 +1325,7 @@ kubectl port-forward svc/alertmanager-main -n polardbx-monitor 9093</pre>
             <div nz-result-extra *ngIf="applyResult && !applyResult.success">
               <button nz-button nzType="primary" (click)="retryApply()">
                 <i nz-icon nzType="reload"></i>
-                重试安装
+                Retry install
               </button>
               <button
                 nz-button
@@ -1333,107 +1333,107 @@ kubectl port-forward svc/alertmanager-main -n polardbx-monitor 9093</pre>
                 (click)="viewInstallLogs()"
                 *ngIf="installJob?.jobName">
                 <i nz-icon nzType="file-text"></i>
-                查看日志
+                View logs
               </button>
               <button nz-button nzType="default" (click)="goToPrevStep()">
                 <i nz-icon nzType="left"></i>
-                上一步
+                Previous
               </button>
             </div>
           </nz-result>
 
-          <!-- 错误详情和解决方案 -->
+          <!-- Error details and solutions -->
           <div class="error-details" *ngIf="applyResult && !applyResult.success">
             <nz-alert 
               nzType="error"
-              nzMessage="安装失败原因"
+              nzMessage="Installation failure reasons"
               [nzDescription]="applyResult.failureReason || applyResult.message"
               nzShowIcon>
             </nz-alert>
 
-            <!-- 镜像拉取错误的特殊提示 -->
+            <!-- Special notice for image pull errors -->
             <nz-alert 
               *ngIf="applyResult.failureReason?.includes('ImagePull') || applyResult.failureReason?.includes('镜像拉取')"
               nzType="warning"
-              nzMessage="镜像拉取失败解决方案"
+              nzMessage="Image pull failure solutions"
               nzShowIcon
               style="margin-top: 16px;">
               <div style="font-size: 13px; line-height: 1.8;">
-                <p><strong>问题原因：</strong>Kubernetes 集群无法从 Docker Hub 拉取镜像（网络超时或访问受限）</p>
+                <p><strong>Root cause:</strong> Kubernetes cluster cannot pull images from Docker Hub (network timeout or access restricted)</p>
                 
-                <p><strong>解决方案：</strong></p>
+                <p><strong>Solutions:</strong></p>
                 <ol style="margin-left: 20px; margin-top: 8px;">
-                  <li><strong>配置镜像加速器（推荐）</strong>
+                  <li><strong>Configure image registry mirrors (recommended)</strong>
                     <pre style="background: #f5f5f5; padding: 8px; border-radius: 4px; margin: 8px 0; font-size: 12px;">{{ getMirrorConfigCommands() }}</pre>
                   </li>
                   
-                  <li><strong>手动预拉取镜像</strong>
+                  <li><strong>Manually pre-pull images</strong>
                     <pre style="background: #f5f5f5; padding: 8px; border-radius: 4px; margin: 8px 0; font-size: 12px;">{{ getPrePullCommands() }}</pre>
                   </li>
                   
-                  <li><strong>检查 Job Pod 状态</strong>
+                  <li><strong>Check Job Pod status</strong>
                     <pre style="background: #f5f5f5; padding: 8px; border-radius: 4px; margin: 8px 0; font-size: 12px;">kubectl describe pod -n {{ installJob?.namespace || 'polardbx-operator-system' }} {{ getJobPodName() }}</pre>
                   </li>
                 </ol>
                 
                 <p style="margin-top: 12px; color: #1890ff;">
                   <i nz-icon nzType="info-circle"></i>
-                  配置镜像加速后，请点击「重试安装」按钮重新启动安装任务。
+                  After configuring mirrors, click "Retry install" to restart the job.
                 </p>
               </div>
             </nz-alert>
 
-            <!-- BackoffLimit 重试失败提示 -->
+            <!-- BackoffLimit retry failure notice -->
             <nz-alert
               *ngIf="isBackoffLimitError(applyResult.failureReason)"
               nzType="warning"
-              nzMessage="安装任务达到重试上限"
+              nzMessage="Install job reached retry limit"
               nzShowIcon
               style="margin-top: 16px;">
               <div class="backoff-guidance">
-                <p><strong>问题原因：</strong>安装 Job 多次重试仍然失败，Kubernetes 已停止继续尝试。</p>
-                <p><strong>处理步骤：</strong></p>
+                <p><strong>Root cause:</strong> Install job failed after multiple retries; Kubernetes stopped further attempts.</p>
+                <p><strong>Next steps:</strong></p>
                 <ol>
                   <li>
-                    检查 Job 事件和失败原因
+                    Check Job events and failure reason
                     <div class="command-block">
                       <pre>{{ getJobDescribeCommand() }}</pre>
                       <button nz-button nzType="dashed" nzSize="small" (click)="copyCommand(getJobDescribeCommand())">
                         <i nz-icon nzType="copy"></i>
-                        复制
+                        Copy
                       </button>
                     </div>
                   </li>
                   <li>
-                    查看最近失败 Pod 的日志
+                    View latest failed Pod logs
                     <div class="command-block">
                       <pre>{{ getJobFailedPodLogsCommand() }}</pre>
                       <button nz-button nzType="dashed" nzSize="small" (click)="copyCommand(getJobFailedPodLogsCommand())">
                         <i nz-icon nzType="copy"></i>
-                        复制
+                        Copy
                       </button>
                     </div>
                   </li>
                   <li>
-                    处理问题后删除旧 Job 并重新触发安装
+                    After fixing issues, delete old Job and re-trigger installation
                     <div class="command-block">
                       <pre>{{ getJobDeleteCommand() }}</pre>
                       <button nz-button nzType="dashed" nzSize="small" (click)="copyCommand(getJobDeleteCommand())">
                         <i nz-icon nzType="copy"></i>
-                        复制
+                        Copy
                       </button>
                     </div>
                   </li>
                 </ol>
                 <p style="margin-top: 12px;">
-                  修复后点击页面中的「重试安装」，系统会重新创建安装任务。
+                  After fixing, click "Retry install" to recreate the install job.
                 </p>
               </div>
             </nz-alert>
 
             <!-- Job 日志查看命令 -->
             <div class="kubectl-command" style="margin-top: 16px;" *ngIf="installJob && installJob.jobName">
-              <h5>查看完整错误日志</h5>
+              <h5>View full error logs</h5>
               <div class="command-block">
                 <pre>kubectl logs -n {{ installJob!.namespace }} job/{{ installJob!.jobName }} --follow</pre>
                 <button 
@@ -1442,25 +1442,25 @@ kubectl port-forward svc/alertmanager-main -n polardbx-monitor 9093</pre>
                   nzSize="small"
                   (click)="copyJobLogsCommand()">
                   <i nz-icon nzType="copy"></i>
-                  复制命令
+                  Copy command
                 </button>
               </div>
             </div>
           </div>
 
           <div class="verification-tips" *ngIf="applyResult?.success">
-            <h4>验证指引</h4>
+            <h4>Verification guidance</h4>
             <nz-alert 
               nzType="success"
-              nzMessage="常见验证步骤"
-              nzDescription="监控配置已应用，您可以通过以下方式验证是否生效："
+              nzMessage="Common verification steps"
+              nzDescription="Monitoring configuration has been applied; verify with the following steps:"
               nzShowIcon>
             </nz-alert>
             <ul class="tips-list">
-              <li>检查 ServiceMonitor/PolarDBXMonitor 资源状态</li>
-              <li>访问 Prometheus Targets 页面确认目标发现</li>
-              <li>在 Grafana 中查看相关面板数据</li>
-              <li>检查 Alertmanager 告警规则加载情况</li>
+              <li>Check ServiceMonitor/PolarDBXMonitor resource status</li>
+              <li>Visit Prometheus Targets page to confirm target discovery</li>
+              <li>View related dashboards in Grafana</li>
+              <li>Check Alertmanager rule loading</li>
             </ul>
           </div>
         </div>
@@ -2652,7 +2652,7 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
 
   private getErrorMessage(error: unknown): string {
     if (!error) {
-      return '未知错误';
+      return 'Unknown error';
     }
     if (typeof error === 'string') {
       return error;
@@ -2678,7 +2678,8 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
         return errObj.statusText;
       }
     }
-    return '未知错误';
+    return 'Unknown error';
+    return 'Unknown error';
   }
   // Log tail lines setting (default 200)
   tailLines = 200;
@@ -2711,12 +2712,12 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
   private initializeWizardSteps(): void {
     // Templates will be set in ngAfterViewInit
     this.wizardSteps = [
-      { id: 'registry', title: '镜像源配置', description: '选择镜像拉取地址' },
-      { id: 'target', title: '选择目标', description: '监控类型与目标' },
-      { id: 'preflight', title: '前置检测', description: '环境检查' },
-      { id: 'config', title: '采集参数', description: '监控配置' },
-      { id: 'yaml', title: 'YAML 预览', description: '配置预览' },
-      { id: 'apply', title: '应用验证', description: '应用与验证' }
+      { id: 'registry', title: 'Image registry', description: 'Choose registry endpoint' },
+      { id: 'target', title: 'Select target', description: 'Monitoring type and target' },
+      { id: 'preflight', title: 'Preflight checks', description: 'Environment checks' },
+      { id: 'config', title: 'Collection params', description: 'Monitoring configuration' },
+      { id: 'yaml', title: 'YAML preview', description: 'Configuration preview' },
+      { id: 'apply', title: 'Apply & verify', description: 'Apply and verify' }
     ];
     this.attachStepTemplates();
   }
@@ -2780,23 +2781,23 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
         const presets = this.unwrapApiData(response as ApiEnvelope<ImageRegistryPreset[]>);
         this.availableRegistries = Array.isArray(presets) ? presets : [
           {
-            name: 'DaoCloud 镜像加速',
+            name: 'DaoCloud Mirror Acceleration',
             registry: 'docker.m.daocloud.io',
-            description: '经过验证可用，推荐在中国大陆环境使用的镜像加速服务',
+            description: 'Verified mirror acceleration, recommended for mainland China',
             region: 'cn',
             status: 'verified'
           },
           {
-            name: 'Docker Hub 官方源',
+            name: 'Docker Hub (official)',
             registry: 'registry-1.docker.io',
-            description: '官方公共镜像源，全球可用，在中国大陆访问可能较慢或受限',
+            description: 'Official public registry, global; may be slow or limited in mainland China',
             region: 'global',
             status: 'slow'
           },
           {
-            name: '自定义镜像源',
+            name: 'Custom registry',
             registry: 'custom',
-            description: '连接企业内部或私有镜像仓库时，输入自定义仓库地址',
+            description: 'Use a custom address for enterprise/private registries',
             region: 'custom',
             status: 'custom'
           }
@@ -2805,27 +2806,27 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
         this.cdr.markForCheck();
       },
       error: (error) => {
-        console.error('加载镜像源预设失败:', error);
-        this.message.error(`加载镜像源预设失败: ${this.getErrorMessage(error)}`);
+        console.error('Failed to load registry presets:', error);
+        this.message.error(`Failed to load registry presets: ${this.getErrorMessage(error)}`);
         this.availableRegistries = [
           {
-            name: 'DaoCloud 镜像加速',
+            name: 'DaoCloud Mirror Acceleration',
             registry: 'docker.m.daocloud.io',
-            description: '经过验证可用，推荐在中国大陆环境使用的镜像加速服务',
+            description: 'Verified mirror acceleration, recommended for mainland China',
             region: 'cn',
             status: 'verified'
           },
           {
-            name: 'Docker Hub 官方源',
+            name: 'Docker Hub (official)',
             registry: 'registry-1.docker.io',
-            description: '官方公共镜像源，全球可用，在中国大陆访问可能较慢或受限',
+            description: 'Official public registry, global; may be slow or limited in mainland China',
             region: 'global',
             status: 'slow'
           },
           {
-            name: '自定义镜像源',
+            name: 'Custom registry',
             registry: 'custom',
-            description: '连接企业内部或私有镜像仓库时，输入自定义仓库地址',
+            description: 'Use a custom address for enterprise/private registries',
             region: 'custom',
             status: 'custom'
           }
@@ -2844,11 +2845,11 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
         if (config.registry === 'custom' && config.customRegistry) {
           this.selectedRegistry = 'custom';
           this.customRegistryInput = config.customRegistry;
-          this.currentRegistryConfig = `自定义镜像源: ${config.customRegistry}`;
+          this.currentRegistryConfig = `Custom registry: ${config.customRegistry}`;
         } else {
           const registry = config.registry || config.defaultRegistry || 'docker.m.daocloud.io';
           this.selectedRegistry = registry;
-          this.currentRegistryConfig = `镜像源: ${registry}`;
+          this.currentRegistryConfig = `Registry: ${registry}`;
         }
         this.cdr.markForCheck();
       },
@@ -2856,7 +2857,7 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
         console.error('Failed to load current image registry configuration:', error);
         // Use default value
         this.selectedRegistry = 'docker.m.daocloud.io';
-        this.currentRegistryConfig = `镜像源: docker.m.daocloud.io (默认，原因: ${this.getErrorMessage(error)})`;
+        this.currentRegistryConfig = `Registry: docker.m.daocloud.io (default, reason: ${this.getErrorMessage(error)})`;
         this.cdr.markForCheck();
       }
     });
@@ -2877,7 +2878,7 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
 
     if (this.selectedRegistry === 'custom') {
       if (!this.customRegistryInput || !this.customRegistryInput.trim()) {
-        this.message.error('请输入自定义镜像源地址');
+        this.message.error('Please enter custom registry address');
         return;
       }
       config.customRegistry = this.customRegistryInput.trim();
@@ -2885,18 +2886,18 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
 
     this.api.setImageRegistryConfig(config).subscribe({
       next: () => {
-        this.message.success('镜像源配置已保存');
+        this.message.success('Registry configuration saved');
         // Update current configuration display
         if (this.selectedRegistry === 'custom') {
-          this.currentRegistryConfig = `自定义镜像源: ${this.customRegistryInput}`;
+          this.currentRegistryConfig = `Custom registry: ${this.customRegistryInput}`;
         } else {
-          this.currentRegistryConfig = `镜像源: ${this.selectedRegistry}`;
+          this.currentRegistryConfig = `Registry: ${this.selectedRegistry}`;
         }
         this.cdr.markForCheck();
       },
       error: (error) => {
-        console.error('保存镜像源配置失败:', error);
-        this.message.error('保存镜像源配置失败');
+        console.error('Failed to save registry config:', error);
+        this.message.error('Failed to save registry config');
         this.cdr.markForCheck();
       }
     });
@@ -2914,7 +2915,7 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
 
     if (this.selectedRegistry === 'custom') {
       if (!this.customRegistryInput || !this.customRegistryInput.trim()) {
-        this.message.error('请输入自定义镜像源地址');
+        this.message.error('Please enter custom registry address');
         return;
       }
       config.customRegistry = this.customRegistryInput.trim();
@@ -2923,20 +2924,20 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
     this.stepLoading = true;
     this.api.setImageRegistryConfig(config).subscribe({
       next: () => {
-        this.message.success('镜像源配置已保存');
+        this.message.success('Registry configuration saved');
         // Update current configuration display
         if (this.selectedRegistry === 'custom') {
-          this.currentRegistryConfig = `自定义镜像源: ${this.customRegistryInput}`;
+          this.currentRegistryConfig = `Custom registry: ${this.customRegistryInput}`;
         } else {
-          this.currentRegistryConfig = `镜像源: ${this.selectedRegistry}`;
+          this.currentRegistryConfig = `Registry: ${this.selectedRegistry}`;
         }
         this.stepLoading = false;
         this.nextStep(); // Proceed to next step
         this.cdr.markForCheck();
       },
       error: (error) => {
-        console.error('保存镜像源配置失败:', error);
-        this.message.error('保存镜像源配置失败');
+        console.error('Failed to save registry config:', error);
+        this.message.error('Failed to save registry config');
         this.stepLoading = false;
         this.cdr.markForCheck();
       }
@@ -2965,8 +2966,8 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
         this.cdr.markForCheck();
       },
       error: (error) => {
-        console.error('加载命名空间失败:', error);
-        this.message.error('加载命名空间失败');
+        console.error('Failed to load namespaces:', error);
+        this.message.error('Failed to load namespaces');
       }
     });
   }
@@ -2993,7 +2994,7 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
           this.cdr.markForCheck();
         },
         error: (error) => {
-          console.error('加载集群失败:', error);
+          console.error('Failed to load clusters:', error);
           this.targets = [];
           this.loadingTargets = false;
           this.cdr.markForCheck();
@@ -3010,7 +3011,7 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
           this.cdr.markForCheck();
         },
         error: (error) => {
-          console.error('加载 XStore 失败:', error);
+          console.error('Failed to load XStore:', error);
           this.targets = [];
           this.loadingTargets = false;
           this.cdr.markForCheck();
@@ -3146,7 +3147,7 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
   }
 
   getTargetLabel(): string {
-    return this.form.value.monitoringType === 'enterprise' ? '集群名称' : 'XStore 名称';
+    return this.form.value.monitoringType === 'enterprise' ? 'Cluster Name' : 'XStore Name';
   }
 
   getObjectName(): string {
@@ -3160,13 +3161,13 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
     const type = this.form.value.monitoringType;
     if (type === 'enterprise') {
       return {
-        title: '企业版监控',
-        description: '使用 PolarDBXMonitor CRD 为 PolarDB-X 集群启用监控。适用于完整的集群级别监控。'
+        title: 'Enterprise Monitoring',
+        description: 'Use PolarDBXMonitor CRD to enable monitoring for PolarDB-X clusters. Suitable for complete cluster-level monitoring.'
       };
     } else {
       return {
-        title: '标准版监控',
-        description: '使用 ServiceMonitor CRD 为 XStore 启用监控。适用于特定 XStore 实例的监控。'
+        title: 'Standard Monitoring',
+        description: 'Use ServiceMonitor CRD to enable monitoring for XStore. Suitable for monitoring specific XStore instances.'
       };
     }
   }
@@ -3177,7 +3178,7 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
     // Previous step button - disabled if configuration has been successfully applied
     if (this.currentStep > 0 && !this.applyResult?.success) {
       actions.push({
-        text: '上一步',
+        text: 'Previous',
         icon: 'left',
         handler: () => this.prevStep()
       });
@@ -3187,12 +3188,12 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
     switch (this.currentStep) {
       case 0: // Image registry configuration
         actions.push({
-          text: '跳过',
+          text: 'Skip',
           icon: 'arrow-right',
           handler: () => this.skipImageRegistryConfig()
         });
         actions.push({
-          text: '应用并继续',
+          text: 'Apply and Continue',
           type: 'primary',
           icon: 'check',
           loading: this.stepLoading,
@@ -3203,7 +3204,7 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
 
       case 1: // Select target
         actions.push({
-          text: '下一步：环境检测',
+          text: 'Next: Environment Checks',
           type: 'primary',
           icon: 'right',
           disabled: !this.isStep1Valid(),
@@ -3213,13 +3214,13 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
       
       case 2: // Preflight checks
         actions.push({
-          text: '重新检测',
+          text: 'Re-check',
           icon: 'sync',
           loading: this.runningPreflight,
           handler: () => this.runPreflightChecks()
         });
         actions.push({
-          text: '下一步：参数配置',
+          text: 'Next: Parameter Configuration',
           type: 'primary',
           icon: 'right',
           disabled: this.hasPreflightErrors(),
@@ -3229,7 +3230,7 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
       
       case 3: // Collection parameters
         actions.push({
-          text: '下一步：YAML 预览',
+          text: 'Next: YAML Preview',
           type: 'primary',
           icon: 'right',
           disabled: !this.isStep3Valid(),
@@ -3240,14 +3241,14 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
       case 4: // YAML preview
         if (this.form.value.installMode === 'target') {
           actions.push({
-            text: '重新生成',
+            text: 'Regenerate',
             icon: 'sync',
             loading: this.generatingYaml,
             handler: () => this.generateYaml()
           });
         }
         actions.push({
-          text: '下一步：应用配置',
+          text: 'Next: Apply Configuration',
           type: 'primary',
           icon: 'right',
           disabled: this.form.value.installMode === 'target' ? !this.generatedYaml : false,
@@ -3259,14 +3260,14 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
         // Merge "Auto Apply" and "Finish" into one button
         if (this.form.value.installChannel === 'helm') {
           actions.push({
-            text: '完成',
+            text: 'Finish',
             type: 'primary',
             icon: 'check-circle',
             handler: () => this.finishManualInstall()
           });
         } else {
           actions.push({
-            text: '应用并完成',
+            text: 'Apply and Finish',
             type: 'primary',
             icon: 'check-circle',
             handler: () => this.applyConfiguration()
@@ -3347,14 +3348,14 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
       key: 'polardbxMonitor',
       label: 'PolarDBXMonitor',
       crdName: 'polardbxmonitors.polardbx.aliyun.com',
-      description: '检查 PolarDBXMonitor CRD 是否可用'
+      description: 'Check if PolarDBXMonitor CRD is available'
     } : {
       id: 'crd-primary',
       key: 'serviceMonitor',
       label: 'ServiceMonitor',
       crdName: 'servicemonitors.monitoring.coreos.com',
-      description: '检查 ServiceMonitor CRD 是否可用',
-      installHint: '可执行 kubectl apply -f charts/polardbx-monitor/crds/ 安装 Prometheus Operator CRD。',
+      description: 'Check if ServiceMonitor CRD is available',
+      installHint: 'Execute kubectl apply -f charts/polardbx-monitor/crds/ to install Prometheus Operator CRD.',
       installCommand: 'kubectl apply -f charts/polardbx-monitor/crds/'
     };
 
@@ -3363,17 +3364,17 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
       key: 'serviceMonitor',
       label: 'ServiceMonitor',
       crdName: 'servicemonitors.monitoring.coreos.com',
-      description: 'Prometheus Operator 提供 ServiceMonitor CRD',
-      optionalDescription: '用于标准版采集或后续扩展，可选检测',
-      installHint: '缺失时可执行 kubectl apply -f charts/polardbx-monitor/crds/ 重新注册 CRD。',
+      description: 'Prometheus Operator provides ServiceMonitor CRD',
+      optionalDescription: 'For standard collection or future extensions, optional check',
+      installHint: 'If missing, execute kubectl apply -f charts/polardbx-monitor/crds/ to re-register CRD.',
       installCommand: 'kubectl apply -f charts/polardbx-monitor/crds/'
     } : {
       id: 'crd-polardbxmonitor',
       key: 'polardbxMonitor',
       label: 'PolarDBXMonitor',
       crdName: 'polardbxmonitors.polardbx.aliyun.com',
-      description: 'PolarDBX Operator 提供 PolarDBXMonitor CRD',
-      optionalDescription: '用于企业版监控场景，如需集群级监控请确保已安装'
+      description: 'PolarDBX Operator provides PolarDBXMonitor CRD',
+      optionalDescription: 'For enterprise monitoring scenarios, ensure installed if cluster-level monitoring is needed'
     };
 
     const ns = this.form.value.namespace || 'polardbx-monitor';
@@ -3382,31 +3383,31 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
     this.preflightChecks = [
       {
         id: 'namespace',
-        name: '监控命名空间',
-        description: `确认命名空间 ${ns} 可用`,
+        name: 'Monitoring Namespace',
+        description: `Confirm namespace ${ns} is available`,
         status: 'pending',
-        result: '检查中...'
+        result: 'Checking...'
       },
       {
         id: primaryMeta.id,
         name: `${primaryMeta.label} CRD`,
         description: primaryMeta.description,
         status: 'pending',
-        result: '检查中...'
+        result: 'Checking...'
       },
       {
         id: 'rbac',
-        name: 'RBAC 权限',
-        description: '检查 K8s API 访问权限',
+        name: 'RBAC Permissions',
+        description: 'Check K8s API access permissions',
         status: 'pending',
-        result: '检查中...'
+        result: 'Checking...'
       },
       {
         id: 'prometheus',
-        name: 'Prometheus 状态',
-        description: '检查 Prometheus 运行状态',
+        name: 'Prometheus Status',
+        description: 'Check Prometheus running status',
         status: 'pending',
-        result: '检查中...'
+        result: 'Checking...'
       }
     ];
 
@@ -3416,7 +3417,7 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
         this.preflightChecks[rbacIdx] = {
           ...this.preflightChecks[rbacIdx],
           status: 'warning',
-          result: '权限需按集群环境确认',
+          result: 'Permissions need to be confirmed based on cluster environment',
           command: 'kubectl auth can-i list pods --as=system:serviceaccount:default:prometheus'
         };
         this.cdr.markForCheck();
@@ -3442,16 +3443,16 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
         const namespaceIdx = this.preflightChecks.findIndex(check => check.id === 'namespace');
         if (namespaceIdx !== -1) {
           let status: 'success' | 'warning' | 'error' = 'success';
-          let result = `命名空间 ${nsUsed} 已存在`;
+          let result = `Namespace ${nsUsed} exists`;
           let command: string | undefined;
 
           if (!namespaceExists && !this.namespaceError) {
             status = 'error';
-            result = `命名空间 ${nsUsed} 未创建`;
+            result = `Namespace ${nsUsed} not created`;
             command = this.getNamespaceCreateCommand(nsUsed);
           } else if (this.namespaceError) {
             status = 'warning';
-            result = `无法确认命名空间 ${nsUsed} 状态：${this.namespaceError}`;
+            result = `Cannot confirm namespace ${nsUsed} status: ${this.namespaceError}`;
           }
 
           this.preflightChecks[namespaceIdx] = {
@@ -3493,8 +3494,8 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
           const gMsg = `Grafana: ${gReady ? 'Ready' : 'Not Ready'}  (${graf.readyReplicas ?? 0}/${graf.replicas ?? 0})  svc=${graf.service ? 'Yes' : 'No'}  ns=${nsUsed}`;
           const grafCheck: PreflightCheck = {
             id: 'grafana',
-            name: 'Grafana 状态',
-            description: '检查 Grafana 运行状态',
+            name: 'Grafana Status',
+            description: 'Check Grafana running status',
             status: gReady ? 'success' : 'warning',
             result: gMsg,
             command: gReady ? undefined : `kubectl -n ${nsUsed} get pods | grep -Ei 'grafana'\n` +
@@ -3511,8 +3512,8 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
           const aMsg = `Alertmanager: ${amConfigured ? 'Service Present' : 'Service Missing'}  ns=${nsUsed}`;
           const amCheck: PreflightCheck = {
             id: 'alertmanager',
-            name: 'Alertmanager 状态',
-            description: '检查 Alertmanager Service 配置',
+            name: 'Alertmanager Status',
+            description: 'Check Alertmanager Service configuration',
             status: amConfigured ? 'success' : 'warning',
             result: aMsg,
             command: amConfigured ? undefined : `kubectl -n ${nsUsed} get svc | grep -Ei 'alertmanager'`
@@ -3538,7 +3539,7 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
           this.preflightChecks[primaryIdx] = {
             ...this.preflightChecks[primaryIdx],
             status: 'warning',
-            result: '无法获取 CRD 状态（接口调用失败）',
+            result: 'Cannot get CRD status (API call failed)',
             command: `kubectl get crd ${primaryMeta.crdName}`
           };
         }
@@ -3548,7 +3549,7 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
           this.preflightChecks[promIdx] = {
             ...this.preflightChecks[promIdx],
             status: 'warning',
-            result: '无法获取 Prometheus 状态（可能未安装）',
+            result: 'Cannot get Prometheus status (may not be installed)',
             command: `kubectl -n ${ns} get pods | grep -i prom\n` +
               `kubectl -n ${ns} get svc | grep -i prom`
           };
@@ -3558,8 +3559,8 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
         this.preflightBlocking = [
           {
             id: primaryMeta.id,
-            title: `${primaryMeta.label} CRD 状态未知` ,
-            message: '无法获取 CRD 状态，请检查 Kubernetes API 访问权限后重试。',
+            title: `${primaryMeta.label} CRD status unknown` ,
+            message: 'Cannot get CRD status, please check Kubernetes API access permissions and retry.',
             command: `kubectl get crd ${primaryMeta.crdName}`,
             docsUrl: this.installDocsUrl
           }
@@ -3599,19 +3600,19 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
       .join('');
     const content = `
       <div class="preflight-warning-modal">
-        <p>以下检测项存在警告，继续安装可能影响监控系统稳定性：</p>
+        <p>The following checks have warnings. Continuing installation may affect monitoring system stability:</p>
         <ul>${listItems}</ul>
-        <p style="margin-top: 12px;">请确认已了解风险后再继续。</p>
+        <p style="margin-top: 12px;">Please confirm you understand the risks before continuing.</p>
       </div>
     `;
 
     this.modal.confirm({
-      nzTitle: '检测到环境警告',
+      nzTitle: 'Environment Warnings Detected',
       nzContent: content,
-      nzOkText: '继续安装',
+      nzOkText: 'Continue Installation',
       nzOkType: 'primary',
       nzOkDanger: true,
-      nzCancelText: '取消',
+      nzCancelText: 'Cancel',
       nzCentered: true,
       nzOnOk: () => this.nextStep()
     });
@@ -3646,9 +3647,9 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
 
   copyCommand(command: string): void {
     navigator.clipboard.writeText(command).then(() => {
-      this.message.success('命令已复制到剪贴板');
+      this.message.success('Command copied to clipboard');
     }).catch(() => {
-      this.message.error('复制失败');
+      this.message.error('Copy failed');
     });
   }
 
@@ -3659,10 +3660,10 @@ helm upgrade --install polardbx-monitor polardbx/polardbx-monitor --namespace {{
 
   private buildAlertmanagerGuide(namespace: string): string {
     const ns = (namespace || '').trim() || 'polardbx-monitor';
-    return `# 为运行 Alertmanager 的节点打标签
+    return `# Label nodes running Alertmanager
 kubectl label node <node-name> polardbx.com/alertmanager-node=true --overwrite
 
-# 将 Alertmanager 固定到带标签的节点
+# Pin Alertmanager to labeled nodes
 kubectl patch alertmanager alertmanager-main -n ${ns} --type merge -p '{"spec":{"nodeSelector":{"polardbx.com/alertmanager-node":"true"}}}'`;
   }
 
@@ -3682,12 +3683,12 @@ kubectl patch alertmanager alertmanager-main -n ${ns} --type merge -p '{"spec":{
   getPreflightAlertTitle(): string {
     const type = this.getPreflightAlertType();
     if (type === 'warning') {
-      return '存在需确认的准备项';
+      return 'Items Requiring Confirmation';
     }
     if (type === 'info') {
-      return '检查提醒';
+      return 'Check Reminder';
     }
-    return '监控组件前置条件缺失';
+    return 'Monitoring Component Prerequisites Missing';
   }
 
   openDocsUrl(url: string): void {
@@ -3701,7 +3702,7 @@ kubectl patch alertmanager alertmanager-main -n ${ns} --type merge -p '{"spec":{
 
   startStackInstallFromPreflight(): void {
     if (this.form.value.installChannel === 'helm') {
-      this.message.info('已选择 Helm 手动安装，请使用下方脚本在集群中执行安装。');
+      this.message.info('Helm manual installation selected. Please use the script below to execute installation in the cluster.');
       return;
     }
     this.startMonitoringBootstrap('preflight');
@@ -3716,20 +3717,20 @@ kubectl patch alertmanager alertmanager-main -n ${ns} --type merge -p '{"spec":{
 
     if (!info) {
       status = required ? 'error' : 'warning';
-      result = '无法获取 CRD 状态';
+      result = 'Cannot get CRD status';
       command = command || `kubectl get crd ${meta.crdName}`;
     } else if (info.error) {
       status = 'error';
-      result = `查询失败：${info.error}`;
+      result = `Query failed: ${info.error}`;
       command = command || `kubectl get crd ${meta.crdName}`;
     } else if (!info.exists) {
       status = required ? 'error' : 'warning';
-      result = `${meta.label} CRD 未安装${meta.installHint ? `，${meta.installHint}` : ''}`;
+      result = `${meta.label} CRD not installed${meta.installHint ? `, ${meta.installHint}` : ''}`;
       command = command || `kubectl get crd ${meta.crdName}`;
     } else if (!info.established) {
       status = 'warning';
-      const detail = this.extractConditionMessage(info, 'Established') || 'CRD 状态未就绪';
-      result = `${meta.label} CRD 未就绪：${detail}`;
+      const detail = this.extractConditionMessage(info, 'Established') || 'CRD status not ready';
+      result = `${meta.label} CRD not ready: ${detail}`;
       command = `kubectl get crd ${meta.crdName} -o yaml | grep -A5 status`;
     } else {
       status = 'success';
@@ -3741,18 +3742,18 @@ kubectl patch alertmanager alertmanager-main -n ${ns} --type merge -p '{"spec":{
         : '';
       const segments: string[] = [];
       if (versions) {
-        segments.push(`版本: ${versions}`);
+        segments.push(`Version: ${versions}`);
       }
       if (info.scope) {
         segments.push(info.scope);
       }
-      const suffix = segments.length ? `（${segments.join(' / ')}）` : '';
-      result = `${meta.label} CRD 已安装${suffix}`;
+      const suffix = segments.length ? ` (${segments.join(' / ')})` : '';
+      result = `${meta.label} CRD installed${suffix}`;
     }
 
     return {
       id: meta.id,
-      name: `${meta.label} CRD${optional ? '（可选）' : ''}`,
+      name: `${meta.label} CRD${optional ? ' (Optional)' : ''}`,
       description,
       status,
       result,
@@ -3770,8 +3771,8 @@ kubectl patch alertmanager alertmanager-main -n ${ns} --type merge -p '{"spec":{
       if (namespaceCheck.status === 'error') {
         blockers.push({
           id: 'namespace',
-          title: '监控命名空间缺失',
-          message: namespaceCheck.result || `命名空间 ${ns} 不存在，请先创建。`,
+          title: 'Monitoring Namespace Missing',
+          message: namespaceCheck.result || `Namespace ${ns} does not exist, please create it first.`,
           command: this.getNamespaceCreateCommand(ns),
           docsUrl: this.installDocsUrl,
           severity: 'error'
@@ -3780,7 +3781,7 @@ kubectl patch alertmanager alertmanager-main -n ${ns} --type merge -p '{"spec":{
         blockers.push({
           id: 'namespace-warning',
           title: namespaceCheck.name,
-          message: namespaceCheck.result || `请确认命名空间 ${ns} 已经创建且可访问。`,
+          message: namespaceCheck.result || `Please confirm namespace ${ns} has been created and is accessible.`,
           docsUrl: this.installDocsUrl,
           severity: 'warning'
         });
@@ -3790,8 +3791,8 @@ kubectl patch alertmanager alertmanager-main -n ${ns} --type merge -p '{"spec":{
     const primary = this.preflightChecks.find(check => check.id === primaryMeta.id);
 
     if (primary && primary.status === 'error') {
-      const title = `${primaryMeta.label} CRD 未就绪`;
-      const message = primary.result || `${primaryMeta.label} CRD 未安装，请先部署监控组件栈后再继续。`;
+      const title = `${primaryMeta.label} CRD Not Ready`;
+      const message = primary.result || `${primaryMeta.label} CRD not installed, please deploy monitoring component stack first before continuing.`;
       blockers.push({
         id: primaryMeta.id,
         title,
@@ -3804,10 +3805,10 @@ kubectl patch alertmanager alertmanager-main -n ${ns} --type merge -p '{"spec":{
 
     const promCheck = this.preflightChecks.find(check => check.id === 'prometheus');
     if (promCheck && promCheck.status !== 'success') {
-      blockers.push({
-        id: 'prometheus',
-        title: '监控组件未安装或未就绪',
-        message: promCheck.result || `未检测到 Prometheus，请先在 ${ns} 命名空间安装监控组件栈。`,
+        blockers.push({
+          id: 'prometheus',
+          title: 'Monitoring Components Not Installed or Not Ready',
+          message: promCheck.result || `Prometheus not detected, please install monitoring component stack in namespace ${ns} first.`,
         command: `kubectl get pods -n ${ns}`,
         docsUrl: this.installDocsUrl,
         severity: promCheck.status === 'error' ? 'error' : 'warning'
@@ -3830,10 +3831,10 @@ kubectl patch alertmanager alertmanager-main -n ${ns} --type merge -p '{"spec":{
 
     const alertmanagerCheck = this.preflightChecks.find(check => check.id === 'alertmanager');
     if (alertmanagerCheck && alertmanagerCheck.status !== 'success') {
-      blockers.push({
-        id: 'alertmanager',
-        title: 'Alertmanager 节点标签与启用',
-        message: '建议为 Alertmanager 节点打标签并 patch 实例以确保副本能够调度。',
+        blockers.push({
+          id: 'alertmanager',
+          title: 'Alertmanager Node Labeling and Enablement',
+          message: 'Recommend labeling Alertmanager nodes and patching instances to ensure replicas can be scheduled.',
         command: this.alertmanagerGuideCommand || this.buildAlertmanagerGuide(ns),
         docsUrl: this.alertmanagerDocsUrl,
         severity: alertmanagerCheck.status === 'error' ? 'error' : 'warning'
@@ -3920,27 +3921,27 @@ ${matchLabelsYaml}
 
   getKubectlCommand(): string {
     const filename = this.getYamlFilename();
-    return `# 保存 YAML 内容到文件\nkubectl apply -f ${filename}\n\n# 或者直接应用\ncat <<EOF | kubectl apply -f -\n${this.generatedYaml}\nEOF`;
+    return `# Save YAML content to file\nkubectl apply -f ${filename}\n\n# Or apply directly\ncat <<EOF | kubectl apply -f -\n${this.generatedYaml}\nEOF`;
   }
 
   copyKubectlCommand(): void {
     const command = this.getKubectlCommand();
     navigator.clipboard.writeText(command).then(() => {
-      this.message.success('命令已复制到剪贴板');
+      this.message.success('Command copied to clipboard');
     }).catch(() => {
-      this.message.error('复制失败');
+      this.message.error('Copy failed');
     });
   }
 
   finishManualInstall(): void {
     this.modal.confirm({
-      nzTitle: '确认完成手动安装？',
-      nzContent: '请确保已执行 Helm 安装命令，并按照需要应用了 YAML/CRD 配置。完成后可在监控总览中检查组件状态。',
-      nzOkText: '确认完成',
-      nzCancelText: '继续检查',
+      nzTitle: 'Confirm Manual Installation Complete?',
+      nzContent: 'Please ensure Helm install commands have been executed and YAML/CRD configurations applied as needed. Afterwards, check component status in the Monitoring Overview.',
+      nzOkText: 'Confirm Finish',
+      nzCancelText: 'Continue Checking',
       nzOkType: 'primary',
       nzOnOk: () => {
-        this.message.success('请在监控总览中验证监控栈状态。');
+        this.message.success('Please verify monitoring stack status in the Monitoring Overview.');
         this.finish();
       }
     });
@@ -3948,14 +3949,14 @@ ${matchLabelsYaml}
 
   applyConfiguration(): void {
     if (this.form.value.installChannel === 'helm') {
-      this.message.info('已选择 Helm 手动安装，请复制命令并在集群中执行。');
+      this.message.info('Helm manual install selected. Please copy the command and execute it in your cluster.');
       return;
     }
     this.modal.confirm({
-      nzTitle: '确认应用配置？',
-      nzContent: `将自动应用 ${this.form.value.monitoringType === 'enterprise' ? 'PolarDBXMonitor' : 'ServiceMonitor'} 配置`,
-      nzOkText: '确认应用',
-      nzCancelText: '取消',
+      nzTitle: 'Confirm Apply Configuration?',
+      nzContent: `Will automatically apply ${this.form.value.monitoringType === 'enterprise' ? 'PolarDBXMonitor' : 'ServiceMonitor'} configuration`,
+      nzOkText: 'Confirm Apply',
+      nzCancelText: 'Cancel',
       nzOkType: 'primary',
       nzOnOk: () => this.doApplyConfiguration()
     });
@@ -4002,8 +4003,8 @@ ${matchLabelsYaml}
         setLoading(false);
 
         const successMessage = origin === 'apply'
-          ? '安装任务已创建，正在跳转到监控总览查看进度...'
-          : '监控组件安装任务已触发，正在跳转到监控总览查看进度...';
+          ? 'Install task created, redirecting to Monitoring Overview to check progress...'
+          : 'Monitoring component install task triggered, redirecting to Monitoring Overview to check progress...';
         this.message.success(successMessage);
 
         this.globalProgress.reportMonitoringInstall(jobName, ns, targetNs);
@@ -4013,12 +4014,12 @@ ${matchLabelsYaml}
         }, 2000);
       },
       error: (error: unknown) => {
-        const msg = this.getErrorMessage(error) || '安装触发失败';
+        const msg = this.getErrorMessage(error) || 'Install trigger failed';
         if (origin === 'apply') {
           this.applyResult = { success: false, message: msg };
         }
         setLoading(false);
-        this.message.error('监控安装失败: ' + msg);
+        this.message.error('Monitoring install failed: ' + msg);
         if (origin === 'apply') {
           this.saveState();
         }
@@ -4034,17 +4035,17 @@ ${matchLabelsYaml}
   getResultTitle(): string {
     if (!this.applyResult) {
       return this.form.value.installChannel === 'helm'
-        ? '手动执行安装命令'
-        : '准备应用配置';
+        ? 'Manually Execute Install Command'
+        : 'Prepare to Apply Configuration';
     }
-    return this.applyResult.success ? '配置应用成功' : '配置应用失败';
+    return this.applyResult.success ? 'Configuration Applied Successfully' : 'Configuration Application Failed';
   }
 
   getResultSubtitle(): string {
     if (!this.applyResult) {
       return this.form.value.installChannel === 'helm'
-        ? '复制并执行下面的 Helm/kubectl 命令，完成后点击页面下方“完成”。'
-        : '选择应用方式以启用监控配置';
+        ? 'Copy and execute the Helm/kubectl commands below, then click "Finish" on this page.'
+        : 'Select application method to enable monitoring configuration';
     }
     return this.applyResult.message;
   }
@@ -4078,12 +4079,12 @@ ${matchLabelsYaml}
       return false;
     }
     const normalized = reason.toLowerCase();
-    return normalized.includes('backoff') || normalized.includes('backofflimit') || normalized.includes('重试次数');
+    return normalized.includes('backoff') || normalized.includes('backofflimit') || normalized.includes('retry');
   }
 
   copyJobLogsCommand(): void {
     const cmd = `${this.getJobLogsCommand()} --tail=${this.tailLines}`;
-    navigator.clipboard.writeText(cmd).then(() => this.message.success('命令已复制到剪贴板'));
+    navigator.clipboard.writeText(cmd).then(() => this.message.success('Command copied to clipboard'));
   }
 
   getPodsCheckCommand(): string {
@@ -4092,7 +4093,7 @@ ${matchLabelsYaml}
 
   copyPodsCheckCommand(): void {
     const cmd = this.getPodsCheckCommand();
-    navigator.clipboard.writeText(cmd).then(() => this.message.success('命令已复制到剪贴板'));
+    navigator.clipboard.writeText(cmd).then(() => this.message.success('Command copied to clipboard'));
   }
 
   copyPortForwardCommands(): void {
@@ -4101,7 +4102,7 @@ ${matchLabelsYaml}
       'kubectl port-forward svc/prometheus-k8s -n polardbx-monitor 9090',
       'kubectl port-forward svc/alertmanager-main -n polardbx-monitor 9093'
     ].join('\n');
-    navigator.clipboard.writeText(cmds).then(() => this.message.success('端口转发命令已复制'));
+    navigator.clipboard.writeText(cmds).then(() => this.message.success('Port forward command copied'));
   }
 
   getLoadBalancerValuesSnippet(): string {
@@ -4149,11 +4150,11 @@ ${matchLabelsYaml}
    */
   getHealthStatusText(status: string): string {
     const textMap: Record<string, string> = {
-      'healthy': '运行中',
-      'degraded': '降级',
-      'unhealthy': '异常'
+      'healthy': 'Running',
+      'degraded': 'Degraded',
+      'unhealthy': 'Abnormal'
     };
-    return textMap[status] || '未知';
+    return textMap[status] || 'Unknown';
   }
   
   /**
@@ -4173,11 +4174,11 @@ ${matchLabelsYaml}
    */
   getCheckStatusText(status: string): string {
     const textMap: Record<string, string> = {
-      'success': '通过',
-      'warning': '警告',
-      'error': '失败'
+      'success': 'Pass',
+      'warning': 'Warning',
+      'error': 'Failed'
     };
-    return textMap[status] || '未知';
+    return textMap[status] || 'Unknown';
   }
   
   /**
@@ -4194,9 +4195,9 @@ ${matchLabelsYaml}
   getCurrentInstallStage(): string {
     if (this.installStatus?.steps) {
       const failedStep = this.installStatus.steps.find(s => s.status === 'failed');
-      return failedStep?.name || '未知阶段';
+      return failedStep?.name || 'Unknown Phase';
     }
-    return '未知';
+    return 'Unknown';
   }
   
   /**
@@ -4206,7 +4207,7 @@ ${matchLabelsYaml}
     if (!this.failureDiagnosis) return;
     
     this.modal.info({
-      nzTitle: '完整错误日志',
+      nzTitle: 'Full Error Logs',
       nzContent: `<pre style="max-height: 500px; overflow-y: auto; background: #f5f5f5; padding: 12px; border-radius: 4px;">${this.failureDiagnosis.relatedLogs.join('\n')}</pre>`,
       nzWidth: 800
     });
@@ -4218,7 +4219,7 @@ ${matchLabelsYaml}
     this.cleanupLogModal();
 
     const modalRef = this.modal.create<LogViewerComponent>({
-      nzTitle: '安装任务日志',
+      nzTitle: 'Install Task Logs',
       nzContent: LogViewerComponent,
       nzWidth: 860,
       nzFooter: null,
@@ -4286,10 +4287,10 @@ ${matchLabelsYaml}
         component.error = undefined;
       },
       error: (error: unknown) => {
-        const message = this.getErrorMessage(error) || '未知错误';
+        const message = this.getErrorMessage(error) || 'Unknown error';
         component.loading = false;
         component.error = message;
-        this.message.error('获取安装日志失败: ' + message);
+        this.message.error('Failed to get install logs: ' + message);
       }
     });
   }
@@ -4316,8 +4317,8 @@ ${matchLabelsYaml}
         const promComponent = status.components?.prometheus;
         if (!promComponent?.exists) {
           this.modal.info({
-            nzTitle: 'Prometheus 未安装',
-            nzContent: '请先安装监控栈后再尝试访问 Prometheus'
+            nzTitle: 'Prometheus Not Installed',
+            nzContent: 'Please install monitoring stack before attempting to access Prometheus'
           });
           return;
         }
@@ -4325,8 +4326,8 @@ ${matchLabelsYaml}
         const accessUrl = promComponent.accessUrl;
         if (!accessUrl) {
           this.modal.info({
-            nzTitle: '无法直接访问 Prometheus',
-            nzContent: '请执行以下命令进行端口转发：\n\nkubectl port-forward svc/prometheus-k8s -n polardbx-monitor 9090:9090\n\n然后访问：http://localhost:9090'
+            nzTitle: 'Cannot Directly Access Prometheus',
+            nzContent: 'Please execute the following command for port forwarding:\n\nkubectl port-forward svc/prometheus-k8s -n polardbx-monitor 9090:9090\n\nThen access: http://localhost:9090'
           });
           return;
         }
@@ -4338,19 +4339,19 @@ ${matchLabelsYaml}
           const portMatch = accessUrl.match(/(\d+)/);
           if (portMatch) {
             this.modal.info({
-              nzTitle: '访问 Prometheus',
-              nzContent: `请获取 Kubernetes 集群中任意节点的 IP 地址，然后访问：\n\nhttp://<node-ip>:${portMatch[1]}`
+              nzTitle: 'Access Prometheus',
+              nzContent: `Please get the IP address of any node in your Kubernetes cluster, then access:\n\nhttp://<node-ip>:${portMatch[1]}`
             });
           }
         } else if (accessUrl.includes('port-forward')) {
           this.modal.info({
-            nzTitle: '访问 Prometheus',
-            nzContent: `请执行以下命令进行端口转发：\n\nkubectl ${accessUrl}\n\n然后访问：http://localhost:9090`
+            nzTitle: 'Access Prometheus',
+            nzContent: `Please execute the following command for port forwarding:\n\nkubectl ${accessUrl}\n\nThen access: http://localhost:9090`
           });
         }
       },
       error: (error: unknown) => {
-        this.message.error(`获取 Prometheus 状态失败: ${this.getErrorMessage(error)}`);
+        this.message.error(`Failed to get Prometheus status: ${this.getErrorMessage(error)}`);
       }
     });
   }
@@ -4361,8 +4362,8 @@ ${matchLabelsYaml}
         const grafanaComponent = status.components?.grafana;
         if (!grafanaComponent?.exists) {
           this.modal.info({
-            nzTitle: 'Grafana 未安装',
-            nzContent: '请先安装监控栈后再尝试访问 Grafana'
+            nzTitle: 'Grafana Not Installed',
+            nzContent: 'Please install monitoring stack before attempting to access Grafana'
           });
           return;
         }
@@ -4370,8 +4371,8 @@ ${matchLabelsYaml}
         const accessUrl = grafanaComponent.accessUrl;
         if (!accessUrl) {
           this.modal.info({
-            nzTitle: '无法直接访问 Grafana',
-            nzContent: '请执行以下命令进行端口转发：\n\nkubectl port-forward svc/grafana -n polardbx-monitor 3000:3000\n\n然后访问：http://localhost:3000'
+            nzTitle: 'Cannot Directly Access Grafana',
+            nzContent: 'Please execute the following command for port forwarding:\n\nkubectl port-forward svc/grafana -n polardbx-monitor 3000:3000\n\nThen access: http://localhost:3000'
           });
           return;
         }
@@ -4384,15 +4385,15 @@ ${matchLabelsYaml}
           const portMatch = accessUrl.match(/(\d+)/);
           if (portMatch) {
             this.modal.info({
-              nzTitle: '访问 Grafana',
-              nzContent: `请获取 Kubernetes 集群中任意节点的 IP 地址，然后访问：\n\nhttp://<node-ip>:${portMatch[1]}`
+              nzTitle: 'Access Grafana',
+              nzContent: `Please get the IP address of any node in your Kubernetes cluster, then access:\n\nhttp://<node-ip>:${portMatch[1]}`
             });
           }
         } else if (accessUrl.includes('port-forward')) {
           // port-forward instruction
           this.modal.info({
-            nzTitle: '访问 Grafana',
-            nzContent: `请执行以下命令进行端口转发：\n\nkubectl ${accessUrl}\n\n然后访问：http://localhost:3000`
+            nzTitle: 'Access Grafana',
+            nzContent: `Please execute the following command for port forwarding:\n\nkubectl ${accessUrl}\n\nThen access: http://localhost:3000`
           });
         }
       },
@@ -4437,7 +4438,7 @@ ${matchLabelsYaml}
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch (error) {
-      console.warn('保存向导状态失败:', error);
+      console.warn('Failed to save wizard state:', error);
     }
   }
 
@@ -4468,7 +4469,7 @@ ${matchLabelsYaml}
         this.confirmStateRestore(state);
       }
     } catch (error) {
-      console.warn('恢复向导状态失败:', error);
+      console.warn('Failed to restore wizard state:', error);
       this.clearSavedState();
     }
   }
@@ -4480,22 +4481,22 @@ ${matchLabelsYaml}
       : `${Math.round(hoursOld)}小时前`;
 
     const message = state.installJob
-      ? `检测到 ${timeInfo} 的监控安装任务 (${state.installJob.jobName})，是否继续跟踪安装进度？`
-      : `检测到 ${timeInfo} 未完成的监控配置向导，是否从第 ${state.currentStep + 1} 步继续？`;
+      ? `Detected monitoring install job from ${timeInfo} (${state.installJob.jobName}), continue tracking install progress?`
+      : `Detected incomplete monitoring configuration wizard from ${timeInfo}, continue from step ${state.currentStep + 1}?`;
 
     this.modal.confirm({
-      nzTitle: '恢复向导状态',
+      nzTitle: 'Restore Wizard State',
       nzContent: message,
-      nzOkText: '继续',
-      nzCancelText: '重新开始',
+      nzOkText: 'Continue',
+      nzCancelText: 'Restart',
       nzOkType: 'primary',
       nzOnOk: () => this.restoreState(state),
       nzOnCancel: () => {
         this.modal.confirm({
-          nzTitle: '确认清理状态',
-          nzContent: '这将永久删除保存的向导状态，确定要重新开始吗？',
-          nzOkText: '确定',
-          nzCancelText: '取消',
+          nzTitle: 'Confirm Clear State',
+          nzContent: 'This will permanently delete the saved wizard state. Are you sure you want to restart?',
+          nzOkText: 'Confirm',
+          nzCancelText: 'Cancel',
           nzOkType: 'primary',
           nzOkDanger: true,
           nzOnOk: () => this.clearSavedState()
@@ -4533,11 +4534,11 @@ ${matchLabelsYaml}
       // Reload data
       this.loadTargets();
 
-      this.message.success('已恢复向导状态');
+      this.message.success('Wizard state restored');
       this.cdr.markForCheck();
     } catch (error) {
-      console.error('状态恢复失败:', error);
-      this.message.error('状态恢复失败，请重新开始');
+      console.error('State restoration failed:', error);
+      this.message.error('State restoration failed, please restart');
       this.clearSavedState();
     }
   }
@@ -4546,7 +4547,7 @@ ${matchLabelsYaml}
     try {
       localStorage.removeItem(STORAGE_KEY);
     } catch (error) {
-      console.warn('清除保存状态失败:', error);
+      console.warn('Failed to clear saved state:', error);
     }
   }
 
@@ -4697,16 +4698,16 @@ ${matchLabelsYaml}
     const steps: InstallStep[] = [
       { name: 'Job 已创建', status: 'success', startTime: apiStatus?.startTime },
       { name: 'Helm Chart 准备', status: phase === 'Pending' ? 'pending' : 'success' },
-      { name: '监控组件安装', status: 'pending' },
-      { name: '配置应用', status: 'pending' },
-      { name: '健康检查', status: 'pending' }
+      { name: 'Monitoring Component Installation', status: 'pending' },
+      { name: 'Configuration Application', status: 'pending' },
+      { name: 'Health Check', status: 'pending' }
     ];
     
     // Update step status based on phase
     if (phase === 'Running') {
       steps[1].status = 'success';
       steps[2].status = 'running';
-      steps[2].message = '正在部署 Prometheus, Grafana, Alertmanager...';
+      steps[2].message = 'Deploying Prometheus, Grafana, Alertmanager...';
     } else if (phase === 'Succeeded') {
       steps.forEach((step, idx) => {
         step.status = 'success';
@@ -4717,7 +4718,7 @@ ${matchLabelsYaml}
     } else if (phase === 'Failed') {
       steps[1].status = 'success';
       steps[2].status = 'failed';
-      steps[2].message = apiStatus?.failureReason || '安装失败';
+      steps[2].message = apiStatus?.failureReason || 'Install failed';
     }
     
     return steps;
@@ -4749,7 +4750,7 @@ ${matchLabelsYaml}
       });
     } else if (phase === 'Failed') {
       components[0].status = 'error';
-      components[0].message = apiStatus?.failureReason || '部署失败';
+      components[0].message = apiStatus?.failureReason || 'Deployment failed';
     }
     
     return components;
@@ -4770,11 +4771,11 @@ ${matchLabelsYaml}
    */
   private onInstallComplete(status: InstallStatus): void {
     if (status.phase === 'Active') {
-      this.message.success('监控栈安装成功！');
+      this.message.success('Monitoring stack installed successfully!');
       this.loadComponentsHealth(); // Load component health status
       this.clearSavedState();
     } else if (status.phase === 'Failed') {
-      this.message.error('监控栈安装失败');
+      this.message.error('Monitoring stack install failed');
       this.diagnoseFailure(status); // Diagnose failure reason
     }
   }
@@ -4793,7 +4794,7 @@ ${matchLabelsYaml}
         // If no components found, show warning instead of fake data
         if (this.componentsHealth.length === 0) {
           console.warn('No monitoring component Pods found');
-          this.message.warning('监控组件可能尚未完全启动，请稍后刷新');
+          this.message.warning('Monitoring components may not be fully started, please refresh later');
         }
         
         this.cdr.markForCheck();
