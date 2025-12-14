@@ -312,7 +312,7 @@ export class DiagnosticsManagementComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
 
   ngOnInit(): void {
-    // 解析 query 参数以便外部跳转自动填充并触发
+    // Parse query parameters to auto-fill and trigger when navigating from external pages
     const qp = this.route.snapshot.queryParamMap;
     const ns = qp.get('namespace');
     const cl = qp.get('cluster');
@@ -398,7 +398,7 @@ export class DiagnosticsManagementComponent implements OnInit, OnDestroy {
         next: (s: any) => {
           const status = s?.status || s?.phase;
           const progress = s?.progress || 0;
-          // 更新本地列表项状态
+          // Update local list item status
           const idx = this.reports.findIndex(r => r.id === id);
           if (idx >= 0) {
             const copy = [...this.reports];
@@ -430,7 +430,7 @@ export class DiagnosticsManagementComponent implements OnInit, OnDestroy {
         if (url && url !== '/api/v1/diagnostics/' + r.namespace + '/' + r.id + '/file') {
           window.open(url, '_blank');
         } else if (command) {
-          // 显示 kubectl cp 命令
+          // Display kubectl cp command
           this.message.info('请使用命令下载: ' + command, { nzDuration: 10000 });
         } else {
           this.message.warning('下载链接不可用');

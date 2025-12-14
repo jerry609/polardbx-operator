@@ -645,7 +645,7 @@ import { takeUntil } from 'rxjs/operators';
       border: 1px solid #e0e0e0;
     }
     
-    /* 响应式设计 */
+    /* Responsive design */
     @media (max-width: 768px) {
       .backup-binlog-container {
         padding: 8px;
@@ -745,9 +745,9 @@ export class BackupBinlogManagementComponent implements OnInit, OnDestroy {
       this.msg.success('增量日志备份配置创建成功');
       this.resetForm();
       this.loadBackupBinlogs();
-      // 切换到列表页签
+      // Switch to list tab
       setTimeout(() => {
-        // 这里可以添加切换到第一个标签页的逻辑
+        // Can add logic to switch to first tab here
       }, 100);
     } catch (error) {
       console.error('创建增量日志备份配置失败:', error);
@@ -787,12 +787,12 @@ export class BackupBinlogManagementComponent implements OnInit, OnDestroy {
   }
 
   switchToCreateTab(): void {
-    // 这里可以添加切换到创建配置标签页的逻辑
-    // 由于使用的是 nz-tabset，可以通过设置 selectedIndex 来实现
+    // Can add logic to switch to create configuration tab here
+    // Since nz-tabset is used, can be implemented by setting selectedIndex
   }
 
   viewDetails(item: PolarDBXBackupBinlog): void {
-    // 这里可以添加查看详情的逻辑
+    // Can add logic to view details here
     console.log('查看详情:', item);
   }
 
@@ -821,7 +821,7 @@ export class BackupBinlogManagementComponent implements OnInit, OnDestroy {
     return new Date(dateString).toLocaleString('zh-CN');
   }
 
-  // 统计方法
+  // Statistics methods
   getRunningCount(): number {
     return this.backupBinlogs.filter(b => 
       b.status?.phase === 'running' || b.status?.phase === 'checkExpiredFile'

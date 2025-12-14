@@ -490,7 +490,7 @@ export interface RecoveryWizardDialogData {
       border-top: 1px solid #e0e0e0;
     }
     
-    /* 响应式设计 */
+    /* Responsive design */
     @media (max-width: 1200px) {
       .page-content {
         max-width: 100%;
@@ -640,7 +640,7 @@ export class RecoveryWizardComponent implements OnInit {
       this.updateTargetFormValidators();
     });
 
-    // 初始化时立即应用一次校验规则，避免首次进入时未勾选导致提交 400
+    // Apply validation rules immediately on initialization to avoid 400 error when first entering without selection
     this.updateSourceFormValidators();
     this.updateTargetFormValidators();
   }
@@ -800,7 +800,7 @@ export class RecoveryWizardComponent implements OnInit {
 
       this.loadingService.showSnackBar('已发起恢复任务，正在创建目标集群…');
       this.dialogRef?.close(summary);
-      // 跳转到恢复任务列表
+      // Navigate to restore job list
       setTimeout(() => (window.location.hash = '#/recovery/restore-jobs'), 150);
     } catch (error) {
       console.error('Failed to execute restore:', error);
@@ -902,7 +902,7 @@ export class RecoveryWizardComponent implements OnInit {
     }
   }
 
-  // 监听源集群/命名空间变化刷新备份列表
+  // Listen to source cluster/namespace changes to refresh backup list
   private setupSourceWatchers(): void {
     this.sourceSelectionForm.get('sourceCluster')?.valueChanges.subscribe(() => this.onSourceClusterChange());
     this.sourceSelectionForm.get('sourceNamespace')?.valueChanges.subscribe(() => this.onSourceClusterChange());

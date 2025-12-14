@@ -559,7 +559,7 @@ export class XStoreFollowerManagementComponent implements OnInit {
       const pod = ((row as any).status?.targetPod || (row as any).spec?.targetPodName || '').trim();
       const podName = pod || 'unknown';
       if (!podName || podName === 'unknown') { this.message.warning('未能确定目标 Pod'); return; }
-      // 先探测容器列表
+      // First probe container list
       const podObj = await this.apiService.getPod(ns as string, podName as string).toPromise();
       const containers: string[] = (((podObj as any)?.spec?.containers) || []).map((c: any) => c?.name).filter(Boolean);
       let container = '';

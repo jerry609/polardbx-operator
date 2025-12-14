@@ -1247,7 +1247,7 @@ import { BackupType } from '../../utils/backup-progress-strategies';
       font-size: 12px;
     }
     
-    /* 响应式设计 */
+    /* Responsive design */
     @media (max-width: 768px) {
       .xstore-backup-management {
         padding: 12px;
@@ -1276,7 +1276,7 @@ export class XStoreBackupManagementComponent implements OnInit, OnDestroy {
   private ns = inject(NamespaceService);
   private message = inject(NzMessageService);
   loadingKeys = LoadingKeys;
-  BackupType = BackupType; // 供模板使用
+  BackupType = BackupType; // For template use
 
   // Forms
   backupForm!: FormGroup;
@@ -1291,14 +1291,14 @@ export class XStoreBackupManagementComponent implements OnInit, OnDestroy {
   sinkStatus: 'idle' | 'valid' | 'invalid' | 'checking' = 'idle';
   backups: XStoreBackupWithStatus[] = [];
   binlogBackups: XStoreBackupBinlog[] = [];
-  // 汇总/明细视图切换，默认汇总
+  // Summary/detail view toggle, default to summary
   viewMode: 'summary' | 'detail' = 'summary';
   // Binlog modal
   binlogModalVisible = false;
   selectedBackup: XStoreBackupWithStatus | null = null;
   detailsDrawerVisible = false;
   detailsLoading = false;
-  // 明细计数与名称用于汇总视图显示类别细分（DN/GMS）
+  // Detail counts and names for summary view to display category breakdown (DN/GMS)
   private detailCountsByParent: Record<string, { dn: number; gms: number; dnNames: string[]; gmsNames: string[] }> = {};
   
   // UI State
@@ -1477,7 +1477,7 @@ export class XStoreBackupManagementComponent implements OnInit, OnDestroy {
         control?.updateValueAndValidity();
       });
     });
-    // 后端契约：仅需 storageProvider.storageName + storageProvider.sink
+    // Backend contract: only requires storageProvider.storageName + storageProvider.sink
     const sinkCtl = this.storageForm.get('sinkName');
     sinkCtl?.setValidators([Validators.required]);
     sinkCtl?.updateValueAndValidity();
@@ -1566,7 +1566,7 @@ export class XStoreBackupManagementComponent implements OnInit, OnDestroy {
         ]);
         const safeSummary = summary || [];
         const safeDetail = detail || [];
-        // 统计明细类别计数
+        // Count detail categories
         this.detailCountsByParent = {};
         for (const b of safeDetail as any[]) {
           const name: string = b?.metadata?.name || '';
@@ -1596,27 +1596,27 @@ export class XStoreBackupManagementComponent implements OnInit, OnDestroy {
       isCompleted: isBackupCompletedStatus(status?.phase),
       isFailed: status?.phase === 'Failed',
       displayStatus: getPhaseDisplayLabel(status?.phase),
-      displaySize: '-',  // XStore 备份对象不包含大小信息
+      displaySize: '-',  // XStore backup objects don't contain size information
       displayDuration: this.calculateDuration(status?.startTime, status?.endTime),
       canRestore: isBackupCompletedStatus(status?.phase),
       storageType: storageName ? storageName.toUpperCase() : undefined,
-      compressionRatio: 0,  // XStore 备份对象不包含大小信息，无法计算压缩比
-      storagePath: status?.backupRootPath || '-',  // 添加存储路径
-      completionTime: status?.endTime || '-'  // 添加完成时间
+      compressionRatio: 0,  // XStore backup objects don't contain size information, cannot calculate compression ratio
+      storagePath: status?.backupRootPath || '-',  // Add storage path
+      completionTime: status?.endTime || '-'  // Add completion time
     } as any;
   }
 
   private getDisplayStatus(phase?: string, stage?: string): string {
     if (!phase) return '未知';
 
-    // 兼容 XStoreBackup 与旧/新阶段名称
+    // Compatible with XStoreBackup and old/new phase names
     const map: Record<string, string> = {
       Pending: '等待中',
       Running: '备份中',
       Completed: '已完成',
       Failed: '失败',
 
-      // XStore 专有阶段
+      // XStore-specific phases
       Backuping: '备份中',
       Collecting: '收集中',
       Calculating: '计算中',
@@ -1662,12 +1662,12 @@ export class XStoreBackupManagementComponent implements OnInit, OnDestroy {
     return Math.round((1 - compressedSize / originalSize) * 100);
   }
 
-  // 辅助方法：获取完成时间
+  // Helper method: get completion time
   getCompletionTime(backup: XStoreBackupWithStatus): string {
     return this.formatDate(backup.status?.endTime);
   }
 
-  // 辅助方法：获取存储路径
+  // Helper method: get storage path
   getBackupRootPath(backup: XStoreBackupWithStatus): string {
     return backup.status?.backupRootPath || '-';
   }
@@ -1702,7 +1702,7 @@ export class XStoreBackupManagementComponent implements OnInit, OnDestroy {
       if (name.endsWith('-gms') || name.includes('-gms-')) return 'GMS';
       return '未知';
     }
-    // 汇总模式：显示混合及计数
+    // Summary mode: display mixed and counts
     const key = this.getParentKey(name);
     const c = this.detailCountsByParent[key] || { dn: 0, gms: 0, dnNames: [], gmsNames: [] };
     if (c.dn > 0 && c.gms > 0) return `混合 (DN ${c.dn}, GMS ${c.gms})`;
@@ -1971,7 +1971,7 @@ export class XStoreBackupManagementComponent implements OnInit, OnDestroy {
     this.data.mode = 'edit';
     this.data.backup = backup;
     this.populateFormFromBackup(backup);
-    this.selectedTab = 2; // 跳转到"创建备份配置"Tab
+    this.selectedTab = 2; // Navigate to "Create Backup Configuration" tab
   }
 
   async viewBackup(backup: XStoreBackupWithStatus): Promise<void> {
@@ -2073,7 +2073,7 @@ export class XStoreBackupManagementComponent implements OnInit, OnDestroy {
   }
 
   switchToBinlogTab(): void {
-    this.selectedTab = 1; // 跳转到"日志备份配置"Tab
+    this.selectedTab = 1; // Navigate to "Binlog Backup Configuration" tab
   }
   
   formatDate(dateString?: string): string {
@@ -2081,7 +2081,7 @@ export class XStoreBackupManagementComponent implements OnInit, OnDestroy {
     return new Date(dateString).toLocaleString('zh-CN');
   }
 
-  // 统计方法
+  // Statistics methods
   getRunningBackupsCount(): number {
     return this.backups.filter(b => isBackupRunning(b.status?.phase)).length;
   }
@@ -2104,7 +2104,7 @@ export class XStoreBackupManagementComponent implements OnInit, OnDestroy {
   createNew(): void {
     this.data.mode = 'create';
     this.resetForms();
-    this.selectedTab = 2; // 跳转到"创建备份配置"Tab
+    this.selectedTab = 2; // Navigate to "Create Backup Configuration" tab
   }
 
   // ============================================================================
@@ -2294,7 +2294,7 @@ export class XStoreBackupManagementComponent implements OnInit, OnDestroy {
   }
 
   previewConfig(): void {
-    // 可以在这里显示配置预览对话框
+    // Can display configuration preview dialog here
     console.log('预览配置:', {
       backup: this.backupForm.value,
       storage: this.storageForm.value,

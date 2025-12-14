@@ -763,7 +763,7 @@ import { NzDrawerModule } from 'ng-zorro-antd/drawer';
       border: 1px solid #e0e0e0;
     }
     
-    /* 响应式设计 */
+    /* Responsive design */
     @media (max-width: 768px) {
       .backup-management-container {
         padding: 8px;
@@ -807,7 +807,7 @@ export class BackupManagementComponent implements OnInit, OnDestroy {
   selectedTabIndex = 0;
   createStepIndex = 0;
   
-  // 全局存储连通性状态
+  // Global storage connectivity status
   globalStorageStatus: 'ok' | 'error' | 'unknown' = 'unknown';
   globalStorageDetail = '';
     
@@ -834,7 +834,7 @@ export class BackupManagementComponent implements OnInit, OnDestroy {
         this.createForm.patchValue({ namespace: this.currentNamespace });
         this.loadBackups();
         this.loadClusters();
-        this.loadGlobalStorageStatus(); // 加载存储连通性状态
+        this.loadGlobalStorageStatus(); // Load storage connectivity status
       });
 
     this.loadNamespaces();
@@ -871,7 +871,7 @@ export class BackupManagementComponent implements OnInit, OnDestroy {
     }
   }
 
-  // 加载全局存储连通性状态
+  // Load global storage connectivity status
   loadGlobalStorageStatus(): void {
     this.apiService.getBackupOverview({ 
       namespace: this.currentNamespace, 
@@ -934,7 +934,7 @@ export class BackupManagementComponent implements OnInit, OnDestroy {
       await this.apiService.createBackup(formValue.namespace, formValue.clusterName, body).toPromise();
       this.msg.success('备份任务创建成功');
       this.resetCreateForm();
-      // 切回列表页签
+      // Switch back to list tab
       this.selectedTabIndex = 0;
       if (this.selectedListCluster === formValue.clusterName) {
         this.loadBackups();
@@ -951,7 +951,7 @@ export class BackupManagementComponent implements OnInit, OnDestroy {
     this.loadBackups();
   }
 
-  // 分步向导逻辑
+  // Step-by-step wizard logic
   canGoNext(): boolean {
     if (this.createStepIndex === 0) {
       const controls = this.createForm.controls;
@@ -1012,7 +1012,7 @@ export class BackupManagementComponent implements OnInit, OnDestroy {
   }
 
   onClusterChange(clusterName: string): void {
-    // 当集群变化时的处理逻辑
+    // Handle logic when cluster changes
     console.log('Selected cluster:', clusterName);
   }
 
@@ -1027,7 +1027,7 @@ export class BackupManagementComponent implements OnInit, OnDestroy {
       enableCompression: true,
       description: ''
     });
-    // 重置步骤到第一步，并清理校验状态
+    // Reset step to first step and clear validation state
     this.createStepIndex = 0;
     Object.keys(this.createForm.controls).forEach(key => {
       const ctrl = this.createForm.get(key);
@@ -1050,7 +1050,7 @@ export class BackupManagementComponent implements OnInit, OnDestroy {
   async forceDeleteBackup(backup: PolarDBXBackup): Promise<void> {
     try {
       // await this.apiService.forceDeleteBackup(backup.metadata.namespace!, backup.metadata.name).toPromise();
-      // 临时注释，需要根据实际的 API 方法调用
+      // Temporarily commented, need to call actual API method
       this.msg.info('强制删除功能待实现');
       this.msg.success('强制删除成功');
       this.loadBackups();
@@ -1060,7 +1060,7 @@ export class BackupManagementComponent implements OnInit, OnDestroy {
     }
   }
 
-  // 统计方法
+  // Statistics methods
   getRunningBackupsCount(): number {
     return this.backups.filter(backup => this.isRunningEx(backup)).length;
   }
@@ -1073,7 +1073,7 @@ export class BackupManagementComponent implements OnInit, OnDestroy {
     return this.backups.filter(backup => isBackupFailedStatus(backup.status?.phase)).length;
   }
 
-  // 状态和显示方法
+  // Status and display methods
     isRunningEx(backup: PolarDBXBackup): boolean {
     return isBackupRunning(backup.status?.phase);
   }
@@ -1106,7 +1106,7 @@ export class BackupManagementComponent implements OnInit, OnDestroy {
   private mapToBackupPhase(phase?: string): BackupPhase {
     switch (phase) {
       case 'Completed':
-      case 'Finished':  // 后端可能返回 Finished
+      case 'Finished':  // Backend may return Finished
         return 'Completed';
       case 'Failed':
         return 'Failed';
@@ -1115,7 +1115,7 @@ export class BackupManagementComponent implements OnInit, OnDestroy {
       case 'Pending':
         return 'Pending';
       default:
-        // 如果没有 phase，根据其他信息推断
+        // If no phase, infer from other information
         return 'Pending';
     }
   }
@@ -1146,14 +1146,14 @@ export class BackupManagementComponent implements OnInit, OnDestroy {
   }
 
   getProgressPercent(backup: PolarDBXBackup): number {
-    // 临时返回固定值，实际需要根据 backup status 的实际字段调整
+    // Temporarily return fixed value, actual implementation needs to adjust based on backup status fields
     if (isBackupRunning(backup.status?.phase)) {
-      return 50; // 运行中显示 50%
+      return 50; // Show 50% when running
     }
     if (isBackupCompletedStatus(backup.status?.phase)) {
-      return 100; // 完成显示 100%
+      return 100; // Show 100% when completed
     }
-    return 0; // 其他状态显示 0%
+    return 0; // Show 0% for other statuses
   }
 
   getProgressStatus(backup: PolarDBXBackup): 'success' | 'exception' | 'active' | 'normal' {
@@ -1161,15 +1161,15 @@ export class BackupManagementComponent implements OnInit, OnDestroy {
   }
 
   formatSize(backup: PolarDBXBackup): string {
-    // PolarDBX 备份的大小信息不在主对象中
-    // 而是需要从关联的 XStore 备份中计算
-    // 当前暂时显示备份路径或 XStore 数量作为提示
+    // PolarDBX backup size information is not in the main object
+    // Need to calculate from associated XStore backups
+    // Currently temporarily display backup path or XStore count as hint
     const xstoreCount = backup.status?.xstores?.length || 0;
     if (xstoreCount > 0) {
       return `${xstoreCount} 个 XStore`;
     }
     
-    // 如果未来后端添加了汇总大小字段，可以这样读取：
+    // If backend adds aggregated size field in the future, can read like this:
     const status = backup.status as any;
     const totalSize = status?.totalBackupSize || status?.backupSize;
     if (totalSize && typeof totalSize === 'number' && totalSize > 0) {
@@ -1192,13 +1192,13 @@ export class BackupManagementComponent implements OnInit, OnDestroy {
     return new Date(dateString).toLocaleString('zh-CN');
   }
   
-  // 获取备份完成时间（使用实际的 endTime 字段）
+  // Get backup completion time (using actual endTime field)
   getCompletionTime(backup: PolarDBXBackup): string {
     const endTime = backup.status?.endTime || backup.status?.completionTime;
     return this.formatDate(endTime);
   }
   
-  // 获取备份持续时间
+  // Get backup duration
   getDuration(backup: PolarDBXBackup): string {
     const startTime = backup.status?.startTime;
     const endTime = backup.status?.endTime || backup.status?.completionTime;
@@ -1229,7 +1229,7 @@ export class BackupManagementComponent implements OnInit, OnDestroy {
   getStorageConnectivityText(backup: PolarDBXBackup): string {
     const phase = backup.status?.phase;
     
-    // 优先使用全局状态，结合备份阶段判断
+    // Prioritize global status, combined with backup phase judgment
     if (this.globalStorageStatus === 'ok' || isBackupCompletedStatus(phase)) {
       return '连通正常';
     } else if (this.globalStorageStatus === 'error') {

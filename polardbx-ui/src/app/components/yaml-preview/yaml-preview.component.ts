@@ -204,7 +204,7 @@ interface MonacoWindow extends Window {
       min-height: 200px;
     }
 
-    /* 确保编辑器主题与中性风格一致 */
+    /* Ensure editor theme matches neutral style */
     :deep(.monaco-editor) {
       font-family: 'SFMono-Regular', 'Monaco', 'Menlo', 'Courier New', monospace;
     }
@@ -445,15 +445,15 @@ export class YamlPreviewComponent implements OnChanges, OnDestroy {
       return Promise.resolve();
     }
 
-    // Monaco 编辑器新版本已经内置了基础语言支持
-    // 首先检查 YAML 语言是否已经可用
+    // New versions of Monaco editor have built-in basic language support
+    // First check if YAML language is already available
     const languages = monacoGlobal.languages.getLanguages();
     if (languages.some(lang => lang.id === 'yaml')) {
       this.yamlLanguageLoaded = true;
       return Promise.resolve();
     }
 
-    // 如果不可用，尝试通过 AMD loader 加载（仅适用于旧版本）
+    // If not available, try loading via AMD loader (only for older versions)
     const loaderWindow = window as unknown as MonacoWindow;
     const amdRequire = loaderWindow.require;
     if (amdRequire) {
@@ -467,8 +467,8 @@ export class YamlPreviewComponent implements OnChanges, OnDestroy {
         let tried = 0;
         const tryNext = (): void => {
           if (tried >= possiblePaths.length) {
-            // 所有路径都失败了，但 Monaco 基础功能可能仍然可用
-            // 检查语言是否已注册（可能在尝试加载过程中被注册）
+            // All paths failed, but Monaco basic functionality may still be available
+            // Check if language is already registered (may have been registered during loading attempts)
             if (monacoGlobal.languages.getLanguages().some(lang => lang.id === 'yaml')) {
               this.yamlLanguageLoaded = true;
             }
@@ -493,7 +493,7 @@ export class YamlPreviewComponent implements OnChanges, OnDestroy {
       });
     }
 
-    // AMD loader 不可用，假设语言支持已经内置
+    // AMD loader not available, assume language support is built-in
     this.yamlLanguageLoaded = true;
     return Promise.resolve();
   }
@@ -602,7 +602,7 @@ export class YamlPreviewComponent implements OnChanges, OnDestroy {
   }
 
   private disposeEditor(): void {
-    // 先清理事件监听器，避免触发不必要的回调
+    // Clean up event listeners first to avoid triggering unnecessary callbacks
     this.editorDisposables.forEach(disposable => {
       try {
         disposable.dispose();

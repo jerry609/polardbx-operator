@@ -405,7 +405,7 @@ const MAX_STATE_AGE_HOURS = 24;
       min-height: 100vh;
     }
 
-    /* 覆盖 wizard-shell 的深色背景 */
+    /* Override wizard-shell dark background */
     :deep(.wizard-shell) {
       background: transparent !important;
     }
@@ -506,7 +506,7 @@ const MAX_STATE_AGE_HOURS = 24;
       margin-top: 8px;
     }
 
-    // 环境检查样式
+    // Environment check styles
     .precheck-items {
       display: flex;
       flex-direction: column;
@@ -584,7 +584,7 @@ const MAX_STATE_AGE_HOURS = 24;
       margin-top: 16px;
     }
 
-    // 应用选项样式
+    // Apply option styles
     .apply-options {
       margin: 16px 0;
     }
@@ -784,21 +784,21 @@ export class LogCollectorInstallComponent implements OnInit, AfterViewInit, OnDe
   currentStep = 0;
   wizardSteps: WizardStep[] = [];
   
-  // 环境检查
+  // Environment check
   checkingEnvironment = false;
   preflightChecks: PreflightCheck[] = [];
   
-  // YAML 生成
+  // YAML generation
   generatedYaml = '';
   generatingYaml = false;
   
-  // 步骤状态
+  // Step status
   stepLoading = false;
   
-  // 应用结果
+  // Apply result
   applyResult: { success: boolean; message: string; failureReason?: string } | null = null;
 
-  // 安装状态
+  // Installation status
   installSuccess = false;
   verifying = false;
   verifyAttempts = 0;
@@ -814,7 +814,7 @@ export class LogCollectorInstallComponent implements OnInit, AfterViewInit, OnDe
   latestComponentStatus: { filebeat: string; logstash: string; updatedAt: number } | null = null;
   installJob: { jobName: string; namespace: string; targetNs?: string; instructions?: string } | null = null;
   
-  // 部署配置
+  // Deployment configuration
   private deploymentConfigs = {
     default: {
       title: '标准安装',
@@ -853,7 +853,7 @@ export class LogCollectorInstallComponent implements OnInit, AfterViewInit, OnDe
   ) {
     this.form = this.fb.group({
       namespace: ['polardbx-logcollector', Validators.required],
-      // 仍保留开关用于后续扩展，但安装采用 Helm
+      // Keep switches for future extension, but installation uses Helm
       enableFilebeat: [true],
       enableLogstash: [true]
     });
@@ -866,7 +866,7 @@ export class LogCollectorInstallComponent implements OnInit, AfterViewInit, OnDe
   }
 
   ngAfterViewInit(): void {
-    // 挂载模板到步骤
+    // Mount templates to steps
     if (this.wizardSteps.length > 0) {
       this.wizardSteps[0].template = this.step1Template;
       this.wizardSteps[1].template = this.step2Template;
@@ -891,7 +891,7 @@ export class LogCollectorInstallComponent implements OnInit, AfterViewInit, OnDe
     this.clearVerifyTimer();
   }
 
-  // 新的环境检查方法，与监控向导风格一致
+  // New environment check method, consistent with monitoring wizard style
   async runPreflightCheck(): Promise<void> {
     const namespace = this.form.value.namespace || 'polardbx-logcollector';
 
@@ -921,7 +921,7 @@ export class LogCollectorInstallComponent implements OnInit, AfterViewInit, OnDe
 
     this.cdr.detectChanges();
 
-    // 1. Dry-run 校验权限
+    // 1. Dry-run to validate permissions
     try {
       await firstValueFrom(this.api.logsBootstrap({ mode: 'managed', namespace, dryRun: true }));
       this.updatePreflightCheck(0, 'success', 'Dry-run 成功，具备安装所需权限');
@@ -929,7 +929,7 @@ export class LogCollectorInstallComponent implements OnInit, AfterViewInit, OnDe
       this.updatePreflightCheck(0, 'error', `权限检查失败：${this.extractErrorMessage(error)}`);
     }
 
-    // 2. 组件状态
+    // 2. Component status
     let logServiceStatus: any | null = null;
     try {
       logServiceStatus = await firstValueFrom(this.api.getLogServiceStatus());
@@ -946,7 +946,7 @@ export class LogCollectorInstallComponent implements OnInit, AfterViewInit, OnDe
       this.updatePreflightCheck(1, 'warning', `无法获取组件状态：${this.extractErrorMessage(error)}`);
     }
 
-    // 3. 输出/管道配置
+    // 3. Output/pipeline configuration
     if (logServiceStatus) {
       const pipelineExists = !!logServiceStatus.pipelineConfigMapExists;
       const result = pipelineExists
@@ -1026,13 +1026,13 @@ export class LogCollectorInstallComponent implements OnInit, AfterViewInit, OnDe
     return `${name}: ${status}`;
   }
 
-  // WizardShell 需要的方法
+  // Methods required by WizardShell
   getStepActions(): WizardAction[] {
     const actions: WizardAction[] = [];
 
     switch (this.currentStep) {
       case 0:
-        // 环境检查步骤：必须完成检查且无阻塞性错误才能继续
+        // Environment check step: must complete check with no blocking errors to proceed
         const canProceedFromPrecheck = this.isPreflightComplete() && !this.hasBlockingPreflightError();
         actions.push({
           text: '下一步：配置参数',
@@ -1137,7 +1137,7 @@ export class LogCollectorInstallComponent implements OnInit, AfterViewInit, OnDe
   }
 
   onDeploymentTypeChange(type: string): void {
-    // 根据部署类型自动调整配置
+    // Automatically adjust configuration based on deployment type
     switch (type) {
       case 'filebeat-only':
         this.form.patchValue({
@@ -1158,14 +1158,14 @@ export class LogCollectorInstallComponent implements OnInit, AfterViewInit, OnDe
         });
         break;
       case 'custom':
-        // 保持用户当前选择
+        // Keep user's current selection
         break;
     }
     
-    // 不再生成资源 YAML，步骤3为命令预览
+    // No longer generate resource YAML, step 3 is command preview
   }
 
-  // 命令生成替代 YAML
+  // Command generation replaces YAML
   getHelmRepoAddCommand(): string {
     return 'helm repo add polardbx https://polardbx-charts.oss-cn-beijing.aliyuncs.com';
   }
@@ -1215,7 +1215,7 @@ export class LogCollectorInstallComponent implements OnInit, AfterViewInit, OnDe
     }
   }
 
-  // 应用配置方法
+  // Apply configuration method
   applyConfiguration(): void {
     this.stepLoading = true;
     this.applying = true;
@@ -1227,7 +1227,7 @@ export class LogCollectorInstallComponent implements OnInit, AfterViewInit, OnDe
   this.jobMessage = null;
   this.latestComponentStatus = null;
     
-    // 使用真实的日志收集安装 API
+    // Use real log collection installation API
     const config = this.form.value;
     const requestBody = {
       mode: 'managed' as 'managed',
@@ -1235,7 +1235,7 @@ export class LogCollectorInstallComponent implements OnInit, AfterViewInit, OnDe
       namespace: config.namespace
     };
 
-    // 若已有 installJob，避免重复触发，直接继续轮询/查看
+    // If installJob already exists, avoid duplicate triggering, directly continue polling/viewing
     if (this.installJob?.jobName) {
       this.stepLoading = false;
       this.applying = false;
@@ -1244,7 +1244,7 @@ export class LogCollectorInstallComponent implements OnInit, AfterViewInit, OnDe
       return;
     }
 
-    // 若系统已检测到组件存在，则不再触发安装
+    // If system has detected component exists, do not trigger installation again
     this.api.getLogServiceStatus().subscribe({
       next: (s: any) => {
         const comps = s?.components || {};
@@ -1280,10 +1280,10 @@ export class LogCollectorInstallComponent implements OnInit, AfterViewInit, OnDe
 
         this.message.success('安装任务已启动');
         
-        // 报告到全局进度服务
+        // Report to global progress service
         this.globalProgress.reportLogsInstall(jobName, jobNamespace, targetNs);
         
-        // 启动状态轮询
+        // Start status polling
         this.startJobStatusPolling();
         this.startLogStreaming();
         
@@ -1303,7 +1303,7 @@ export class LogCollectorInstallComponent implements OnInit, AfterViewInit, OnDe
         });
       },
       error: () => {
-        // 获取状态失败时，保守地继续尝试触发安装
+        // When getting status fails, conservatively continue trying to trigger installation
         this.api.logsBootstrap(requestBody).subscribe({
           next: (res: any) => {
             const jobName = res?.jobName || 'polardbx-logs-bootstrap';
@@ -1451,7 +1451,7 @@ export class LogCollectorInstallComponent implements OnInit, AfterViewInit, OnDe
     this.installLogLoading = false;
   }
 
-  // 规范化后端返回的日志对象，避免 [object Object]
+  // Normalize log objects returned by backend to avoid [object Object]
   private normalizeLogsResponse(res: any): string {
     const raw = (res && (res.logs || res.message || res.text || res)) as any;
     const str = typeof raw === 'string' ? raw : JSON.stringify(raw, null, 2);
@@ -1485,7 +1485,7 @@ export class LogCollectorInstallComponent implements OnInit, AfterViewInit, OnDe
     }
   }
 
-  // 注意：restart 已在文件末尾实现，这里避免重复实现
+  // Note: restart is already implemented at the end of the file, avoid duplicate implementation here
 
   goToLogsDashboard(): void {
     this.router.navigate(['/operations/logs/dashboard']);
@@ -1591,7 +1591,7 @@ export class LogCollectorInstallComponent implements OnInit, AfterViewInit, OnDe
     this.verifyTimer = setInterval(poll, 4000);
   }
 
-  // ==================== localStorage 持久化功能 ====================
+  // ==================== localStorage persistence functionality ====================
 
   private saveState(): void {
     try {
@@ -1627,14 +1627,14 @@ export class LogCollectorInstallComponent implements OnInit, AfterViewInit, OnDe
 
       const state: LogCollectorWizardState = JSON.parse(savedData);
 
-      // 版本校验
+      // Version validation
       if (!state.version || state.version !== STATE_VERSION) {
         console.log('状态版本不匹配，清除旧状态');
         this.clearSavedState();
         return;
       }
 
-      // 检查状态是否太旧
+      // Check if state is too old
       const hoursOld = (Date.now() - (state.lastUpdated || state.timestamp)) / (1000 * 60 * 60);
       if (hoursOld > MAX_STATE_AGE_HOURS) {
         console.log(`状态已过期 (${Math.round(hoursOld)}小时)，清除旧状态`);
@@ -1642,7 +1642,7 @@ export class LogCollectorInstallComponent implements OnInit, AfterViewInit, OnDe
         return;
       }
 
-      // 确认是否恢复状态
+      // Confirm whether to restore state
       if (state.currentStep > 0 || state.installJob) {
         this.confirmStateRestore(state);
       }
@@ -1685,13 +1685,13 @@ export class LogCollectorInstallComponent implements OnInit, AfterViewInit, OnDe
 
   private restoreState(state: LogCollectorWizardState): void {
     try {
-      // 恢复表单值
+      // Restore form values
       this.form.patchValue(state.formValues);
 
-      // 恢复步骤
+      // Restore step
       this.currentStep = state.currentStep;
 
-      // 恢复其他状态
+      // Restore other state
       if (state.preflightChecks) {
         this.preflightChecks = state.preflightChecks;
       }
@@ -1703,7 +1703,7 @@ export class LogCollectorInstallComponent implements OnInit, AfterViewInit, OnDe
       }
       if (state.installJob) {
         this.installJob = state.installJob;
-        // 如果有安装任务，启动状态轮询
+        // If there is an installation task, start status polling
         this.startJobStatusPolling();
         this.startLogStreaming();
       }
@@ -1724,15 +1724,15 @@ export class LogCollectorInstallComponent implements OnInit, AfterViewInit, OnDe
     }
   }
 
-  // ==================== Job 状态轮询 ====================
+  // ==================== Job status polling ====================
 
   private pollingInterval: any;
   private pollingRetryCount = 0;
-  private basePollingInterval = 5000; // 5秒基础间隔
-  private maxPollingInterval = 60000; // 最大60秒间隔
+  private basePollingInterval = 5000; // 5 second base interval
+  private maxPollingInterval = 60000; // Maximum 60 second interval
 
   private startJobStatusPolling(): void {
-    // 没有有效任务则不轮询，避免 404 噪音
+    // Don't poll if there's no valid task, avoid 404 noise
     if (!this.installJob?.jobName) return;
 
     this.stopJobStatusPolling();
@@ -1747,7 +1747,7 @@ export class LogCollectorInstallComponent implements OnInit, AfterViewInit, OnDe
       this.pollingInterval = setTimeout(pollWithBackoff, currentInterval);
     };
 
-    // 立即检查一次
+    // Check immediately once
     pollWithBackoff();
   }
 
@@ -1764,14 +1764,14 @@ export class LogCollectorInstallComponent implements OnInit, AfterViewInit, OnDe
 
     this.api.logsBootstrapStatus(this.installJob.jobName, this.installJob.namespace).subscribe({
       next: (status: any) => {
-        this.pollingRetryCount = 0; // 重置重试计数
+        this.pollingRetryCount = 0; // Reset retry count
         const phase = status?.phase;
         this.jobPhase = phase || null;
         this.jobMessage = status?.message || status?.details?.message || status?.conditions?.[0]?.message || null;
 
         if (phase === 'Succeeded') {
           this.stopJobStatusPolling();
-          this.stopLogStreaming(); // 停止日志轮询避免404
+          this.stopLogStreaming(); // Stop log polling to avoid 404
           this.message.success('安装任务已完成，正在验证组件状态');
           this.verifying = true;
           this.saveState();
@@ -1789,21 +1789,21 @@ export class LogCollectorInstallComponent implements OnInit, AfterViewInit, OnDe
           };
           this.stopJobStatusPolling();
           this.message.error('日志收集安装失败');
-          this.saveState(); // 保存失败状态
+          this.saveState(); // Save failed state
         }
-        // 运行中的任务继续轮询
+        // Running tasks continue polling
       },
       error: (error: any) => {
         this.pollingRetryCount++;
 
-        // 404 表示 Job 不存在或已被清理
+        // 404 means Job doesn't exist or has been cleaned up
         if (error?.status === 404) {
           this.installSuccess = false;
           this.verifying = false;
           this.stopLogStreaming();
           this.stopJobStatusPolling();
           this.message.warning('安装任务不存在，可能已被系统清理');
-          this.installJob = null; // 清空任务，避免后续进入页面继续轮询
+          this.installJob = null; // Clear task to avoid continuing polling when entering page later
           this.jobPhase = null;
           this.jobMessage = null;
           this.latestComponentStatus = null;
@@ -1813,7 +1813,7 @@ export class LogCollectorInstallComponent implements OnInit, AfterViewInit, OnDe
 
         console.warn(`检查任务状态失败 (重试${this.pollingRetryCount}次):`, error);
 
-        // 达到最大重试次数后停止轮询
+        // Stop polling after reaching maximum retry count
         if (this.pollingRetryCount >= 5) {
           this.stopJobStatusPolling();
           this.message.warning('无法获取安装状态，请手动检查任务进度');
@@ -1823,7 +1823,7 @@ export class LogCollectorInstallComponent implements OnInit, AfterViewInit, OnDe
   }
 
   restart(): void {
-    this.clearSavedState(); // 清理保存的状态
+    this.clearSavedState(); // Clear saved state
     this.currentStep = 0;
     this.installSuccess = false;
     this.installJob = null;

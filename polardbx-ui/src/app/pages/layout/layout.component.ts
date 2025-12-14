@@ -122,7 +122,7 @@ export class LayoutComponent implements OnInit {
   activeNamespace: string | null = null;
   isAuthenticated = false;
   
-  // 用于控制每个子菜单的独立展开状态
+  // Control independent expand state for each submenu
   submenuOpenMap: { [key: string]: boolean } = {
     backup: false,
     recovery: false,
@@ -143,7 +143,7 @@ export class LayoutComponent implements OnInit {
   private readonly modal = inject(NzModalService);
 
   constructor() {
-    // 确保运行时已注册，避免仅依赖providers导致的加载顺序问题
+    // Ensure runtime registration to avoid loading order issues when relying solely on providers
     this.iconService.addIcon(...icons);
   }
 
@@ -153,7 +153,7 @@ export class LayoutComponent implements OnInit {
     this.ns.activeNamespace$.subscribe(ns => this.activeNamespace = ns);
     await this.auth.init();
     
-    // 监听认证状态
+    // Listen to authentication status
     this.updateAuthStatus();
   }
   
@@ -163,7 +163,7 @@ export class LayoutComponent implements OnInit {
 
   async openLogin() {
     const s = await this.auth.session$.toPromise();
-    if (!s?.enabled) return; // JWT 未启用
+    if (!s?.enabled) return; // JWT not enabled
     this.dialog.open(LoginDialogComponent, { width: '360px' });
   }
 
@@ -174,14 +174,14 @@ export class LayoutComponent implements OnInit {
       nzOkText: '确定',
       nzCancelText: '取消',
       nzOnOk: () => {
-        // 清除认证信息
+        // Clear authentication information
         this.auth.clearKubeconfig();
         this.auth.logout();
         
-        // 显示成功消息
+        // Show success message
         this.message.success('已成功登出');
         
-        // 跳转到连接页面
+        // Navigate to connect page
         this.router.navigate(['/connect']);
       }
     });
@@ -194,13 +194,13 @@ export class LayoutComponent implements OnInit {
       nzOkText: '确定',
       nzCancelText: '取消',
       nzOnOk: () => {
-        // 清除认证信息
+        // Clear authentication information
         this.auth.clearKubeconfig();
         
-        // 显示提示消息
+        // Show info message
         this.message.info('请重新配置 kubeconfig 连接信息');
         
-        // 跳转到连接页面
+        // Navigate to connect page
         this.router.navigate(['/connect']);
       }
     });

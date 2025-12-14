@@ -594,8 +594,8 @@ import {
       text-align: center;
       padding: 60px 20px;
     }
-
-    /* 响应式设计 */
+    
+    /* Responsive design */
     @media (max-width: 768px) {
       .backup-schedule-management {
         padding: 12px;
@@ -720,7 +720,7 @@ export class BackupScheduleManagementComponent implements OnInit, OnDestroy {
   }
 
   getNextRunTime(schedule?: PolarDBXBackupSchedule): string {
-    // 简化：如 schedule.status.nextBackupTime 提供，优先显示；否则退化为占位
+    // Simplified: if schedule.status.nextBackupTime is provided, display it; otherwise fallback to placeholder
     if (schedule?.status?.nextBackupTime) return this.formatDate(schedule.status.nextBackupTime);
     return '—';
   }
