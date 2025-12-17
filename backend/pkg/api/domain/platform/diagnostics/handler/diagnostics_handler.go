@@ -21,17 +21,17 @@ import (
 	"polardbx-ui-backend/pkg/logger"
 )
 
-// Start triggers cluster diagnostic task
+// Start triggers cluster diagnostic task.
 // @Summary Start diagnosis
-// @Description Create polardbx-clinic Pod to collect cluster diagnostic information
+// @Description Create a polardbx-clinic Pod to collect diagnostic information for the given cluster.
 // @Tags diagnostics
 // @Accept json
 // @Produce json
-// @Param namespace path string true "namespace"
-// @Param cluster path string true "cluster name"
-// @Success 202 {object} service.DiagnosticJob "diagnostic task started"
-// @Failure 400 {object} map[string]string "request parameter error"
-// @Failure 500 {object} map[string]string "server error"
+// @Param namespace path string true "Kubernetes namespace of the cluster"
+// @Param cluster path string true "Name of the PolarDB-X cluster"
+// @Success 202 {object} service.DiagnosticJob "Diagnostic task started"
+// @Failure 400 {object} map[string]any "Request parameter error"
+// @Failure 500 {object} map[string]any "Internal server error"
 // @Router /api/v1/diagnostics/{namespace}/{cluster}/start [post]
 func Start(c *gin.Context) {
 	namespace := c.Param("namespace")
@@ -58,17 +58,18 @@ func Start(c *gin.Context) {
 	apierr.Accepted(c, job)
 }
 
-// GetStatus returns diagnostic task progress/status
+// GetStatus returns diagnostic task progress/status.
 // @Summary Get diagnostic status
 // @Description Get current status and progress of specified diagnostic task
 // @Tags diagnostics
 // @Accept json
 // @Produce json
-// @Param namespace path string true "namespace"
+// @Param namespace path string true "Kubernetes namespace of the diagnostic job"
 // @Param id path string true "diagnostic task ID"
-// @Success 200 {object} service.DiagnosticJob "diagnostic task status"
-// @Failure 404 {object} map[string]string "task not found"
-// @Failure 500 {object} map[string]string "server error"
+// @Success 200 {object} service.DiagnosticJob "Diagnostic task status"
+// @Failure 400 {object} map[string]any "Request parameter error"
+// @Failure 404 {object} map[string]any "Diagnostic task not found"
+// @Failure 500 {object} map[string]any "Internal server error"
 // @Router /api/v1/diagnostics/{namespace}/{id}/status [get]
 func GetStatus(c *gin.Context) {
 	namespace := c.Param("namespace")
@@ -95,15 +96,15 @@ func GetStatus(c *gin.Context) {
 	apierr.OK(c, job)
 }
 
-// ListReports lists diagnostic reports
+// ListReports lists diagnostic reports.
 // @Summary List diagnostic reports
 // @Description List all diagnostic reports under specified namespace
 // @Tags diagnostics
 // @Accept json
 // @Produce json
-// @Param namespace query string false "namespace, list all namespaces if not specified"
-// @Success 200 {array} service.DiagnosticJob "diagnostic reports list"
-// @Failure 500 {object} map[string]string "server error"
+// @Param namespace query string false "Kubernetes namespace; list all namespaces if not specified"
+// @Success 200 {array} service.DiagnosticJob "Diagnostic reports list"
+// @Failure 500 {object} map[string]any "Internal server error"
 // @Router /api/v1/diagnostics/reports [get]
 func ListReports(c *gin.Context) {
 	namespace := c.DefaultQuery("namespace", "")
@@ -132,18 +133,18 @@ func ListReports(c *gin.Context) {
 	})
 }
 
-// Download returns report download information
+// Download returns report download information.
 // @Summary Download diagnostic report
 // @Description Get download link or path for diagnostic report
 // @Tags diagnostics
 // @Accept json
 // @Produce json
-// @Param namespace path string true "namespace"
+// @Param namespace path string true "Kubernetes namespace of the diagnostic job"
 // @Param id path string true "diagnostic task ID"
-// @Success 200 {object} map[string]string "download information"
-// @Failure 400 {object} map[string]string "request parameter error"
-// @Failure 404 {object} map[string]string "report not found"
-// @Failure 500 {object} map[string]string "server error"
+// @Success 200 {object} map[string]any "Download information including path, URL, and helper command"
+// @Failure 400 {object} map[string]any "Request parameter error"
+// @Failure 404 {object} map[string]any "Diagnostic report not found"
+// @Failure 500 {object} map[string]any "Internal server error"
 // @Router /api/v1/diagnostics/{namespace}/{id}/download [get]
 func Download(c *gin.Context) {
 	namespace := c.Param("namespace")
@@ -182,16 +183,19 @@ func Download(c *gin.Context) {
 	})
 }
 
-// GetFile gets diagnostic report file (streaming download)
+// GetFile gets diagnostic report file (streaming download).
 // @Summary Get diagnostic report file
 // @Description Get diagnostic report file content from Pod
 // @Tags diagnostics
 // @Produce application/gzip
-// @Param namespace path string true "namespace"
+// @Param namespace path string true "Kubernetes namespace of the diagnostic job"
 // @Param id path string true "diagnostic task ID"
-// @Success 200 {file} binary "diagnostic report file"
-// @Failure 404 {object} map[string]string "file not found"
-// @Failure 500 {object} map[string]string "server error"
+// @Success 200 {file} binary "Diagnostic report file"
+// @Failure 400 {object} map[string]any "Request parameter error (e.g., invalid ID)"
+// @Failure 401 {object} map[string]any "Authentication required or invalid authentication state"
+// @Failure 404 {object} map[string]any "Diagnostic job or file not found"
+// @Failure 409 {object} map[string]any "Diagnostic report not ready yet"
+// @Failure 500 {object} map[string]any "Internal server error"
 // @Router /api/v1/diagnostics/{namespace}/{id}/file [get]
 func GetFile(c *gin.Context) {
 	namespace := c.Param("namespace")
