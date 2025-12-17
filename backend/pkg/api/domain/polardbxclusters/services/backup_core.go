@@ -18,12 +18,13 @@ import (
 	"polardbx-ui-backend/pkg/k8s"
 )
 
-// BackupService provides core backup operations for clusters
+// BackupService provides core backup operations for PolarDB-X clusters.
 type BackupService struct{}
 
+// NewBackupService constructs a new BackupService instance.
 func NewBackupService() *BackupService { return &BackupService{} }
 
-// List lists backups for a cluster
+// List lists backups for a given cluster in the specified namespace.
 func (s *BackupService) List(c *gin.Context) {
 	logger := middleware.NewBusinessLogger(c, "BackupService")
 	cli, ok := util.K8sClientFromContext(c)
@@ -46,7 +47,7 @@ func (s *BackupService) List(c *gin.Context) {
 	apierr.OK(c, backups)
 }
 
-// Create creates a backup for a cluster
+// Create creates a backup resource for a given cluster.
 func (s *BackupService) Create(c *gin.Context) {
 	logger := middleware.NewBusinessLogger(c, "BackupService")
 	cli, ok := util.K8sClientFromContext(c)
@@ -80,7 +81,7 @@ func (s *BackupService) Create(c *gin.Context) {
 	apierr.Created(c, created)
 }
 
-// Validate validates backup through dry-run
+// Validate validates a backup specification by performing a Kubernetes dry-run create.
 func (s *BackupService) Validate(c *gin.Context) {
 	logger := middleware.NewBusinessLogger(c, "BackupService")
 	cli, ok := util.K8sClientFromContext(c)
@@ -112,7 +113,7 @@ func (s *BackupService) Validate(c *gin.Context) {
 	apierr.OK(c, gin.H{"valid": true})
 }
 
-// StreamEvents outputs backup events via SSE (polling)
+// StreamEvents outputs backup phase changes and events via server-sent events using polling.
 func (s *BackupService) StreamEvents(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -177,7 +178,7 @@ func (s *BackupService) StreamEvents(c *gin.Context) {
 	}
 }
 
-// GetMetrics gets coarse-grained backup progress
+// GetMetrics gets coarse-grained backup progress for a PolarDB-X backup and its child XStore backups.
 func (s *BackupService) GetMetrics(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -314,14 +315,14 @@ func (s *BackupService) GetOverview(c *gin.Context) {
 
 	// Connectivity/storage evaluation
 	kpi := gin.H{
-		"successRate24h":   successRate,
-		"running":          runningNow,
-		"failed24h":        failed24h,
-		"totalBackups24h":  total24h,
-		"totalStorage":     "",
-		"totalStorageBytes": nil,
-		"storageConnectivity":        "",
-		"storageConnectivityStatus":  "unknown",
+		"successRate24h":            successRate,
+		"running":                   runningNow,
+		"failed24h":                 failed24h,
+		"totalBackups24h":           total24h,
+		"totalStorage":              "",
+		"totalStorageBytes":         nil,
+		"storageConnectivity":       "",
+		"storageConnectivityStatus": "unknown",
 	}
 
 	// Evaluate storage connectivity (HPFS sinks)

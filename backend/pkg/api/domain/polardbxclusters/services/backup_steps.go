@@ -8,7 +8,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Flow: Validate → Create (behavior remains unchanged: internally forwards to original handler)
+// RunBackupFlow orchestrates a two-step backup flow: validate the request and then create the backup.
+// Behavior remains unchanged compared to calling the underlying handlers directly.
 func RunBackupFlow(c *gin.Context) {
 	bs := NewBackupService()
 	rr := runner.Run(c,

@@ -16,6 +16,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
+// main is the entrypoint of the PolarDB-X UI backend HTTP server.
+// It initializes logging, validates configuration, sets up routes, and runs the server with graceful shutdown.
 func main() {
 	// Initialize unified logger
 	// Note: We use os.Stderr here because logger might not be initialized yet

@@ -21,11 +21,11 @@ var (
 )
 
 func init() {
-	// 添加标准的Kubernetes API
+	// Register standard Kubernetes APIs.
 	_ = scheme.AddToScheme(kubescheme)
-	// 添加 CRD 定义
+	// Register CRD definitions.
 	_ = apiextensionsv1.AddToScheme(kubescheme)
-	// 添加PolarDB-X自定义API
+	// Register PolarDB-X custom APIs.
 	_ = polardbxv1.AddToScheme(kubescheme)
 }
 

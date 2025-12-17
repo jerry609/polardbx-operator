@@ -154,16 +154,16 @@ func (s *BackupService) evaluateStorageConnectivity(c *gin.Context) (string, str
 	systemNS := c.DefaultQuery("systemNamespace", "polardbx-operator-system")
 	cm, err := getHpfsConfigMap(c, cli, systemNS)
 	if err != nil {
-		// ConfigMap 不存在时视为“未知”，而不是硬错误，避免在未配置 HPFS 的环境中显示异常
+		// Treat missing ConfigMap as "unknown" instead of a hard error to avoid noise in environments without HPFS configured.
 		return "unknown", "hpfs_config_not_found"
 	}
 	cfg, err := decodeHpfsConfig(cm)
 	if err != nil {
-		// 配置解析失败同样视为“未知”，具体信息写入 detail
+		// Treat config parse failure as "unknown" and surface the specific reason via the detail field.
 		return "unknown", "hpfs_config_parse_error"
 	}
 	if len(cfg.Sinks) == 0 {
-		// 存在 ConfigMap 但未配置任何 sink
+		// ConfigMap exists but contains no sink definitions.
 		return "unknown", "no_sinks_configured"
 	}
 	for _, s := range cfg.Sinks {
