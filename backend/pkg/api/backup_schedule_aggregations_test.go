@@ -47,7 +47,6 @@ func TestGetBackupScheduleNextRuns(t *testing.T) {
 	var resp map[string]any
 	_ = json.Unmarshal(w.Body.Bytes(), &resp)
 	schedules := resp["schedules"].([]any)
-	var seenPlaceholder bool
 	var seenTimestamp bool
 	var cronComputedOK bool
 	for _, it := range schedules {
@@ -62,12 +61,8 @@ func TestGetBackupScheduleNextRuns(t *testing.T) {
 			// cron fallback from 01:30Z with "0 3 * * *" => 2024-05-01T03:00:00Z
 			exp := time.Date(2024, 5, 1, 3, 0, 0, 0, time.UTC).Format(time.RFC3339)
 			cronComputedOK = (m["nextRunTime"] == exp)
-			if !cronComputedOK {
-				// if parse failed, placeholder would appear; keep legacy assert
-				seenPlaceholder = (m["nextRunTime"] == "pending_implementation")
-			}
 		}
 	}
 	assert.True(t, seenTimestamp)
-	assert.True(t, cronComputedOK || seenPlaceholder)
+	assert.True(t, cronComputedOK)
 }

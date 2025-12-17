@@ -309,7 +309,7 @@ export class LogCollectorIlmComponent implements OnInit {
     this.testing = true;
     this.testResults = null;
     
-    // 使用 binlog metrics 作为样本
+    // Use binlog metrics as a sample request
     this.api.getBinlogMetrics('default').subscribe({
       next: () => { 
         this.testing = false;

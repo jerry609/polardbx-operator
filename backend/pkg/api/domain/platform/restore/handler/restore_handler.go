@@ -461,5 +461,10 @@ func CancelJob(c *gin.Context) {
 		return
 	}
 
-	apierr.OK(c, gin.H{"message": "cancel requested", "namespace": ns, "name": name, "status": "pending_implementation"})
+	apierr.OK(c, gin.H{
+		"message":   "cancel requested",
+		"namespace": ns,
+		"name":      name,
+		"status":    "requested",
+	})
 }

@@ -2,6 +2,7 @@ package services
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -312,16 +313,43 @@ func (s *BackupService) GetOverview(c *gin.Context) {
 	}
 
 	// Connectivity/storage evaluation
-	kpi := gin.H{"successRate24h": successRate, "running": runningNow, "failed24h": failed24h, "totalBackups24h": total24h, "totalStorage": "pending_implementation", "storageConnectivity": "pending_implementation"}
+	kpi := gin.H{
+		"successRate24h":   successRate,
+		"running":          runningNow,
+		"failed24h":        failed24h,
+		"totalBackups24h":  total24h,
+		"totalStorage":     "",
+		"totalStorageBytes": nil,
+		"storageConnectivity":        "",
+		"storageConnectivityStatus":  "unknown",
+	}
+
+	// Evaluate storage connectivity (HPFS sinks)
 	if c.DefaultQuery("evaluateConnectivity", "false") == "true" {
 		status, detail := s.evaluateStorageConnectivity(c)
 		kpi["storageConnectivityStatus"] = status
 		kpi["storageConnectivity"] = detail
 	}
-	if c.DefaultQuery("evaluateStorage", "false") == "true" {
-		// For now, we skip online S3 scan here; retain legacy behavior via placeholders
+
+	// Lightweight storage usage estimation (optional)
+	if c.DefaultQuery("evaluateStorage", "false") == "true" && len(prefixes) > 0 {
+		if totalBytes, err := s.estimateStorageUsage(c, prefixes); err == nil && totalBytes > 0 {
+			kpi["totalStorageBytes"] = totalBytes
+			kpi["totalStorage"] = fmt.Sprintf("%.2f GiB", float64(totalBytes)/1024/1024/1024)
+		}
 	}
 	apierr.OK(c, gin.H{"namespace": namespace, "timeWindowHours": 24, "generatedAt": now.Format(time.RFC3339), "kpi": kpi})
+}
+
+// estimateStorageUsage provides a lightweight estimation of total backup storage usage
+// for the given backup root prefixes. For now this is a stub that can be wired to
+// an HPFS usage API in the future.
+func (s *BackupService) estimateStorageUsage(c *gin.Context, prefixes []string) (int64, error) {
+	// TODO: Integrate with HPFS usage API to compute real storage usage.
+	// For the moment we simply return 0 to keep behavior backward compatible.
+	_ = c
+	_ = prefixes
+	return 0, nil
 }
 
 // GetClusterState aggregates per-cluster backup state: latest full backup, next schedule time, and RPO
@@ -489,7 +517,6 @@ func (s *BackupService) GetBinlogMetrics(c *gin.Context) {
 			"lastCheckExpireTime": b.Status.CheckExpireFileLastTime,
 			"recentDeletedFiles":  b.Status.LastDeletedFiles,
 			"recentFiles":         b.Status.LastDeletedFiles,
-			"throughputMBps":      "pending_implementation",
 		}
 		if lrt, ok := maxLrtByCluster[clusterName]; ok && !lrt.IsZero() {
 			entry["latestBackupTime"] = lrt.UTC().Format(time.RFC3339)

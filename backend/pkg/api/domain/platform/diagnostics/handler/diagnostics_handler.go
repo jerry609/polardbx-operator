@@ -1,12 +1,24 @@
 package handler
 
 import (
+	"context"
+	"fmt"
+	"net/http"
+	"regexp"
+	"time"
+
 	"github.com/gin-gonic/gin"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/tools/remotecommand"
 
 	"polardbx-ui-backend/pkg/api/domain/platform/diagnostics/service"
 	apierr "polardbx-ui-backend/pkg/api/errors"
 	"polardbx-ui-backend/pkg/api/util"
+	"polardbx-ui-backend/pkg/logger"
 )
 
 // Start triggers cluster diagnostic task
@@ -185,11 +197,124 @@ func GetFile(c *gin.Context) {
 	namespace := c.Param("namespace")
 	id := c.Param("id")
 
-	// TODO: Implement reading files from Pod and streaming
-	// This requires using kubernetes client-go's exec/cp functionality
-	// or kubectl cp's underlying implementation
+	// Validate inputs early to avoid command injection and invalid paths.
+	if namespace == "" || id == "" {
+		apierr.AbortValidation(c, "namespace and task ID cannot be empty")
+		return
+	}
+	if !isValidDiagnosticID(id) {
+		apierr.Abort(c, apierr.InvalidParam("id", "invalid diagnostic task id"))
+		return
+	}
 
-	apierr.Abort(c, apierr.Internal("file download requires additional configuration, please use kubectl cp command to download: kubectl cp "+namespace+"/polardbx-clinic-"+id+":/tmp/polardbx-clinic/"+id+".tar.gz ./"+id+".tar.gz"))
+	cli, ok := util.K8sClientFromContext(c)
+	if !ok {
+		apierr.AbortInternal(c, "unable to get Kubernetes client")
+		return
+	}
+
+	// Check status first to provide a predictable UX.
+	svc := service.NewDiagnosticsService(cli)
+	job, err := svc.GetDiagnosisStatus(c.Request.Context(), namespace, id)
+	if err != nil {
+		apierr.AbortNotFound(c, "diagnostic job", id)
+		return
+	}
+	if job.Status != service.DiagStatusSucceeded {
+		apierr.Abort(c, apierr.Conflict("diagnostic report not ready").WithDetails(gin.H{
+			"id":       id,
+			"status":   job.Status,
+			"progress": job.Progress,
+			"message":  job.Message,
+		}))
+		return
+	}
+
+	// Use authenticated kubeconfig from middleware to exec into the diagnostic pod.
+	normalizedKubeconfig, exists := c.Get("normalizedKubeconfig")
+	if !exists {
+		abortFileFallback(c, namespace, id, apierr.Unauthorized("authentication required"))
+		return
+	}
+	kubeconfig, ok := normalizedKubeconfig.([]byte)
+	if !ok || len(kubeconfig) == 0 {
+		abortFileFallback(c, namespace, id, apierr.Unauthorized("invalid authentication state"))
+		return
+	}
+	restCfg, err := clientcmd.RESTConfigFromKubeConfig(kubeconfig)
+	if err != nil {
+		abortFileFallback(c, namespace, id, apierr.Internal("configuration error"))
+		return
+	}
+	restCfg.APIPath = "/api"
+	restCfg.GroupVersion = &corev1.SchemeGroupVersion
+	restCfg.NegotiatedSerializer = scheme.Codecs.WithoutConversion()
+
+	clientset, err := kubernetes.NewForConfig(restCfg)
+	if err != nil {
+		abortFileFallback(c, namespace, id, apierr.Internal("client initialization failed"))
+		return
+	}
+
+	podName := service.ClinicPodPrefix + id
+	filePath := fmt.Sprintf("/tmp/polardbx-clinic/%s.tar.gz", id)
+
+	// Basic audit log
+	user := c.GetString("k8sUser")
+	logger.Info("AUDIT: diagnostics file download requested",
+		"user", user,
+		"namespace", namespace,
+		"id", id,
+		"pod", podName,
+		"clientIP", c.ClientIP())
+
+	// Stream tar.gz from pod to response.
+	c.Header("Content-Type", "application/gzip")
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%q", id+".tar.gz"))
+	c.Header("Cache-Control", "no-store")
+	c.Status(http.StatusOK)
+
+	req := clientset.CoreV1().RESTClient().Post().
+		Resource("pods").
+		Name(podName).
+		Namespace(namespace).
+		SubResource("exec")
+
+	execOpts := &corev1.PodExecOptions{
+		Container: "clinic",
+		Command:   []string{"/bin/sh", "-c", "cat " + shellEscapePath(filePath)},
+		Stdin:     false,
+		Stdout:    true,
+		Stderr:    true,
+		TTY:       false,
+	}
+	req.VersionedParams(execOpts, scheme.ParameterCodec)
+
+	executor, err := remotecommand.NewSPDYExecutor(restCfg, http.MethodPost, req.URL())
+	if err != nil {
+		abortFileFallback(c, namespace, id, apierr.Wrap(apierr.ErrBadGateway, "exec initialization failed", err))
+		return
+	}
+
+	// Use request context with an upper bound to avoid hanging streams.
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Minute)
+	defer cancel()
+
+	err = executor.StreamWithContext(ctx, remotecommand.StreamOptions{
+		Stdout: c.Writer,
+		Stderr: &limitedLogWriter{limit: 8 << 10},
+		Tty:    false,
+	})
+	if err != nil {
+		// If the stream fails after headers have been written, we can't change status.
+		// Log and let client observe truncated download / connection close.
+		if errors.IsForbidden(err) {
+			logger.Warn("diagnostics file download forbidden", "namespace", namespace, "id", id, "error", err)
+		} else {
+			logger.Error("diagnostics file download failed", "namespace", namespace, "id", id, "error", err)
+		}
+		return
+	}
 }
 
 // DeleteJob deletes diagnostic task (cleanup Pod)
@@ -234,4 +359,54 @@ func DeleteJob(c *gin.Context) {
 		"message": "diagnostic task deleted",
 		"id":      id,
 	})
+}
+
+var diagnosticIDRe = regexp.MustCompile(`^[A-Za-z0-9._-]+$`)
+
+func isValidDiagnosticID(id string) bool {
+	return id != "" && diagnosticIDRe.MatchString(id)
+}
+
+// shellEscapePath escapes a path for safe use in a simple `sh -c` command.
+// Since we already validate id and we only format a fixed directory with id,
+// this is an extra safety measure.
+func shellEscapePath(p string) string {
+	// single-quote escape for POSIX shell: ' -> '\''.
+	// Note: p should not contain newlines; id validation ensures that.
+	out := "'"
+	for _, r := range p {
+		if r == '\'' {
+			out += `'\''`
+		} else {
+			out += string(r)
+		}
+	}
+	out += "'"
+	return out
+}
+
+func abortFileFallback(c *gin.Context, namespace, id string, err *apierr.APIError) {
+	detail := gin.H{
+		"message": "online download is not available; please use kubectl cp",
+		"command": fmt.Sprintf("kubectl cp %s/%s%s:%s ./%s.tar.gz", namespace, service.ClinicPodPrefix, id, "/tmp/polardbx-clinic/"+id+".tar.gz", id),
+	}
+	apierr.Abort(c, err.WithDetails(detail))
+}
+
+// limitedLogWriter captures a small amount of stderr for debugging without OOM risk.
+type limitedLogWriter struct {
+	buf   []byte
+	limit int
+}
+
+func (w *limitedLogWriter) Write(p []byte) (int, error) {
+	remain := w.limit - len(w.buf)
+	if remain > 0 {
+		if len(p) > remain {
+			w.buf = append(w.buf, p[:remain]...)
+		} else {
+			w.buf = append(w.buf, p...)
+		}
+	}
+	return len(p), nil
 }

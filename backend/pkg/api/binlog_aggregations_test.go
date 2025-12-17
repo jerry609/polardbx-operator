@@ -64,7 +64,8 @@ func TestGetBinlogMetrics(t *testing.T) {
 	_, hasRecent := m["recentFiles"]
 	assert.True(t, hasRecent)
 
-	// estimateThroughput=true -> throughputMBps currently pending_implementation; just ensure key exists
+	// estimateThroughput=true -> throughputMBps is not available until we have real metrics
+	// (we avoid returning placeholder values in enterprise mode).
 	w2 := httptest.NewRecorder()
 	req2, _ := http.NewRequest(http.MethodGet, "/api/v1/backups/binlog/metrics?namespace=ns1&now="+nowFixed.Format(time.RFC3339)+"&estimateThroughput=true", nil)
 	r.ServeHTTP(w2, req2)
@@ -73,5 +74,5 @@ func TestGetBinlogMetrics(t *testing.T) {
 	items2 := resp2["binlogs"].([]any)
 	m2 := items2[0].(map[string]any)
 	_, hasThroughput := m2["throughputMBps"]
-	assert.True(t, hasThroughput)
+	assert.False(t, hasThroughput)
 }

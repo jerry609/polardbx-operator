@@ -2,7 +2,7 @@ package config
 
 import (
 	"bytes"
-	"log"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -27,16 +27,6 @@ func TestMaskSecret(t *testing.T) {
 }
 
 func TestPrintConfigRedactsSecrets(t *testing.T) {
-	var buf bytes.Buffer
-	origOut := log.Writer()
-	origFlags := log.Flags()
-	log.SetOutput(&buf)
-	log.SetFlags(0)
-	defer func() {
-		log.SetOutput(origOut)
-		log.SetFlags(origFlags)
-	}()
-
 	appCfg := &AppConfig{
 		Server: &ServerConfig{
 			Port:          8080,
@@ -50,13 +40,35 @@ func TestPrintConfigRedactsSecrets(t *testing.T) {
 		AutoFix:    &AutoFixOverlayConfig{Enabled: true, Namespace: "ns"},
 	}
 
+	// Capture stdout/stderr because PrintConfig uses our zap-based logger by default.
+	// IMPORTANT: redirect before calling PrintConfig so logger initializes with the redirected fds.
+	origStdout := os.Stdout
+	origStderr := os.Stderr
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("pipe: %v", err)
+	}
+	os.Stdout = w
+	os.Stderr = w
+	defer func() {
+		_ = w.Close()
+		_ = r.Close()
+		os.Stdout = origStdout
+		os.Stderr = origStderr
+	}()
+
 	appCfg.PrintConfig()
 
+	_ = w.Close()
+	var buf bytes.Buffer
+	_, _ = buf.ReadFrom(r)
 	out := buf.String()
+
 	if strings.Contains(out, "super-secret-token") {
 		t.Fatalf("PrintConfig leaked sensitive value: %s", out)
 	}
-	if !strings.Contains(out, "JWTSecret=su***en") {
+	// Accept either stdlog format or structured logger format.
+	if !(strings.Contains(out, "JWTSecret=su***en") || strings.Contains(out, "jwtSecret") && strings.Contains(out, "su***en")) {
 		t.Fatalf("masked secret not present: %s", out)
 	}
 }

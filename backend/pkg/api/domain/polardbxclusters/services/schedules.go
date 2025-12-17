@@ -136,17 +136,17 @@ func (s *BackupScheduleService) GetNextRuns(c *gin.Context) {
 		}
 		if it.Status.NextBackupTime != nil && !it.Status.NextBackupTime.Time.IsZero() {
 			entry["nextRunTime"] = it.Status.NextBackupTime.Time.Format(time.RFC3339)
-		} else {
-			if it.Spec.Schedule != "" {
-				if sch, err := cronv3.ParseStandard(it.Spec.Schedule); err == nil {
-					next := sch.Next(now)
-					entry["nextRunTime"] = next.UTC().Format(time.RFC3339)
-				} else {
-					entry["nextRunTime"] = "pending_implementation"
-				}
+		} else if it.Spec.Schedule != "" {
+			if sch, err := cronv3.ParseStandard(it.Spec.Schedule); err == nil {
+				next := sch.Next(now)
+				entry["nextRunTime"] = next.UTC().Format(time.RFC3339)
 			} else {
-				entry["nextRunTime"] = "pending_implementation"
+				entry["nextRunTime"] = ""
+				entry["parseError"] = err.Error()
 			}
+		} else {
+			entry["nextRunTime"] = ""
+			entry["parseError"] = "empty schedule"
 		}
 		items = append(items, entry)
 	}

@@ -323,6 +323,6 @@ func TestBackupOverview_Aggregation(t *testing.T) {
 	kpi := resp["kpi"].(map[string]any)
 	// ns1 has b1 success, b2 failed within 24h, b3 is in ns2
 	assert.Equal(t, float64(2), kpi["totalBackups24h"]) // JSON numbers decode to float64
-	assert.Equal(t, "pending_implementation", kpi["totalStorage"])
-	assert.Equal(t, "pending_implementation", kpi["storageConnectivity"])
+	assert.Equal(t, "", kpi["totalStorage"])
+	assert.Equal(t, "", kpi["storageConnectivity"])
 }

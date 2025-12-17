@@ -1431,7 +1431,9 @@ export class ApiService {
     );
   }
 
-  // Get Binlog aggregated metrics (optional throughput estimation, time window, return list)
+  // Get Binlog aggregated metrics.
+  // Note: `throughputMBps` may be omitted when backend cannot provide real throughput (we do NOT use placeholders).
+  // `estimateThroughput` is kept for forward compatibility but may have no effect depending on backend capability.
   getBinlogMetrics(namespace: string, estimateThroughput = false, windowSeconds = 300): Observable<any> {
     const url = `${this.baseUrl}/backups/binlog/metrics`;
     const params = this.withNs(new HttpParams()

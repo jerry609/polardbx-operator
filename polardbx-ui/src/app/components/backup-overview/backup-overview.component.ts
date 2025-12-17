@@ -99,7 +99,7 @@ interface ClusterBackupInfo {
       </div>
 
       <div class="page-content">
-        <!-- 快捷操作卡片 -->
+        <!-- Quick actions -->
         <nz-card class="quick-actions-card">
           <div class="quick-actions">
             <button nz-button nzType="primary" (click)="navigateTo('/backup/manual-backups')">
@@ -125,7 +125,7 @@ interface ClusterBackupInfo {
           </div>
         </nz-card>
 
-        <!-- KPI 统计卡片 -->
+        <!-- KPI summary -->
         <nz-card class="overview-card" nzTitle="24小时备份统计">
           <div *ngIf="loading && !kpi" class="loading-container">
             <nz-spin nzSize="large"></nz-spin>
@@ -188,7 +188,7 @@ interface ClusterBackupInfo {
               </nz-col>
             </nz-row>
             
-            <!-- 存储连通性 -->
+            <!-- Storage connectivity -->
             <nz-row [nzGutter]="16" class="secondary-stats">
               <nz-col [nzSpan]="24">
                 <nz-card class="connectivity-card" [nzBordered]="false">
@@ -210,7 +210,7 @@ interface ClusterBackupInfo {
           </div>
         </nz-card>
 
-        <!-- 集群备份状态表格 -->
+        <!-- Cluster backup state table -->
         <nz-card class="cluster-state-card" nzTitle="集群备份状态">
           <ng-template #clusterExtra>
             <span class="cluster-count">共 {{ clusters.length }} 个集群</span>
@@ -301,7 +301,7 @@ interface ClusterBackupInfo {
           </nz-empty>
         </nz-card>
 
-        <!-- 元信息 -->
+        <!-- Metadata -->
         <div class="meta-info" *ngIf="generatedAt">
           <i nz-icon nzType="clock-circle"></i>
           数据更新时间：{{ generatedAt | date:'yyyy-MM-dd HH:mm:ss' }}
@@ -655,16 +655,33 @@ export class BackupOverviewComponent implements OnInit, OnDestroy {
   }
 
   getConnectivityDescription(): string {
-    const connectivity = this.kpi?.storageConnectivity ?? '';
+    const rawConnectivity = this.kpi?.storageConnectivity ?? '';
+    const connectivity = this.normalizePlaceholder(rawConnectivity);
     const status = this.kpi?.storageConnectivityStatus;
     
     if (!status || status === 'unknown') {
       return '正在检测存储连通性...';
     } else if (status === 'ok') {
-      return `存储服务连接正常：${connectivity}`;
+      // Backend may return an empty detail (e.g., probing disabled or no additional info available).
+      return connectivity
+        ? `存储服务连接正常：${connectivity}`
+        : '存储服务连接正常';
     } else {
-      return `存储连接异常：${connectivity || '请检查 HPFS 配置'}`;
+      const detail = connectivity || '请检查 HPFS 配置';
+      return `存储连接异常：${detail}`;
     }
+  }
+
+  /**
+   * Backward compatibility for legacy placeholder values.
+   * New backend versions should not return placeholder literals.
+   * If a field is missing/unavailable, treat it as an empty string (i.e., "not provided" => "do not display").
+   */
+  private normalizePlaceholder(value: any): string {
+    if (value === 'pending_implementation' || value === null || value === undefined) {
+      return '';
+    }
+    return String(value);
   }
 
   getPhaseColor(phase: string): string {
