@@ -21,8 +21,9 @@ func backupBinlogSvc(c *gin.Context) *services.BackupBinlogService {
 // @Tags xstores, backup-binlogs
 // @Produce json
 // @Param namespace query string false "Kubernetes namespace; defaults to 'default' when omitted"
-// @Success 200 {array} polardbxv1.XStoreBackupBinlog "List of XStore binlog backups"
+// @Success 200 {array} map[string]any "List of XStore binlog backups"
 // @Failure 502 {object} map[string]any "Upstream Kubernetes error"
+// @Router /api/v1/xstores/backup-binlogs [get]
 func ListBackupBinlogs(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -45,10 +46,11 @@ func ListBackupBinlogs(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param namespace query string false "Kubernetes namespace; defaults to 'default' when omitted"
-// @Param body body polardbxv1.XStoreBackupBinlog true "XStore binlog backup specification"
-// @Success 201 {object} polardbxv1.XStoreBackupBinlog "Created XStore binlog backup"
+// @Param body body map[string]any true "XStore binlog backup specification"
+// @Success 201 {object} map[string]any "Created XStore binlog backup"
 // @Failure 400 {object} map[string]any "Invalid request body"
 // @Failure 502 {object} map[string]any "Upstream Kubernetes error"
+// @Router /api/v1/xstores/backup-binlogs [post]
 func CreateBackupBinlog(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -77,9 +79,10 @@ func CreateBackupBinlog(c *gin.Context) {
 // @Produce json
 // @Param namespace path string true "Kubernetes namespace of the binlog backup"
 // @Param name path string true "Name of the binlog backup"
-// @Success 200 {object} polardbxv1.XStoreBackupBinlog "XStore binlog backup"
+// @Success 200 {object} map[string]any "XStore binlog backup"
 // @Failure 404 {object} map[string]any "Binlog backup not found"
 // @Failure 502 {object} map[string]any "Upstream Kubernetes error"
+// @Router /api/v1/xstores/backup-binlogs/{namespace}/{name} [get]
 func GetBackupBinlog(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -104,11 +107,12 @@ func GetBackupBinlog(c *gin.Context) {
 // @Produce json
 // @Param namespace path string true "Kubernetes namespace of the binlog backup"
 // @Param name path string true "Name of the binlog backup"
-// @Param body body polardbxv1.XStoreBackupBinlog true "Updated XStore binlog backup specification"
-// @Success 200 {object} polardbxv1.XStoreBackupBinlog "Updated XStore binlog backup"
+// @Param body body map[string]any true "Updated XStore binlog backup specification"
+// @Success 200 {object} map[string]any "Updated XStore binlog backup"
 // @Failure 400 {object} map[string]any "Invalid request body"
 // @Failure 404 {object} map[string]any "Binlog backup not found"
 // @Failure 502 {object} map[string]any "Upstream Kubernetes error"
+// @Router /api/v1/xstores/backup-binlogs/{namespace}/{name} [put]
 func UpdateBackupBinlog(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -139,6 +143,7 @@ func UpdateBackupBinlog(c *gin.Context) {
 // @Success 200 {object} map[string]any "Deletion confirmation"
 // @Failure 404 {object} map[string]any "Binlog backup not found"
 // @Failure 502 {object} map[string]any "Upstream Kubernetes error"
+// @Router /api/v1/xstores/backup-binlogs/{namespace}/{name} [delete]
 func DeleteBackupBinlog(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {

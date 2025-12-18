@@ -39,8 +39,15 @@ const (
 	RestartFlappingThreshold int32 = 5
 )
 
-// Status GET /logservice/status
-// Aggregate readiness status and configuration of log collection components
+// Status returns the aggregated readiness status of log collection components.
+// @Summary Get log service status
+// @Description Get aggregated readiness status and configuration of Filebeat/Logstash components.
+// @Tags platform, logservice
+// @Produce json
+// @Param namespace query string false "Kubernetes namespace (default: polardbx-logcollector)"
+// @Success 200 {object} map[string]any "Log service status including component health and state"
+// @Failure 500 {object} map[string]any "Internal server error"
+// @Router /api/v1/platform/logservice/status [get]
 func Status(c *gin.Context) {
 	h, ok := NewLogServiceHandlerFromContext(c)
 	if !ok {

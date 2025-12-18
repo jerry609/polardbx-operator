@@ -15,6 +15,21 @@ import (
 
 // --- Thin handlers forwarding to services/others ---
 
+// UpdateLogConfig updates log configuration for a specific node type of a cluster.
+// @Summary Update cluster log config
+// @Description Update log configuration for a given node type of a PolarDB-X cluster.
+// @Tags polardbxclusters, ops
+// @Accept json
+// @Produce json
+// @Param namespace path string true "Kubernetes namespace"
+// @Param name path string true "Cluster name"
+// @Param nodeType path string true "Node type (e.g. cn, dn, gms)"
+// @Param body body map[string]any true "Log config payload"
+// @Success 200 {object} map[string]any "Update confirmation"
+// @Failure 400 {object} map[string]any "Invalid payload"
+// @Failure 404 {object} map[string]any "Cluster not found"
+// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Router /api/v1/polardbxclusters/{namespace}/{name}/log-config/{nodeType} [patch]
 func UpdateLogConfig(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -35,6 +50,20 @@ func UpdateLogConfig(c *gin.Context) {
 	apierr.OK(c, gin.H{"message": nodeType + " log config updated successfully"})
 }
 
+// Scale performs scaling operations for a cluster.
+// @Summary Scale cluster
+// @Description Initiate scaling operation (e.g. change node replicas) for a PolarDB-X cluster.
+// @Tags polardbxclusters, ops
+// @Accept json
+// @Produce json
+// @Param namespace path string true "Kubernetes namespace"
+// @Param name path string true "Cluster name"
+// @Param body body map[string]any true "Scaling request"
+// @Success 200 {object} map[string]any "Scaling initiated"
+// @Failure 400 {object} map[string]any "Invalid request"
+// @Failure 404 {object} map[string]any "Cluster not found"
+// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Router /api/v1/polardbxclusters/{namespace}/{name}/scale [patch]
 func Scale(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -54,6 +83,20 @@ func Scale(c *gin.Context) {
 	apierr.OK(c, gin.H{"message": "Cluster scaling initiated successfully"})
 }
 
+// Upgrade initiates an upgrade for a cluster.
+// @Summary Upgrade cluster
+// @Description Initiate version upgrade for a PolarDB-X cluster.
+// @Tags polardbxclusters, ops
+// @Accept json
+// @Produce json
+// @Param namespace path string true "Kubernetes namespace"
+// @Param name path string true "Cluster name"
+// @Param body body map[string]any true "Upgrade request"
+// @Success 200 {object} map[string]any "Upgrade initiated"
+// @Failure 400 {object} map[string]any "Invalid request"
+// @Failure 404 {object} map[string]any "Cluster not found"
+// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Router /api/v1/polardbxclusters/{namespace}/{name}/upgrade [patch]
 func Upgrade(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -72,8 +115,31 @@ func Upgrade(c *gin.Context) {
 	}
 	apierr.OK(c, gin.H{"message": "Cluster upgrade initiated successfully", "upgrade": gin.H{"targetVersion": req.TargetVersion, "strategy": req.Strategy, "status": "upgrade initiated"}})
 }
+
+// GetAlertsSummary gets alert summary for a cluster.
+// @Summary Get cluster alerts summary
+// @Description Get aggregated alert summary for the specified PolarDB-X cluster.
+// @Tags polardbxclusters, monitoring
+// @Produce json
+// @Param namespace path string true "Kubernetes namespace"
+// @Param name path string true "Cluster name"
+// @Success 200 {object} map[string]any "Alerts summary"
+// @Failure 404 {object} map[string]any "Cluster not found"
+// @Failure 502 {object} map[string]any "Backend error"
+// @Router /api/v1/polardbxclusters/{namespace}/{name}/alerts-summary [get]
 func GetAlertsSummary(c *gin.Context) { services.GetAlertsSummary(c) }
 
+// ListPods lists pods for a cluster.
+// @Summary List cluster pods
+// @Description List pods belonging to the specified PolarDB-X cluster.
+// @Tags polardbxclusters, pods
+// @Produce json
+// @Param namespace path string true "Kubernetes namespace"
+// @Param name path string true "Cluster name"
+// @Success 200 {array} map[string]any "List of pods"
+// @Failure 404 {object} map[string]any "Cluster or pods not found"
+// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Router /api/v1/polardbxclusters/{namespace}/{name}/pods [get]
 func ListPods(c *gin.Context) { handler.ListForCluster(c) }
 
 func GetPrechangeChecklist(c *gin.Context) { domain_prechange.GetPrechangeChecklist(c) }
@@ -97,7 +163,17 @@ type UpgradePlanResponse struct {
 	Matrix         map[string]any     `json:"matrix,omitempty"`
 }
 
-// GetUpgradePlan gets cluster upgrade plan (candidate version list)
+// GetUpgradePlan gets cluster upgrade plan (candidate version list).
+// @Summary Get cluster upgrade plan
+// @Description Get upgrade plan and candidate versions for a PolarDB-X cluster.
+// @Tags polardbxclusters, ops
+// @Produce json
+// @Param namespace path string true "Kubernetes namespace"
+// @Param name path string true "Cluster name"
+// @Success 200 {object} polardbxclusters.UpgradePlanResponse "Upgrade plan"
+// @Failure 404 {object} map[string]any "Cluster not found"
+// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Router /api/v1/polardbxclusters/{namespace}/{name}/upgrade-plan [get]
 func GetUpgradePlan(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {

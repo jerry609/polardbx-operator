@@ -60,8 +60,15 @@ func k8sClientFromContext(c *gin.Context) (client.Client, bool) {
 	return cli, true
 }
 
-// List GET /logcollectors
-// List log collectors
+// List lists log collectors in a namespace.
+// @Summary List log collectors
+// @Description List all PolarDB-X log collectors in the specified namespace.
+// @Tags platform, logcollector
+// @Produce json
+// @Param namespace query string false "Kubernetes namespace (default: default)"
+// @Success 200 {array} map[string]any "List of log collectors"
+// @Failure 500 {object} map[string]any "Internal server error"
+// @Router /api/v1/platform/logcollectors [get]
 func List(c *gin.Context) {
 	h, ok := NewLogCollectorHandlerFromContext(c)
 	if !ok {
@@ -80,8 +87,18 @@ func (h *LogCollectorHandler) list(c *gin.Context) {
 	apierr.OK(c, collectors)
 }
 
-// Create POST /logcollectors
-// Create log collector
+// Create creates a new log collector.
+// @Summary Create log collector
+// @Description Create a new PolarDB-X log collector resource.
+// @Tags platform, logcollector
+// @Accept json
+// @Produce json
+// @Param namespace query string false "Kubernetes namespace (default: default)"
+// @Param body body map[string]any true "Log collector specification"
+// @Success 201 {object} map[string]any "Created log collector"
+// @Failure 400 {object} map[string]any "Invalid request body"
+// @Failure 500 {object} map[string]any "Internal server error"
+// @Router /api/v1/platform/logcollectors [post]
 func Create(c *gin.Context) {
 	h, ok := NewLogCollectorHandlerFromContext(c)
 	if !ok {
@@ -106,8 +123,17 @@ func (h *LogCollectorHandler) create(c *gin.Context) {
 	apierr.Created(c, createdCollector)
 }
 
-// Get GET /logcollectors/:namespace/:name
-// Get log collector
+// Get retrieves a specific log collector by namespace and name.
+// @Summary Get log collector
+// @Description Get a PolarDB-X log collector by namespace and name.
+// @Tags platform, logcollector
+// @Produce json
+// @Param namespace path string true "Kubernetes namespace"
+// @Param name path string true "Log collector name"
+// @Success 200 {object} map[string]any "Log collector details"
+// @Failure 404 {object} map[string]any "Log collector not found"
+// @Failure 500 {object} map[string]any "Internal server error"
+// @Router /api/v1/platform/logcollectors/{namespace}/{name} [get]
 func Get(c *gin.Context) {
 	h, ok := NewLogCollectorHandlerFromContext(c)
 	if !ok {
@@ -127,8 +153,19 @@ func (h *LogCollectorHandler) get(c *gin.Context) {
 	apierr.OK(c, collector)
 }
 
-// Update PUT /logcollectors/:namespace/:name
-// Update log collector
+// Update updates an existing log collector.
+// @Summary Update log collector
+// @Description Update an existing PolarDB-X log collector resource.
+// @Tags platform, logcollector
+// @Accept json
+// @Produce json
+// @Param namespace path string true "Kubernetes namespace"
+// @Param name path string true "Log collector name"
+// @Param body body map[string]any true "Updated log collector specification"
+// @Success 200 {object} map[string]any "Updated log collector"
+// @Failure 400 {object} map[string]any "Invalid request body"
+// @Failure 500 {object} map[string]any "Internal server error"
+// @Router /api/v1/platform/logcollectors/{namespace}/{name} [put]
 func Update(c *gin.Context) {
 	h, ok := NewLogCollectorHandlerFromContext(c)
 	if !ok {
@@ -153,8 +190,16 @@ func (h *LogCollectorHandler) update(c *gin.Context) {
 	apierr.OK(c, updatedCollector)
 }
 
-// Delete DELETE /logcollectors/:namespace/:name
-// Delete log collector
+// Delete deletes a log collector.
+// @Summary Delete log collector
+// @Description Delete a PolarDB-X log collector resource.
+// @Tags platform, logcollector
+// @Param namespace path string true "Kubernetes namespace"
+// @Param name path string true "Log collector name"
+// @Success 200 {object} map[string]any "Deletion confirmation"
+// @Failure 404 {object} map[string]any "Log collector not found"
+// @Failure 500 {object} map[string]any "Internal server error"
+// @Router /api/v1/platform/logcollectors/{namespace}/{name} [delete]
 func Delete(c *gin.Context) {
 	h, ok := NewLogCollectorHandlerFromContext(c)
 	if !ok {
@@ -191,8 +236,18 @@ func clientsetFromContext(c *gin.Context) (kubernetes.Interface, bool) {
 	return cs, true
 }
 
-// GetLogstashPipeline GET /logcollectors/:namespace/pipeline
-// Get logstash pipeline ConfigMap content
+// GetLogstashPipeline retrieves the Logstash pipeline ConfigMap content.
+// @Summary Get Logstash pipeline
+// @Description Get the Logstash pipeline ConfigMap content for a namespace.
+// @Tags platform, logcollector
+// @Produce json
+// @Param namespace path string true "Kubernetes namespace"
+// @Param configMap query string false "ConfigMap name (default: logstash-pipeline)"
+// @Param key query string false "Specific key to retrieve from ConfigMap"
+// @Success 200 {object} map[string]any "Pipeline ConfigMap data"
+// @Failure 404 {object} map[string]any "ConfigMap or key not found"
+// @Failure 500 {object} map[string]any "Internal server error"
+// @Router /api/v1/platform/logcollectors/{namespace}/pipeline [get]
 func GetLogstashPipeline(c *gin.Context) {
 	clientset, ok := clientsetFromContext(c)
 	if !ok {
@@ -223,8 +278,20 @@ type updatePipelineRequest struct {
 	Data map[string]string `json:"data"`
 }
 
-// UpdateLogstashPipeline PUT /logcollectors/:namespace/pipeline
-// Update or create logstash pipeline ConfigMap
+// UpdateLogstashPipeline updates or creates the Logstash pipeline ConfigMap.
+// @Summary Update Logstash pipeline
+// @Description Update or create Logstash pipeline ConfigMap content.
+// @Tags platform, logcollector
+// @Accept json
+// @Produce json
+// @Param namespace path string true "Kubernetes namespace"
+// @Param configMap query string false "ConfigMap name (default: logstash-pipeline)"
+// @Param body body map[string]any true "Pipeline data payload"
+// @Success 200 {object} map[string]any "Updated pipeline ConfigMap"
+// @Success 201 {object} map[string]any "Created pipeline ConfigMap"
+// @Failure 400 {object} map[string]any "Invalid request body"
+// @Failure 500 {object} map[string]any "Internal server error"
+// @Router /api/v1/platform/logcollectors/{namespace}/pipeline [put]
 func UpdateLogstashPipeline(c *gin.Context) {
 	clientset, ok := clientsetFromContext(c)
 	if !ok {
@@ -269,8 +336,17 @@ type esCertRequest struct {
 	CACrt string `json:"caCrt"`
 }
 
-// GetElasticsearchCert GET /logcollectors/:namespace/es-cert
-// Get Elasticsearch certificate information
+// GetElasticsearchCert retrieves the Elasticsearch CA certificate information.
+// @Summary Get Elasticsearch certificate
+// @Description Get Elasticsearch CA certificate information from the secret.
+// @Tags platform, logcollector
+// @Produce json
+// @Param namespace path string true "Kubernetes namespace"
+// @Param name query string false "Secret name (default: elastic-certs-public)"
+// @Param include query string false "Include certificate content in response (default: false)"
+// @Success 200 {object} map[string]any "Certificate information"
+// @Failure 500 {object} map[string]any "Internal server error"
+// @Router /api/v1/platform/logcollectors/{namespace}/es-cert [get]
 func GetElasticsearchCert(c *gin.Context) {
 	clientset, ok := clientsetFromContext(c)
 	if !ok {
@@ -294,8 +370,20 @@ func GetElasticsearchCert(c *gin.Context) {
 	apierr.OK(c, resp)
 }
 
-// UpdateElasticsearchCert PUT /logcollectors/:namespace/es-cert
-// Update Elasticsearch certificate
+// UpdateElasticsearchCert updates or creates the Elasticsearch CA certificate secret.
+// @Summary Update Elasticsearch certificate
+// @Description Update or create Elasticsearch CA certificate in the secret.
+// @Tags platform, logcollector
+// @Accept json
+// @Produce json
+// @Param namespace path string true "Kubernetes namespace"
+// @Param name query string false "Secret name (default: elastic-certs-public)"
+// @Param body body map[string]any true "Certificate payload (caCrt field)"
+// @Success 200 {object} map[string]any "Updated certificate info"
+// @Success 201 {object} map[string]any "Created certificate info"
+// @Failure 400 {object} map[string]any "Invalid caCrt"
+// @Failure 500 {object} map[string]any "Internal server error"
+// @Router /api/v1/platform/logcollectors/{namespace}/es-cert [put]
 func UpdateElasticsearchCert(c *gin.Context) {
 	clientset, ok := clientsetFromContext(c)
 	if !ok {
@@ -331,8 +419,16 @@ func UpdateElasticsearchCert(c *gin.Context) {
 	apierr.OK(c, gin.H{"namespace": namespace, "secret": secName, "size": len(req.CACrt)})
 }
 
-// GetLogCollectorStatus GET /logcollectors/:namespace/:name/status
-// Aggregate Filebeat/Logstash ready status and output mode
+// GetLogCollectorStatus retrieves the status of a log collector including Filebeat/Logstash readiness.
+// @Summary Get log collector status
+// @Description Get aggregated Filebeat/Logstash ready status and output mode for a log collector.
+// @Tags platform, logcollector
+// @Produce json
+// @Param namespace path string true "Kubernetes namespace"
+// @Param name path string true "Log collector name"
+// @Success 200 {object} map[string]any "Log collector status"
+// @Failure 500 {object} map[string]any "Internal server error"
+// @Router /api/v1/platform/logcollectors/{namespace}/{name}/status [get]
 func GetLogCollectorStatus(c *gin.Context) {
 	k8sCli, ok := k8sClientFromContext(c)
 	if !ok {
@@ -392,8 +488,20 @@ func GetLogCollectorStatus(c *gin.Context) {
 	apierr.OK(c, resp)
 }
 
-// StreamLogstashLogs GET /logcollectors/:namespace/logs
-// Stream logstash pod logs
+// StreamLogstashLogs streams Logstash pod logs.
+// @Summary Stream Logstash logs
+// @Description Stream logs from a Logstash pod in the specified namespace.
+// @Tags platform, logcollector
+// @Produce text/plain
+// @Param namespace path string true "Kubernetes namespace"
+// @Param pod query string false "Pod name (auto-detected if not specified)"
+// @Param container query string false "Container name (default: logstash)"
+// @Param follow query string false "Follow log stream (default: true)"
+// @Param tailLines query string false "Number of tail lines (default: 200)"
+// @Success 200 {string} string "Log stream"
+// @Failure 404 {object} map[string]any "Logstash pod not found"
+// @Failure 500 {object} map[string]any "Internal server error"
+// @Router /api/v1/platform/logcollectors/{namespace}/logs [get]
 func StreamLogstashLogs(c *gin.Context) {
 	clientset, ok := clientsetFromContext(c)
 	if !ok {
@@ -466,8 +574,15 @@ func StreamLogstashLogs(c *gin.Context) {
 	}
 }
 
-// TestLogCollector GET /logcollectors/:namespace/test
-// Perform simple checks to find common configuration errors
+// TestLogCollector performs diagnostic checks on the log collector configuration.
+// @Summary Test log collector
+// @Description Perform simple diagnostic checks to find common configuration errors.
+// @Tags platform, logcollector
+// @Produce json
+// @Param namespace path string true "Kubernetes namespace"
+// @Success 200 {object} map[string]any "Diagnostic check results"
+// @Failure 500 {object} map[string]any "Internal server error"
+// @Router /api/v1/platform/logcollectors/{namespace}/test [get]
 func TestLogCollector(c *gin.Context) {
 	clientset, ok := clientsetFromContext(c)
 	if !ok {

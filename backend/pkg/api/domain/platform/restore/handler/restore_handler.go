@@ -44,7 +44,7 @@ func NewRestoreHandlerFromContext(c *gin.Context) (*RestoreHandler, bool) {
 // @Produce json
 // @Param namespace path string true "Kubernetes namespace of the source cluster"
 // @Param name path string true "Name of the source PolarDB-X cluster"
-// @Param body body struct{BackupSet string `json:"backupSet"`; BackupName string `json:"backupName"`; TargetCluster string `json:"targetCluster"`; TargetName string `json:"targetName"`; StorageProvider *struct{Type string `json:"type"`; Config map[string]string `json:"config"`} `json:"storageProvider"`; Time string `json:"time"`; TimeZone string `json:"timezone"`} true "Restore request payload"
+// @Param body body map[string]any true "Restore request payload (expects fields: backupSet/backupName, targetCluster/targetName, storageProvider, time, timezone)"
 // @Success 201 {object} map[string]any "Restore initiated successfully"
 // @Failure 400 {object} map[string]any "Invalid request body or backup not ready"
 // @Failure 404 {object} map[string]any "Backup or source cluster not found"
@@ -171,7 +171,7 @@ func (h *RestoreHandler) restoreCluster(c *gin.Context) {
 // @Produce json
 // @Param namespace path string true "Kubernetes namespace of the source cluster"
 // @Param name path string true "Name of the source PolarDB-X cluster"
-// @Param body body struct{Time string `json:"time"`; TargetTime string `json:"targetTime"`; TimeZone string `json:"timezone"`; BackupSet string `json:"backupSet"`; BackupName string `json:"backupName"`; TargetCluster string `json:"targetCluster"`; TargetName string `json:"targetName"`; StorageProvider *struct{Type string `json:"type"`; Config map[string]string `json:"config"`} `json:"storageProvider"`} true "PITR request payload"
+// @Param body body map[string]any true "PITR request payload (expects fields: time/targetTime, timezone, backupSet/backupName, targetCluster/targetName, storageProvider)"
 // @Success 201 {object} map[string]any "PITR initiated successfully"
 // @Failure 400 {object} map[string]any "Invalid request body, missing time, or backup not ready"
 // @Failure 404 {object} map[string]any "Backup or source cluster not found"

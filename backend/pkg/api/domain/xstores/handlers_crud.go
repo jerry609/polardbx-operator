@@ -21,8 +21,9 @@ func svc(c *gin.Context) *services.XStoreService {
 // @Tags xstores
 // @Produce json
 // @Param namespace query string false "Kubernetes namespace; defaults to 'default' when omitted"
-// @Success 200 {array} polardbxv1.XStore "List of XStores"
+// @Success 200 {array} map[string]any "List of XStores"
 // @Failure 502 {object} map[string]any "Upstream Kubernetes error"
+// @Router /api/v1/xstores [get]
 func List(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -45,10 +46,11 @@ func List(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param namespace query string false "Kubernetes namespace; defaults to 'default' when omitted"
-// @Param body body polardbxv1.XStore true "XStore specification"
-// @Success 201 {object} polardbxv1.XStore "Created XStore"
+// @Param body body map[string]any true "XStore specification"
+// @Success 201 {object} map[string]any "Created XStore"
 // @Failure 400 {object} map[string]any "Invalid request body"
 // @Failure 502 {object} map[string]any "Upstream Kubernetes error"
+// @Router /api/v1/xstores [post]
 func Create(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -77,9 +79,10 @@ func Create(c *gin.Context) {
 // @Produce json
 // @Param namespace path string true "Kubernetes namespace of the XStore"
 // @Param name path string true "Name of the XStore"
-// @Success 200 {object} polardbxv1.XStore "XStore"
+// @Success 200 {object} map[string]any "XStore"
 // @Failure 404 {object} map[string]any "XStore not found"
 // @Failure 502 {object} map[string]any "Upstream Kubernetes error"
+// @Router /api/v1/xstores/{namespace}/{name} [get]
 func Get(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -104,11 +107,12 @@ func Get(c *gin.Context) {
 // @Produce json
 // @Param namespace path string true "Kubernetes namespace of the XStore"
 // @Param name path string true "Name of the XStore"
-// @Param body body polardbxv1.XStore true "Updated XStore specification"
-// @Success 200 {object} polardbxv1.XStore "Updated XStore"
+// @Param body body map[string]any true "Updated XStore specification"
+// @Success 200 {object} map[string]any "Updated XStore"
 // @Failure 400 {object} map[string]any "Invalid request body"
 // @Failure 404 {object} map[string]any "XStore not found"
 // @Failure 502 {object} map[string]any "Upstream Kubernetes error"
+// @Router /api/v1/xstores/{namespace}/{name} [put]
 func Update(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -140,6 +144,7 @@ func Update(c *gin.Context) {
 // @Success 200 {object} map[string]any "Deletion confirmation"
 // @Failure 404 {object} map[string]any "XStore not found"
 // @Failure 502 {object} map[string]any "Upstream Kubernetes error"
+// @Router /api/v1/xstores/{namespace}/{name} [delete]
 func Delete(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -162,9 +167,10 @@ func Delete(c *gin.Context) {
 // @Produce json
 // @Param namespace path string true "Kubernetes namespace of the XStore"
 // @Param name path string true "Name of the XStore"
-// @Success 200 {array} corev1.Pod "List of Pods"
+// @Success 200 {array} map[string]any "List of Pods"
 // @Failure 404 {object} map[string]any "XStore or Pods not found"
 // @Failure 502 {object} map[string]any "Upstream Kubernetes error"
+// @Router /api/v1/xstores/{namespace}/{name}/pods [get]
 func ListPods(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {

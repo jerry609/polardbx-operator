@@ -21,8 +21,9 @@ func backupsSvc(c *gin.Context) *services.BackupsService {
 // @Tags xstores, backups
 // @Produce json
 // @Param namespace query string false "Kubernetes namespace; defaults to 'default' when omitted"
-// @Success 200 {array} polardbxv1.XStoreBackup "List of XStore backups"
+// @Success 200 {array} map[string]any "List of XStore backups"
 // @Failure 502 {object} map[string]any "Upstream Kubernetes error"
+// @Router /api/v1/xstores/backups [get]
 func ListBackups(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -45,10 +46,11 @@ func ListBackups(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param namespace query string false "Kubernetes namespace; defaults to 'default' when omitted"
-// @Param body body polardbxv1.XStoreBackup true "XStore backup specification"
-// @Success 201 {object} polardbxv1.XStoreBackup "Created XStore backup"
+// @Param body body map[string]any true "XStore backup specification"
+// @Success 201 {object} map[string]any "Created XStore backup"
 // @Failure 400 {object} map[string]any "Invalid request body"
 // @Failure 502 {object} map[string]any "Upstream Kubernetes error"
+// @Router /api/v1/xstores/backups [post]
 func CreateBackup(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -78,9 +80,10 @@ func CreateBackup(c *gin.Context) {
 // @Produce json
 // @Param namespace path string true "Kubernetes namespace of the backup"
 // @Param name path string true "Name of the backup"
-// @Success 200 {object} polardbxv1.XStoreBackup "XStore backup"
+// @Success 200 {object} map[string]any "XStore backup"
 // @Failure 404 {object} map[string]any "Backup not found"
 // @Failure 502 {object} map[string]any "Upstream Kubernetes error"
+// @Router /api/v1/xstores/backups/{namespace}/{name} [get]
 func GetBackup(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -105,11 +108,12 @@ func GetBackup(c *gin.Context) {
 // @Produce json
 // @Param namespace path string true "Kubernetes namespace of the backup"
 // @Param name path string true "Name of the backup"
-// @Param body body polardbxv1.XStoreBackup true "Updated XStore backup specification"
-// @Success 200 {object} polardbxv1.XStoreBackup "Updated XStore backup"
+// @Param body body map[string]any true "Updated XStore backup specification"
+// @Success 200 {object} map[string]any "Updated XStore backup"
 // @Failure 400 {object} map[string]any "Invalid request body"
 // @Failure 404 {object} map[string]any "Backup not found"
 // @Failure 502 {object} map[string]any "Upstream Kubernetes error"
+// @Router /api/v1/xstores/backups/{namespace}/{name} [put]
 func UpdateBackup(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -142,6 +146,7 @@ func UpdateBackup(c *gin.Context) {
 // @Success 200 {object} map[string]any "Deletion confirmation"
 // @Failure 404 {object} map[string]any "Backup not found"
 // @Failure 502 {object} map[string]any "Upstream Kubernetes error"
+// @Router /api/v1/xstores/backups/{namespace}/{name} [delete]
 func DeleteBackup(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -166,6 +171,7 @@ func DeleteBackup(c *gin.Context) {
 // @Success 202 {object} map[string]any "Deletion requested"
 // @Failure 404 {object} map[string]any "Backup not found"
 // @Failure 502 {object} map[string]any "Upstream Kubernetes error"
+// @Router /api/v1/xstores/backups/{namespace}/{name}/force-delete [post]
 func ForceDeleteBackup(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -191,6 +197,7 @@ func ForceDeleteBackup(c *gin.Context) {
 // @Success 200 {object} map[string]any "Remote backup information"
 // @Failure 404 {object} map[string]any "Backup not found"
 // @Failure 502 {object} map[string]any "Upstream Kubernetes error"
+// @Router /api/v1/xstores/backups/{namespace}/{name}/remote-info [get]
 func GetBackupRemoteInfo(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {

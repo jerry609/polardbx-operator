@@ -30,8 +30,9 @@ func rebuildSvc(c *gin.Context) *services.RebuildService {
 // @Tags xstores, followers
 // @Produce json
 // @Param namespace query string false "Kubernetes namespace; defaults to 'default' when omitted"
-// @Success 200 {array} polardbxv1.XStore "List of follower XStores"
+// @Success 200 {array} map[string]any "List of follower XStores"
 // @Failure 502 {object} map[string]any "Upstream Kubernetes error"
+// @Router /api/v1/xstores/followers [get]
 func ListFollowers(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -53,10 +54,11 @@ func ListFollowers(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param namespace query string false "Kubernetes namespace; defaults to 'default' when omitted"
-// @Param body body polardbxv1.XStore true "Follower XStore specification"
-// @Success 201 {object} polardbxv1.XStore "Created follower XStore"
+// @Param body body map[string]any true "Follower XStore specification (expects metadata.name/namespace, spec.xStoreName/role)"
+// @Success 201 {object} map[string]any "Created follower XStore"
 // @Failure 400 {object} map[string]any "Invalid request body"
 // @Failure 502 {object} map[string]any "Upstream Kubernetes error"
+// @Router /api/v1/xstores/followers [post]
 func CreateFollower(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -105,9 +107,10 @@ func CreateFollower(c *gin.Context) {
 // @Produce json
 // @Param namespace path string true "Kubernetes namespace of the follower"
 // @Param name path string true "Name of the follower XStore"
-// @Success 200 {object} polardbxv1.XStore "Follower XStore"
+// @Success 200 {object} map[string]any "Follower XStore"
 // @Failure 404 {object} map[string]any "Follower not found"
 // @Failure 502 {object} map[string]any "Upstream Kubernetes error"
+// @Router /api/v1/xstores/followers/{namespace}/{name} [get]
 func GetFollower(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -131,11 +134,12 @@ func GetFollower(c *gin.Context) {
 // @Produce json
 // @Param namespace path string true "Kubernetes namespace of the follower"
 // @Param name path string true "Name of the follower XStore"
-// @Param body body polardbxv1.XStore true "Updated follower specification"
-// @Success 200 {object} polardbxv1.XStore "Updated follower XStore"
+// @Param body body map[string]any true "Updated follower specification"
+// @Success 200 {object} map[string]any "Updated follower XStore"
 // @Failure 400 {object} map[string]any "Invalid request body"
 // @Failure 404 {object} map[string]any "Follower not found"
 // @Failure 502 {object} map[string]any "Upstream Kubernetes error"
+// @Router /api/v1/xstores/followers/{namespace}/{name} [put]
 func UpdateFollower(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -168,6 +172,7 @@ func UpdateFollower(c *gin.Context) {
 // @Success 200 {object} map[string]any "Deletion confirmation"
 // @Failure 404 {object} map[string]any "Follower not found"
 // @Failure 502 {object} map[string]any "Upstream Kubernetes error"
+// @Router /api/v1/xstores/followers/{namespace}/{name} [delete]
 func DeleteFollower(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -192,6 +197,7 @@ func DeleteFollower(c *gin.Context) {
 // @Success 202 {object} map[string]any "Rebuild requested"
 // @Failure 404 {object} map[string]any "XStore not found"
 // @Failure 502 {object} map[string]any "Upstream Kubernetes error"
+// @Router /api/v1/xstores/{namespace}/{name}/rebuild/logger [post]
 func RebuildLogger(c *gin.Context) { createRebuildFollower(c, polardbxv1xstore.FollowerRole("logger")) }
 
 // RebuildLearner triggers a rebuild of the learner role for an XStore.
@@ -204,6 +210,7 @@ func RebuildLogger(c *gin.Context) { createRebuildFollower(c, polardbxv1xstore.F
 // @Success 202 {object} map[string]any "Rebuild requested"
 // @Failure 404 {object} map[string]any "XStore not found"
 // @Failure 502 {object} map[string]any "Upstream Kubernetes error"
+// @Router /api/v1/xstores/{namespace}/{name}/rebuild/learner [post]
 func RebuildLearner(c *gin.Context) {
 	createRebuildFollower(c, polardbxv1xstore.FollowerRole("learner"))
 }
@@ -218,6 +225,7 @@ func RebuildLearner(c *gin.Context) {
 // @Success 202 {object} map[string]any "Rebuild requested"
 // @Failure 404 {object} map[string]any "XStore not found"
 // @Failure 502 {object} map[string]any "Upstream Kubernetes error"
+// @Router /api/v1/xstores/{namespace}/{name}/rebuild/auto [post]
 func AutoRebuild(c *gin.Context) { createRebuildFollower(c, polardbxv1xstore.FollowerRole("follower")) }
 
 // RebuildStatus returns the status of a rebuild operation.
@@ -230,6 +238,7 @@ func AutoRebuild(c *gin.Context) { createRebuildFollower(c, polardbxv1xstore.Fol
 // @Success 200 {object} map[string]any "Rebuild status"
 // @Failure 404 {object} map[string]any "Rebuild or XStore not found"
 // @Failure 502 {object} map[string]any "Upstream Kubernetes error"
+// @Router /api/v1/xstores/{namespace}/{name}/rebuild/status [get]
 func RebuildStatus(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -255,6 +264,7 @@ func RebuildStatus(c *gin.Context) {
 // @Success 200 {object} map[string]any "Final rebuild status"
 // @Failure 404 {object} map[string]any "Rebuild or XStore not found"
 // @Failure 502 {object} map[string]any "Upstream Kubernetes error"
+// @Router /api/v1/xstores/{namespace}/{name}/rebuild/wait [get]
 func RebuildWait(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -286,6 +296,7 @@ func RebuildWait(c *gin.Context) {
 // @Success 200 {object} map[string]any "Rebuild progress details"
 // @Failure 404 {object} map[string]any "Rebuild or XStore not found"
 // @Failure 502 {object} map[string]any "Upstream Kubernetes error"
+// @Router /api/v1/xstores/{namespace}/{name}/rebuild/progress [get]
 func RebuildProgress(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -315,6 +326,7 @@ func RebuildProgress(c *gin.Context) {
 // @Success 200 {object} map[string]any "Cancellation requested"
 // @Failure 404 {object} map[string]any "Rebuild or XStore not found"
 // @Failure 502 {object} map[string]any "Upstream Kubernetes error"
+// @Router /api/v1/xstores/{namespace}/{name}/rebuild/cancel [delete]
 func RebuildCancel(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {

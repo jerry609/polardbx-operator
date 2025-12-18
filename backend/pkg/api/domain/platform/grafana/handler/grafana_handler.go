@@ -38,7 +38,14 @@ func NewGrafanaHandlerFromContext(c *gin.Context) (*GrafanaHandler, bool) {
 	return NewGrafanaHandler(repo), true
 }
 
-// GetConfig GET /grafana/config
+// GetConfig retrieves Grafana configuration.
+// @Summary Get Grafana config
+// @Description Get current Grafana configuration from the platform.
+// @Tags platform, grafana
+// @Produce json
+// @Success 200 {object} map[string]any "Grafana configuration"
+// @Failure 500 {object} map[string]any "Internal server error"
+// @Router /api/v1/platform/grafana/config [get]
 func GetConfig(c *gin.Context) {
 	h, ok := NewGrafanaHandlerFromContext(c)
 	if !ok {
@@ -56,7 +63,17 @@ func (h *GrafanaHandler) getConfig(c *gin.Context) {
 	apierr.OK(c, config)
 }
 
-// PutConfig PUT /grafana/config
+// PutConfig updates Grafana configuration.
+// @Summary Update Grafana config
+// @Description Update Grafana configuration with the provided payload.
+// @Tags platform, grafana
+// @Accept json
+// @Produce json
+// @Param body body map[string]any true "Grafana configuration payload"
+// @Success 200 {object} map[string]any "Updated Grafana configuration"
+// @Failure 400 {object} map[string]any "Invalid payload"
+// @Failure 500 {object} map[string]any "Internal server error"
+// @Router /api/v1/platform/grafana/config [put]
 func PutConfig(c *gin.Context) {
 	h, ok := NewGrafanaHandlerFromContext(c)
 	if !ok {
@@ -79,7 +96,17 @@ func (h *GrafanaHandler) putConfig(c *gin.Context) {
 	apierr.OK(c, req)
 }
 
-// SyncDashboards POST /grafana/dashboards/sync
+// SyncDashboards synchronizes Grafana dashboards to the platform.
+// @Summary Sync Grafana dashboards
+// @Description Synchronize Grafana dashboards with optional overwrite flag.
+// @Tags platform, grafana
+// @Accept json
+// @Produce json
+// @Param body body map[string]any true "Dashboards payload (dashboards map and overwrite flag)"
+// @Success 202 {object} map[string]any "Dashboards synced confirmation"
+// @Failure 400 {object} map[string]any "Invalid payload"
+// @Failure 500 {object} map[string]any "Internal server error"
+// @Router /api/v1/platform/grafana/dashboards/sync [post]
 func SyncDashboards(c *gin.Context) {
 	h, ok := NewGrafanaHandlerFromContext(c)
 	if !ok {
@@ -106,7 +133,14 @@ func (h *GrafanaHandler) syncDashboards(c *gin.Context) {
 	apierr.Accepted(c, gin.H{"message": "dashboards synced", "count": count})
 }
 
-// ListDashboards GET /grafana/dashboards
+// ListDashboards lists all Grafana dashboards.
+// @Summary List Grafana dashboards
+// @Description List all Grafana dashboards stored in the platform.
+// @Tags platform, grafana
+// @Produce json
+// @Success 200 {object} map[string]any "Dashboard list with names and version counts"
+// @Failure 500 {object} map[string]any "Internal server error"
+// @Router /api/v1/platform/grafana/dashboards [get]
 func ListDashboards(c *gin.Context) {
 	h, ok := NewGrafanaHandlerFromContext(c)
 	if !ok {
@@ -150,7 +184,15 @@ func (h *GrafanaHandler) listDashboards(c *gin.Context) {
 	apierr.OK(c, gin.H{"items": items})
 }
 
-// ListDashboardVersions GET /grafana/dashboards/:name/versions
+// ListDashboardVersions lists all versions of a specific dashboard.
+// @Summary List dashboard versions
+// @Description List all stored versions of a specific Grafana dashboard.
+// @Tags platform, grafana
+// @Produce json
+// @Param name path string true "Dashboard name"
+// @Success 200 {object} map[string]any "Dashboard name and version list"
+// @Failure 500 {object} map[string]any "Internal server error"
+// @Router /api/v1/platform/grafana/dashboards/{name}/versions [get]
 func ListDashboardVersions(c *gin.Context) {
 	h, ok := NewGrafanaHandlerFromContext(c)
 	if !ok {
@@ -177,7 +219,19 @@ func (h *GrafanaHandler) listDashboardVersions(c *gin.Context) {
 	apierr.OK(c, gin.H{"name": name, "versions": vers})
 }
 
-// RollbackDashboard POST /grafana/dashboards/:name/rollback
+// RollbackDashboard rolls back a dashboard to a previous version.
+// @Summary Rollback dashboard
+// @Description Rollback a Grafana dashboard to a specific previous version.
+// @Tags platform, grafana
+// @Accept json
+// @Produce json
+// @Param name path string true "Dashboard name"
+// @Param body body map[string]any true "Version payload (version number)"
+// @Success 200 {object} map[string]any "Rollback confirmation"
+// @Failure 400 {object} map[string]any "Invalid payload"
+// @Failure 404 {object} map[string]any "Dashboard version not found"
+// @Failure 500 {object} map[string]any "Internal server error"
+// @Router /api/v1/platform/grafana/dashboards/{name}/rollback [post]
 func RollbackDashboard(c *gin.Context) {
 	h, ok := NewGrafanaHandlerFromContext(c)
 	if !ok {
@@ -244,7 +298,15 @@ type DashboardTemplateDetail struct {
 	Content json.RawMessage `json:"content"`
 }
 
-// ListTemplates GET /grafana/templates
+// ListTemplates lists all available Grafana dashboard templates.
+// @Summary List Grafana dashboard templates
+// @Description List all available Grafana dashboard templates from the templates directory.
+// @Tags platform, grafana
+// @Produce json
+// @Success 200 {object} map[string]any "Template list and directory"
+// @Failure 404 {object} map[string]any "Templates directory not found"
+// @Failure 500 {object} map[string]any "Internal server error"
+// @Router /api/v1/platform/grafana/templates [get]
 func ListTemplates(c *gin.Context) {
 	dir, err := ResolveTemplatesDir()
 	if err != nil {
@@ -268,7 +330,17 @@ func ListTemplates(c *gin.Context) {
 	})
 }
 
-// GetTemplate GET /grafana/templates/:name
+// GetTemplate retrieves a specific Grafana dashboard template by name.
+// @Summary Get Grafana dashboard template
+// @Description Get a specific Grafana dashboard template including its content.
+// @Tags platform, grafana
+// @Produce json
+// @Param name path string true "Template name"
+// @Success 200 {object} map[string]any "Template details including content"
+// @Failure 400 {object} map[string]any "Template name required"
+// @Failure 404 {object} map[string]any "Template not found"
+// @Failure 500 {object} map[string]any "Internal server error"
+// @Router /api/v1/platform/grafana/templates/{name} [get]
 func GetTemplate(c *gin.Context) {
 	name := c.Param("name")
 	if name == "" {

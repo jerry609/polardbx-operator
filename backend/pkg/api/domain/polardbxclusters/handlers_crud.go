@@ -16,6 +16,14 @@ import (
 func svc(c *gin.Context) *services.ClusterService { return provider.Must(c).ClusterService(c) }
 
 // List lists clusters in the given namespace.
+// @Summary List PolarDB-X clusters
+// @Description List PolarDB-X clusters in the specified namespace (or all when omitted).
+// @Tags polardbxclusters
+// @Produce json
+// @Param namespace query string false "Kubernetes namespace filter"
+// @Success 200 {array} map[string]any "List of clusters"
+// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Router /api/v1/polardbxclusters [get]
 func List(c *gin.Context) {
 	logger := middleware.NewBusinessLogger(c, "ClusterService")
 	cli, ok := util.K8sClientFromContext(c)
@@ -41,6 +49,16 @@ func List(c *gin.Context) {
 }
 
 // Create creates a new cluster.
+// @Summary Create PolarDB-X cluster
+// @Description Create a new PolarDB-X cluster from full CRD spec.
+// @Tags polardbxclusters
+// @Accept json
+// @Produce json
+// @Param body body map[string]any true "PolarDB-X cluster specification"
+// @Success 201 {object} map[string]any "Created cluster"
+// @Failure 400 {object} map[string]any "Invalid specification"
+// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Router /api/v1/polardbxclusters [post]
 func Create(c *gin.Context) {
 	logger := middleware.NewBusinessLogger(c, "ClusterService")
 	cli, ok := util.K8sClientFromContext(c)
@@ -76,6 +94,17 @@ func Create(c *gin.Context) {
 }
 
 // CreateFromConfig creates cluster from user-friendly configuration format.
+// @Summary Create cluster from config
+// @Description Create a new PolarDB-X cluster from user-friendly configuration payload.
+// @Tags polardbxclusters
+// @Accept json
+// @Produce json
+// @Param namespace path string true "Kubernetes namespace"
+// @Param body body map[string]any true "Cluster creation config"
+// @Success 201 {object} map[string]any "Created cluster"
+// @Failure 400 {object} map[string]any "Invalid configuration"
+// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Router /api/v1/polardbxclusters/{namespace}/create [post]
 func CreateFromConfig(c *gin.Context) {
 	logger := middleware.NewBusinessLogger(c, "ClusterService")
 	cli, ok := util.K8sClientFromContext(c)
@@ -111,6 +140,16 @@ func CreateFromConfig(c *gin.Context) {
 }
 
 // Get returns a single cluster.
+// @Summary Get PolarDB-X cluster
+// @Description Get a PolarDB-X cluster by namespace and name.
+// @Tags polardbxclusters
+// @Produce json
+// @Param namespace path string true "Kubernetes namespace"
+// @Param name path string true "Cluster name"
+// @Success 200 {object} map[string]any "Cluster"
+// @Failure 404 {object} map[string]any "Cluster not found"
+// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Router /api/v1/polardbxclusters/{namespace}/{name} [get]
 func Get(c *gin.Context) {
 	logger := middleware.NewBusinessLogger(c, "ClusterService")
 	cli, ok := util.K8sClientFromContext(c)
@@ -138,6 +177,19 @@ func Get(c *gin.Context) {
 }
 
 // Update updates an existing cluster.
+// @Summary Update PolarDB-X cluster
+// @Description Update an existing PolarDB-X cluster.
+// @Tags polardbxclusters
+// @Accept json
+// @Produce json
+// @Param namespace path string true "Kubernetes namespace"
+// @Param name path string true "Cluster name"
+// @Param body body map[string]any true "Updated cluster spec"
+// @Success 200 {object} map[string]any "Updated cluster"
+// @Failure 400 {object} map[string]any "Invalid specification"
+// @Failure 404 {object} map[string]any "Cluster not found"
+// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Router /api/v1/polardbxclusters/{namespace}/{name} [put]
 func Update(c *gin.Context) {
 	logger := middleware.NewBusinessLogger(c, "ClusterService")
 	cli, ok := util.K8sClientFromContext(c)
@@ -171,6 +223,15 @@ func Update(c *gin.Context) {
 }
 
 // Delete deletes a cluster.
+// @Summary Delete PolarDB-X cluster
+// @Description Delete a PolarDB-X cluster by namespace and name.
+// @Tags polardbxclusters
+// @Param namespace path string true "Kubernetes namespace"
+// @Param name path string true "Cluster name"
+// @Success 200 {object} map[string]any "Deletion initiated"
+// @Failure 404 {object} map[string]any "Cluster not found"
+// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Router /api/v1/polardbxclusters/{namespace}/{name} [delete]
 func Delete(c *gin.Context) {
 	logger := middleware.NewBusinessLogger(c, "ClusterService")
 	cli, ok := util.K8sClientFromContext(c)

@@ -30,7 +30,7 @@ func getJWTSecret() string {
 // @Tags auth
 // @Accept json
 // @Produce json
-// @Param body body struct{Username string `json:"username"`; Password string `json:"password"`} true "Login request"
+// @Param body body map[string]any true "Login request (expects fields: username, password)"
 // @Success 200 {object} map[string]any "JWT token and metadata"
 // @Failure 400 {object} map[string]any "Invalid request payload"
 // @Failure 401 {object} map[string]any "Invalid credentials"

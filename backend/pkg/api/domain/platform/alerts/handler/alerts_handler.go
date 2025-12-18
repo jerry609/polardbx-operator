@@ -58,7 +58,7 @@ func ListProfiles(c *gin.Context) {
 // @Tags platform, alerts
 // @Accept json
 // @Produce json
-// @Param body body struct{Name string `json:"name"`; Content string `json:"content"`} true "Profile payload"
+// @Param body body map[string]any true "Profile payload (expects fields: name, content)"
 // @Success 201 {object} map[string]any "Created profile name"
 // @Failure 400 {object} map[string]any "Invalid payload"
 // @Failure 409 {object} map[string]any "Profile already exists"
@@ -117,7 +117,7 @@ func GetProfile(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param name path string true "Profile name"
-// @Param body body struct{Content string `json:"content"`} true "Updated profile content"
+// @Param body body map[string]any true "Updated profile content (expects field: content)"
 // @Success 200 {object} map[string]any "Updated profile name"
 // @Failure 400 {object} map[string]any "Invalid payload"
 // @Failure 404 {object} map[string]any "Profile not found"
@@ -178,7 +178,7 @@ func DeleteProfile(c *gin.Context) {
 // @Tags platform, alerts
 // @Accept json
 // @Produce json
-// @Param body body struct{Content string `json:"content"`} true "Profile content to validate"
+// @Param body body map[string]any true "Profile content to validate (expects field: content)"
 // @Success 200 {object} map[string]any "Validation result (valid: true)"
 // @Failure 400 {object} map[string]any "Invalid payload or invalid configuration"
 // @Failure 500 {object} map[string]any "Internal server error"
@@ -228,7 +228,7 @@ func GetRoutes(c *gin.Context) {
 // @Tags platform, alerts
 // @Accept json
 // @Produce json
-// @Param body body struct{Content string `json:"content"`} true "Routing configuration content"
+// @Param body body map[string]any true "Routing configuration content (expects field: content)"
 // @Success 200 {object} map[string]any "Update confirmation"
 // @Failure 400 {object} map[string]any "Invalid payload"
 // @Failure 500 {object} map[string]any "Internal server error"

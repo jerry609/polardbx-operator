@@ -19,7 +19,7 @@ import (
 // @Produce json
 // @Param namespace path string true "Kubernetes namespace of the cluster"
 // @Param name path string true "Name of the PolarDB-X cluster"
-// @Success 200 {array} polardbxv1.PolarDBXBackup "List of backups"
+// @Success 200 {array} map[string]any "List of backups"
 // @Failure 500 {object} map[string]any "Internal server error"
 func ListBackups(c *gin.Context) {
 	svc := services.NewBackupService()
@@ -46,8 +46,8 @@ func ListBackups(c *gin.Context) {
 // @Produce json
 // @Param namespace path string true "Kubernetes namespace of the cluster"
 // @Param name path string true "Name of the PolarDB-X cluster"
-// @Param body body polardbxv1.PolarDBXBackup true "Backup specification"
-// @Success 201 {object} polardbxv1.PolarDBXBackup "Created backup"
+// @Param body body map[string]any true "Backup specification"
+// @Success 201 {object} map[string]any "Created backup"
 // @Failure 400 {object} map[string]any "Invalid request body or parameters"
 // @Failure 500 {object} map[string]any "Internal server error"
 func CreateBackup(c *gin.Context) {
@@ -111,7 +111,7 @@ func GetBackupAdvice(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param namespace query string false "Target namespace for validation; falls back to backup namespace or 'default'"
-// @Param body body polardbxv1.PolarDBXBackup true "Backup specification to validate"
+// @Param body body map[string]any true "Backup specification to validate"
 // @Success 200 {object} map[string]bool "Validation result (valid: true)"
 // @Failure 400 {object} map[string]any "Invalid request body or parameters"
 // @Failure 422 {object} map[string]any "Backup validation failed"
@@ -290,7 +290,7 @@ func ForceDeleteBackup(c *gin.Context) {
 // @Produce json
 // @Param namespace query string false "Filter by namespace"
 // @Param name query string false "Filter by schedule name"
-// @Success 200 {array} polardbxv1.PolarDBXBackupSchedule "List of backup schedules"
+// @Success 200 {array} map[string]any "List of backup schedules"
 // @Failure 500 {object} map[string]any "Internal server error"
 func ListSchedules(c *gin.Context) {
 	svc := services.NewBackupScheduleService()
@@ -313,8 +313,8 @@ func ListSchedules(c *gin.Context) {
 // @Tags polardbxclusters, backups, schedules
 // @Accept json
 // @Produce json
-// @Param body body polardbxv1.PolarDBXBackupSchedule true "Backup schedule specification"
-// @Success 201 {object} polardbxv1.PolarDBXBackupSchedule "Created backup schedule"
+// @Param body body map[string]any true "Backup schedule specification"
+// @Success 201 {object} map[string]any "Created backup schedule"
 // @Failure 400 {object} map[string]any "Invalid request body or parameters"
 // @Failure 500 {object} map[string]any "Internal server error"
 func CreateSchedule(c *gin.Context) {
@@ -344,7 +344,7 @@ func CreateSchedule(c *gin.Context) {
 // @Produce json
 // @Param namespace path string true "Kubernetes namespace of the schedule"
 // @Param name path string true "Name of the backup schedule"
-// @Success 200 {object} polardbxv1.PolarDBXBackupSchedule "Backup schedule"
+// @Success 200 {object} map[string]any "Backup schedule"
 // @Failure 404 {object} map[string]any "Schedule not found"
 // @Failure 500 {object} map[string]any "Internal server error"
 func GetSchedule(c *gin.Context) {
@@ -371,8 +371,8 @@ func GetSchedule(c *gin.Context) {
 // @Produce json
 // @Param namespace path string true "Kubernetes namespace of the schedule"
 // @Param name path string true "Name of the backup schedule"
-// @Param body body polardbxv1.PolarDBXBackupSchedule true "Updated schedule specification"
-// @Success 200 {object} polardbxv1.PolarDBXBackupSchedule "Updated backup schedule"
+// @Param body body map[string]any true "Updated schedule specification"
+// @Success 200 {object} map[string]any "Updated backup schedule"
 // @Failure 400 {object} map[string]any "Invalid request body or parameters"
 // @Failure 404 {object} map[string]any "Schedule not found"
 // @Failure 500 {object} map[string]any "Internal server error"
@@ -533,7 +533,7 @@ func ListHpfsSinks(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param systemNamespace query string false "Namespace of the HPFS config ConfigMap; defaults to polardbx-operator-system"
-// @Param body body struct{name string `json:"name"`; type string `json:"type"`} true "Sink name and type"
+// @Param body body map[string]any true "Sink name and type (expects fields: name, type)"
 // @Success 200 {object} map[string]any "Validation status and message"
 // @Failure 400 {object} map[string]any "Invalid request body"
 // @Failure 500 {object} map[string]any "Internal server error"

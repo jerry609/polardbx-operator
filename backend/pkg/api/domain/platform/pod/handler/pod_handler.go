@@ -126,7 +126,7 @@ func (h *PodHandler) listForCluster(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param namespace query string false "Kubernetes namespace (default: default)"
-// @Success 200 {array} corev1.Pod "List of pods"
+// @Success 200 {array} map[string]any "List of pods"
 // @Failure 502 {object} map[string]any "Kubernetes API error"
 // @Router /api/v1/platform/pods [get]
 func List(c *gin.Context) {
@@ -157,7 +157,7 @@ func (h *PodHandler) list(c *gin.Context) {
 // @Produce json
 // @Param namespace path string true "Kubernetes namespace"
 // @Param name path string true "Name of the pod"
-// @Success 200 {object} corev1.Pod "Pod details"
+// @Success 200 {object} map[string]any "Pod details"
 // @Failure 404 {object} map[string]any "Pod not found"
 // @Failure 502 {object} map[string]any "Kubernetes API error"
 // @Router /api/v1/platform/pods/{namespace}/{name} [get]
