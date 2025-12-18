@@ -49,7 +49,7 @@ const (
 func getStore(c *gin.Context) (*corev1.ConfigMap, error) {
 	cs, ok := util.ClientsetFromContext(c)
 	if !ok {
-		return nil, nil
+		return nil, fmt.Errorf("kubernetes clientset not initialized")
 	}
 	cm, err := cs.CoreV1().ConfigMaps(cmNamespace).Get(c.Request.Context(), cmName, metav1.GetOptions{})
 	if err != nil {
@@ -91,13 +91,12 @@ func saveList(c *gin.Context, cm *corev1.ConfigMap, list []Strategy) error {
 // @Accept json
 // @Produce json
 // @Success 200 {object} map[string]any "List of log strategies with total count"
-// @Failure 500 {object} map[string]any "Internal server error (returns empty list with warning for frontend compatibility)"
+// @Failure 500 {object} map[string]any "Internal server error"
 // @Router /api/v1/platform/log-strategies [get]
 func List(c *gin.Context) {
 	cm, err := getStore(c)
 	if err != nil {
-		// Compatible with frontend: return empty list instead of 500 to avoid page crash
-		apierr.OK(c, gin.H{"total": 0, "items": []any{}, "warning": "strategy store not accessible", "details": err.Error()})
+		apierr.AbortInternal(c, "failed to load strategy store: "+err.Error())
 		return
 	}
 	if cm == nil {
@@ -125,6 +124,10 @@ func Get(c *gin.Context) {
 	cm, err := getStore(c)
 	if err != nil {
 		apierr.AbortInternal(c, "failed to load strategy store: "+err.Error())
+		return
+	}
+	if cm == nil {
+		apierr.AbortNotFound(c, "strategy", name)
 		return
 	}
 	for _, it := range loadList(cm) {
@@ -685,7 +688,7 @@ const (
 func ListApplyRecords(c *gin.Context) {
 	cs, ok := util.ClientsetFromContext(c)
 	if !ok {
-		apierr.OK(c, gin.H{"total": 0, "items": []ApplyRecord{}})
+		apierr.AbortInternal(c, "kubernetes clientset not initialized")
 		return
 	}
 

@@ -66,8 +66,7 @@ func ContextInfo(c *gin.Context) {
 func ListNamespaces(c *gin.Context) {
 	h, ok := NewSystemHandlerFromClient(c)
 	if !ok {
-		// Return empty list to avoid frontend errors
-		apierr.OK(c, gin.H{"items": []any{}, "count": 0, "warning": "k8s client not initialized"})
+		apierr.AbortInternal(c, "kubernetes client not initialized")
 		return
 	}
 	h.listNamespaces(c)
@@ -77,7 +76,7 @@ func ListNamespaces(c *gin.Context) {
 func (h *SystemHandler) listNamespaces(c *gin.Context) {
 	items, err := h.service.ListNamespaces(c.Request.Context())
 	if err != nil {
-		apierr.OK(c, gin.H{"items": []any{}, "count": 0, "warning": "failed to list namespaces", "details": err.Error()})
+		util.HandleK8sError(c, "failed to list namespaces", err)
 		return
 	}
 	apierr.OK(c, gin.H{"items": items, "count": len(items)})
@@ -93,7 +92,7 @@ func (h *SystemHandler) listNamespaces(c *gin.Context) {
 func ListStorageClasses(c *gin.Context) {
 	h, ok := NewSystemHandlerFromClient(c)
 	if !ok {
-		apierr.OK(c, gin.H{"items": []any{}, "count": 0, "warning": "k8s client not initialized"})
+		apierr.AbortInternal(c, "kubernetes client not initialized")
 		return
 	}
 	h.listStorageClasses(c)
@@ -103,7 +102,7 @@ func ListStorageClasses(c *gin.Context) {
 func (h *SystemHandler) listStorageClasses(c *gin.Context) {
 	items, err := h.service.ListStorageClasses(c.Request.Context())
 	if err != nil {
-		apierr.OK(c, gin.H{"items": []any{}, "count": 0, "warning": "failed to list storage classes", "details": err.Error()})
+		util.HandleK8sError(c, "failed to list storage classes", err)
 		return
 	}
 	apierr.OK(c, gin.H{"items": items, "count": len(items)})
