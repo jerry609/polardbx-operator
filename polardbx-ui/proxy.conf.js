@@ -11,6 +11,8 @@ const PROXY_CONFIG = {
     target: process.env.BACKEND_URL || "http://localhost:8080",
     secure: false,
     changeOrigin: false,
+    // Enable WebSocket proxying so ws://localhost:4200/api/... is upgraded and forwarded to backend
+    ws: true,
     logLevel: "debug",
     onProxyReq: (proxyReq, req, res) => {
       // 日志：记录代理请求

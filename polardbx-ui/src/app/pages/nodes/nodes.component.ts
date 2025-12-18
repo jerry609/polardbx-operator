@@ -162,8 +162,6 @@ interface RoleSummary {
                 <td nzRight>
                   <button nz-button nzType="link" nzSize="small" (click)="openDetail(node)" nz-tooltip nzTooltipTitle="查看详情"><i nz-icon nzType="eye"></i></button>
                   <nz-divider nzType="vertical"></nz-divider>
-                  <button nz-button nzType="link" nzSize="small" (click)="openTerminal(node)" nz-tooltip nzTooltipTitle="终端"><i nz-icon nzType="code"></i></button>
-                  <nz-divider nzType="vertical"></nz-divider>
                   <button nz-button nzType="link" nzSize="small" (click)="openExec(node)" nz-tooltip nzTooltipTitle="执行命令"><i nz-icon nzType="play-circle"></i></button>
                 </td>
               </tr>

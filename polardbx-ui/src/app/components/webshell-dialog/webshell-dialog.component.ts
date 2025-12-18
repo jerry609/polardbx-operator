@@ -1,5 +1,6 @@
 import { AfterViewInit, OnInit, Component, ElementRef, ViewChild, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { NzModalRef, NZ_MODAL_DATA } from 'ng-zorro-antd/modal';
 import { NzButtonModule } from 'ng-zorro-antd/button';
@@ -58,10 +59,10 @@ export interface WebShellDialogData {
         <nz-option *ngFor="let c of containerList" [nzValue]="c" [nzLabel]="c"></nz-option>
       </nz-select>
       <span class="spacer"></span>
-      <button nz-button nzType="default" nzShape="circle" nz-tooltip nzTooltipTitle="复制" (click)="copySelection()" [nzDisabled]="connecting">
+      <button nz-button nzType="default" nzShape="circle" nz-tooltip nzTooltipTitle="复制" (click)="copySelection()" [disabled]="connecting">
         <i nz-icon nzType="copy"></i>
       </button>
-      <button nz-button nzType="default" nzShape="circle" nz-tooltip nzTooltipTitle="粘贴" (click)="pasteFromClipboard()" [nzDisabled]="connecting">
+      <button nz-button nzType="default" nzShape="circle" nz-tooltip nzTooltipTitle="粘贴" (click)="pasteFromClipboard()" [disabled]="connecting">
         <i nz-icon nzType="file-text"></i>
       </button>
       <button nz-button nzType="default" nzShape="circle" nz-tooltip nzTooltipTitle="清屏 (Ctrl+L)" (click)="clearScreen()">
@@ -101,9 +102,7 @@ export interface WebShellDialogData {
     .modal-title-text {
       flex: 1;
     }
-    .modal-body {
-      padding: 12px 16px 16px 16px;
-    }
+    .modal-body { padding: 8px 16px 12px 16px; }
     .modal-footer {
       padding: 8px 16px 12px 16px;
       text-align: right;
@@ -114,11 +113,11 @@ export interface WebShellDialogData {
     .vv { font-weight: 600; margin-right: 12px; }
     .spacer { flex: 1; }
     .container-select { width: 180px; }
-    .terminal { height: 60vh; min-height: 360px; width: 100%; background: #0b1020; border-radius: 6px; }
+    .terminal { height: 70vh; min-height: 380px; width: 100%; background: #0b1020; border-radius: 6px; }
     .tips { margin-top: 8px; font-size: 12px; color: #666; }
   `],
   standalone: true,
-  imports: [CommonModule, NzButtonModule, NzIconModule, NzSelectModule, NzToolTipModule]
+  imports: [CommonModule, FormsModule, NzButtonModule, NzIconModule, NzSelectModule, NzToolTipModule]
 })
 export class WebShellDialogComponent implements OnInit, AfterViewInit {
   // 支持通过 MatDialog 或 NzModalService 打开
@@ -139,7 +138,13 @@ export class WebShellDialogComponent implements OnInit, AfterViewInit {
   private pendingInput = '';
 
   private close(result?: any): void {
-    this.term?.dispose();
+    try {
+      if (this.term && typeof this.term.dispose === 'function') {
+        this.term.dispose();
+      } else if (this.term && typeof this.term.clear === 'function') {
+        this.term.clear();
+      }
+    } catch {}
     try { this.ws?.close(); } catch {}
     if (this.dialogRef) {
       this.dialogRef.close(result);
@@ -252,26 +257,31 @@ export class WebShellDialogComponent implements OnInit, AfterViewInit {
       onData: (callback: (data: string) => void) => {
         // 存储回调函数，在 WebSocket 连接建立后调用
         this.term._onDataCallback = callback;
-        
+
         // 防重复输入的防抖机制
         let lastKeyTime = 0;
         let lastKey = '';
-        
+
         // 简单的键盘输入处理（与内联组件一致）
         const handler = (e: KeyboardEvent) => {
+          // 仅在终端获得焦点时处理按键，避免影响页面其它地方输入
+          if (document.activeElement !== termDiv) {
+            return;
+          }
+
           const now = Date.now();
           const keyIdentifier = e.key + (e.ctrlKey ? '+ctrl' : '') + (e.altKey ? '+alt' : '');
-          
+
           // 防抖：相同按键在 100ms 内只处理一次
           if (keyIdentifier === lastKey && now - lastKeyTime < 100) {
             e.preventDefault();
             e.stopPropagation();
             return;
           }
-          
+
           lastKey = keyIdentifier;
           lastKeyTime = now;
-          
+
           let payload = '';
           if (e.ctrlKey && !e.altKey && !e.metaKey) {
             const k = e.key.toLowerCase();
@@ -299,10 +309,19 @@ export class WebShellDialogComponent implements OnInit, AfterViewInit {
                 if (e.key.length === 1 && !e.metaKey) payload = e.key;
             }
           }
-          if (payload) { callback(payload); e.preventDefault(); e.stopPropagation(); }
+          if (payload) {
+            const cb = (this.term && this.term._onDataCallback) || callback;
+            if (cb) {
+              cb(payload);
+            }
+            e.preventDefault();
+            e.stopPropagation();
+          }
         };
+
+        // 既监听终端自身的键盘事件，也兜底监听 window，提升兼容性
         termDiv.addEventListener('keydown', handler);
-        // 避免过于敏感：不在 window 上绑定键盘事件，仅限终端获得焦点时生效
+        window.addEventListener('keydown', handler);
       }
     };
     
@@ -337,15 +356,15 @@ export class WebShellDialogComponent implements OnInit, AfterViewInit {
     }
     const kubeconfigB64 = btoa(unescape(encodeURIComponent(kubeconfig)));
     const wsScheme = (window.location?.protocol || 'http:') === 'https:' ? 'wss' : 'ws';
-    const backendBase = 'http://localhost:8080'; // 与 ApiService.baseUrl 对齐
-    const backendHost = new URL(backendBase).host;
+    // 与前端保持同一 host:port，适用于前后端同镜像 / 同域名部署以及本地代理
+    const backendHost = window.location.host;
     const ns = encodeURIComponent(this.data.namespace);
     const pod = encodeURIComponent(this.data.pod);
     const container = encodeURIComponent(this.currentContainer || this.pickBestContainerFromList(this.containerList, this.data.container) || 'engine');
     // 默认命令：覆盖更多精简镜像
     const defaultCmd = encodeURIComponent("exec /bin/bash || exec /bin/sh || exec /bin/ash || /bin/busybox sh || /busybox sh");
-    // 设置终端尺寸，改善输出格式
-    const url = `${wsScheme}://${backendHost}/api/v1/pods/${ns}/${pod}/exec?container=${container}&tty=true&cmd=${defaultCmd}&k=${encodeURIComponent(kubeconfigB64)}&rows=24&cols=80`;
+    // 设置终端尺寸，改善输出格式（后端 WebShell WebSocket 路由为 /api/v1/platform/pods/{namespace}/{name}/exec）
+    const url = `${wsScheme}://${backendHost}/api/v1/platform/pods/${ns}/${pod}/exec?container=${container}&tty=true&cmd=${defaultCmd}&k=${encodeURIComponent(kubeconfigB64)}&rows=24&cols=80`;
 
     this.connecting = true;
     try {
@@ -433,14 +452,11 @@ export class WebShellDialogComponent implements OnInit, AfterViewInit {
       } else if (data && typeof (data as any).arrayBuffer === 'function') {
         (data as Blob).arrayBuffer().then(buf => {
           const t = new TextDecoder().decode(new Uint8Array(buf));
-          // 拦截容器不存在错误，自动切换到更合适的容器重连一次
-          if (this.handleContainerNotFound(t)) return;
-          this.appendOutput(t);
-        }).catch(()=>{});
+          this.handleIncomingStreamText(t);
+        }).catch(() => {});
         return;
       }
-      if (this.handleContainerNotFound(text)) return;
-      this.appendOutput(text);
+      this.handleIncomingStreamText(text);
     };
     this.ws.onerror = () => {
       this.term?.writeln('\r\n[错误] WebSocket 通道异常');
@@ -455,6 +471,60 @@ export class WebShellDialogComponent implements OnInit, AfterViewInit {
         }
       }, 1500);
     };
+  }
+
+  /**
+   * 处理后端 exec WebSocket 返回的数据流。
+   * 兼容两种格式：
+   * 1. 纯文本流
+   * 2. JSON 帧：{"data":"BASE64_OR_TEXT","op":"stdout"}（可能多个对象直接拼接）
+   */
+  private handleIncomingStreamText(raw: string): void {
+    if (!raw) return;
+
+    // 先拦截容器不存在错误
+    if (this.handleContainerNotFound(raw)) return;
+
+    const trimmed = raw.trim();
+
+    // 如果看起来是 JSON 帧，尝试解析
+    if (trimmed.startsWith('{') && trimmed.includes('"op"')) {
+      // 处理多个 JSON 对象直接拼接的情况：}{ -> }@@SPLIT@@{
+      const parts = trimmed
+        .replace(/}\s*{/g, '}@@SPLIT@@{')
+        .split('@@SPLIT@@');
+
+      for (const part of parts) {
+        try {
+          const obj = JSON.parse(part);
+          const op = obj?.op;
+          let data = obj?.data;
+          if (typeof data !== 'string') {
+            continue;
+          }
+
+          // 某些实现会对 data 做 base64 编码
+          try {
+            const decoded = atob(data);
+            data = decoded;
+          } catch {
+            // 不是合法 base64，当作普通文本
+          }
+
+          if (op === 'stdout' || op === 'stderr') {
+            this.appendOutput(data);
+          }
+          // 其它 op（resize、ping 等）忽略
+        } catch {
+          // 解析失败则退回普通文本输出
+          this.appendOutput(part);
+        }
+      }
+      return;
+    }
+
+    // 默认按纯文本处理
+    this.appendOutput(raw);
   }
 
   // 如果出现 “container not found ("xxx")” 或 “unable to upgrade connection: container not found”
