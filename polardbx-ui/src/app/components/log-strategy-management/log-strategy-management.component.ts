@@ -706,8 +706,9 @@ export class LogStrategyManagementComponent implements OnInit {
         this.cdr.markForCheck();
       },
       error: (error: any) => {
-        console.error('加载日志策略失败:', error);
-        this.message.error('加载日志策略失败');
+        // Error is already handled by ApiService.handleRequest
+        // Just update UI state
+        this.strategies = []; // Clear strategies on error
         this.loading = false;
         this.cdr.markForCheck();
       }
@@ -724,7 +725,9 @@ export class LogStrategyManagementComponent implements OnInit {
         this.cdr.markForCheck();
       },
       error: (error: any) => {
-        console.error('加载应用记录失败:', error);
+        // Error is handled in ApiService, returns empty array
+        // Just update UI state
+        this.applyRecords = [];
         this.loadingRecords = false;
         this.cdr.markForCheck();
       }
@@ -738,7 +741,10 @@ export class LogStrategyManagementComponent implements OnInit {
         this.cdr.markForCheck();
       },
       error: (error: any) => {
-        console.error('加载命名空间失败:', error);
+        // Error is handled in ApiService, returns empty array
+        // Just update UI state
+        this.namespaces = [];
+        this.cdr.markForCheck();
       }
     });
   }

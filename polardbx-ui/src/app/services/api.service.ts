@@ -2010,6 +2010,12 @@ export class ApiService {
     const req = this.http
       .get<any>(`${this.baseUrl}/log-strategies`, { headers: this.getHeaders() })
       .pipe(
+        catchError((error: HttpErrorResponse) => {
+          // Handle HTTP error status codes (500, 401, etc.) properly
+          // Backend now returns proper error status codes instead of 200 with warning
+          this.errorHandler.handleHttpError(error, '加载日志策略失败');
+          return throwError(() => error);
+        }),
         map((res: any) => (Array.isArray(res) ? res : (res?.items || []))),
         map((items: any[]) => (items || []).map((s: any) => {
           const output = s?.output || {};
@@ -2156,6 +2162,13 @@ export class ApiService {
   getNamespaces(): Observable<string[]> {
     const req = this.http.get<any>(`${this.baseUrl}/namespaces`, { headers: this.getHeaders() })
       .pipe(
+        catchError((error: HttpErrorResponse) => {
+          // Handle HTTP error status codes (500, 401, etc.) properly
+          // Backend now returns proper error status codes instead of 200 with warning
+          // Silently handle namespace loading errors to avoid disrupting UI
+          console.warn('Failed to load namespaces:', error);
+          return of([]); // Return empty array on error
+        }),
         map((res: any) => {
           if (Array.isArray(res)) return res as string[];
           if (Array.isArray(res?.items)) {
@@ -2179,12 +2192,22 @@ export class ApiService {
 
   getLogStrategyApplyRecords(): Observable<any[]> {
     const req = this.http.get<any>(`${this.baseUrl}/log-strategies/apply-records`, { headers: this.getHeaders() })
-      .pipe(map((res: any) => Array.isArray(res) ? res : (res?.items || [])));
+      .pipe(
+        catchError((error: HttpErrorResponse) => {
+          // Handle HTTP error status codes (500, 401, etc.) properly
+          // Backend now returns proper error status codes instead of 200 with empty list
+          // Return empty array on error to avoid disrupting UI, but log the error
+          console.warn('Failed to load log strategy apply records:', error);
+          return of([]);
+        }),
+        map((res: any) => Array.isArray(res) ? res : (res?.items || []))
+      );
     return this.handleRequest(
       req,
       LoadingKeys.LOG_STRATEGY,
       '/log-strategies/apply-records',
-      'GET'
+      'GET',
+      { silent: true } // Silent error handling since we handle it in the pipe
     );
   }
 
