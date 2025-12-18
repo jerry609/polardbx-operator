@@ -3,11 +3,12 @@ package services
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
-	"github.com/gin-gonic/gin"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	apierr "polardbx-ui-backend/pkg/api/errors"
+	svcerr "polardbx-ui-backend/pkg/api/errors"
 	"polardbx-ui-backend/pkg/api/util"
 	"polardbx-ui-backend/pkg/logger"
 )
@@ -20,30 +21,18 @@ type ClusterService struct{}
 
 func NewClusterService() *ClusterService { return &ClusterService{} }
 
-// UpdateLogConfig: minimal implementation that constructs JSON Patch and calls K8s.
-func (s *ClusterService) UpdateLogConfig(ctx context.Context, c *gin.Context) error {
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		return nil
+// UpdateLogConfig constructs and applies a JSON patch to update log config for a node type.
+func (s *ClusterService) UpdateLogConfig(ctx context.Context, cli client.Client, namespace, name, nodeType string, req *LogConfigRequest) error {
+	if cli == nil {
+		return svcerr.InternalServiceError("kubernetes client not initialized", nil)
 	}
-	ns := c.Param("namespace")
-	name := c.Param("name")
-	nodeType := c.Param("nodeType")
-	start := time.Now()
-	logger.Info("ops UpdateLogConfig begin",
-		"namespace", ns,
-		"name", name,
-		"nodeType", nodeType)
 	switch nodeType {
 	case "cn", "dn", "gms", "cdc":
 	default:
-		apierr.AbortValidation(c, "invalid nodeType: "+nodeType)
-		return nil
+		return svcerr.ValidationError("invalid nodeType: "+nodeType, nil)
 	}
-	var req LogConfigRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		apierr.AbortValidation(c, "invalid log config data: "+err.Error())
-		return nil
+	if req == nil {
+		return svcerr.ValidationError("log config payload is required", nil)
 	}
 	patchData := map[string]any{"spec": map[string]any{"config": map[string]any{nodeType: map[string]any{}}}}
 	nodeConfig := patchData["spec"].(map[string]any)["config"].(map[string]any)[nodeType].(map[string]any)
@@ -60,41 +49,21 @@ func (s *ClusterService) UpdateLogConfig(ctx context.Context, c *gin.Context) er
 		nodeConfig["slowLogThreshold"] = *req.SlowLogThreshold
 	}
 	b, _ := json.Marshal(patchData)
-	if _, err := patchClusterJSON(ctx, cli, ns, name, b); err != nil {
-		logger.Error("ops UpdateLogConfig failed",
-			"namespace", ns,
-			"name", name,
-			"nodeType", nodeType,
-			"duration", time.Since(start),
-			"error", err)
-		util.HandleK8sError(c, "failed to update cluster log config", err)
-		return nil
+	if _, err := patchClusterJSON(ctx, cli, namespace, name, b); err != nil {
+		logger.Error("ops UpdateLogConfig failed", "namespace", namespace, "name", name, "nodeType", nodeType, "error", err)
+		return fmt.Errorf("update log config for %s/%s (%s): %w", namespace, name, nodeType, err)
 	}
-	logger.Info("ops UpdateLogConfig ok",
-		"namespace", ns,
-		"name", name,
-		"nodeType", nodeType,
-		"duration", time.Since(start))
-	apierr.OK(c, gin.H{"message": nodeType + " log config updated successfully"})
+	logger.Info("ops UpdateLogConfig ok", "namespace", namespace, "name", name, "nodeType", nodeType)
 	return nil
 }
 
-// Scale: minimal implementation that constructs replicas JSON Patch.
-func (s *ClusterService) Scale(ctx context.Context, c *gin.Context) error {
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		return nil
+// Scale constructs and applies a JSON patch to adjust replicas.
+func (s *ClusterService) Scale(ctx context.Context, cli client.Client, namespace, name string, req *ClusterScalingRequest) error {
+	if cli == nil {
+		return svcerr.InternalServiceError("kubernetes client not initialized", nil)
 	}
-	ns := c.Param("namespace")
-	name := c.Param("name")
-	start := time.Now()
-	logger.Info("ops Scale begin",
-		"namespace", ns,
-		"name", name)
-	var req ClusterScalingRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		apierr.AbortValidation(c, "invalid scaling request: "+err.Error())
-		return nil
+	if req == nil {
+		return svcerr.ValidationError("scaling payload is required", nil)
 	}
 	patch := map[string]any{"spec": map[string]any{"topology": map[string]any{"nodes": map[string]any{}}}}
 	nodes := patch["spec"].(map[string]any)["topology"].(map[string]any)["nodes"].(map[string]any)
@@ -108,62 +77,39 @@ func (s *ClusterService) Scale(ctx context.Context, c *gin.Context) error {
 		nodes["cdc"] = map[string]any{"replicas": *req.CDCReplicas}
 	}
 	if len(nodes) == 0 {
-		apierr.AbortValidation(c, "no replica changes specified")
-		return nil
+		return svcerr.ValidationError("no replica changes specified", nil)
 	}
+	start := time.Now()
 	b, _ := json.Marshal(patch)
-	if _, err := patchClusterJSON(ctx, cli, ns, name, b); err != nil {
-		logger.Error("ops Scale failed",
-			"namespace", ns,
-			"name", name,
-			"duration", time.Since(start),
-			"error", err)
-		util.HandleK8sError(c, "failed to scale cluster", err)
-		return nil
+	if _, err := patchClusterJSON(ctx, cli, namespace, name, b); err != nil {
+		logger.Error("ops Scale failed", "namespace", namespace, "name", name, "duration", time.Since(start), "error", err)
+		return fmt.Errorf("scale cluster %s/%s: %w", namespace, name, err)
 	}
-	logger.Info("ops Scale ok",
-		"namespace", ns,
-		"name", name,
-		"duration", time.Since(start))
-	apierr.OK(c, gin.H{"message": "Cluster scaling initiated successfully"})
+	logger.Info("ops Scale ok", "namespace", namespace, "name", name, "duration", time.Since(start))
 	return nil
 }
 
-// Upgrade: minimal implementation that sets target version and optional strategy.
-func (s *ClusterService) Upgrade(ctx context.Context, c *gin.Context) error {
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		return nil
+// Upgrade sets target version and optional strategy via JSON patch.
+func (s *ClusterService) Upgrade(ctx context.Context, cli client.Client, namespace, name string, req *ClusterUpgradeRequest) error {
+	if cli == nil {
+		return svcerr.InternalServiceError("kubernetes client not initialized", nil)
 	}
-	ns := c.Param("namespace")
-	name := c.Param("name")
-	start := time.Now()
-	logger.Info("ops Upgrade begin",
-		"namespace", ns,
-		"name", name)
-	var req ClusterUpgradeRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		apierr.AbortValidation(c, "invalid upgrade request: "+err.Error())
-		return nil
+	if req == nil {
+		return svcerr.ValidationError("upgrade payload is required", nil)
+	}
+	if req.TargetVersion == "" {
+		return svcerr.ValidationError("targetVersion is required", nil)
 	}
 	patch := map[string]any{"spec": map[string]any{"topology": map[string]any{"version": req.TargetVersion}}}
 	if req.Strategy != "" {
 		patch["spec"].(map[string]any)["upgradeStrategy"] = req.Strategy
 	}
+	start := time.Now()
 	b, _ := json.Marshal(patch)
-	if _, err := patchClusterJSON(ctx, cli, ns, name, b); err != nil {
-		logger.Error("ops Upgrade failed",
-			"namespace", ns,
-			"name", name,
-			"duration", time.Since(start),
-			"error", err)
-		util.HandleK8sError(c, "failed to upgrade cluster", err)
-		return nil
+	if _, err := patchClusterJSON(ctx, cli, namespace, name, b); err != nil {
+		logger.Error("ops Upgrade failed", "namespace", namespace, "name", name, "duration", time.Since(start), "error", err)
+		return fmt.Errorf("upgrade cluster %s/%s: %w", namespace, name, err)
 	}
-	logger.Info("ops Upgrade ok",
-		"namespace", ns,
-		"name", name,
-		"duration", time.Since(start))
-	apierr.OK(c, gin.H{"message": "Cluster upgrade initiated successfully", "upgrade": gin.H{"targetVersion": req.TargetVersion, "strategy": req.Strategy, "status": "upgrade initiated"}})
+	logger.Info("ops Upgrade ok", "namespace", namespace, "name", name, "duration", time.Since(start))
 	return nil
 }

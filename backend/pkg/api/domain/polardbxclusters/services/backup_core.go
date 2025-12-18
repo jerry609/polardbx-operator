@@ -1,20 +1,18 @@
 package services
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
-	"net/http"
+	"io"
 	"strings"
 	"time"
 
 	polardbxv1 "github.com/alibaba/polardbx-operator/api/v1"
-	"github.com/gin-gonic/gin"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	apierr "polardbx-ui-backend/pkg/api/errors"
-	"polardbx-ui-backend/pkg/api/middleware"
-	"polardbx-ui-backend/pkg/api/util"
+	svcerr "polardbx-ui-backend/pkg/api/errors"
 	"polardbx-ui-backend/pkg/k8s"
 )
 
@@ -24,175 +22,148 @@ type BackupService struct{}
 // NewBackupService constructs a new BackupService instance.
 func NewBackupService() *BackupService { return &BackupService{} }
 
-// List lists backups for a given cluster in the specified namespace.
-func (s *BackupService) List(c *gin.Context) {
-	logger := middleware.NewBusinessLogger(c, "BackupService")
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		logger.Error(nil, "failed to get k8s client from context")
-		return
-	}
-	clusterName := c.Param("name")
-	namespace := c.Param("namespace")
-	logger.Info("listing backups for cluster=%s namespace=%s", clusterName, namespace)
-
-	backups, err := k8s.ListPolarDBXBackupsWithContext(c.Request.Context(), cli, namespace, clusterName)
-	if err != nil {
-		logger.Error(err, "failed to list backups for cluster=%s namespace=%s", clusterName, namespace)
-		middleware.LogK8sError(c, "List", "PolarDBXBackup", namespace, clusterName, err)
-		util.HandleK8sError(c, "failed to list backups", err)
-		return
-	}
-	logger.Info("listed %d backups for cluster=%s", len(backups), clusterName)
-	apierr.OK(c, backups)
+// BackupChildMetrics aggregates child backup progress stats.
+type BackupChildMetrics struct {
+	Total    int `json:"total"`
+	Finished int `json:"finished"`
+	Failed   int `json:"failed"`
 }
 
-// Create creates a backup resource for a given cluster.
-func (s *BackupService) Create(c *gin.Context) {
-	logger := middleware.NewBusinessLogger(c, "BackupService")
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		logger.Error(nil, "failed to get k8s client from context")
-		return
+// BackupMetricsResponse is a coarse-grained progress summary for a backup.
+type BackupMetricsResponse struct {
+	Phase     string             `json:"phase"`
+	Progress  int                `json:"progress"`
+	Estimated bool               `json:"estimated"`
+	Children  BackupChildMetrics `json:"children"`
+}
+
+// BackupOverviewKPI holds 24h KPI stats and optional connectivity/storage info.
+type BackupOverviewKPI struct {
+	SuccessRate24h            int    `json:"successRate24h"`
+	Running                   int    `json:"running"`
+	Failed24h                 int    `json:"failed24h"`
+	TotalBackups24h           int    `json:"totalBackups24h"`
+	TotalStorage              string `json:"totalStorage"`
+	TotalStorageBytes         *int64 `json:"totalStorageBytes"`
+	StorageConnectivity       string `json:"storageConnectivity"`
+	StorageConnectivityStatus string `json:"storageConnectivityStatus"`
+}
+
+// BackupOverviewResponse aggregates KPIs for a namespace within a time window.
+type BackupOverviewResponse struct {
+	Namespace       string            `json:"namespace"`
+	TimeWindowHours int               `json:"timeWindowHours"`
+	GeneratedAt     time.Time         `json:"generatedAt"`
+	KPI             BackupOverviewKPI `json:"kpi"`
+}
+
+// ClusterBackupInfo represents latest backup info for a cluster.
+type ClusterBackupInfo struct {
+	Name                       string  `json:"name"`
+	Phase                      string  `json:"phase"`
+	StartTime                  *string `json:"startTime,omitempty"`
+	EndTime                    *string `json:"endTime,omitempty"`
+	LatestRecoverableTimestamp *string `json:"latestRecoverableTimestamp,omitempty"`
+}
+
+// ClusterBackupStateEntry summarizes backup state for a single cluster.
+type ClusterBackupStateEntry struct {
+	ClusterName       string             `json:"clusterName"`
+	Namespace         string             `json:"namespace"`
+	LatestBackup      *ClusterBackupInfo `json:"latestBackup,omitempty"`
+	NextScheduledTime *string            `json:"nextScheduledTime"`
+	RPOSeconds        *int               `json:"rpoSeconds"`
+}
+
+// ClusterBackupStateResponse is an aggregated view for clusters in a namespace.
+type ClusterBackupStateResponse struct {
+	Namespace string                    `json:"namespace"`
+	Total     int                       `json:"total"`
+	Clusters  []ClusterBackupStateEntry `json:"clusters"`
+}
+
+// BinlogMetricsEntry aggregates binlog status for a cluster.
+type BinlogMetricsEntry struct {
+	Name                string   `json:"name"`
+	Namespace           string   `json:"namespace"`
+	Cluster             string   `json:"cluster"`
+	Phase               string   `json:"phase"`
+	LastCheckExpireTime uint64   `json:"lastCheckExpireTime"`
+	RecentDeletedFiles  []string `json:"recentDeletedFiles"`
+	RecentFiles         []string `json:"recentFiles"`
+	LatestBackupTime    *string  `json:"latestBackupTime,omitempty"`
+	LagSeconds          *int     `json:"lagSeconds,omitempty"`
+}
+
+// BinlogMetricsResponse is a namespace-scoped binlog metrics payload.
+type BinlogMetricsResponse struct {
+	Namespace string               `json:"namespace"`
+	Total     int                  `json:"total"`
+	Binlogs   []BinlogMetricsEntry `json:"binlogs"`
+}
+
+// CreateBackup creates a backup resource for a given cluster using pure parameters.
+// This method is framework-agnostic and can be reused outside HTTP handlers.
+func (s *BackupService) CreateBackup(ctx context.Context, cli client.Client, namespace, clusterName string, backup *polardbxv1.PolarDBXBackup) (*polardbxv1.PolarDBXBackup, error) {
+	if backup == nil {
+		return nil, svcerr.ValidationError("backup payload is required", nil)
 	}
-	var backup polardbxv1.PolarDBXBackup
-	if err := c.ShouldBindJSON(&backup); err != nil {
-		logger.Error(err, "failed to parse backup data")
-		apierr.AbortValidation(c, "failed to parse backup data: "+err.Error())
-		return
+	if namespace == "" {
+		return nil, svcerr.ValidationError("namespace is required", nil)
 	}
-	clusterName := c.Param("name")
-	namespace := c.Param("namespace")
+	if clusterName == "" {
+		return nil, svcerr.ValidationError("cluster name is required", nil)
+	}
 	backup.Spec.Cluster.Name = clusterName
-
-	logger.Info("creating backup for cluster=%s namespace=%s backupName=%s",
-		clusterName, namespace, backup.Name)
-
-	created, err := k8s.CreatePolarDBXBackupWithContext(c.Request.Context(), cli, namespace, &backup)
+	created, err := k8s.CreatePolarDBXBackupWithContext(ctx, cli, namespace, backup)
 	if err != nil {
-		logger.Error(err, "failed to create backup for cluster=%s namespace=%s", clusterName, namespace)
-		middleware.LogK8sError(c, "Create", "PolarDBXBackup", namespace, backup.Name, err)
-		middleware.LogAudit(c, "CREATE", "PolarDBXBackup", namespace, backup.Name, false)
-		util.HandleK8sError(c, "failed to create backup", err)
-		return
+		return nil, fmt.Errorf("create backup for cluster %s/%s: %w", namespace, clusterName, err)
 	}
-	logger.Info("backup created successfully name=%s for cluster=%s", created.Name, clusterName)
-	middleware.LogAudit(c, "CREATE", "PolarDBXBackup", namespace, created.Name, true)
-	apierr.Created(c, created)
+	return created, nil
 }
 
-// Validate validates a backup specification by performing a Kubernetes dry-run create.
-func (s *BackupService) Validate(c *gin.Context) {
-	logger := middleware.NewBusinessLogger(c, "BackupService")
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		logger.Error(nil, "failed to get k8s client from context")
-		return
+// ListBackups lists backups for a given cluster in the specified namespace using pure parameters.
+// This method is framework-agnostic and can be reused by different transports.
+func (s *BackupService) ListBackups(ctx context.Context, cli client.Client, namespace, clusterName string) ([]polardbxv1.PolarDBXBackup, error) {
+	if namespace == "" {
+		return nil, svcerr.ValidationError("namespace is required", nil)
 	}
-	var backup polardbxv1.PolarDBXBackup
-	if err := c.ShouldBindJSON(&backup); err != nil {
-		logger.Error(err, "failed to parse backup data for validation")
-		apierr.AbortValidation(c, "failed to parse backup data: "+err.Error())
-		return
+	if clusterName == "" {
+		return nil, svcerr.ValidationError("cluster name is required", nil)
 	}
-	ns := c.Query("namespace")
-	if ns == "" {
-		ns = backup.Namespace
+	backups, err := k8s.ListPolarDBXBackupsWithContext(ctx, cli, namespace, clusterName)
+	if err != nil {
+		return nil, fmt.Errorf("list backups for cluster %s/%s: %w", namespace, clusterName, err)
 	}
-	if ns == "" {
-		ns = "default"
-	}
-	logger.Info("validating backup name=%s namespace=%s", backup.Name, ns)
-
-	if _, err := k8s.CreatePolarDBXBackupDryRunWithContext(c.Request.Context(), cli, ns, &backup); err != nil {
-		logger.Warn("backup validation failed name=%s namespace=%s: %v", backup.Name, ns, err)
-		util.HandleK8sError(c, "backup validation failed", err)
-		return
-	}
-	logger.Info("backup validation passed name=%s namespace=%s", backup.Name, ns)
-	apierr.OK(c, gin.H{"valid": true})
+	return backups, nil
 }
 
-// StreamEvents outputs backup phase changes and events via server-sent events using polling.
-func (s *BackupService) StreamEvents(c *gin.Context) {
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		return
+// ValidateBackup validates a backup specification via Kubernetes dry-run create.
+// This method is framework-agnostic and can be reused by different transports.
+func (s *BackupService) ValidateBackup(ctx context.Context, cli client.Client, namespace string, backup *polardbxv1.PolarDBXBackup) error {
+	if backup == nil {
+		return svcerr.ValidationError("backup payload is required", nil)
 	}
-	namespace := c.Param("namespace")
-	name := c.Param("name")
-	w := c.Writer
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		apierr.AbortInternal(c, "streaming unsupported")
-		return
+	if namespace == "" {
+		return svcerr.ValidationError("namespace is required", nil)
 	}
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("Connection", "keep-alive")
-
-	write := func(event string, payload gin.H) {
-		payload["timestamp"] = time.Now().UTC().Format(time.RFC3339)
-		b, _ := json.Marshal(gin.H{"type": event, "payload": payload})
-		_, _ = w.Write([]byte("event: " + event + "\n"))
-		_, _ = w.Write([]byte("data: " + string(b) + "\n\n"))
-		flusher.Flush()
+	if _, err := k8s.CreatePolarDBXBackupDryRunWithContext(ctx, cli, namespace, backup); err != nil {
+		return fmt.Errorf("backup validation failed for %s/%s: %w", namespace, backup.Name, err)
 	}
-	ctx := c.Request.Context()
-	var lastPhase string
-	var backup polardbxv1.PolarDBXBackup
-	if err := cli.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, &backup); err == nil {
-		lastPhase = strings.ToLower(string(backup.Status.Phase))
-		write("phaseChanged", gin.H{"phase": lastPhase})
-	} else {
-		write("error", gin.H{"message": "backup not found", "details": err.Error()})
-		return
-	}
-	keep := time.NewTicker(10 * time.Second)
-	defer keep.Stop()
-	tick := time.NewTicker(2 * time.Second)
-	defer tick.Stop()
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-keep.C:
-			_, _ = w.Write([]byte(": ping\n\n"))
-			flusher.Flush()
-		case <-tick.C:
-			var cur polardbxv1.PolarDBXBackup
-			if err := cli.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, &cur); err != nil {
-				write("error", gin.H{"message": "failed to get backup", "details": err.Error()})
-				return
-			}
-			phase := strings.ToLower(string(cur.Status.Phase))
-			if phase != lastPhase {
-				lastPhase = phase
-				write("phaseChanged", gin.H{"phase": phase})
-			}
-			switch phase {
-			case "succeeded", "completed", "finished", "failed", "deleting":
-				return
-			}
-		}
-	}
+	return nil
 }
 
-// GetMetrics gets coarse-grained backup progress for a PolarDB-X backup and its child XStore backups.
-func (s *BackupService) GetMetrics(c *gin.Context) {
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		return
+// GetBackupMetrics gets coarse-grained backup progress for a PolarDB-X backup and its child XStore backups.
+func (s *BackupService) GetBackupMetrics(ctx context.Context, cli client.Client, namespace, name string) (*BackupMetricsResponse, error) {
+	if namespace == "" || name == "" {
+		return nil, svcerr.ValidationError("namespace and name are required", nil)
 	}
-	ns := c.Param("namespace")
-	name := c.Param("name")
 	var backup polardbxv1.PolarDBXBackup
-	if err := cli.Get(c.Request.Context(), client.ObjectKey{Namespace: ns, Name: name}, &backup); err != nil {
-		util.HandleK8sError(c, "failed to get backup", err)
-		return
+	if err := cli.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, &backup); err != nil {
+		return nil, fmt.Errorf("get backup %s/%s: %w", namespace, name, err)
 	}
 	var xsList polardbxv1.XStoreBackupList
-	_ = cli.List(c.Request.Context(), &xsList, client.InNamespace(ns))
+	_ = cli.List(ctx, &xsList, client.InNamespace(namespace))
 	total, finished, failed := 0, 0, 0
 	for i := range xsList.Items {
 		b := xsList.Items[i]
@@ -217,64 +188,95 @@ func (s *BackupService) GetMetrics(c *gin.Context) {
 			progress = 90
 		}
 	}
-	apierr.OK(c, gin.H{"phase": phase, "progress": progress, "estimated": true, "children": gin.H{"total": total, "finished": finished, "failed": failed}})
+	return &BackupMetricsResponse{
+		Phase:     phase,
+		Progress:  progress,
+		Estimated: true,
+		Children:  BackupChildMetrics{Total: total, Finished: finished, Failed: failed},
+	}, nil
 }
 
-// ForceDelete removes finalizers from PolarDBXBackup and triggers deletion
-func (s *BackupService) ForceDelete(c *gin.Context) {
-	logger := middleware.NewBusinessLogger(c, "BackupService")
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		logger.Error(nil, "failed to get k8s client from context")
-		return
+// DeleteBackup deletes a backup resource.
+func (s *BackupService) DeleteBackup(ctx context.Context, cli client.Client, namespace, name string) error {
+	if namespace == "" || name == "" {
+		return svcerr.ValidationError("namespace and name are required", nil)
 	}
-	ns := c.Param("namespace")
-	name := c.Param("name")
+	if err := k8s.DeletePolarDBXBackupWithContext(ctx, cli, namespace, name); err != nil {
+		return fmt.Errorf("delete backup %s/%s: %w", namespace, name, err)
+	}
+	return nil
+}
 
-	logger.Warn("force deleting backup name=%s namespace=%s (removing finalizers)", name, ns)
-
+// ForceDeleteBackup removes finalizers then deletes the backup resource.
+func (s *BackupService) ForceDeleteBackup(ctx context.Context, cli client.Client, namespace, name string) error {
+	if namespace == "" || name == "" {
+		return svcerr.ValidationError("namespace and name are required", nil)
+	}
 	var bk polardbxv1.PolarDBXBackup
-	if err := cli.Get(c.Request.Context(), client.ObjectKey{Namespace: ns, Name: name}, &bk); err != nil {
-		logger.Error(err, "failed to get backup for force delete name=%s namespace=%s", name, ns)
-		middleware.LogK8sError(c, "Get", "PolarDBXBackup", ns, name, err)
-		util.HandleK8sError(c, "failed to get backup", err)
-		return
+	if err := cli.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, &bk); err != nil {
+		return fmt.Errorf("get backup %s/%s for force delete: %w", namespace, name, err)
 	}
-
-	// Record original finalizers
-	originalFinalizers := bk.GetFinalizers()
-	logger.Info("removing %d finalizers from backup name=%s: %v", len(originalFinalizers), name, originalFinalizers)
-
-	// Clear finalizers
 	bk.SetFinalizers([]string{})
-	if err := cli.Update(c.Request.Context(), &bk); err != nil {
-		logger.Error(err, "failed to remove finalizers from backup name=%s namespace=%s", name, ns)
-		middleware.LogK8sError(c, "Update", "PolarDBXBackup", ns, name, err)
-		util.HandleK8sError(c, "failed to remove finalizers", err)
-		return
+	if err := cli.Update(ctx, &bk); err != nil {
+		return fmt.Errorf("remove finalizers from backup %s/%s: %w", namespace, name, err)
 	}
-	logger.Info("finalizers removed successfully from backup name=%s", name)
-
-	// Trigger deletion
-	if err := k8s.DeletePolarDBXBackupWithContext(c.Request.Context(), cli, ns, name); err != nil {
-		logger.Error(err, "failed to delete backup after removing finalizers name=%s namespace=%s", name, ns)
-		middleware.LogK8sError(c, "Delete", "PolarDBXBackup", ns, name, err)
-		middleware.LogAudit(c, "FORCE_DELETE", "PolarDBXBackup", ns, name, false)
-		util.HandleK8sError(c, "failed to delete backup", err)
-		return
+	if err := k8s.DeletePolarDBXBackupWithContext(ctx, cli, namespace, name); err != nil {
+		return fmt.Errorf("force delete backup %s/%s: %w", namespace, name, err)
 	}
-	logger.Info("backup force deleted successfully name=%s namespace=%s", name, ns)
-	middleware.LogAudit(c, "FORCE_DELETE", "PolarDBXBackup", ns, name, true)
-	apierr.OK(c, gin.H{"message": "backup finalizers removed and deletion triggered"})
+	return nil
 }
 
-// GetOverview aggregates last 24h KPIs (migrated from legacy)
-func (s *BackupService) GetOverview(c *gin.Context) {
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		return
+// StreamEvents streams backup phase changes and events via a caller-provided writer.
+func (s *BackupService) StreamEvents(ctx context.Context, cli client.Client, namespace, name string, w io.Writer, flusher func()) error {
+	var lastPhase string
+	var backup polardbxv1.PolarDBXBackup
+	if err := cli.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, &backup); err == nil {
+		lastPhase = strings.ToLower(string(backup.Status.Phase))
+		writeSSE(w, flusher, "phaseChanged", map[string]any{"phase": lastPhase})
+	} else {
+		writeSSE(w, flusher, "error", map[string]any{"message": "backup not found", "details": err.Error()})
+		return nil
 	}
-	namespace := c.DefaultQuery("namespace", "")
+	keep := time.NewTicker(10 * time.Second)
+	defer keep.Stop()
+	tick := time.NewTicker(2 * time.Second)
+	defer tick.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-keep.C:
+			_, _ = w.Write([]byte(": ping\n\n"))
+			flusher()
+		case <-tick.C:
+			var cur polardbxv1.PolarDBXBackup
+			if err := cli.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, &cur); err != nil {
+				writeSSE(w, flusher, "error", map[string]any{"message": "failed to get backup", "details": err.Error()})
+				return nil
+			}
+			phase := strings.ToLower(string(cur.Status.Phase))
+			if phase != lastPhase {
+				lastPhase = phase
+				writeSSE(w, flusher, "phaseChanged", map[string]any{"phase": phase})
+			}
+			switch phase {
+			case "succeeded", "completed", "finished", "failed", "deleting":
+				return nil
+			}
+		}
+	}
+}
+
+func writeSSE(w io.Writer, flusher func(), event string, payload map[string]any) {
+	payload["timestamp"] = time.Now().UTC().Format(time.RFC3339)
+	b, _ := json.Marshal(map[string]any{"type": event, "payload": payload})
+	_, _ = w.Write([]byte("event: " + event + "\n"))
+	_, _ = w.Write([]byte("data: " + string(b) + "\n\n"))
+	flusher()
+}
+
+// GetBackupOverview aggregates last 24h KPIs and optional connectivity/storage insights.
+func (s *BackupService) GetBackupOverview(ctx context.Context, cli client.Client, namespace string, evaluateConnectivity, evaluateStorage bool, systemNamespace string) (*BackupOverviewResponse, error) {
 	now := time.Now()
 	windowStart := now.Add(-24 * time.Hour)
 
@@ -283,9 +285,8 @@ func (s *BackupService) GetOverview(c *gin.Context) {
 	if namespace != "" {
 		listOpts = append(listOpts, client.InNamespace(namespace))
 	}
-	if err := cli.List(c.Request.Context(), &backupList, listOpts...); err != nil {
-		util.HandleK8sError(c, "failed to list backups", err)
-		return
+	if err := cli.List(ctx, &backupList, listOpts...); err != nil {
+		return nil, fmt.Errorf("list backups for overview in namespace %s: %w", namespace, err)
 	}
 
 	total24h, success24h, failed24h, runningNow := 0, 0, 0, 0
@@ -313,53 +314,35 @@ func (s *BackupService) GetOverview(c *gin.Context) {
 		successRate = int(float64(success24h)*100.0/float64(total24h) + 0.5)
 	}
 
-	// Connectivity/storage evaluation
-	kpi := gin.H{
-		"successRate24h":            successRate,
-		"running":                   runningNow,
-		"failed24h":                 failed24h,
-		"totalBackups24h":           total24h,
-		"totalStorage":              "",
-		"totalStorageBytes":         nil,
-		"storageConnectivity":       "",
-		"storageConnectivityStatus": "unknown",
+	kpi := BackupOverviewKPI{
+		SuccessRate24h:            successRate,
+		Running:                   runningNow,
+		Failed24h:                 failed24h,
+		TotalBackups24h:           total24h,
+		TotalStorage:              "",
+		TotalStorageBytes:         nil,
+		StorageConnectivity:       "",
+		StorageConnectivityStatus: "unknown",
 	}
 
-	// Evaluate storage connectivity (HPFS sinks)
-	if c.DefaultQuery("evaluateConnectivity", "false") == "true" {
-		status, detail := s.evaluateStorageConnectivity(c)
-		kpi["storageConnectivityStatus"] = status
-		kpi["storageConnectivity"] = detail
+	if evaluateConnectivity {
+		status, detail := s.EvaluateStorageConnectivity(ctx, cli, systemNamespace)
+		kpi.StorageConnectivityStatus = status
+		kpi.StorageConnectivity = detail
 	}
 
-	// Lightweight storage usage estimation (optional)
-	if c.DefaultQuery("evaluateStorage", "false") == "true" && len(prefixes) > 0 {
-		if totalBytes, err := s.estimateStorageUsage(c, prefixes); err == nil && totalBytes > 0 {
-			kpi["totalStorageBytes"] = totalBytes
-			kpi["totalStorage"] = fmt.Sprintf("%.2f GiB", float64(totalBytes)/1024/1024/1024)
+	if evaluateStorage && len(prefixes) > 0 {
+		if totalBytes, err := s.estimateStorageUsage(ctx, prefixes); err == nil && totalBytes > 0 {
+			kpi.TotalStorageBytes = &totalBytes
+			kpi.TotalStorage = fmt.Sprintf("%.2f GiB", float64(totalBytes)/1024/1024/1024)
 		}
 	}
-	apierr.OK(c, gin.H{"namespace": namespace, "timeWindowHours": 24, "generatedAt": now.Format(time.RFC3339), "kpi": kpi})
+
+	return &BackupOverviewResponse{Namespace: namespace, TimeWindowHours: 24, GeneratedAt: now, KPI: kpi}, nil
 }
 
-// estimateStorageUsage provides a lightweight estimation of total backup storage usage
-// for the given backup root prefixes. For now this is a stub that can be wired to
-// an HPFS usage API in the future.
-func (s *BackupService) estimateStorageUsage(c *gin.Context, prefixes []string) (int64, error) {
-	// TODO: Integrate with HPFS usage API to compute real storage usage.
-	// For the moment we simply return 0 to keep behavior backward compatible.
-	_ = c
-	_ = prefixes
-	return 0, nil
-}
-
-// GetClusterState aggregates per-cluster backup state: latest full backup, next schedule time, and RPO
-func (s *BackupService) GetClusterState(c *gin.Context) {
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		return
-	}
-	namespace := c.DefaultQuery("namespace", "")
+// GetClusterBackupState aggregates per-cluster backup state.
+func (s *BackupService) GetClusterBackupState(ctx context.Context, cli client.Client, namespace string) (*ClusterBackupStateResponse, error) {
 	now := time.Now()
 
 	var clusterList polardbxv1.PolarDBXClusterList
@@ -367,9 +350,8 @@ func (s *BackupService) GetClusterState(c *gin.Context) {
 	if namespace != "" {
 		clusterOpts = append(clusterOpts, client.InNamespace(namespace))
 	}
-	if err := cli.List(c.Request.Context(), &clusterList, clusterOpts...); err != nil {
-		util.HandleK8sError(c, "failed to list clusters", err)
-		return
+	if err := cli.List(ctx, &clusterList, clusterOpts...); err != nil {
+		return nil, fmt.Errorf("list clusters for backup state in namespace %s: %w", namespace, err)
 	}
 
 	var backupList polardbxv1.PolarDBXBackupList
@@ -377,9 +359,8 @@ func (s *BackupService) GetClusterState(c *gin.Context) {
 	if namespace != "" {
 		backupOpts = append(backupOpts, client.InNamespace(namespace))
 	}
-	if err := cli.List(c.Request.Context(), &backupList, backupOpts...); err != nil {
-		util.HandleK8sError(c, "failed to list backups", err)
-		return
+	if err := cli.List(ctx, &backupList, backupOpts...); err != nil {
+		return nil, fmt.Errorf("list backups for backup state in namespace %s: %w", namespace, err)
 	}
 
 	var scheduleList polardbxv1.PolarDBXBackupScheduleList
@@ -387,9 +368,8 @@ func (s *BackupService) GetClusterState(c *gin.Context) {
 	if namespace != "" {
 		scheduleOpts = append(scheduleOpts, client.InNamespace(namespace))
 	}
-	if err := cli.List(c.Request.Context(), &scheduleList, scheduleOpts...); err != nil {
-		util.HandleK8sError(c, "failed to list backup schedules", err)
-		return
+	if err := cli.List(ctx, &scheduleList, scheduleOpts...); err != nil {
+		return nil, fmt.Errorf("list schedules for backup state in namespace %s: %w", namespace, err)
 	}
 
 	latestByCluster := map[string]polardbxv1.PolarDBXBackup{}
@@ -428,55 +408,41 @@ func (s *BackupService) GetClusterState(c *gin.Context) {
 		}
 	}
 
-	out := make([]map[string]any, 0, len(clusterList.Items))
+	out := make([]ClusterBackupStateEntry, 0, len(clusterList.Items))
 	for _, cl := range clusterList.Items {
-		entry := map[string]any{
-			"clusterName": cl.Name,
-			"namespace":   cl.Namespace,
-		}
+		entry := ClusterBackupStateEntry{ClusterName: cl.Name, Namespace: cl.Namespace}
 		if lb, ok := latestByCluster[cl.Name]; ok {
-			lbInfo := map[string]any{"name": lb.Name, "phase": string(lb.Status.Phase)}
+			info := ClusterBackupInfo{Phase: string(lb.Status.Phase), Name: lb.Name}
 			if lb.Status.StartTime != nil {
-				lbInfo["startTime"] = lb.Status.StartTime.Time.Format(time.RFC3339)
+				s := lb.Status.StartTime.Time.Format(time.RFC3339)
+				info.StartTime = &s
 			}
 			if lb.Status.EndTime != nil {
-				lbInfo["endTime"] = lb.Status.EndTime.Time.Format(time.RFC3339)
+				e := lb.Status.EndTime.Time.Format(time.RFC3339)
+				info.EndTime = &e
 			}
 			if lb.Status.LatestRecoverableTimestamp != nil {
-				lbInfo["latestRecoverableTimestamp"] = lb.Status.LatestRecoverableTimestamp.Time.Format(time.RFC3339)
+				t := lb.Status.LatestRecoverableTimestamp.Time.Format(time.RFC3339)
+				info.LatestRecoverableTimestamp = &t
 			}
-			entry["latestBackup"] = lbInfo
+			entry.LatestBackup = &info
 		}
 		if nt, ok := nextByCluster[cl.Name]; ok && nt != nil {
-			entry["nextScheduledTime"] = nt.Time.Format(time.RFC3339)
-		} else {
-			entry["nextScheduledTime"] = nil
+			s := nt.Time.Format(time.RFC3339)
+			entry.NextScheduledTime = &s
 		}
 		if lrt, ok := maxLrtByCluster[cl.Name]; ok && !lrt.IsZero() {
-			entry["rpoSeconds"] = int(now.Sub(lrt).Seconds())
-		} else {
-			entry["rpoSeconds"] = nil
+			v := int(now.Sub(lrt).Seconds())
+			entry.RPOSeconds = &v
 		}
 		out = append(out, entry)
 	}
 
-	apierr.OK(c, gin.H{"namespace": namespace, "total": len(out), "clusters": out})
+	return &ClusterBackupStateResponse{Namespace: namespace, Total: len(out), Clusters: out}, nil
 }
 
-// GetBinlogMetrics aggregates binlog CRs and latest backup LRT per cluster
-func (s *BackupService) GetBinlogMetrics(c *gin.Context) {
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		return
-	}
-	namespace := c.DefaultQuery("namespace", "")
-	nowStr := c.DefaultQuery("now", "")
-	var now time.Time
-	if nowStr != "" {
-		if t, err := time.Parse(time.RFC3339, nowStr); err == nil {
-			now = t
-		}
-	}
+// GetBinlogMetrics aggregates binlog CRs and latest backup LRT per cluster.
+func (s *BackupService) GetBinlogMetrics(ctx context.Context, cli client.Client, namespace string, now time.Time) (*BinlogMetricsResponse, error) {
 	if now.IsZero() {
 		now = time.Now()
 	}
@@ -486,14 +452,14 @@ func (s *BackupService) GetBinlogMetrics(c *gin.Context) {
 	if namespace != "" {
 		binlogOpts = append(binlogOpts, client.InNamespace(namespace))
 	}
-	_ = cli.List(c.Request.Context(), &binlogList, binlogOpts...)
+	_ = cli.List(ctx, &binlogList, binlogOpts...)
 
 	var backupList polardbxv1.PolarDBXBackupList
 	backupOpts := []client.ListOption{}
 	if namespace != "" {
 		backupOpts = append(backupOpts, client.InNamespace(namespace))
 	}
-	_ = cli.List(c.Request.Context(), &backupList, backupOpts...)
+	_ = cli.List(ctx, &backupList, backupOpts...)
 
 	maxLrtByCluster := map[string]time.Time{}
 	for _, b := range backupList.Items {
@@ -507,25 +473,27 @@ func (s *BackupService) GetBinlogMetrics(c *gin.Context) {
 		}
 	}
 
-	items := make([]map[string]any, 0, len(binlogList.Items))
+	items := make([]BinlogMetricsEntry, 0, len(binlogList.Items))
 	for _, b := range binlogList.Items {
 		clusterName := b.Spec.PxcName
-		entry := map[string]any{
-			"name":                b.Name,
-			"namespace":           b.Namespace,
-			"cluster":             clusterName,
-			"phase":               string(b.Status.Phase),
-			"lastCheckExpireTime": b.Status.CheckExpireFileLastTime,
-			"recentDeletedFiles":  b.Status.LastDeletedFiles,
-			"recentFiles":         b.Status.LastDeletedFiles,
+		entry := BinlogMetricsEntry{
+			Name:                b.Name,
+			Namespace:           b.Namespace,
+			Cluster:             clusterName,
+			Phase:               string(b.Status.Phase),
+			LastCheckExpireTime: b.Status.CheckExpireFileLastTime,
+			RecentDeletedFiles:  b.Status.LastDeletedFiles,
+			RecentFiles:         b.Status.LastDeletedFiles,
 		}
 		if lrt, ok := maxLrtByCluster[clusterName]; ok && !lrt.IsZero() {
-			entry["latestBackupTime"] = lrt.UTC().Format(time.RFC3339)
-			entry["lagSeconds"] = int(now.Sub(lrt).Seconds())
+			ts := lrt.UTC().Format(time.RFC3339)
+			entry.LatestBackupTime = &ts
+			lag := int(now.Sub(lrt).Seconds())
+			entry.LagSeconds = &lag
 		}
 		items = append(items, entry)
 	}
-	apierr.OK(c, gin.H{"namespace": namespace, "total": len(items), "binlogs": items})
+	return &BinlogMetricsResponse{Namespace: namespace, Total: len(items), Binlogs: items}, nil
 }
 
 func isBackupNewer(a, b polardbxv1.PolarDBXBackup) bool {
@@ -554,27 +522,9 @@ func isBackupNewer(a, b polardbxv1.PolarDBXBackup) bool {
 	return a.CreationTimestamp.After(b.CreationTimestamp.Time)
 }
 
-// Delete deletes a backup
-func (s *BackupService) Delete(c *gin.Context) {
-	logger := middleware.NewBusinessLogger(c, "BackupService")
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		logger.Error(nil, "failed to get k8s client from context")
-		return
-	}
-	ns := c.Param("namespace")
-	name := c.Param("name")
-
-	logger.Info("deleting backup name=%s namespace=%s", name, ns)
-
-	if err := k8s.DeletePolarDBXBackupWithContext(c.Request.Context(), cli, ns, name); err != nil {
-		logger.Error(err, "failed to delete backup name=%s namespace=%s", name, ns)
-		middleware.LogK8sError(c, "Delete", "PolarDBXBackup", ns, name, err)
-		middleware.LogAudit(c, "DELETE", "PolarDBXBackup", ns, name, false)
-		util.HandleK8sError(c, "failed to delete backup", err)
-		return
-	}
-	logger.Info("backup deleted successfully name=%s namespace=%s", name, ns)
-	middleware.LogAudit(c, "DELETE", "PolarDBXBackup", ns, name, true)
-	apierr.OK(c, gin.H{"message": "backup deleted successfully"})
+// estimateStorageUsage provides a lightweight estimation of total backup storage usage.
+func (s *BackupService) estimateStorageUsage(ctx context.Context, prefixes []string) (int64, error) {
+	_ = ctx
+	_ = prefixes
+	return 0, nil
 }

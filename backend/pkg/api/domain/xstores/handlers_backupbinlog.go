@@ -2,9 +2,18 @@ package xstores
 
 import (
 	"polardbx-ui-backend/pkg/api/domain/xstores/services"
+	apierr "polardbx-ui-backend/pkg/api/errors"
+	"polardbx-ui-backend/pkg/api/provider"
+	"polardbx-ui-backend/pkg/api/util"
 
+	polardbxv1 "github.com/alibaba/polardbx-operator/api/v1"
 	"github.com/gin-gonic/gin"
 )
+
+// backupBinlogSvc gets BackupBinlogService from Provider
+func backupBinlogSvc(c *gin.Context) *services.BackupBinlogService {
+	return provider.Must(c).BackupBinlogService(c)
+}
 
 // ListBackupBinlogs lists binlog backups for XStores.
 // @Summary List XStore binlog backups
@@ -14,7 +23,20 @@ import (
 // @Param namespace query string false "Kubernetes namespace; defaults to 'default' when omitted"
 // @Success 200 {array} polardbxv1.XStoreBackupBinlog "List of XStore binlog backups"
 // @Failure 502 {object} map[string]any "Upstream Kubernetes error"
-func ListBackupBinlogs(c *gin.Context) { services.NewBackupBinlogService().List(c) }
+func ListBackupBinlogs(c *gin.Context) {
+	cli, ok := util.K8sClientFromContext(c)
+	if !ok {
+		return
+	}
+	ns := c.DefaultQuery("namespace", "")
+
+	items, err := backupBinlogSvc(c).List(c.Request.Context(), cli, ns)
+	if err != nil {
+		apierr.AbortWithError(c, err)
+		return
+	}
+	apierr.OK(c, items)
+}
 
 // CreateBackupBinlog creates a binlog backup for an XStore.
 // @Summary Create XStore binlog backup
@@ -27,7 +49,26 @@ func ListBackupBinlogs(c *gin.Context) { services.NewBackupBinlogService().List(
 // @Success 201 {object} polardbxv1.XStoreBackupBinlog "Created XStore binlog backup"
 // @Failure 400 {object} map[string]any "Invalid request body"
 // @Failure 502 {object} map[string]any "Upstream Kubernetes error"
-func CreateBackupBinlog(c *gin.Context) { services.NewBackupBinlogService().Create(c) }
+func CreateBackupBinlog(c *gin.Context) {
+	cli, ok := util.K8sClientFromContext(c)
+	if !ok {
+		return
+	}
+	ns := c.DefaultQuery("namespace", "default")
+
+	var obj polardbxv1.XStoreBackupBinlog
+	if err := c.ShouldBindJSON(&obj); err != nil {
+		apierr.AbortValidation(c, "invalid xstore backup binlog: "+err.Error())
+		return
+	}
+
+	created, err := backupBinlogSvc(c).Create(c.Request.Context(), cli, ns, &obj)
+	if err != nil {
+		apierr.AbortWithError(c, err)
+		return
+	}
+	apierr.Created(c, created)
+}
 
 // GetBackupBinlog gets a single XStore binlog backup by namespace and name.
 // @Summary Get XStore binlog backup
@@ -39,7 +80,21 @@ func CreateBackupBinlog(c *gin.Context) { services.NewBackupBinlogService().Crea
 // @Success 200 {object} polardbxv1.XStoreBackupBinlog "XStore binlog backup"
 // @Failure 404 {object} map[string]any "Binlog backup not found"
 // @Failure 502 {object} map[string]any "Upstream Kubernetes error"
-func GetBackupBinlog(c *gin.Context) { services.NewBackupBinlogService().Get(c) }
+func GetBackupBinlog(c *gin.Context) {
+	cli, ok := util.K8sClientFromContext(c)
+	if !ok {
+		return
+	}
+	ns := c.Param("namespace")
+	name := c.Param("name")
+
+	item, err := backupBinlogSvc(c).Get(c.Request.Context(), cli, ns, name)
+	if err != nil {
+		apierr.AbortWithError(c, err)
+		return
+	}
+	apierr.OK(c, item)
+}
 
 // UpdateBackupBinlog updates an existing XStore binlog backup.
 // @Summary Update XStore binlog backup
@@ -54,7 +109,26 @@ func GetBackupBinlog(c *gin.Context) { services.NewBackupBinlogService().Get(c) 
 // @Failure 400 {object} map[string]any "Invalid request body"
 // @Failure 404 {object} map[string]any "Binlog backup not found"
 // @Failure 502 {object} map[string]any "Upstream Kubernetes error"
-func UpdateBackupBinlog(c *gin.Context) { services.NewBackupBinlogService().Update(c) }
+func UpdateBackupBinlog(c *gin.Context) {
+	cli, ok := util.K8sClientFromContext(c)
+	if !ok {
+		return
+	}
+	ns := c.Param("namespace")
+
+	var obj polardbxv1.XStoreBackupBinlog
+	if err := c.ShouldBindJSON(&obj); err != nil {
+		apierr.AbortValidation(c, "invalid xstore backup binlog: "+err.Error())
+		return
+	}
+
+	updated, err := backupBinlogSvc(c).Update(c.Request.Context(), cli, ns, &obj)
+	if err != nil {
+		apierr.AbortWithError(c, err)
+		return
+	}
+	apierr.OK(c, updated)
+}
 
 // DeleteBackupBinlog deletes an XStore binlog backup.
 // @Summary Delete XStore binlog backup
@@ -65,4 +139,17 @@ func UpdateBackupBinlog(c *gin.Context) { services.NewBackupBinlogService().Upda
 // @Success 200 {object} map[string]any "Deletion confirmation"
 // @Failure 404 {object} map[string]any "Binlog backup not found"
 // @Failure 502 {object} map[string]any "Upstream Kubernetes error"
-func DeleteBackupBinlog(c *gin.Context) { services.NewBackupBinlogService().Delete(c) }
+func DeleteBackupBinlog(c *gin.Context) {
+	cli, ok := util.K8sClientFromContext(c)
+	if !ok {
+		return
+	}
+	ns := c.Param("namespace")
+	name := c.Param("name")
+
+	if err := backupBinlogSvc(c).Delete(c.Request.Context(), cli, ns, name); err != nil {
+		apierr.AbortWithError(c, err)
+		return
+	}
+	apierr.OK(c, gin.H{"message": "xstore backup binlog deleted"})
+}

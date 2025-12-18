@@ -2,6 +2,7 @@ package services
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"net"
 	"net/url"
@@ -9,13 +10,11 @@ import (
 	"time"
 
 	hpfsconfig "github.com/alibaba/polardbx-operator/pkg/hpfs/config"
-	"github.com/gin-gonic/gin"
 	corev1 "k8s.io/api/core/v1"
 	yamlutil "k8s.io/apimachinery/pkg/util/yaml"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	apierr "polardbx-ui-backend/pkg/api/errors"
-	"polardbx-ui-backend/pkg/api/util"
+	svcerr "polardbx-ui-backend/pkg/api/errors"
 )
 
 // normalizeSinkType maps aliases to canonical types for robustness.
@@ -32,36 +31,45 @@ func normalizeSinkType(t string) string {
 }
 
 // ListHpfsSinks returns sinks configured in HPFS ConfigMap
-func (s *BackupService) ListHpfsSinks(c *gin.Context) {
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		return
+type HpfsSinksResponse struct {
+	Namespace string    `json:"namespace"`
+	ConfigMap string    `json:"configMap"`
+	Sinks     []SinkDTO `json:"sinks"`
+}
+
+type SinkDTO struct {
+	Name             string `json:"name"`
+	Type             string `json:"type"`
+	Endpoint         string `json:"endpoint,omitempty"`
+	Bucket           string `json:"bucket,omitempty"`
+	BucketLookupType string `json:"bucketLookupType,omitempty"`
+	Host             string `json:"host,omitempty"`
+	Port             int    `json:"port,omitempty"`
+	RootPath         string `json:"rootPath,omitempty"`
+}
+
+type HpfsSinkValidationResult struct {
+	Name    string `json:"name"`
+	Type    string `json:"type"`
+	Status  string `json:"status"`
+	Message string `json:"message"`
+}
+
+// ListHpfsSinks returns sinks configured in HPFS ConfigMap.
+func (s *BackupService) ListHpfsSinks(ctx context.Context, cli client.Client, systemNS string) (*HpfsSinksResponse, error) {
+	if systemNS == "" {
+		systemNS = "polardbx-operator-system"
 	}
-	// Allow override of system namespace via query for tests and flexibility
-	systemNS := c.DefaultQuery("systemNamespace", "polardbx-operator-system")
-	cm, err := getHpfsConfigMap(c, cli, systemNS)
+	cm, err := getHpfsConfigMap(ctx, cli, systemNS)
 	if err != nil {
-		util.HandleK8sError(c, "failed to get HPFS config ConfigMap", err)
-		return
+		return nil, err
 	}
 	if _, exists := cm.Data["config.yaml"]; !exists {
-		apierr.AbortInternal(c, "config.yaml not found in ConfigMap")
-		return
+		return nil, svcerr.InternalServiceError("config.yaml not found in ConfigMap", nil)
 	}
 	cfg, err := decodeHpfsConfig(cm)
 	if err != nil {
-		apierr.AbortInternal(c, "failed to parse config.yaml: "+err.Error())
-		return
-	}
-	type SinkDTO struct {
-		Name             string `json:"name"`
-		Type             string `json:"type"`
-		Endpoint         string `json:"endpoint,omitempty"`
-		Bucket           string `json:"bucket,omitempty"`
-		BucketLookupType string `json:"bucketLookupType,omitempty"`
-		Host             string `json:"host,omitempty"`
-		Port             int    `json:"port,omitempty"`
-		RootPath         string `json:"rootPath,omitempty"`
+		return nil, svcerr.InternalServiceError("failed to parse config.yaml", err)
 	}
 	sinks := make([]SinkDTO, 0, len(cfg.Sinks))
 	for _, s := range cfg.Sinks {
@@ -77,40 +85,34 @@ func (s *BackupService) ListHpfsSinks(c *gin.Context) {
 		}
 		sinks = append(sinks, dto)
 	}
-	apierr.OK(c, gin.H{"namespace": systemNS, "configMap": "polardbx-hpfs-config", "sinks": sinks})
+	return &HpfsSinksResponse{Namespace: systemNS, ConfigMap: "polardbx-hpfs-config", Sinks: sinks}, nil
 }
 
 // ValidateHpfsSink validates that a given sink (name+type) exists in HPFS config
-func (s *BackupService) ValidateHpfsSink(c *gin.Context) {
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		return
+// ValidateHpfsSink validates that a given sink (name+type) exists in HPFS config.
+func (s *BackupService) ValidateHpfsSink(ctx context.Context, cli client.Client, systemNS, name, sinkType string) (*HpfsSinkValidationResult, error) {
+	if name == "" {
+		return nil, svcerr.ValidationError("name is required", nil)
 	}
-	var req struct {
-		Name string `json:"name"`
-		Type string `json:"type"`
+	if sinkType == "" {
+		return nil, svcerr.ValidationError("type is required", nil)
 	}
-	if err := c.ShouldBindJSON(&req); err != nil {
-		apierr.AbortValidation(c, "invalid request body")
-		return
+	if systemNS == "" {
+		systemNS = "polardbx-operator-system"
 	}
-	systemNS := c.DefaultQuery("systemNamespace", "polardbx-operator-system")
-	cm, err := getHpfsConfigMap(c, cli, systemNS)
+	cm, err := getHpfsConfigMap(ctx, cli, systemNS)
 	if err != nil {
-		util.HandleK8sError(c, "failed to get HPFS config ConfigMap", err)
-		return
+		return nil, err
 	}
 	if _, exists := cm.Data["config.yaml"]; !exists {
-		apierr.AbortInternal(c, "config.yaml not found in ConfigMap")
-		return
+		return nil, svcerr.InternalServiceError("config.yaml not found in ConfigMap", nil)
 	}
 	cfg, err := decodeHpfsConfig(cm)
 	if err != nil {
-		apierr.AbortInternal(c, "failed to parse config.yaml: "+err.Error())
-		return
+		return nil, svcerr.InternalServiceError("failed to parse config.yaml", err)
 	}
-	reqType := normalizeSinkType(req.Type)
-	reqName := strings.TrimSpace(req.Name)
+	reqType := normalizeSinkType(sinkType)
+	reqName := strings.TrimSpace(name)
 	status := "not_found"
 	message := "sink not found"
 	for _, s := range cfg.Sinks {
@@ -120,13 +122,13 @@ func (s *BackupService) ValidateHpfsSink(c *gin.Context) {
 			break
 		}
 	}
-	apierr.OK(c, gin.H{"name": reqName, "type": reqType, "status": status, "message": message})
+	return &HpfsSinkValidationResult{Name: reqName, Type: reqType, Status: status, Message: message}, nil
 }
 
 // helpers adapted from original
-func getHpfsConfigMap(c *gin.Context, cli client.Client, namespace string) (*corev1.ConfigMap, error) {
+func getHpfsConfigMap(ctx context.Context, cli client.Client, namespace string) (*corev1.ConfigMap, error) {
 	var cm corev1.ConfigMap
-	if err := cli.Get(c.Request.Context(), client.ObjectKey{Namespace: namespace, Name: "polardbx-hpfs-config"}, &cm); err != nil {
+	if err := cli.Get(ctx, client.ObjectKey{Namespace: namespace, Name: "polardbx-hpfs-config"}, &cm); err != nil {
 		return nil, err
 	}
 	return &cm, nil
@@ -145,14 +147,12 @@ func decodeHpfsConfig(cm *corev1.ConfigMap) (hpfsconfig.Config, error) {
 	return cfg, nil
 }
 
-// evaluateStorageConnectivity performs lightweight connectivity probe on HPFS sinks (TCP direct connection), returns (status, detail)
-func (s *BackupService) evaluateStorageConnectivity(c *gin.Context) (string, string) {
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		return "unknown", "no_k8s_client"
+// EvaluateStorageConnectivity performs lightweight connectivity probe on HPFS sinks (TCP direct connection), returns (status, detail)
+func (s *BackupService) EvaluateStorageConnectivity(ctx context.Context, cli client.Client, systemNS string) (string, string) {
+	if systemNS == "" {
+		systemNS = "polardbx-operator-system"
 	}
-	systemNS := c.DefaultQuery("systemNamespace", "polardbx-operator-system")
-	cm, err := getHpfsConfigMap(c, cli, systemNS)
+	cm, err := getHpfsConfigMap(ctx, cli, systemNS)
 	if err != nil {
 		// Treat missing ConfigMap as "unknown" instead of a hard error to avoid noise in environments without HPFS configured.
 		return "unknown", "hpfs_config_not_found"

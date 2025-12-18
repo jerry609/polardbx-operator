@@ -1,13 +1,15 @@
 package services
 
 import (
-	"polardbx-ui-backend/pkg/api/domain/xstores/k8srepo"
-	apierr "polardbx-ui-backend/pkg/api/errors"
-	"polardbx-ui-backend/pkg/api/util"
+	"context"
+	"fmt"
 
 	polardbxv1 "github.com/alibaba/polardbx-operator/api/v1"
 	polardbxv1xstore "github.com/alibaba/polardbx-operator/api/v1/xstore"
-	"github.com/gin-gonic/gin"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"polardbx-ui-backend/pkg/api/domain/xstores/k8srepo"
+	svcerr "polardbx-ui-backend/pkg/api/errors"
 )
 
 // FollowersService encapsulates XStoreFollower related orchestration (using k8srepo).
@@ -19,202 +21,115 @@ func NewFollowersService() *FollowersService {
 	return &FollowersService{repo: k8srepo.NewXStoreRepository()}
 }
 
-func (s *FollowersService) List(c *gin.Context) {
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		return
-	}
-	ns := c.DefaultQuery("namespace", util.DefaultNamespace(c, "default"))
-	items, err := s.repo.ListFollowers(c.Request.Context(), cli, ns)
+func (s *FollowersService) List(ctx context.Context, cli client.Client, namespace string) ([]polardbxv1.XStoreFollower, error) {
+	items, err := s.repo.ListFollowers(ctx, cli, namespace)
 	if err != nil {
-		util.HandleK8sError(c, "failed to list xstore followers", err)
-		return
+		return nil, fmt.Errorf("list xstore followers in namespace %s: %w", namespace, err)
 	}
-	apierr.OK(c, items)
+	return items, nil
 }
 
-func (s *FollowersService) Create(c *gin.Context) {
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		return
-	}
-	ns := c.DefaultQuery("namespace", util.DefaultNamespace(c, "default"))
-	// Compatible with two request body formats:
-	// 1) Submit complete CR directly (with spec)
-	// 2) Simplified body: {"name":"...","xStoreName":"...","role":"(optional)"}
-	type createPayload struct {
-		polardbxv1.XStoreFollower `json:",inline"`
-		Name                      string `json:"name,omitempty"`
-		XStoreName                string `json:"xStoreName,omitempty"`
-		Role                      string `json:"role,omitempty"`
-	}
-	var payload createPayload
-	if err := c.ShouldBindJSON(&payload); err != nil {
-		apierr.AbortValidation(c, "invalid xstore follower: "+err.Error())
-		return
-	}
-	obj := payload.XStoreFollower
-	if obj.Name == "" {
-		obj.Name = payload.Name
+// Create creates a follower CR with basic validation.
+func (s *FollowersService) Create(ctx context.Context, cli client.Client, obj *polardbxv1.XStoreFollower) (*polardbxv1.XStoreFollower, error) {
+	if obj == nil {
+		return nil, svcerr.ValidationError("follower payload is required", nil)
 	}
 	if obj.Name == "" {
-		apierr.AbortValidation(c, "name is required")
-		return
+		return nil, svcerr.ValidationError("name is required", nil)
 	}
 	if obj.Namespace == "" {
-		obj.Namespace = ns
+		return nil, svcerr.ValidationError("namespace is required", nil)
 	}
 	if obj.Spec.XStoreName == "" {
-		obj.Spec.XStoreName = payload.XStoreName
+		return nil, svcerr.ValidationError("xStoreName is required", nil)
 	}
-	if obj.Spec.XStoreName == "" {
-		apierr.AbortValidation(c, "xStoreName is required")
-		return
-	}
-	if string(obj.Spec.Role) == "" && payload.Role != "" {
-		obj.Spec.Role = polardbxv1xstore.FollowerRole(payload.Role)
-	}
-	created, err := s.repo.CreateFollower(c.Request.Context(), cli, obj.Namespace, &obj)
+	created, err := s.repo.CreateFollower(ctx, cli, obj.Namespace, obj)
 	if err != nil {
-		util.HandleK8sError(c, "failed to create xstore follower", err)
-		return
+		return nil, fmt.Errorf("create xstore follower %s/%s: %w", obj.Namespace, obj.Name, err)
 	}
-	apierr.Created(c, created)
+	return created, nil
 }
 
-func (s *FollowersService) Get(c *gin.Context) {
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		return
-	}
-	ns := c.Param("namespace")
-	name := c.Param("name")
-	item, err := s.repo.GetFollower(c.Request.Context(), cli, ns, name)
+func (s *FollowersService) Get(ctx context.Context, cli client.Client, namespace, name string) (*polardbxv1.XStoreFollower, error) {
+	item, err := s.repo.GetFollower(ctx, cli, namespace, name)
 	if err != nil {
-		util.HandleK8sError(c, "failed to get xstore follower", err)
-		return
+		return nil, fmt.Errorf("get xstore follower %s/%s: %w", namespace, name, err)
 	}
-	apierr.OK(c, item)
+	return item, nil
 }
 
-func (s *FollowersService) Update(c *gin.Context) {
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		return
+func (s *FollowersService) Update(ctx context.Context, cli client.Client, obj *polardbxv1.XStoreFollower) (*polardbxv1.XStoreFollower, error) {
+	if obj == nil {
+		return nil, svcerr.ValidationError("follower payload is required", nil)
 	}
-	ns := c.Param("namespace")
-	var body polardbxv1.XStoreFollower
-	if err := c.ShouldBindJSON(&body); err != nil {
-		apierr.AbortValidation(c, "invalid xstore follower: "+err.Error())
-		return
+	if obj.Namespace == "" {
+		return nil, svcerr.ValidationError("namespace is required", nil)
 	}
-	body.Namespace = ns
-	updated, err := s.repo.UpdateFollower(c.Request.Context(), cli, ns, &body)
+	if obj.Name == "" {
+		return nil, svcerr.ValidationError("name is required", nil)
+	}
+	updated, err := s.repo.UpdateFollower(ctx, cli, obj.Namespace, obj)
 	if err != nil {
-		util.HandleK8sError(c, "failed to update xstore follower", err)
-		return
+		return nil, fmt.Errorf("update xstore follower %s/%s: %w", obj.Namespace, obj.Name, err)
 	}
-	apierr.OK(c, updated)
+	return updated, nil
 }
 
-func (s *FollowersService) Delete(c *gin.Context) {
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		return
+func (s *FollowersService) Delete(ctx context.Context, cli client.Client, namespace, name string) error {
+	if err := s.repo.DeleteFollower(ctx, cli, namespace, name); err != nil {
+		return fmt.Errorf("delete xstore follower %s/%s: %w", namespace, name, err)
 	}
-	ns := c.Param("namespace")
-	name := c.Param("name")
-	if err := s.repo.DeleteFollower(c.Request.Context(), cli, ns, name); err != nil {
-		util.HandleK8sError(c, "failed to delete xstore follower", err)
-		return
-	}
-	apierr.OK(c, gin.H{"message": "xstore follower deleted"})
+	return nil
 }
 
-// Retry: Retry failed XStoreFollower task (delete old task and create new task)
-func (s *FollowersService) Retry(c *gin.Context) {
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		return
-	}
-	ns := c.Param("namespace")
-	name := c.Param("name")
-
-	// Get original task
-	original, err := s.repo.GetFollower(c.Request.Context(), cli, ns, name)
+// Retry recreates a failed follower task.
+func (s *FollowersService) Retry(ctx context.Context, cli client.Client, namespace, name string) (*polardbxv1.XStoreFollower, error) {
+	original, err := s.repo.GetFollower(ctx, cli, namespace, name)
 	if err != nil {
-		util.HandleK8sError(c, "failed to get original follower", err)
-		return
+		return nil, fmt.Errorf("get xstore follower %s/%s: %w", namespace, name, err)
 	}
 
-	// Check if retry is allowed (only failed tasks can be retried)
 	if original.Status.Phase != polardbxv1xstore.FollowerPhaseFailed {
-		apierr.AbortValidation(c, "only failed tasks can be retried, current_phase: "+string(original.Status.Phase))
-		return
+		return nil, svcerr.ValidationError("only failed tasks can be retried", map[string]any{"phase": original.Status.Phase})
 	}
 
-	// Delete original task
-	if err := s.repo.DeleteFollower(c.Request.Context(), cli, ns, name); err != nil {
-		util.HandleK8sError(c, "failed to delete original follower", err)
-		return
+	if err := s.repo.DeleteFollower(ctx, cli, namespace, name); err != nil {
+		return nil, fmt.Errorf("delete follower %s/%s for retry: %w", namespace, name, err)
 	}
 
-	// Create new task (keep original configuration)
 	newFollower := &polardbxv1.XStoreFollower{
 		ObjectMeta: original.ObjectMeta,
 		Spec:       original.Spec,
 	}
-	// Reset status and resource version
+	newFollower.Namespace = namespace
 	newFollower.Status = polardbxv1.XStoreFollowerStatus{}
 	newFollower.ResourceVersion = ""
 	newFollower.Generation = 0
 
-	created, err := s.repo.CreateFollower(c.Request.Context(), cli, ns, newFollower)
+	created, err := s.repo.CreateFollower(ctx, cli, namespace, newFollower)
 	if err != nil {
-		util.HandleK8sError(c, "failed to create retry follower", err)
-		return
+		return nil, fmt.Errorf("recreate follower %s/%s: %w", namespace, name, err)
 	}
 
-	apierr.OK(c, gin.H{
-		"message":       "task retried successfully",
-		"original_task": name,
-		"new_task":      created.Name,
-	})
+	return created, nil
 }
 
-// Cancel: Cancel specified XStoreFollower task
-func (s *FollowersService) Cancel(c *gin.Context) {
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		return
-	}
-	ns := c.Param("namespace")
-	name := c.Param("name")
-
-	// Get task information
-	follower, err := s.repo.GetFollower(c.Request.Context(), cli, ns, name)
+// Cancel deletes a follower task if it is not in a terminal phase.
+func (s *FollowersService) Cancel(ctx context.Context, cli client.Client, namespace, name string) (*polardbxv1.XStoreFollower, error) {
+	follower, err := s.repo.GetFollower(ctx, cli, namespace, name)
 	if err != nil {
-		util.HandleK8sError(c, "failed to get follower", err)
-		return
+		return nil, fmt.Errorf("get xstore follower %s/%s: %w", namespace, name, err)
 	}
 
-	// Check if cancellation is allowed (terminal state tasks cannot be cancelled)
 	if follower.Status.Phase == polardbxv1xstore.FollowerPhaseSuccess ||
 		follower.Status.Phase == polardbxv1xstore.FollowerPhaseFailed ||
 		follower.Status.Phase == polardbxv1xstore.FollowerPhaseDeleting {
-		apierr.AbortValidation(c, "cannot cancel completed or already deleting task, current_phase: "+string(follower.Status.Phase))
-		return
+		return nil, svcerr.ValidationError("cannot cancel completed or already deleting task", map[string]any{"phase": follower.Status.Phase})
 	}
 
-	// Delete task
-	if err := s.repo.DeleteFollower(c.Request.Context(), cli, ns, name); err != nil {
-		util.HandleK8sError(c, "failed to cancel follower", err)
-		return
+	if err := s.repo.DeleteFollower(ctx, cli, namespace, name); err != nil {
+		return nil, fmt.Errorf("delete follower %s/%s: %w", namespace, name, err)
 	}
 
-	apierr.OK(c, gin.H{
-		"message": "task cancelled successfully",
-		"task":    name,
-		"xstore":  follower.Spec.XStoreName,
-	})
+	return follower, nil
 }

@@ -22,7 +22,8 @@ func ListMonitors(c *gin.Context) {
 	namespace := util.DefaultNamespace(c, "default")
 	monitors, err := k8s.ListPolarDBXMonitorsWithContext(c.Request.Context(), k8sClient, namespace)
 	if err != nil {
-		util.HandleK8sError(c, "failed to list monitors", err)
+		// Surface K8s error via unified error conversion path.
+		apierr.AbortWithError(c, err)
 		return
 	}
 	apierr.OK(c, monitors)
@@ -42,7 +43,8 @@ func CreateMonitor(c *gin.Context) {
 	}
 	created, err := k8s.CreatePolarDBXMonitorWithContext(c.Request.Context(), k8sClient, namespace, &monitor)
 	if err != nil {
-		util.HandleK8sError(c, "failed to create monitor", err)
+		// Surface K8s error via unified error conversion path.
+		apierr.AbortWithError(c, err)
 		return
 	}
 	apierr.Created(c, created)
@@ -58,7 +60,8 @@ func GetMonitor(c *gin.Context) {
 	name := c.Param("name")
 	m, err := k8s.GetPolarDBXMonitorWithContext(c.Request.Context(), k8sClient, ns, name)
 	if err != nil {
-		util.HandleK8sError(c, "failed to get monitor", err)
+		// Surface K8s error via unified error conversion path.
+		apierr.AbortWithError(c, err)
 		return
 	}
 	apierr.OK(c, m)
@@ -79,7 +82,8 @@ func UpdateMonitor(c *gin.Context) {
 	m.Namespace = ns
 	um, err := k8s.UpdatePolarDBXMonitorWithContext(c.Request.Context(), k8sClient, ns, &m)
 	if err != nil {
-		util.HandleK8sError(c, "failed to update monitor", err)
+		// Surface K8s error via unified error conversion path.
+		apierr.AbortWithError(c, err)
 		return
 	}
 	apierr.OK(c, um)
@@ -94,7 +98,8 @@ func DeleteMonitor(c *gin.Context) {
 	ns := c.Param("namespace")
 	name := c.Param("name")
 	if err := k8s.DeletePolarDBXMonitorWithContext(c.Request.Context(), k8sClient, ns, name); err != nil {
-		util.HandleK8sError(c, "failed to delete monitor", err)
+		// Surface K8s error via unified error conversion path.
+		apierr.AbortWithError(c, err)
 		return
 	}
 	apierr.OK(c, gin.H{"message": "monitor deleted successfully"})

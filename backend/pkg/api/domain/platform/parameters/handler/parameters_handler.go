@@ -32,7 +32,8 @@ func List(c *gin.Context) {
 	ns := util.DefaultNamespace(c, "default")
 	items, err := k8s.ListPolarDBXParametersWithContext(c.Request.Context(), cli, ns)
 	if err != nil {
-		util.HandleK8sError(c, "failed to list parameters", err)
+		// Surface K8s error via unified error conversion path.
+		apierr.AbortWithError(c, err)
 		return
 	}
 	apierr.OK(c, items)
@@ -59,7 +60,8 @@ func Get(c *gin.Context) {
 	name := c.Param("name")
 	item, err := k8s.GetPolarDBXParameterWithContext(c.Request.Context(), cli, ns, name)
 	if err != nil {
-		util.HandleK8sError(c, "failed to get parameter", err)
+		// Surface K8s error via unified error conversion path.
+		apierr.AbortWithError(c, err)
 		return
 	}
 	apierr.OK(c, item)
@@ -91,7 +93,8 @@ func Create(c *gin.Context) {
 	}
 	created, err := k8s.CreatePolarDBXParameterWithContext(c.Request.Context(), cli, ns, &body)
 	if err != nil {
-		util.HandleK8sError(c, "failed to create parameter", err)
+		// Surface K8s error via unified error conversion path.
+		apierr.AbortWithError(c, err)
 		return
 	}
 	apierr.Created(c, created)
@@ -124,7 +127,8 @@ func Update(c *gin.Context) {
 	}
 	updated, err := k8s.UpdatePolarDBXParameterWithContext(c.Request.Context(), cli, ns, &body)
 	if err != nil {
-		util.HandleK8sError(c, "failed to update parameter", err)
+		// Surface K8s error via unified error conversion path.
+		apierr.AbortWithError(c, err)
 		return
 	}
 	apierr.OK(c, updated)
@@ -150,7 +154,8 @@ func Delete(c *gin.Context) {
 	ns := util.DefaultNamespace(c, "default")
 	name := c.Param("name")
 	if err := k8s.DeletePolarDBXParameterWithContext(c.Request.Context(), cli, ns, name); err != nil {
-		util.HandleK8sError(c, "failed to delete parameter", err)
+		// Surface K8s error via unified error conversion path.
+		apierr.AbortWithError(c, err)
 		return
 	}
 	apierr.OK(c, gin.H{"message": "parameter deleted"})
@@ -176,7 +181,8 @@ func ListTemplates(c *gin.Context) {
 	ns := util.DefaultNamespace(c, "default")
 	items, err := k8s.ListPolarDBXParameterTemplatesWithContext(c.Request.Context(), cli, ns)
 	if err != nil {
-		util.HandleK8sError(c, "failed to list parameter templates", err)
+		// Surface K8s error via unified error conversion path.
+		apierr.AbortWithError(c, err)
 		return
 	}
 	apierr.OK(c, items)
@@ -203,7 +209,8 @@ func GetTemplate(c *gin.Context) {
 	name := c.Param("name")
 	item, err := k8s.GetPolarDBXParameterTemplateWithContext(c.Request.Context(), cli, ns, name)
 	if err != nil {
-		util.HandleK8sError(c, "failed to get parameter template", err)
+		// Surface K8s error via unified error conversion path.
+		apierr.AbortWithError(c, err)
 		return
 	}
 	apierr.OK(c, item)
@@ -235,7 +242,8 @@ func CreateTemplate(c *gin.Context) {
 	}
 	created, err := k8s.CreatePolarDBXParameterTemplateWithContext(c.Request.Context(), cli, ns, &body)
 	if err != nil {
-		util.HandleK8sError(c, "failed to create parameter template", err)
+		// Surface K8s error via unified error conversion path.
+		apierr.AbortWithError(c, err)
 		return
 	}
 	apierr.Created(c, created)
@@ -268,7 +276,8 @@ func UpdateTemplate(c *gin.Context) {
 	}
 	updated, err := k8s.UpdatePolarDBXParameterTemplateWithContext(c.Request.Context(), cli, ns, &body)
 	if err != nil {
-		util.HandleK8sError(c, "failed to update parameter template", err)
+		// Surface K8s error via unified error conversion path.
+		apierr.AbortWithError(c, err)
 		return
 	}
 	apierr.OK(c, updated)
@@ -294,7 +303,8 @@ func DeleteTemplate(c *gin.Context) {
 	ns := util.DefaultNamespace(c, "default")
 	name := c.Param("name")
 	if err := k8s.DeletePolarDBXParameterTemplateWithContext(c.Request.Context(), cli, ns, name); err != nil {
-		util.HandleK8sError(c, "failed to delete parameter template", err)
+		// Surface K8s error via unified error conversion path.
+		apierr.AbortWithError(c, err)
 		return
 	}
 	apierr.OK(c, gin.H{"message": "parameter template deleted"})

@@ -1,14 +1,12 @@
 package services
 
 import (
-	"bytes"
-	"encoding/json"
-	"net/http"
-	"net/http/httptest"
+	"context"
 	"testing"
+	"time"
 
 	polardbxv1 "github.com/alibaba/polardbx-operator/api/v1"
-	"github.com/gin-gonic/gin"
+	polardbxv1xstore "github.com/alibaba/polardbx-operator/api/v1/xstore"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -17,105 +15,94 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-func TestRebuild_MissingName_Returns404(t *testing.T) {
-	gin.SetMode(gin.TestMode)
+// helper to build a fake client with schemes registered
+func newRebuildTestClient(t *testing.T, objs ...client.Object) client.Client {
+	t.Helper()
 	scheme := runtime.NewScheme()
 	_ = polardbxv1.AddToScheme(scheme)
 	_ = corev1.AddToScheme(scheme)
-	cli := fake.NewClientBuilder().WithScheme(scheme).Build()
-
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Set("k8sClient", cli)
-	c.Params = gin.Params{{Key: "namespace", Value: "default"}, {Key: "name", Value: "x1"}}
-	body, _ := json.Marshal(map[string]any{"xStoreName": "x1"})
-	c.Request = httptest.NewRequest(http.MethodPost, "/xstore-rebuild/default/x1/auto", bytes.NewReader(body))
-	c.Request.Header.Set("Content-Type", "application/json")
-
-	NewRebuildService().Auto(c)
-	assert.Equal(t, http.StatusNotFound, w.Code)
+	builder := fake.NewClientBuilder().WithScheme(scheme)
+	if len(objs) > 0 {
+		builder = builder.WithObjects(objs...)
+	}
+	return builder.Build()
 }
 
-func TestRebuild_MissingXStoreName_Returns400(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	scheme := runtime.NewScheme()
-	_ = polardbxv1.AddToScheme(scheme)
-	_ = corev1.AddToScheme(scheme)
-	cli := fake.NewClientBuilder().WithScheme(scheme).Build()
+func TestRebuild_CreateFollower_MissingName_ReturnsValidationError(t *testing.T) {
+	cli := newRebuildTestClient(t)
+	svc := NewRebuildService()
 
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Set("k8sClient", cli)
-	c.Params = gin.Params{{Key: "namespace", Value: "default"}} // no path xstore name
-	body, _ := json.Marshal(map[string]any{"name": "rb1"})
-	c.Request = httptest.NewRequest(http.MethodPost, "/xstore-rebuild/default//auto", bytes.NewReader(body))
-	c.Request.Header.Set("Content-Type", "application/json")
+	_, err := svc.CreateFollower(context.Background(), cli, "default", "x1", "", polardbxv1xstore.FollowerRole("logger"))
+	assert.Error(t, err)
+}
 
-	NewRebuildService().Auto(c)
-	assert.Equal(t, http.StatusBadRequest, w.Code)
+func TestRebuild_CreateFollower_MissingXStoreName_ReturnsValidationError(t *testing.T) {
+	cli := newRebuildTestClient(t)
+	svc := NewRebuildService()
+
+	_, err := svc.CreateFollower(context.Background(), cli, "default", "", "rb1", polardbxv1xstore.FollowerRole("logger"))
+	assert.Error(t, err)
 }
 
 func TestRebuild_NoRunningPods_StillCreatesWithoutTargetPod(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	scheme := runtime.NewScheme()
-	_ = polardbxv1.AddToScheme(scheme)
-	_ = corev1.AddToScheme(scheme)
-	// pod exists but not running
-	pod := &corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "x1-dn-0", Namespace: "default", Labels: map[string]string{"xstore/name": "x1", "xstore/role": "follower"}}, Status: corev1.PodStatus{Phase: corev1.PodPending}}
-	cli := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(pod).Build()
+	// pod exists but not running -> CreateFollower should still succeed,
+	// but not auto-fill TargetPodName/FromPodName.
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "x1-dn-0",
+			Namespace: "default",
+			Labels: map[string]string{
+				"xstore/name": "x1",
+				"xstore/role": "follower",
+			},
+		},
+		Status: corev1.PodStatus{Phase: corev1.PodPending},
+	}
+	cli := newRebuildTestClient(t, pod)
+	svc := NewRebuildService()
 
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Set("k8sClient", cli)
-	c.Params = gin.Params{{Key: "namespace", Value: "default"}, {Key: "name", Value: "x1"}}
-	body, _ := json.Marshal(map[string]any{"name": "rb-no-running", "xStoreName": "x1"})
-	c.Request = httptest.NewRequest(http.MethodPost, "/xstore-rebuild/default/x1/auto", bytes.NewReader(body))
-	c.Request.Header.Set("Content-Type", "application/json")
-
-	NewRebuildService().Auto(c)
-	assert.Equal(t, http.StatusCreated, w.Code)
-
-	created := &polardbxv1.XStoreFollower{}
-	err := cli.Get(c.Request.Context(), client.ObjectKey{Namespace: "default", Name: "rb-no-running"}, created)
+	obj, err := svc.CreateFollower(context.Background(), cli, "default", "x1", "rb-no-running", polardbxv1xstore.FollowerRole("follower"))
 	assert.NoError(t, err)
-	assert.Equal(t, "", created.Spec.TargetPodName)
+	assert.Equal(t, "rb-no-running", obj.Name)
+	assert.Equal(t, "default", obj.Namespace)
+	assert.Equal(t, "", obj.Spec.TargetPodName)
+	assert.Equal(t, "", obj.Spec.FromPodName)
 }
 
 func TestRebuildWait_SucceedsImmediately(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	scheme := runtime.NewScheme()
-	_ = polardbxv1.AddToScheme(scheme)
-	_ = corev1.AddToScheme(scheme)
-	f := &polardbxv1.XStoreFollower{ObjectMeta: metav1.ObjectMeta{Name: "rb1", Namespace: "default"}}
-	f.Status.Phase = "FollowerPhaseSuccess"
-	cli := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(f).Build()
+	f := &polardbxv1.XStoreFollower{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "rb1",
+			Namespace: "default",
+		},
+		Status: polardbxv1.XStoreFollowerStatus{
+			Phase: polardbxv1xstore.FollowerPhaseSuccess,
+		},
+	}
+	cli := newRebuildTestClient(t, f)
+	svc := NewRebuildService()
 
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Set("k8sClient", cli)
-	c.Params = gin.Params{{Key: "namespace", Value: "default"}, {Key: "name", Value: "x1"}}
-	c.Request = httptest.NewRequest(http.MethodGet, "/xstores/default/x1/rebuild/wait?follower=rb1&timeoutSec=1&intervalSec=1", nil)
-
-	NewRebuildService().Wait(c)
-	assert.Equal(t, http.StatusOK, w.Code)
+	ctx := context.Background()
+	out, err := svc.Wait(ctx, cli, "default", "rb1", 1*time.Second, 10*time.Millisecond)
+	assert.NoError(t, err)
+	assert.Equal(t, "rb1", out.Name)
 }
 
 func TestRebuildWait_Timeout(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	scheme := runtime.NewScheme()
-	_ = polardbxv1.AddToScheme(scheme)
-	_ = corev1.AddToScheme(scheme)
-	f := &polardbxv1.XStoreFollower{ObjectMeta: metav1.ObjectMeta{Name: "rb2", Namespace: "default"}}
-	// non-end phase
-	f.Status.Phase = "FollowerPhaseBackup"
-	cli := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(f).Build()
+	f := &polardbxv1.XStoreFollower{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "rb2",
+			Namespace: "default",
+		},
+		Status: polardbxv1.XStoreFollowerStatus{
+			Phase: polardbxv1xstore.FollowerPhaseBackup, // non-terminal
+		},
+	}
+	cli := newRebuildTestClient(t, f)
+	svc := NewRebuildService()
 
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Set("k8sClient", cli)
-	c.Params = gin.Params{{Key: "namespace", Value: "default"}, {Key: "name", Value: "x1"}}
-	c.Request = httptest.NewRequest(http.MethodGet, "/xstores/default/x1/rebuild/wait?follower=rb2&timeoutSec=1&intervalSec=1", nil)
-
-	NewRebuildService().Wait(c)
-	assert.Equal(t, http.StatusGatewayTimeout, w.Code)
+	ctx := context.Background()
+	out, err := svc.Wait(ctx, cli, "default", "rb2", 200*time.Millisecond, 50*time.Millisecond)
+	assert.Error(t, err)
+	assert.Nil(t, out)
 }

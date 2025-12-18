@@ -1,136 +1,95 @@
 package services
 
 import (
-	"polardbx-ui-backend/pkg/api/domain/xstores/k8srepo"
-	apierr "polardbx-ui-backend/pkg/api/errors"
-	"polardbx-ui-backend/pkg/api/util"
+	"context"
+	"fmt"
 
-	"github.com/gin-gonic/gin"
+	polardbxv1 "github.com/alibaba/polardbx-operator/api/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"polardbx-ui-backend/pkg/api/domain/xstores/k8srepo"
 )
 
 // BackupsService encapsulates XStore backup related orchestration
+// Refactored to be independent of HTTP framework for better testability
 type BackupsService struct {
 	repo k8srepo.XStoreRepository
 }
 
-func NewBackupsService() *BackupsService { return &BackupsService{repo: k8srepo.NewXStoreRepository()} }
-
-func (s *BackupsService) List(c *gin.Context) {
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		return
+// NewBackupsService creates a new BackupsService with the given repository
+func NewBackupsService(repo k8srepo.XStoreRepository) *BackupsService {
+	if repo == nil {
+		repo = k8srepo.NewXStoreRepository()
 	}
-	ns := util.DefaultNamespace(c, "default")
-	items, err := s.repo.ListBackups(c.Request.Context(), cli, ns)
-	if err != nil {
-		util.HandleK8sError(c, "failed to list xstore backups", err)
-		return
-	}
-	apierr.OK(c, items)
+	return &BackupsService{repo: repo}
 }
 
-func (s *BackupsService) Create(c *gin.Context) {
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		return
-	}
-	ns := util.DefaultNamespace(c, "default")
-	var body k8srepo.XStoreBackupAlias
-	if err := c.ShouldBindJSON(&body); err != nil {
-		apierr.AbortValidation(c, "invalid xstore backup: "+err.Error())
-		return
-	}
-	obj := body.As()
-	created, err := s.repo.CreateBackup(c.Request.Context(), cli, ns, obj)
+// List lists XStore backups in the specified namespace
+func (s *BackupsService) List(ctx context.Context, cli client.Client, namespace string) ([]polardbxv1.XStoreBackup, error) {
+	items, err := s.repo.ListBackups(ctx, cli, namespace)
 	if err != nil {
-		util.HandleK8sError(c, "failed to create xstore backup", err)
-		return
+		return nil, fmt.Errorf("list xstore backups in namespace %s: %w", namespace, err)
 	}
-	apierr.Created(c, created)
+	return items, nil
 }
 
-func (s *BackupsService) Get(c *gin.Context) {
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		return
-	}
-	ns := c.Param("namespace")
-	name := c.Param("name")
-	item, err := s.repo.GetBackup(c.Request.Context(), cli, ns, name)
+// Get gets the specified XStore backup
+func (s *BackupsService) Get(ctx context.Context, cli client.Client, namespace, name string) (*polardbxv1.XStoreBackup, error) {
+	item, err := s.repo.GetBackup(ctx, cli, namespace, name)
 	if err != nil {
-		util.HandleK8sError(c, "failed to get xstore backup", err)
-		return
+		return nil, fmt.Errorf("get xstore backup %s/%s: %w", namespace, name, err)
 	}
-	apierr.OK(c, item)
+	return item, nil
 }
 
-func (s *BackupsService) Update(c *gin.Context) {
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		return
-	}
-	ns := c.Param("namespace")
-	var body k8srepo.XStoreBackupAlias
-	if err := c.ShouldBindJSON(&body); err != nil {
-		apierr.AbortValidation(c, "invalid xstore backup: "+err.Error())
-		return
-	}
-	obj := body.As()
-	obj.Namespace = ns
-	updated, err := s.repo.UpdateBackup(c.Request.Context(), cli, ns, obj)
+// Create creates a new XStore backup
+func (s *BackupsService) Create(ctx context.Context, cli client.Client, namespace string, obj *polardbxv1.XStoreBackup) (*polardbxv1.XStoreBackup, error) {
+	created, err := s.repo.CreateBackup(ctx, cli, namespace, obj)
 	if err != nil {
-		util.HandleK8sError(c, "failed to update xstore backup", err)
-		return
+		return nil, fmt.Errorf("create xstore backup in namespace %s: %w", namespace, err)
 	}
-	apierr.OK(c, updated)
+	return created, nil
 }
 
-func (s *BackupsService) Delete(c *gin.Context) {
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		return
+// Update updates an existing XStore backup
+func (s *BackupsService) Update(ctx context.Context, cli client.Client, namespace string, obj *polardbxv1.XStoreBackup) (*polardbxv1.XStoreBackup, error) {
+	updated, err := s.repo.UpdateBackup(ctx, cli, namespace, obj)
+	if err != nil {
+		return nil, fmt.Errorf("update xstore backup %s/%s: %w", namespace, obj.Name, err)
 	}
-	ns := c.Param("namespace")
-	name := c.Param("name")
-	if err := s.repo.DeleteBackup(c.Request.Context(), cli, ns, name); err != nil {
-		util.HandleK8sError(c, "failed to delete xstore backup", err)
-		return
-	}
-	apierr.OK(c, gin.H{"message": "xstore backup deleted"})
+	return updated, nil
 }
 
-func (s *BackupsService) ForceDelete(c *gin.Context) {
-	// Keep original behavior: directly remove finalizers
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		return
+// Delete deletes the specified XStore backup
+func (s *BackupsService) Delete(ctx context.Context, cli client.Client, namespace, name string) error {
+	if err := s.repo.DeleteBackup(ctx, cli, namespace, name); err != nil {
+		return fmt.Errorf("delete xstore backup %s/%s: %w", namespace, name, err)
 	}
-	ns := c.Param("namespace")
-	name := c.Param("name")
-	bk, err := s.repo.GetBackup(c.Request.Context(), cli, ns, name)
+	return nil
+}
+
+// ForceDelete forcefully deletes an XStore backup by removing finalizers
+func (s *BackupsService) ForceDelete(ctx context.Context, cli client.Client, namespace, name string) error {
+	bk, err := s.repo.GetBackup(ctx, cli, namespace, name)
 	if err != nil {
-		util.HandleK8sError(c, "failed to get xstore backup", err)
-		return
+		return fmt.Errorf("get xstore backup %s/%s for force delete: %w", namespace, name, err)
 	}
 	bk.SetFinalizers([]string{})
-	if _, err := s.repo.UpdateBackup(c.Request.Context(), cli, ns, bk); err != nil {
-		util.HandleK8sError(c, "failed to remove finalizers", err)
-		return
+	if _, err := s.repo.UpdateBackup(ctx, cli, namespace, bk); err != nil {
+		return fmt.Errorf("remove finalizers from xstore backup %s/%s: %w", namespace, name, err)
 	}
-	apierr.OK(c, gin.H{"message": "xstore backup finalizers removed"})
+	return nil
 }
 
-func (s *BackupsService) RemoteInfo(c *gin.Context) {
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		return
-	}
-	ns := c.Param("namespace")
-	name := c.Param("name")
-	bk, err := s.repo.GetBackup(c.Request.Context(), cli, ns, name)
+// RemoteInfo gets remote storage information for an XStore backup
+func (s *BackupsService) RemoteInfo(ctx context.Context, cli client.Client, namespace, name string) (map[string]interface{}, error) {
+	bk, err := s.repo.GetBackup(ctx, cli, namespace, name)
 	if err != nil {
-		util.HandleK8sError(c, "failed to get xstore backup", err)
-		return
+		return nil, fmt.Errorf("get xstore backup %s/%s for remote info: %w", namespace, name, err)
 	}
-	apierr.OK(c, gin.H{"namespace": ns, "name": name, "phase": bk.Status.Phase})
+	return map[string]interface{}{
+		"namespace": namespace,
+		"name":      name,
+		"phase":     bk.Status.Phase,
+	}, nil
 }

@@ -290,8 +290,8 @@ func TestEndpointSecurity(t *testing.T) {
 		{
 			name:           "Apply records without auth",
 			path:           "/api/v1/log-strategies/apply-records",
-			expectedStatus: http.StatusOK, // This one gracefully handles missing client
-			description:    "Should gracefully handle missing k8s client",
+			expectedStatus: http.StatusInternalServerError, // Missing clientset now treated as internal error
+			description:    "Should fail when k8s clientset is missing",
 		},
 	}
 

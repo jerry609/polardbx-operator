@@ -66,26 +66,7 @@ func HandleError(c *gin.Context, err error) {
 		return
 	}
 
-	var apiErr *APIError
-
-	// Try to convert to APIError
-	switch e := err.(type) {
-	case *APIError:
-		apiErr = e
-	default:
-		// Try context errors first
-		if ctxErr := FromContextError(err); ctxErr != nil {
-			apiErr = ctxErr
-		} else if k8sErr := FromK8sError(err); k8sErr != nil && k8sErr.Code != ErrK8sConnection {
-			apiErr = k8sErr
-		} else if bindErr := FromBindError(err); bindErr != nil {
-			apiErr = bindErr
-		} else {
-			// Fallback to generic internal error
-			apiErr = Internal("An error occurred while processing your request")
-			apiErr.Cause = err
-		}
-	}
+	apiErr := ConvertServiceError(err)
 
 	// Log the full error internally (with context)
 	logError(c, apiErr)
@@ -158,28 +139,7 @@ func Abort(c *gin.Context, apiErr *APIError) {
 
 // AbortWithError aborts with any error (converts to APIError first)
 func AbortWithError(c *gin.Context, err error) {
-	if apiErr, ok := err.(*APIError); ok {
-		Abort(c, apiErr)
-		return
-	}
-
-	// Try to convert
-	if ctxErr := FromContextError(err); ctxErr != nil {
-		Abort(c, ctxErr)
-		return
-	}
-	if k8sErr := FromK8sError(err); k8sErr != nil {
-		Abort(c, k8sErr)
-		return
-	}
-	if bindErr := FromBindError(err); bindErr != nil {
-		Abort(c, bindErr)
-		return
-	}
-
-	// Fallback
-	apiErr := Internal("An error occurred")
-	apiErr.Cause = err
+	apiErr := ConvertServiceError(err)
 	Abort(c, apiErr)
 }
 

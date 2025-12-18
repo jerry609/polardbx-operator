@@ -297,7 +297,7 @@ func Connect(c *gin.Context) {
 			"context", ctxName,
 			"user", user,
 			"error", err)
-		apiutil.HandleK8sError(c, "failed to list namespaces", err)
+		apierr.AbortWithError(c, err)
 		return
 	}
 

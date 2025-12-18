@@ -214,7 +214,7 @@ func TestClusterKnobsEndpoints(t *testing.T) {
 		var response map[string]interface{}
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
-		assert.Contains(t, getErr(response), "Resource not found")
+		assert.Contains(t, getErr(response), "not found")
 	})
 
 	// --- Test DeleteClusterKnobs for non-existent knobs ---
@@ -227,7 +227,7 @@ func TestClusterKnobsEndpoints(t *testing.T) {
 		var response map[string]interface{}
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
-		assert.Contains(t, getErr(response), "Resource not found")
+		assert.Contains(t, getErr(response), "not found")
 	})
 }
 

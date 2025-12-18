@@ -1185,7 +1185,7 @@ const MAX_STATE_AGE_HOURS = 24;
                 <nz-alert 
                   nzType="info"
                   nzMessage="Installation guidance"
-                  [nzDescription]="form.value.installChannel === 'helm' ? 'You chose Helm manual install. Run the following commands in the cluster, then return and click \"Finish\".' : 'You can copy commands to run manually, or let the system apply automatically.'"
+                  [nzDescription]="form.value.installChannel === 'helm' ? 'You chose Helm manual install. Run the following commands in the cluster, then return and click Finish.' : 'You can copy commands to run manually, or let the system apply automatically.'"
                   nzShowIcon
                   class="apply-alert">
                 </nz-alert>

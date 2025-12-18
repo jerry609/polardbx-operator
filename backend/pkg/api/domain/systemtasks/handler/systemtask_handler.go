@@ -34,7 +34,7 @@ func (h *SystemTaskHandler) List(c *gin.Context) {
 	// 3. Call Service (pass context.Context, not gin.Context)
 	tasks, err := h.service.List(c.Request.Context(), cli, namespace)
 	if err != nil {
-		util.HandleK8sError(c, "failed to list system tasks", err)
+		apierr.AbortWithError(c, err)
 		return
 	}
 
@@ -54,7 +54,7 @@ func (h *SystemTaskHandler) Get(c *gin.Context) {
 
 	task, err := h.service.Get(c.Request.Context(), cli, namespace, name)
 	if err != nil {
-		util.HandleK8sError(c, "failed to get system task", err)
+		apierr.AbortWithError(c, err)
 		return
 	}
 
@@ -78,7 +78,7 @@ func (h *SystemTaskHandler) Create(c *gin.Context) {
 
 	created, err := h.service.Create(c.Request.Context(), cli, namespace, &body)
 	if err != nil {
-		util.HandleK8sError(c, "failed to create system task", err)
+		apierr.AbortWithError(c, err)
 		return
 	}
 
@@ -102,7 +102,7 @@ func (h *SystemTaskHandler) Update(c *gin.Context) {
 
 	updated, err := h.service.Update(c.Request.Context(), cli, namespace, &body)
 	if err != nil {
-		util.HandleK8sError(c, "failed to update system task", err)
+		apierr.AbortWithError(c, err)
 		return
 	}
 
@@ -120,7 +120,7 @@ func (h *SystemTaskHandler) Delete(c *gin.Context) {
 	name := c.Param("name")
 
 	if err := h.service.Delete(c.Request.Context(), cli, namespace, name); err != nil {
-		util.HandleK8sError(c, "failed to delete system task", err)
+		apierr.AbortWithError(c, err)
 		return
 	}
 

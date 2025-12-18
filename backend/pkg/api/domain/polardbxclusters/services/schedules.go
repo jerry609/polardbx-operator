@@ -1,120 +1,85 @@
 package services
 
 import (
+	"context"
 	"time"
 
 	polardbxv1 "github.com/alibaba/polardbx-operator/api/v1"
-	"github.com/gin-gonic/gin"
 	cronv3 "github.com/robfig/cron/v3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	apierr "polardbx-ui-backend/pkg/api/errors"
-	"polardbx-ui-backend/pkg/api/util"
+	svcerr "polardbx-ui-backend/pkg/api/errors"
 	"polardbx-ui-backend/pkg/k8s"
 )
 
-// BackupScheduleService encapsulates BackupSchedule related orchestration (behavior remains unchanged)
+// BackupScheduleService encapsulates BackupSchedule related orchestration (pure service).
 type BackupScheduleService struct{}
 
 func NewBackupScheduleService() *BackupScheduleService { return &BackupScheduleService{} }
 
-func (s *BackupScheduleService) List(c *gin.Context) {
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		return
+// ListSchedules lists backup schedules in a namespace.
+func (s *BackupScheduleService) ListSchedules(ctx context.Context, cli client.Client, namespace string) ([]polardbxv1.PolarDBXBackupSchedule, error) {
+	if namespace == "" {
+		return nil, svcerr.ValidationError("namespace is required", nil)
 	}
-	ns := util.DefaultNamespace(c, "default")
-	items, err := k8s.ListPolarDBXBackupSchedulesWithContext(c.Request.Context(), cli, ns)
+	items, err := k8s.ListPolarDBXBackupSchedulesWithContext(ctx, cli, namespace)
 	if err != nil {
-		util.HandleK8sError(c, "failed to list backup schedules", err)
-		return
+		return nil, err
 	}
-	apierr.OK(c, items)
+	return items, nil
 }
 
-func (s *BackupScheduleService) Create(c *gin.Context) {
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		return
+// CreateSchedule creates a new backup schedule.
+func (s *BackupScheduleService) CreateSchedule(ctx context.Context, cli client.Client, namespace string, body *polardbxv1.PolarDBXBackupSchedule) (*polardbxv1.PolarDBXBackupSchedule, error) {
+	if body == nil {
+		return nil, svcerr.ValidationError("schedule payload is required", nil)
 	}
-	ns := util.DefaultNamespace(c, "default")
-	var body polardbxv1.PolarDBXBackupSchedule
-	if err := c.ShouldBindJSON(&body); err != nil {
-		apierr.AbortValidation(c, "invalid schedule: "+err.Error())
-		return
+	if namespace == "" {
+		return nil, svcerr.ValidationError("namespace is required", nil)
 	}
-	body.Namespace = ns
-	created, err := k8s.CreatePolarDBXBackupScheduleWithContext(c.Request.Context(), cli, ns, &body)
-	if err != nil {
-		util.HandleK8sError(c, "failed to create backup schedule", err)
-		return
-	}
-	apierr.Created(c, created)
+	body.Namespace = namespace
+	return k8s.CreatePolarDBXBackupScheduleWithContext(ctx, cli, namespace, body)
 }
 
-func (s *BackupScheduleService) Get(c *gin.Context) {
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		return
+// GetSchedule gets a specific backup schedule.
+func (s *BackupScheduleService) GetSchedule(ctx context.Context, cli client.Client, namespace, name string) (*polardbxv1.PolarDBXBackupSchedule, error) {
+	if namespace == "" || name == "" {
+		return nil, svcerr.ValidationError("namespace and name are required", nil)
 	}
-	ns := c.Param("namespace")
-	name := c.Param("name")
-	item, err := k8s.GetPolarDBXBackupScheduleWithContext(c.Request.Context(), cli, ns, name)
-	if err != nil {
-		util.HandleK8sError(c, "failed to get backup schedule", err)
-		return
-	}
-	apierr.OK(c, item)
+	return k8s.GetPolarDBXBackupScheduleWithContext(ctx, cli, namespace, name)
 }
 
-func (s *BackupScheduleService) Update(c *gin.Context) {
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		return
+// UpdateSchedule updates an existing backup schedule.
+func (s *BackupScheduleService) UpdateSchedule(ctx context.Context, cli client.Client, namespace string, body *polardbxv1.PolarDBXBackupSchedule) (*polardbxv1.PolarDBXBackupSchedule, error) {
+	if body == nil {
+		return nil, svcerr.ValidationError("schedule payload is required", nil)
 	}
-	ns := c.Param("namespace")
-	var body polardbxv1.PolarDBXBackupSchedule
-	if err := c.ShouldBindJSON(&body); err != nil {
-		apierr.AbortValidation(c, "invalid schedule: "+err.Error())
-		return
+	if namespace == "" {
+		return nil, svcerr.ValidationError("namespace is required", nil)
 	}
-	body.Namespace = ns
-	updated, err := k8s.UpdatePolarDBXBackupScheduleWithContext(c.Request.Context(), cli, ns, &body)
-	if err != nil {
-		util.HandleK8sError(c, "failed to update backup schedule", err)
-		return
-	}
-	apierr.OK(c, updated)
+	body.Namespace = namespace
+	return k8s.UpdatePolarDBXBackupScheduleWithContext(ctx, cli, namespace, body)
 }
 
-func (s *BackupScheduleService) Delete(c *gin.Context) {
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		return
+// DeleteSchedule deletes a backup schedule.
+func (s *BackupScheduleService) DeleteSchedule(ctx context.Context, cli client.Client, namespace, name string) error {
+	if namespace == "" || name == "" {
+		return svcerr.ValidationError("namespace and name are required", nil)
 	}
-	ns := c.Param("namespace")
-	name := c.Param("name")
-	if err := k8s.DeletePolarDBXBackupScheduleWithContext(c.Request.Context(), cli, ns, name); err != nil {
-		util.HandleK8sError(c, "failed to delete backup schedule", err)
-		return
-	}
-	apierr.OK(c, gin.H{"message": "backup schedule deleted"})
+	return k8s.DeletePolarDBXBackupScheduleWithContext(ctx, cli, namespace, name)
 }
 
-// GetNextRuns returns per-schedule next run time (uses status.nextBackupTime; cron-parsed otherwise)
-func (s *BackupScheduleService) GetNextRuns(c *gin.Context) {
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		return
-	}
-	namespace := c.DefaultQuery("namespace", "")
-	nowStr := c.DefaultQuery("now", "")
-	var now time.Time
-	if nowStr != "" {
-		if t, err := time.Parse(time.RFC3339, nowStr); err == nil {
-			now = t
-		}
-	}
+// NextRunsResult represents next run calculation result for a schedule.
+type NextRunsResult struct {
+	Name        string `json:"name"`
+	Namespace   string `json:"namespace"`
+	Schedule    string `json:"schedule"`
+	NextRunTime string `json:"nextRunTime"`
+	ParseError  string `json:"parseError,omitempty"`
+}
+
+// GetNextRuns computes next run time per schedule.
+func (s *BackupScheduleService) GetNextRuns(ctx context.Context, cli client.Client, namespace string, now time.Time) ([]NextRunsResult, error) {
 	if now.IsZero() {
 		now = time.Now()
 	}
@@ -123,32 +88,31 @@ func (s *BackupScheduleService) GetNextRuns(c *gin.Context) {
 	if namespace != "" {
 		opts = append(opts, client.InNamespace(namespace))
 	}
-	if err := cli.List(c.Request.Context(), &list, opts...); err != nil {
-		util.HandleK8sError(c, "failed to list backup schedules", err)
-		return
+	if err := cli.List(ctx, &list, opts...); err != nil {
+		return nil, err
 	}
-	items := make([]map[string]any, 0, len(list.Items))
+	items := make([]NextRunsResult, 0, len(list.Items))
 	for _, it := range list.Items {
-		entry := map[string]any{
-			"name":      it.Name,
-			"namespace": it.Namespace,
-			"schedule":  it.Spec.Schedule,
+		entry := NextRunsResult{
+			Name:      it.Name,
+			Namespace: it.Namespace,
+			Schedule:  it.Spec.Schedule,
 		}
 		if it.Status.NextBackupTime != nil && !it.Status.NextBackupTime.Time.IsZero() {
-			entry["nextRunTime"] = it.Status.NextBackupTime.Time.Format(time.RFC3339)
+			entry.NextRunTime = it.Status.NextBackupTime.Time.Format(time.RFC3339)
 		} else if it.Spec.Schedule != "" {
 			if sch, err := cronv3.ParseStandard(it.Spec.Schedule); err == nil {
 				next := sch.Next(now)
-				entry["nextRunTime"] = next.UTC().Format(time.RFC3339)
+				entry.NextRunTime = next.UTC().Format(time.RFC3339)
 			} else {
-				entry["nextRunTime"] = ""
-				entry["parseError"] = err.Error()
+				entry.NextRunTime = ""
+				entry.ParseError = err.Error()
 			}
 		} else {
-			entry["nextRunTime"] = ""
-			entry["parseError"] = "empty schedule"
+			entry.NextRunTime = ""
+			entry.ParseError = "empty schedule"
 		}
 		items = append(items, entry)
 	}
-	apierr.OK(c, gin.H{"namespace": namespace, "total": len(items), "schedules": items})
+	return items, nil
 }

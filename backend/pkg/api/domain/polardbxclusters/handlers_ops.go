@@ -16,10 +16,62 @@ import (
 // --- Thin handlers forwarding to services/others ---
 
 func UpdateLogConfig(c *gin.Context) {
-	_ = services.NewClusterService().UpdateLogConfig(c.Request.Context(), c)
+	cli, ok := util.K8sClientFromContext(c)
+	if !ok {
+		return
+	}
+	ns := c.Param("namespace")
+	name := c.Param("name")
+	nodeType := c.Param("nodeType")
+	var req services.LogConfigRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		apierr.AbortValidation(c, "invalid log config data: "+err.Error())
+		return
+	}
+	if err := services.NewClusterService().UpdateLogConfig(c.Request.Context(), cli, ns, name, nodeType, &req); err != nil {
+		apierr.AbortWithError(c, err)
+		return
+	}
+	apierr.OK(c, gin.H{"message": nodeType + " log config updated successfully"})
 }
-func Scale(c *gin.Context)            { _ = services.NewClusterService().Scale(c.Request.Context(), c) }
-func Upgrade(c *gin.Context)          { _ = services.NewClusterService().Upgrade(c.Request.Context(), c) }
+
+func Scale(c *gin.Context) {
+	cli, ok := util.K8sClientFromContext(c)
+	if !ok {
+		return
+	}
+	ns := c.Param("namespace")
+	name := c.Param("name")
+	var req services.ClusterScalingRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		apierr.AbortValidation(c, "invalid scaling request: "+err.Error())
+		return
+	}
+	if err := services.NewClusterService().Scale(c.Request.Context(), cli, ns, name, &req); err != nil {
+		apierr.AbortWithError(c, err)
+		return
+	}
+	apierr.OK(c, gin.H{"message": "Cluster scaling initiated successfully"})
+}
+
+func Upgrade(c *gin.Context) {
+	cli, ok := util.K8sClientFromContext(c)
+	if !ok {
+		return
+	}
+	ns := c.Param("namespace")
+	name := c.Param("name")
+	var req services.ClusterUpgradeRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		apierr.AbortValidation(c, "invalid upgrade request: "+err.Error())
+		return
+	}
+	if err := services.NewClusterService().Upgrade(c.Request.Context(), cli, ns, name, &req); err != nil {
+		apierr.AbortWithError(c, err)
+		return
+	}
+	apierr.OK(c, gin.H{"message": "Cluster upgrade initiated successfully", "upgrade": gin.H{"targetVersion": req.TargetVersion, "strategy": req.Strategy, "status": "upgrade initiated"}})
+}
 func GetAlertsSummary(c *gin.Context) { services.GetAlertsSummary(c) }
 
 func ListPods(c *gin.Context) { handler.ListForCluster(c) }

@@ -76,7 +76,7 @@ func ListNamespaces(c *gin.Context) {
 func (h *SystemHandler) listNamespaces(c *gin.Context) {
 	items, err := h.service.ListNamespaces(c.Request.Context())
 	if err != nil {
-		util.HandleK8sError(c, "failed to list namespaces", err)
+		apierr.AbortWithError(c, err)
 		return
 	}
 	apierr.OK(c, gin.H{"items": items, "count": len(items)})
@@ -102,7 +102,7 @@ func ListStorageClasses(c *gin.Context) {
 func (h *SystemHandler) listStorageClasses(c *gin.Context) {
 	items, err := h.service.ListStorageClasses(c.Request.Context())
 	if err != nil {
-		util.HandleK8sError(c, "failed to list storage classes", err)
+		apierr.AbortWithError(c, err)
 		return
 	}
 	apierr.OK(c, gin.H{"items": items, "count": len(items)})

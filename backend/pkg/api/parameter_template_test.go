@@ -300,7 +300,7 @@ func TestParameterTemplateEndpoints(t *testing.T) {
 		var response map[string]interface{}
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
-		assert.Contains(t, getErr(response), "Resource not found")
+		assert.Contains(t, getErr(response), "not found")
 	})
 
 	// --- Test DeleteParameterTemplate for non-existent template ---
@@ -313,7 +313,7 @@ func TestParameterTemplateEndpoints(t *testing.T) {
 		var response map[string]interface{}
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
-		assert.Contains(t, getErr(response), "Resource not found")
+		assert.Contains(t, getErr(response), "not found")
 	})
 }
 

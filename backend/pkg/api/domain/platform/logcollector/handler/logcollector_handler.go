@@ -167,7 +167,8 @@ func (h *LogCollectorHandler) delete(c *gin.Context) {
 	namespace := c.Param("namespace")
 	name := c.Param("name")
 	if err := h.repo.Delete(c.Request.Context(), namespace, name); err != nil {
-		util.HandleK8sError(c, "failed to delete log collector", err)
+		// Surface K8s error via unified error conversion path.
+		apierr.AbortWithError(c, err)
 		return
 	}
 	apierr.OK(c, gin.H{"message": "log collector deleted successfully"})

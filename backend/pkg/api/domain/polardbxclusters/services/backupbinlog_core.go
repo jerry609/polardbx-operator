@@ -1,12 +1,13 @@
 package services
 
 import (
+	"context"
+	"fmt"
+
 	polardbxv1 "github.com/alibaba/polardbx-operator/api/v1"
-	"github.com/gin-gonic/gin"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	apierr "polardbx-ui-backend/pkg/api/errors"
-	"polardbx-ui-backend/pkg/api/util"
+	svcerr "polardbx-ui-backend/pkg/api/errors"
 )
 
 // Since backupbinlog CRUD is implemented in existing modules, here we use a minimal implementation
@@ -16,92 +17,81 @@ type BackupBinlogService struct{}
 
 func NewBackupBinlogService() *BackupBinlogService { return &BackupBinlogService{} }
 
-func (s *BackupBinlogService) List(c *gin.Context) {
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		return
-	}
-	ns := c.DefaultQuery("namespace", "")
+// ListBinlogs lists backup binlogs for a namespace using pure parameters.
+func (s *BackupBinlogService) ListBinlogs(ctx context.Context, cli client.Client, namespace string) ([]polardbxv1.PolarDBXBackupBinlog, error) {
 	var list polardbxv1.PolarDBXBackupBinlogList
 	opts := []client.ListOption{}
-	if ns != "" {
-		opts = append(opts, client.InNamespace(ns))
+	if namespace != "" {
+		opts = append(opts, client.InNamespace(namespace))
 	}
-	if err := cli.List(c.Request.Context(), &list, opts...); err != nil {
-		util.HandleK8sError(c, "failed to list backup binlogs", err)
-		return
+	if err := cli.List(ctx, &list, opts...); err != nil {
+		return nil, fmt.Errorf("list backup binlogs in namespace %s: %w", namespace, err)
 	}
-	apierr.OK(c, list.Items)
+	return list.Items, nil
 }
 
-func (s *BackupBinlogService) Create(c *gin.Context) {
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		return
+// CreateBinlog creates a new backup binlog using pure parameters.
+func (s *BackupBinlogService) CreateBinlog(ctx context.Context, cli client.Client, namespace string, obj *polardbxv1.PolarDBXBackupBinlog) (*polardbxv1.PolarDBXBackupBinlog, error) {
+	if obj == nil {
+		return nil, svcerr.ValidationError("backup binlog payload is required", nil)
 	}
-	ns := c.DefaultQuery("namespace", "default")
-	var obj polardbxv1.PolarDBXBackupBinlog
-	if err := c.ShouldBindJSON(&obj); err != nil {
-		apierr.AbortValidation(c, "invalid backup binlog: "+err.Error())
-		return
+	if obj.Name == "" {
+		return nil, svcerr.ValidationError("name is required", nil)
 	}
 	if obj.Namespace == "" {
-		obj.Namespace = ns
+		if namespace == "" {
+			return nil, svcerr.ValidationError("namespace is required", nil)
+		}
+		obj.Namespace = namespace
 	}
-	if err := cli.Create(c.Request.Context(), &obj); err != nil {
-		util.HandleK8sError(c, "failed to create backup binlog", err)
-		return
+	if err := cli.Create(ctx, obj); err != nil {
+		return nil, fmt.Errorf("create backup binlog %s/%s: %w", obj.Namespace, obj.Name, err)
 	}
-	apierr.Created(c, &obj)
+	return obj, nil
 }
 
-func (s *BackupBinlogService) Get(c *gin.Context) {
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		return
-	}
-	ns := c.Param("namespace")
-	name := c.Param("name")
+// GetBinlog gets a backup binlog using pure parameters.
+func (s *BackupBinlogService) GetBinlog(ctx context.Context, cli client.Client, namespace, name string) (*polardbxv1.PolarDBXBackupBinlog, error) {
 	var obj polardbxv1.PolarDBXBackupBinlog
-	if err := cli.Get(c.Request.Context(), client.ObjectKey{Namespace: ns, Name: name}, &obj); err != nil {
-		util.HandleK8sError(c, "failed to get backup binlog", err)
-		return
+	if err := cli.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, &obj); err != nil {
+		return nil, fmt.Errorf("get backup binlog %s/%s: %w", namespace, name, err)
 	}
-	apierr.OK(c, &obj)
+	return &obj, nil
 }
 
-func (s *BackupBinlogService) Update(c *gin.Context) {
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		return
+// UpdateBinlog updates a backup binlog using pure parameters.
+func (s *BackupBinlogService) UpdateBinlog(ctx context.Context, cli client.Client, namespace string, obj *polardbxv1.PolarDBXBackupBinlog) (*polardbxv1.PolarDBXBackupBinlog, error) {
+	if obj == nil {
+		return nil, svcerr.ValidationError("backup binlog payload is required", nil)
 	}
-	ns := c.Param("namespace")
-	var obj polardbxv1.PolarDBXBackupBinlog
-	if err := c.ShouldBindJSON(&obj); err != nil {
-		apierr.AbortValidation(c, "invalid backup binlog: "+err.Error())
-		return
+	if obj.Name == "" {
+		return nil, svcerr.ValidationError("name is required", nil)
 	}
-	obj.Namespace = ns
-	if err := cli.Update(c.Request.Context(), &obj); err != nil {
-		util.HandleK8sError(c, "failed to update backup binlog", err)
-		return
+	if namespace == "" && obj.Namespace == "" {
+		return nil, svcerr.ValidationError("namespace is required", nil)
 	}
-	apierr.OK(c, &obj)
+	if obj.Namespace == "" {
+		obj.Namespace = namespace
+	}
+	if err := cli.Update(ctx, obj); err != nil {
+		return nil, fmt.Errorf("update backup binlog %s/%s: %w", obj.Namespace, obj.Name, err)
+	}
+	return obj, nil
 }
 
-func (s *BackupBinlogService) Delete(c *gin.Context) {
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		return
+// DeleteBinlog deletes a backup binlog using pure parameters.
+func (s *BackupBinlogService) DeleteBinlog(ctx context.Context, cli client.Client, namespace, name string) error {
+	if name == "" {
+		return svcerr.ValidationError("name is required", nil)
 	}
-	ns := c.Param("namespace")
-	name := c.Param("name")
+	if namespace == "" {
+		return svcerr.ValidationError("namespace is required", nil)
+	}
 	var obj polardbxv1.PolarDBXBackupBinlog
-	obj.Namespace = ns
+	obj.Namespace = namespace
 	obj.Name = name
-	if err := cli.Delete(c.Request.Context(), &obj); err != nil {
-		util.HandleK8sError(c, "failed to delete backup binlog", err)
-		return
+	if err := cli.Delete(ctx, &obj); err != nil {
+		return fmt.Errorf("delete backup binlog %s/%s: %w", namespace, name, err)
 	}
-	apierr.OK(c, gin.H{"message": "backup binlog deleted"})
+	return nil
 }

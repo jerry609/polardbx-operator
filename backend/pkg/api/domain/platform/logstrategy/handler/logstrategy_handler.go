@@ -494,7 +494,8 @@ func Apply(c *gin.Context) {
 		ns = "default"
 	}
 	if _, err := k8s.GetPolarDBXCluster(cli, ns, s.ClusterName); err != nil {
-		util.HandleK8sError(c, "cluster not found", err)
+		// Surface K8s error via unified error conversion path.
+		apierr.AbortWithError(c, err)
 		return
 	}
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 20*time.Second)

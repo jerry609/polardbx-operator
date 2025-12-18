@@ -2,9 +2,18 @@ package xstores
 
 import (
 	"polardbx-ui-backend/pkg/api/domain/xstores/services"
+	apierr "polardbx-ui-backend/pkg/api/errors"
+	"polardbx-ui-backend/pkg/api/provider"
+	"polardbx-ui-backend/pkg/api/util"
 
+	polardbxv1 "github.com/alibaba/polardbx-operator/api/v1"
 	"github.com/gin-gonic/gin"
 )
+
+// svc gets XStoreService from Provider
+func svc(c *gin.Context) *services.XStoreService {
+	return provider.Must(c).XStoreService(c)
+}
 
 // List lists XStores in the given namespace (or default namespace when not specified).
 // @Summary List XStores
@@ -14,7 +23,20 @@ import (
 // @Param namespace query string false "Kubernetes namespace; defaults to 'default' when omitted"
 // @Success 200 {array} polardbxv1.XStore "List of XStores"
 // @Failure 502 {object} map[string]any "Upstream Kubernetes error"
-func List(c *gin.Context) { services.NewXStoreService().List(c) }
+func List(c *gin.Context) {
+	cli, ok := util.K8sClientFromContext(c)
+	if !ok {
+		return
+	}
+	ns := util.DefaultNamespace(c, "default")
+
+	items, err := svc(c).List(c.Request.Context(), cli, ns)
+	if err != nil {
+		apierr.AbortWithError(c, err)
+		return
+	}
+	apierr.OK(c, items)
+}
 
 // Create creates a new XStore.
 // @Summary Create XStore
@@ -27,7 +49,26 @@ func List(c *gin.Context) { services.NewXStoreService().List(c) }
 // @Success 201 {object} polardbxv1.XStore "Created XStore"
 // @Failure 400 {object} map[string]any "Invalid request body"
 // @Failure 502 {object} map[string]any "Upstream Kubernetes error"
-func Create(c *gin.Context) { services.NewXStoreService().Create(c) }
+func Create(c *gin.Context) {
+	cli, ok := util.K8sClientFromContext(c)
+	if !ok {
+		return
+	}
+	ns := util.DefaultNamespace(c, "default")
+
+	var body polardbxv1.XStore
+	if err := c.ShouldBindJSON(&body); err != nil {
+		apierr.AbortValidation(c, "invalid xstore: "+err.Error())
+		return
+	}
+
+	created, err := svc(c).Create(c.Request.Context(), cli, ns, &body)
+	if err != nil {
+		apierr.AbortWithError(c, err)
+		return
+	}
+	apierr.Created(c, created)
+}
 
 // Get returns a single XStore by namespace and name.
 // @Summary Get XStore
@@ -39,7 +80,21 @@ func Create(c *gin.Context) { services.NewXStoreService().Create(c) }
 // @Success 200 {object} polardbxv1.XStore "XStore"
 // @Failure 404 {object} map[string]any "XStore not found"
 // @Failure 502 {object} map[string]any "Upstream Kubernetes error"
-func Get(c *gin.Context) { services.NewXStoreService().Get(c) }
+func Get(c *gin.Context) {
+	cli, ok := util.K8sClientFromContext(c)
+	if !ok {
+		return
+	}
+	ns := c.Param("namespace")
+	name := c.Param("name")
+
+	item, err := svc(c).Get(c.Request.Context(), cli, ns, name)
+	if err != nil {
+		apierr.AbortWithError(c, err)
+		return
+	}
+	apierr.OK(c, item)
+}
 
 // Update updates an existing XStore.
 // @Summary Update XStore
@@ -54,7 +109,27 @@ func Get(c *gin.Context) { services.NewXStoreService().Get(c) }
 // @Failure 400 {object} map[string]any "Invalid request body"
 // @Failure 404 {object} map[string]any "XStore not found"
 // @Failure 502 {object} map[string]any "Upstream Kubernetes error"
-func Update(c *gin.Context) { services.NewXStoreService().Update(c) }
+func Update(c *gin.Context) {
+	cli, ok := util.K8sClientFromContext(c)
+	if !ok {
+		return
+	}
+	ns := c.Param("namespace")
+
+	var body polardbxv1.XStore
+	if err := c.ShouldBindJSON(&body); err != nil {
+		apierr.AbortValidation(c, "invalid xstore: "+err.Error())
+		return
+	}
+	body.Namespace = ns
+
+	updated, err := svc(c).Update(c.Request.Context(), cli, ns, &body)
+	if err != nil {
+		apierr.AbortWithError(c, err)
+		return
+	}
+	apierr.OK(c, updated)
+}
 
 // Delete deletes an XStore.
 // @Summary Delete XStore
@@ -65,7 +140,20 @@ func Update(c *gin.Context) { services.NewXStoreService().Update(c) }
 // @Success 200 {object} map[string]any "Deletion confirmation"
 // @Failure 404 {object} map[string]any "XStore not found"
 // @Failure 502 {object} map[string]any "Upstream Kubernetes error"
-func Delete(c *gin.Context) { services.NewXStoreService().Delete(c) }
+func Delete(c *gin.Context) {
+	cli, ok := util.K8sClientFromContext(c)
+	if !ok {
+		return
+	}
+	ns := c.Param("namespace")
+	name := c.Param("name")
+
+	if err := svc(c).Delete(c.Request.Context(), cli, ns, name); err != nil {
+		apierr.AbortWithError(c, err)
+		return
+	}
+	apierr.OK(c, gin.H{"message": "xstore deleted"})
+}
 
 // ListPods lists Pods that belong to the given XStore.
 // @Summary List XStore pods
@@ -77,4 +165,18 @@ func Delete(c *gin.Context) { services.NewXStoreService().Delete(c) }
 // @Success 200 {array} corev1.Pod "List of Pods"
 // @Failure 404 {object} map[string]any "XStore or Pods not found"
 // @Failure 502 {object} map[string]any "Upstream Kubernetes error"
-func ListPods(c *gin.Context) { services.NewXStoreService().ListPods(c) }
+func ListPods(c *gin.Context) {
+	cli, ok := util.K8sClientFromContext(c)
+	if !ok {
+		return
+	}
+	ns := c.Param("namespace")
+	name := c.Param("name")
+
+	items, err := svc(c).ListPods(c.Request.Context(), cli, ns, name)
+	if err != nil {
+		apierr.AbortWithError(c, err)
+		return
+	}
+	apierr.OK(c, items)
+}

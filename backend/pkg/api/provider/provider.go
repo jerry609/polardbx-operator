@@ -9,15 +9,28 @@ import (
 	podrepo "polardbx-ui-backend/pkg/api/domain/platform/pod/repository"
 	podsvc "polardbx-ui-backend/pkg/api/domain/platform/pod/service"
 	"polardbx-ui-backend/pkg/api/domain/polardbxclusters/services"
+	xstorerepo "polardbx-ui-backend/pkg/api/domain/xstores/k8srepo"
+	xstoreservices "polardbx-ui-backend/pkg/api/domain/xstores/services"
 	"polardbx-ui-backend/pkg/api/util"
 )
 
 const providerKey = "serviceProvider"
 
 // Provider defines how handlers acquire services/repositories.
-// Kept minimal to stay non-intrusive for existing handlers.
 type Provider interface {
+	// Cluster services
 	ClusterService(*gin.Context) *services.ClusterService
+
+	// XStore services
+	XStoreService(*gin.Context) *xstoreservices.XStoreService
+	BackupsService(*gin.Context) *xstoreservices.BackupsService
+	BackupBinlogService(*gin.Context) *xstoreservices.BackupBinlogService
+
+	// XStore follower & rebuild services
+	FollowersService(*gin.Context) *xstoreservices.FollowersService
+	RebuildService(*gin.Context) *xstoreservices.RebuildService
+
+	// Pod service
 	PodService(*gin.Context) (*podsvc.PodService, bool)
 }
 
@@ -61,6 +74,28 @@ func Must(c *gin.Context) Provider {
 
 func (p *defaultProvider) ClusterService(_ *gin.Context) *services.ClusterService {
 	return services.NewClusterService()
+}
+
+func (p *defaultProvider) XStoreService(_ *gin.Context) *xstoreservices.XStoreService {
+	repo := xstorerepo.NewXStoreRepository()
+	return xstoreservices.NewXStoreService(repo)
+}
+
+func (p *defaultProvider) BackupsService(_ *gin.Context) *xstoreservices.BackupsService {
+	repo := xstorerepo.NewXStoreRepository()
+	return xstoreservices.NewBackupsService(repo)
+}
+
+func (p *defaultProvider) BackupBinlogService(_ *gin.Context) *xstoreservices.BackupBinlogService {
+	return xstoreservices.NewBackupBinlogService()
+}
+
+func (p *defaultProvider) FollowersService(_ *gin.Context) *xstoreservices.FollowersService {
+	return xstoreservices.NewFollowersService()
+}
+
+func (p *defaultProvider) RebuildService(_ *gin.Context) *xstoreservices.RebuildService {
+	return xstoreservices.NewRebuildService()
 }
 
 func (p *defaultProvider) PodService(c *gin.Context) (*podsvc.PodService, bool) {

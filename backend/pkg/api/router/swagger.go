@@ -20,17 +20,17 @@ func RegisterSwaggerRoutes(r *gin.Engine) {
 		return
 	}
 
-	// Swagger UI endpoint
-	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.URL("/swagger/doc.json")))
-
-	// OpenAPI JSON spec endpoint
+	// OpenAPI JSON spec endpoint (served by our handler)
 	r.GET("/swagger/doc.json", func(c *gin.Context) {
 		c.JSON(http.StatusOK, getSwaggerSpec())
 	})
 
-	// Redirect root swagger to index
+	// Swagger UI endpoint – use a separate prefix to avoid wildcard conflicts
+	r.GET("/swagger/ui/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.URL("/swagger/doc.json")))
+
+	// Redirect root swagger to UI index
 	r.GET("/swagger", func(c *gin.Context) {
-		c.Redirect(http.StatusMovedPermanently, "/swagger/index.html")
+		c.Redirect(http.StatusMovedPermanently, "/swagger/ui/index.html")
 	})
 }
 

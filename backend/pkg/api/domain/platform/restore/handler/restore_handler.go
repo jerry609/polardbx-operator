@@ -94,7 +94,8 @@ func (h *RestoreHandler) restoreCluster(c *gin.Context) {
 	if req.BackupSet != "" {
 		backup, err := h.repo.GetBackup(c.Request.Context(), namespace, req.BackupSet)
 		if err != nil {
-			util.HandleK8sError(c, "backup not found", err)
+			// Surface K8s error via unified error conversion path.
+			apierr.AbortWithError(c, err)
 			return
 		}
 		if backup.Status.Phase != polardbxv1.BackupFinished {
@@ -117,7 +118,8 @@ func (h *RestoreHandler) restoreCluster(c *gin.Context) {
 	// Load source cluster
 	source, err := h.repo.GetCluster(c.Request.Context(), namespace, clusterName)
 	if err != nil {
-		util.HandleK8sError(c, "source cluster not found", err)
+		// Surface K8s error via unified error conversion path.
+		apierr.AbortWithError(c, err)
 		return
 	}
 
@@ -154,7 +156,8 @@ func (h *RestoreHandler) restoreCluster(c *gin.Context) {
 	restored.Spec.Restore.From = polardbx.PolarDBXRestoreFrom{PolarBDXName: clusterName}
 
 	if err := h.repo.CreateCluster(c.Request.Context(), restored); err != nil {
-		util.HandleK8sError(c, "failed to create restored cluster", err)
+		// Surface K8s error via unified error conversion path.
+		apierr.AbortWithError(c, err)
 		return
 	}
 	apierr.Created(c, gin.H{"message": "cluster restore initiated successfully", "sourceCluster": clusterName, "targetCluster": target, "namespace": namespace, "backupSet": req.BackupSet, "restoreTime": req.Time, "status": "creating"})
@@ -225,7 +228,8 @@ func (h *RestoreHandler) initiatePITR(c *gin.Context) {
 	if strings.TrimSpace(req.BackupSet) != "" {
 		backup, err := h.repo.GetBackup(c.Request.Context(), namespace, req.BackupSet)
 		if err != nil {
-			util.HandleK8sError(c, "backup not found", err)
+			// Surface K8s error via unified error conversion path.
+			apierr.AbortWithError(c, err)
 			return
 		}
 		if backup.Status.Phase != polardbxv1.BackupFinished {
@@ -248,7 +252,8 @@ func (h *RestoreHandler) initiatePITR(c *gin.Context) {
 	// Load source cluster
 	source, err := h.repo.GetCluster(c.Request.Context(), namespace, sourceName)
 	if err != nil {
-		util.HandleK8sError(c, "source cluster not found", err)
+		// Surface K8s error via unified error conversion path.
+		apierr.AbortWithError(c, err)
 		return
 	}
 
@@ -287,7 +292,8 @@ func (h *RestoreHandler) initiatePITR(c *gin.Context) {
 	restored.Spec.Restore.From = polardbx.PolarDBXRestoreFrom{PolarBDXName: sourceName}
 
 	if err := h.repo.CreateCluster(c.Request.Context(), restored); err != nil {
-		util.HandleK8sError(c, "failed to create PITR restored cluster", err)
+		// Surface K8s error via unified error conversion path.
+		apierr.AbortWithError(c, err)
 		return
 	}
 
@@ -330,7 +336,8 @@ func (h *RestoreHandler) getRestoreStatus(c *gin.Context) {
 
 	cluster, err := h.repo.GetCluster(c.Request.Context(), ns, name)
 	if err != nil {
-		util.HandleK8sError(c, "failed to get cluster", err)
+		// Surface K8s error via unified error conversion path.
+		apierr.AbortWithError(c, err)
 		return
 	}
 
@@ -469,7 +476,8 @@ func (h *RestoreHandler) listJobs(c *gin.Context) {
 
 	clusters, err := h.repo.ListClusters(c.Request.Context(), ns)
 	if err != nil {
-		util.HandleK8sError(c, "failed to list clusters", err)
+		// Surface K8s error via unified error conversion path.
+		apierr.AbortWithError(c, err)
 		return
 	}
 

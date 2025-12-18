@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strings"
@@ -8,16 +9,14 @@ import (
 	polardbxv1 "github.com/alibaba/polardbx-operator/api/v1"
 	polardbxcommon "github.com/alibaba/polardbx-operator/api/v1/common"
 	polardbx "github.com/alibaba/polardbx-operator/api/v1/polardbx"
-	"github.com/gin-gonic/gin"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"polardbx-ui-backend/pkg/api/domain/polardbxclusters/k8srepo"
-	apierr "polardbx-ui-backend/pkg/api/errors"
-	"polardbx-ui-backend/pkg/api/middleware"
-	"polardbx-ui-backend/pkg/api/util"
+	svcerr "polardbx-ui-backend/pkg/api/errors"
 )
 
 // ValidationError validation error
@@ -162,117 +161,24 @@ func validateNodeConfig(fieldPrefix string, node ClusterNodeConfig, maxReplicas 
 
 // --- Cluster CRUD (behavior remains unchanged) ---
 
-func (s *ClusterService) List(c *gin.Context) {
-	logger := middleware.NewBusinessLogger(c, "ClusterService")
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		logger.Error(nil, "failed to get k8s client from context")
-		return
-	}
-	ns := util.GetNamespace(c, "")
-	logger.Info("listing clusters in namespace=%s", ns)
-
-	ctx, cancel := util.ListCtx(c)
-	defer cancel()
-	clusters, err := k8srepo.NewClusterRepository().List(ctx, cli, ns)
+// ListClusters lists clusters in the given namespace using pure parameters.
+// This method is framework-agnostic and can be reused by different transports.
+func (s *ClusterService) ListClusters(ctx context.Context, cli client.Client, namespace string) ([]polardbxv1.PolarDBXCluster, error) {
+	clusters, err := k8srepo.NewClusterRepository().List(ctx, cli, namespace)
 	if err != nil {
-		logger.Error(err, "failed to list clusters")
-		middleware.LogK8sError(c, "List", "PolarDBXCluster", ns, "*", err)
-		util.HandleK8sError(c, "failed to list clusters", err)
-		return
+		return nil, fmt.Errorf("list clusters in namespace %s: %w", namespace, err)
 	}
-	logger.Info("listed %d clusters", len(clusters))
-	apierr.OK(c, clusters)
+	return clusters, nil
 }
 
-func (s *ClusterService) Create(c *gin.Context) {
-	logger := middleware.NewBusinessLogger(c, "ClusterService")
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		logger.Error(nil, "failed to get k8s client from context")
-		return
-	}
-	var obj polardbxv1.PolarDBXCluster
-	ctx, cancel, ok := util.BindValidateAndCtx(c, &obj, util.DefaultCRUDTimeout)
-	if !ok {
-		return
-	}
-	ns := util.GetNamespace(c, obj.GetNamespace())
-	if ns == "" {
-		ns = "default"
-	}
-	logger.Info("creating cluster name=%s namespace=%s", obj.GetName(), ns)
-
-	defer cancel()
-	created, err := k8srepo.NewClusterRepository().Create(ctx, cli, ns, &obj)
+// CreateCluster creates a cluster in the given namespace using pure parameters.
+// This method is framework-agnostic and can be reused by different transports.
+func (s *ClusterService) CreateCluster(ctx context.Context, cli client.Client, namespace string, obj *polardbxv1.PolarDBXCluster) (*polardbxv1.PolarDBXCluster, error) {
+	created, err := k8srepo.NewClusterRepository().Create(ctx, cli, namespace, obj)
 	if err != nil {
-		logger.Error(err, "failed to create cluster name=%s namespace=%s", obj.GetName(), ns)
-		middleware.LogK8sError(c, "Create", "PolarDBXCluster", ns, obj.GetName(), err)
-		middleware.LogAudit(c, "CREATE", "PolarDBXCluster", ns, obj.GetName(), false)
-		util.HandleK8sError(c, "failed to create cluster", err)
-		return
+		return nil, fmt.Errorf("create cluster %s/%s: %w", namespace, obj.GetName(), err)
 	}
-	logger.Info("cluster created successfully name=%s namespace=%s", obj.GetName(), ns)
-	middleware.LogAudit(c, "CREATE", "PolarDBXCluster", ns, obj.GetName(), true)
-	apierr.Created(c, created)
-}
-
-// CreateFromConfig creates cluster from user-friendly configuration format
-func (s *ClusterService) CreateFromConfig(c *gin.Context) {
-	logger := middleware.NewBusinessLogger(c, "ClusterService")
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		logger.Error(nil, "failed to get k8s client from context")
-		return
-	}
-
-	// Get namespace from URL parameter
-	ns := util.GetNamespace(c, "default")
-
-	var config ClusterCreationConfig
-	ctx, cancel, ok := util.BindValidateAndCtx(c, &config, util.DefaultCRUDTimeout)
-	if !ok {
-		return
-	}
-	defer cancel()
-
-	logger.Info("creating cluster from config name=%s namespace=%s", config.Name, ns)
-
-	// Parameter validation
-	if validationErrors := ValidateClusterCreationConfig(&config); len(validationErrors) > 0 {
-		for _, ve := range validationErrors {
-			middleware.LogValidationError(c, "ClusterService", ve.Field, ve.Message)
-		}
-		logger.Warn("cluster config validation failed with %d errors", len(validationErrors))
-		apierr.Abort(c, apierr.Validation("configuration validation failed").WithDetails(map[string]string{
-			"validationErrors": fmt.Sprintf("%+v", validationErrors),
-		}))
-		return
-	}
-
-	// Convert to PolarDBXCluster object
-	cluster := convertConfigToCluster(&config, ns)
-	logger.Debug("converted config to PolarDBXCluster: CN=%d DN=%d",
-		config.Topology.CN.Replicas, config.Topology.DN.Replicas)
-
-	created, err := k8srepo.NewClusterRepository().Create(ctx, cli, ns, cluster)
-	if err != nil {
-		// Extract more meaningful error information
-		errMsg := err.Error()
-		if strings.Contains(errMsg, "already exists") {
-			logger.Warn("cluster already exists name=%s namespace=%s", config.Name, ns)
-			apierr.Abort(c, apierr.AlreadyExists("cluster", config.Name))
-			return
-		}
-		logger.Error(err, "failed to create cluster from config name=%s namespace=%s", config.Name, ns)
-		middleware.LogK8sError(c, "Create", "PolarDBXCluster", ns, config.Name, err)
-		middleware.LogAudit(c, "CREATE", "PolarDBXCluster", ns, config.Name, false)
-		util.HandleK8sError(c, "failed to create cluster", err)
-		return
-	}
-	logger.Info("cluster created successfully from config name=%s namespace=%s", config.Name, ns)
-	middleware.LogAudit(c, "CREATE", "PolarDBXCluster", ns, config.Name, true)
-	apierr.Created(c, created)
+	return created, nil
 }
 
 // convertConfigToCluster converts user-friendly configuration to PolarDBXCluster object
@@ -467,90 +373,60 @@ func buildResourceRequirements(res NodeResources) corev1.ResourceRequirements {
 	return requirements
 }
 
-func (s *ClusterService) Get(c *gin.Context) {
-	logger := middleware.NewBusinessLogger(c, "ClusterService")
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		logger.Error(nil, "failed to get k8s client from context")
-		return
-	}
-	ns := util.GetNamespace(c, "default")
-	name := c.Param("name")
-	logger.Debug("getting cluster name=%s namespace=%s", name, ns)
-
-	ctx, cancel := util.ListCtx(c)
-	defer cancel()
-	cluster, err := k8srepo.NewClusterRepository().Get(ctx, cli, ns, name)
+// GetCluster fetches a single cluster using pure parameters.
+// This method is framework-agnostic and can be reused by different transports.
+func (s *ClusterService) GetCluster(ctx context.Context, cli client.Client, namespace, name string) (*polardbxv1.PolarDBXCluster, error) {
+	cluster, err := k8srepo.NewClusterRepository().Get(ctx, cli, namespace, name)
 	if err != nil {
-		logger.Error(err, "cluster not found name=%s namespace=%s", name, ns)
-		middleware.LogK8sError(c, "Get", "PolarDBXCluster", ns, name, err)
-		util.HandleK8sError(c, "cluster not found", err)
-		return
+		return nil, fmt.Errorf("get cluster %s/%s: %w", namespace, name, err)
 	}
-	logger.Debug("cluster retrieved successfully name=%s namespace=%s phase=%s",
-		name, ns, cluster.Status.Phase)
-	apierr.OK(c, cluster)
+	return cluster, nil
 }
 
-func (s *ClusterService) Update(c *gin.Context) {
-	logger := middleware.NewBusinessLogger(c, "ClusterService")
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		logger.Error(nil, "failed to get k8s client from context")
-		return
-	}
-	ns := util.GetNamespace(c, "default")
-	name := c.Param("name")
-	var body polardbxv1.PolarDBXCluster
-	ctx, cancel, ok := util.BindValidateAndCtx(c, &body, util.DefaultCRUDTimeout)
-	if !ok {
-		return
-	}
-	logger.Info("updating cluster name=%s namespace=%s", name, ns)
-
-	defer cancel()
-	existing, err := k8srepo.NewClusterRepository().Get(ctx, cli, ns, name)
+// UpdateCluster updates an existing cluster using pure parameters.
+// This method is framework-agnostic and can be reused by different transports.
+func (s *ClusterService) UpdateCluster(ctx context.Context, cli client.Client, namespace, name string, body *polardbxv1.PolarDBXCluster) (*polardbxv1.PolarDBXCluster, error) {
+	existing, err := k8srepo.NewClusterRepository().Get(ctx, cli, namespace, name)
 	if err != nil {
-		logger.Error(err, "cluster not found for update name=%s namespace=%s", name, ns)
-		middleware.LogK8sError(c, "Get", "PolarDBXCluster", ns, name, err)
-		util.HandleK8sError(c, "cluster not found", err)
-		return
+		return nil, fmt.Errorf("get cluster %s/%s for update: %w", namespace, name, err)
 	}
 	body.SetResourceVersion(existing.GetResourceVersion())
-	updated, err := k8srepo.NewClusterRepository().Update(ctx, cli, ns, &body)
+	updated, err := k8srepo.NewClusterRepository().Update(ctx, cli, namespace, body)
 	if err != nil {
-		logger.Error(err, "failed to update cluster name=%s namespace=%s", name, ns)
-		middleware.LogK8sError(c, "Update", "PolarDBXCluster", ns, name, err)
-		middleware.LogAudit(c, "UPDATE", "PolarDBXCluster", ns, name, false)
-		util.HandleK8sError(c, "failed to update cluster", err)
-		return
+		return nil, fmt.Errorf("update cluster %s/%s: %w", namespace, name, err)
 	}
-	logger.Info("cluster updated successfully name=%s namespace=%s", name, ns)
-	middleware.LogAudit(c, "UPDATE", "PolarDBXCluster", ns, name, true)
-	apierr.OK(c, updated)
+	return updated, nil
 }
 
-func (s *ClusterService) Delete(c *gin.Context) {
-	logger := middleware.NewBusinessLogger(c, "ClusterService")
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		logger.Error(nil, "failed to get k8s client from context")
-		return
+// DeleteCluster deletes a cluster using pure parameters.
+// This method is framework-agnostic and can be reused by different transports.
+func (s *ClusterService) DeleteCluster(ctx context.Context, cli client.Client, namespace, name string) error {
+	if err := k8srepo.NewClusterRepository().Delete(ctx, cli, namespace, name); err != nil {
+		return fmt.Errorf("delete cluster %s/%s: %w", namespace, name, err)
 	}
-	ns := util.GetNamespace(c, "default")
-	name := c.Param("name")
-	logger.Info("deleting cluster name=%s namespace=%s", name, ns)
+	return nil
+}
 
-	ctx, cancel := util.CrudCtx(c)
-	defer cancel()
-	if err := k8srepo.NewClusterRepository().Delete(ctx, cli, ns, name); err != nil {
-		logger.Error(err, "failed to delete cluster name=%s namespace=%s", name, ns)
-		middleware.LogK8sError(c, "Delete", "PolarDBXCluster", ns, name, err)
-		middleware.LogAudit(c, "DELETE", "PolarDBXCluster", ns, name, false)
-		util.HandleK8sError(c, "failed to delete cluster", err)
-		return
+// CreateClusterFromConfig creates a cluster from a user-friendly configuration in a pure service form.
+// Business validation and K8s interaction are handled here; HTTP concerns stay in handlers.
+func (s *ClusterService) CreateClusterFromConfig(ctx context.Context, cli client.Client, namespace string, config *ClusterCreationConfig) (*polardbxv1.PolarDBXCluster, error) {
+	// Parameter validation
+	if validationErrors := ValidateClusterCreationConfig(config); len(validationErrors) > 0 {
+		return nil, svcerr.ValidationError("configuration validation failed", validationErrors)
 	}
-	logger.Info("cluster deletion initiated successfully name=%s namespace=%s", name, ns)
-	middleware.LogAudit(c, "DELETE", "PolarDBXCluster", ns, name, true)
-	apierr.OK(c, gin.H{"message": "cluster deletion initiated successfully"})
+
+	// Convert to PolarDBXCluster object
+	cluster := convertConfigToCluster(config, namespace)
+
+	created, err := k8srepo.NewClusterRepository().Create(ctx, cli, namespace, cluster)
+	if err != nil {
+		// Extract more meaningful error information
+		errMsg := err.Error()
+		if strings.Contains(errMsg, "already exists") {
+			return nil, svcerr.ConflictError(fmt.Sprintf("cluster '%s/%s' already exists", namespace, config.Name))
+		}
+		return nil, fmt.Errorf("create cluster from config %s/%s: %w", namespace, config.Name, err)
+	}
+
+	return created, nil
 }

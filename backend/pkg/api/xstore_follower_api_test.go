@@ -83,10 +83,14 @@ func TestXStoreFollowerEndpoints(t *testing.T) {
 		router := setupXStoreFollowerTestRouter(fakeClient)
 		w := httptest.NewRecorder()
 
-		// send simplified request expected by handler
+		// send request matching handler's expected Kubernetes-style shape
 		reqBody := map[string]any{
-			"name":       "follower-for-xstore1",
-			"xStoreName": "xstore1",
+			"metadata": map[string]any{
+				"name": "follower-for-xstore1",
+			},
+			"spec": map[string]any{
+				"xStoreName": "xstore1",
+			},
 		}
 		body, _ := json.Marshal(reqBody)
 		req, _ := http.NewRequest(http.MethodPost, "/xstore-followers?namespace=default", bytes.NewReader(body))

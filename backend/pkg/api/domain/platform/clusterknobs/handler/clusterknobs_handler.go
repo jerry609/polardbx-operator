@@ -28,7 +28,8 @@ func GetList(c *gin.Context) {
 	}
 	list, err := k8s.GetClusterKnobsList(cli)
 	if err != nil {
-		util.HandleK8sError(c, "failed to get cluster knobs list", err)
+		// Surface K8s error via unified error conversion path.
+		apierr.AbortWithError(c, err)
 		return
 	}
 	apierr.OK(c, list)
@@ -58,7 +59,8 @@ func Create(c *gin.Context) {
 	}
 	created, err := k8s.CreateClusterKnobs(cli, &payload)
 	if err != nil {
-		util.HandleK8sError(c, "failed to create cluster knobs", err)
+		// Surface K8s error via unified error conversion path.
+		apierr.AbortWithError(c, err)
 		return
 	}
 	apierr.Created(c, created)
@@ -85,7 +87,8 @@ func Get(c *gin.Context) {
 	name := c.Param("name")
 	knobs, err := k8s.GetClusterKnobs(cli, namespace, name)
 	if err != nil {
-		util.HandleK8sError(c, "failed to get cluster knobs", err)
+		// Surface K8s error via unified error conversion path.
+		apierr.AbortWithError(c, err)
 		return
 	}
 	apierr.OK(c, knobs)
@@ -121,7 +124,8 @@ func Update(c *gin.Context) {
 	payload.Name = name
 	updated, err := k8s.UpdateClusterKnobs(cli, &payload)
 	if err != nil {
-		util.HandleK8sError(c, "failed to update cluster knobs", err)
+		// Surface K8s error via unified error conversion path.
+		apierr.AbortWithError(c, err)
 		return
 	}
 	apierr.OK(c, updated)
@@ -147,7 +151,8 @@ func Delete(c *gin.Context) {
 	namespace := c.Param("namespace")
 	name := c.Param("name")
 	if err := k8s.DeleteClusterKnobs(cli, namespace, name); err != nil {
-		util.HandleK8sError(c, "failed to delete cluster knobs", err)
+		// Surface K8s error via unified error conversion path.
+		apierr.AbortWithError(c, err)
 		return
 	}
 	apierr.OK(c, gin.H{"message": "cluster knobs deleted successfully"})

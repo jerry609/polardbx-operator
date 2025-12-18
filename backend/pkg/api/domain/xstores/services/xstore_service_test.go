@@ -1,13 +1,9 @@
 package services
 
 import (
-	"bytes"
 	"context"
-	"net/http"
-	"net/http/httptest"
 	"testing"
 
-	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -133,411 +129,248 @@ func (s *stubXRepo) DeleteFollower(ctx context.Context, cli client.Client, names
 	return s.followerDeleteErr
 }
 
-func ginCtx(method, path string, body []byte) (*gin.Context, *httptest.ResponseRecorder) {
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	buf := bytes.NewBuffer(nil)
-	if body != nil {
-		buf = bytes.NewBuffer(body)
-	}
-	c.Request = httptest.NewRequest(method, path, buf)
-	if body != nil {
-		c.Request.Header.Set("Content-Type", "application/json")
-	}
-	return c, w
-}
-
 func fakeClient() client.Client {
 	scheme := runtime.NewScheme()
 	_ = polardbxv1.AddToScheme(scheme)
 	return fake.NewClientBuilder().WithScheme(scheme).Build()
 }
 
-func TestXStoreService_UnauthorizedWhenNoClient(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	svc := &XStoreService{repo: &stubXRepo{}}
-
-	c, w := ginCtx(http.MethodGet, "/", nil)
-	svc.List(c)
-	assert.Equal(t, http.StatusUnauthorized, w.Code)
-
-	c, w = ginCtx(http.MethodPost, "/", []byte(`{}`))
-	svc.Create(c)
-	assert.Equal(t, http.StatusUnauthorized, w.Code)
-}
-
 func TestXStoreService_List_ErrorAndSuccess(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	svc := &XStoreService{repo: &stubXRepo{listErr: assert.AnError}}
-	c, w := ginCtx(http.MethodGet, "/", nil)
-	c.Set("k8sClient", fakeClient())
-	svc.List(c)
-	assert.Equal(t, http.StatusBadGateway, w.Code)
+	ctx := context.Background()
+	cli := fakeClient()
+	ns := "test-ns"
 
+	// Test error case
+	svc := &XStoreService{repo: &stubXRepo{listErr: assert.AnError}}
+	_, err := svc.List(ctx, cli, ns)
+	assert.Error(t, err)
+
+	// Test success case
 	svc.repo = &stubXRepo{}
-	c, w = ginCtx(http.MethodGet, "/", nil)
-	c.Set("k8sClient", fakeClient())
-	svc.List(c)
-	assert.Equal(t, http.StatusOK, w.Code)
+	items, err := svc.List(ctx, cli, ns)
+	assert.NoError(t, err)
+	assert.Len(t, items, 1)
 }
 
-func TestXStoreService_Create_ValidationAndErrorAndSuccess(t *testing.T) {
-	gin.SetMode(gin.TestMode)
+func TestXStoreService_Create_ErrorAndSuccess(t *testing.T) {
+	ctx := context.Background()
+	cli := fakeClient()
+	ns := "test-ns"
+	obj := &polardbxv1.XStore{}
+
+	// Test error case
 	svc := &XStoreService{repo: &stubXRepo{createErr: assert.AnError}}
-	// invalid JSON
-	c, w := ginCtx(http.MethodPost, "/", []byte("{"))
-	c.Set("k8sClient", fakeClient())
-	svc.Create(c)
-	assert.Equal(t, http.StatusBadRequest, w.Code)
+	_, err := svc.Create(ctx, cli, ns, obj)
+	assert.Error(t, err)
 
-	// create error
-	c, w = ginCtx(http.MethodPost, "/", []byte(`{"metadata":{"name":"x1"}}`))
-	c.Set("k8sClient", fakeClient())
-	svc.Create(c)
-	assert.Equal(t, http.StatusBadGateway, w.Code)
-
-	// success
+	// Test success case
 	svc.repo = &stubXRepo{}
-	c, w = ginCtx(http.MethodPost, "/", []byte(`{"metadata":{"name":"x1"}}`))
-	c.Set("k8sClient", fakeClient())
-	svc.Create(c)
-	assert.Equal(t, http.StatusCreated, w.Code)
+	created, err := svc.Create(ctx, cli, ns, obj)
+	assert.NoError(t, err)
+	assert.NotNil(t, created)
 }
 
 func TestXStoreService_Get_ErrorAndSuccess(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	svc := &XStoreService{repo: &stubXRepo{getErr: assert.AnError}}
-	c, w := ginCtx(http.MethodGet, "/", nil)
-	c.Set("k8sClient", fakeClient())
-	c.Params = gin.Params{{Key: "namespace", Value: "ns"}, {Key: "name", Value: "x1"}}
-	svc.Get(c)
-	assert.Equal(t, http.StatusBadGateway, w.Code)
+	ctx := context.Background()
+	cli := fakeClient()
+	ns := "test-ns"
+	name := "x1"
 
+	// Test error case
+	svc := &XStoreService{repo: &stubXRepo{getErr: assert.AnError}}
+	_, err := svc.Get(ctx, cli, ns, name)
+	assert.Error(t, err)
+
+	// Test success case
 	svc.repo = &stubXRepo{}
-	c, w = ginCtx(http.MethodGet, "/", nil)
-	c.Set("k8sClient", fakeClient())
-	c.Params = gin.Params{{Key: "namespace", Value: "ns"}, {Key: "name", Value: "x1"}}
-	svc.Get(c)
-	assert.Equal(t, http.StatusOK, w.Code)
+	item, err := svc.Get(ctx, cli, ns, name)
+	assert.NoError(t, err)
+	assert.NotNil(t, item)
 }
 
-func TestXStoreService_Update_ValidationErrorAndRepoErrorAndSuccess(t *testing.T) {
-	gin.SetMode(gin.TestMode)
+func TestXStoreService_Update_ErrorAndSuccess(t *testing.T) {
+	ctx := context.Background()
+	cli := fakeClient()
+	ns := "test-ns"
+	obj := &polardbxv1.XStore{}
+
+	// Test error case
 	svc := &XStoreService{repo: &stubXRepo{updateErr: assert.AnError}}
-	// invalid json
-	c, w := ginCtx(http.MethodPut, "/", []byte("{"))
-	c.Set("k8sClient", fakeClient())
-	c.Params = gin.Params{{Key: "namespace", Value: "ns"}}
-	svc.Update(c)
-	assert.Equal(t, http.StatusBadRequest, w.Code)
+	_, err := svc.Update(ctx, cli, ns, obj)
+	assert.Error(t, err)
 
-	// repo error
-	c, w = ginCtx(http.MethodPut, "/", []byte(`{"metadata":{"name":"x1"}}`))
-	c.Set("k8sClient", fakeClient())
-	c.Params = gin.Params{{Key: "namespace", Value: "ns"}}
-	svc.Update(c)
-	assert.Equal(t, http.StatusBadGateway, w.Code)
-
-	// success
+	// Test success case
 	svc.repo = &stubXRepo{}
-	c, w = ginCtx(http.MethodPut, "/", []byte(`{"metadata":{"name":"x1"}}`))
-	c.Set("k8sClient", fakeClient())
-	c.Params = gin.Params{{Key: "namespace", Value: "ns"}}
-	svc.Update(c)
-	assert.Equal(t, http.StatusOK, w.Code)
+	updated, err := svc.Update(ctx, cli, ns, obj)
+	assert.NoError(t, err)
+	assert.NotNil(t, updated)
 }
 
 func TestXStoreService_Delete_ErrorAndSuccess(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	svc := &XStoreService{repo: &stubXRepo{deleteErr: assert.AnError}}
-	c, w := ginCtx(http.MethodDelete, "/", nil)
-	c.Set("k8sClient", fakeClient())
-	c.Params = gin.Params{{Key: "namespace", Value: "ns"}, {Key: "name", Value: "x1"}}
-	svc.Delete(c)
-	assert.Equal(t, http.StatusBadGateway, w.Code)
+	ctx := context.Background()
+	cli := fakeClient()
+	ns := "test-ns"
+	name := "x1"
 
+	// Test error case
+	svc := &XStoreService{repo: &stubXRepo{deleteErr: assert.AnError}}
+	err := svc.Delete(ctx, cli, ns, name)
+	assert.Error(t, err)
+
+	// Test success case
 	svc.repo = &stubXRepo{}
-	c, w = ginCtx(http.MethodDelete, "/", nil)
-	c.Set("k8sClient", fakeClient())
-	c.Params = gin.Params{{Key: "namespace", Value: "ns"}, {Key: "name", Value: "x1"}}
-	svc.Delete(c)
-	assert.Equal(t, http.StatusOK, w.Code)
+	err = svc.Delete(ctx, cli, ns, name)
+	assert.NoError(t, err)
 }
 
 func TestXStoreService_ListPods_ErrorAndSuccess(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	svc := &XStoreService{repo: &stubXRepo{podErr: assert.AnError}}
-	c, w := ginCtx(http.MethodGet, "/", nil)
-	c.Set("k8sClient", fakeClient())
-	c.Params = gin.Params{{Key: "namespace", Value: "ns"}, {Key: "name", Value: "x1"}}
-	svc.ListPods(c)
-	assert.Equal(t, http.StatusBadGateway, w.Code)
+	ctx := context.Background()
+	cli := fakeClient()
+	ns := "test-ns"
+	name := "x1"
 
+	// Test error case
+	svc := &XStoreService{repo: &stubXRepo{podErr: assert.AnError}}
+	_, err := svc.ListPods(ctx, cli, ns, name)
+	assert.Error(t, err)
+
+	// Test success case
 	svc.repo = &stubXRepo{}
-	c, w = ginCtx(http.MethodGet, "/", nil)
-	c.Set("k8sClient", fakeClient())
-	c.Params = gin.Params{{Key: "namespace", Value: "ns"}, {Key: "name", Value: "x1"}}
-	svc.ListPods(c)
-	assert.Equal(t, http.StatusOK, w.Code)
+	pods, err := svc.ListPods(ctx, cli, ns, name)
+	assert.NoError(t, err)
+	assert.Len(t, pods, 1)
 }
 
 // ---- Backups (service level) ----
 
 func TestBackupsService_List_ErrorAndSuccess(t *testing.T) {
-	gin.SetMode(gin.TestMode)
+	ctx := context.Background()
+	cli := fakeClient()
+	ns := "test-ns"
+
+	// Test error case
 	svc := &BackupsService{repo: &stubXRepo{backupListErr: assert.AnError}}
+	_, err := svc.List(ctx, cli, ns)
+	assert.Error(t, err)
 
-	c, w := ginCtx(http.MethodGet, "/", nil)
-	c.Set("k8sClient", fakeClient())
-	svc.List(c)
-	assert.Equal(t, http.StatusBadGateway, w.Code)
-
+	// Test success case
 	svc.repo = &stubXRepo{}
-	c, w = ginCtx(http.MethodGet, "/", nil)
-	c.Set("k8sClient", fakeClient())
-	svc.List(c)
-	assert.Equal(t, http.StatusOK, w.Code)
+	items, err := svc.List(ctx, cli, ns)
+	assert.NoError(t, err)
+	assert.Len(t, items, 1)
 }
 
-func TestBackupsService_Create_Validation_Error_Success(t *testing.T) {
-	gin.SetMode(gin.TestMode)
+func TestBackupsService_Create_ErrorAndSuccess(t *testing.T) {
+	ctx := context.Background()
+	cli := fakeClient()
+	ns := "test-ns"
+	obj := &polardbxv1.XStoreBackup{}
+
+	// Test error case
 	svc := &BackupsService{repo: &stubXRepo{backupCreateErr: assert.AnError}}
+	_, err := svc.Create(ctx, cli, ns, obj)
+	assert.Error(t, err)
 
-	// invalid json
-	c, w := ginCtx(http.MethodPost, "/", []byte("{"))
-	c.Set("k8sClient", fakeClient())
-	svc.Create(c)
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-
-	// repo error
-	c, w = ginCtx(http.MethodPost, "/", []byte(`{"metadata":{"name":"b1"}}`))
-	c.Set("k8sClient", fakeClient())
-	svc.Create(c)
-	assert.Equal(t, http.StatusBadGateway, w.Code)
-
-	// success
+	// Test success case
 	svc.repo = &stubXRepo{}
-	c, w = ginCtx(http.MethodPost, "/", []byte(`{"metadata":{"name":"b1"}}`))
-	c.Set("k8sClient", fakeClient())
-	svc.Create(c)
-	assert.Equal(t, http.StatusCreated, w.Code)
+	created, err := svc.Create(ctx, cli, ns, obj)
+	assert.NoError(t, err)
+	assert.NotNil(t, created)
 }
 
 func TestBackupsService_Get_ErrorAndSuccess(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	svc := &BackupsService{repo: &stubXRepo{backupGetErr: assert.AnError}}
-	c, w := ginCtx(http.MethodGet, "/", nil)
-	c.Set("k8sClient", fakeClient())
-	c.Params = gin.Params{{Key: "namespace", Value: "ns"}, {Key: "name", Value: "b1"}}
-	svc.Get(c)
-	assert.Equal(t, http.StatusBadGateway, w.Code)
+	ctx := context.Background()
+	cli := fakeClient()
+	ns := "test-ns"
+	name := "b1"
 
+	// Test error case
+	svc := &BackupsService{repo: &stubXRepo{backupGetErr: assert.AnError}}
+	_, err := svc.Get(ctx, cli, ns, name)
+	assert.Error(t, err)
+
+	// Test success case
 	svc.repo = &stubXRepo{}
-	c, w = ginCtx(http.MethodGet, "/", nil)
-	c.Set("k8sClient", fakeClient())
-	c.Params = gin.Params{{Key: "namespace", Value: "ns"}, {Key: "name", Value: "b1"}}
-	svc.Get(c)
-	assert.Equal(t, http.StatusOK, w.Code)
+	item, err := svc.Get(ctx, cli, ns, name)
+	assert.NoError(t, err)
+	assert.NotNil(t, item)
 }
 
-func TestBackupsService_Update_Validation_Error_Success(t *testing.T) {
-	gin.SetMode(gin.TestMode)
+func TestBackupsService_Update_ErrorAndSuccess(t *testing.T) {
+	ctx := context.Background()
+	cli := fakeClient()
+	ns := "test-ns"
+	obj := &polardbxv1.XStoreBackup{}
+
+	// Test error case
 	svc := &BackupsService{repo: &stubXRepo{backupUpdateErr: assert.AnError}}
+	_, err := svc.Update(ctx, cli, ns, obj)
+	assert.Error(t, err)
 
-	c, w := ginCtx(http.MethodPut, "/", []byte("{"))
-	c.Set("k8sClient", fakeClient())
-	c.Params = gin.Params{{Key: "namespace", Value: "ns"}}
-	svc.Update(c)
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-
-	c, w = ginCtx(http.MethodPut, "/", []byte(`{"metadata":{"name":"b1"}}`))
-	c.Set("k8sClient", fakeClient())
-	c.Params = gin.Params{{Key: "namespace", Value: "ns"}}
-	svc.Update(c)
-	assert.Equal(t, http.StatusBadGateway, w.Code)
-
+	// Test success case
 	svc.repo = &stubXRepo{}
-	c, w = ginCtx(http.MethodPut, "/", []byte(`{"metadata":{"name":"b1"}}`))
-	c.Set("k8sClient", fakeClient())
-	c.Params = gin.Params{{Key: "namespace", Value: "ns"}}
-	svc.Update(c)
-	assert.Equal(t, http.StatusOK, w.Code)
+	updated, err := svc.Update(ctx, cli, ns, obj)
+	assert.NoError(t, err)
+	assert.NotNil(t, updated)
 }
 
 func TestBackupsService_Delete_ErrorAndSuccess(t *testing.T) {
-	gin.SetMode(gin.TestMode)
+	ctx := context.Background()
+	cli := fakeClient()
+	ns := "test-ns"
+	name := "b1"
+
+	// Test error case
 	svc := &BackupsService{repo: &stubXRepo{backupDeleteErr: assert.AnError}}
+	err := svc.Delete(ctx, cli, ns, name)
+	assert.Error(t, err)
 
-	c, w := ginCtx(http.MethodDelete, "/", nil)
-	c.Set("k8sClient", fakeClient())
-	c.Params = gin.Params{{Key: "namespace", Value: "ns"}, {Key: "name", Value: "b1"}}
-	svc.Delete(c)
-	assert.Equal(t, http.StatusBadGateway, w.Code)
-
+	// Test success case
 	svc.repo = &stubXRepo{}
-	c, w = ginCtx(http.MethodDelete, "/", nil)
-	c.Set("k8sClient", fakeClient())
-	c.Params = gin.Params{{Key: "namespace", Value: "ns"}, {Key: "name", Value: "b1"}}
-	svc.Delete(c)
-	assert.Equal(t, http.StatusOK, w.Code)
+	err = svc.Delete(ctx, cli, ns, name)
+	assert.NoError(t, err)
 }
 
 func TestBackupsService_ForceDelete_ErrorAndSuccess(t *testing.T) {
-	gin.SetMode(gin.TestMode)
+	ctx := context.Background()
+	cli := fakeClient()
+	ns := "test-ns"
+	name := "b1"
+
+	// Test get error case
 	svc := &BackupsService{repo: &stubXRepo{backupGetErr: assert.AnError}}
+	err := svc.ForceDelete(ctx, cli, ns, name)
+	assert.Error(t, err)
 
-	// get error
-	c, w := ginCtx(http.MethodDelete, "/", nil)
-	c.Set("k8sClient", fakeClient())
-	c.Params = gin.Params{{Key: "namespace", Value: "ns"}, {Key: "name", Value: "b1"}}
-	svc.ForceDelete(c)
-	assert.Equal(t, http.StatusBadGateway, w.Code)
-
-	// update error
+	// Test update error case
 	svc.repo = &stubXRepo{backupUpdateErr: assert.AnError}
-	c, w = ginCtx(http.MethodDelete, "/", nil)
-	c.Set("k8sClient", fakeClient())
-	c.Params = gin.Params{{Key: "namespace", Value: "ns"}, {Key: "name", Value: "b1"}}
-	svc.ForceDelete(c)
-	assert.Equal(t, http.StatusBadGateway, w.Code)
+	err = svc.ForceDelete(ctx, cli, ns, name)
+	assert.Error(t, err)
 
-	// success
+	// Test success case
 	svc.repo = &stubXRepo{}
-	c, w = ginCtx(http.MethodDelete, "/", nil)
-	c.Set("k8sClient", fakeClient())
-	c.Params = gin.Params{{Key: "namespace", Value: "ns"}, {Key: "name", Value: "b1"}}
-	svc.ForceDelete(c)
-	assert.Equal(t, http.StatusOK, w.Code)
+	err = svc.ForceDelete(ctx, cli, ns, name)
+	assert.NoError(t, err)
 }
 
 func TestBackupsService_RemoteInfo_ErrorAndSuccess(t *testing.T) {
-	gin.SetMode(gin.TestMode)
+	ctx := context.Background()
+	cli := fakeClient()
+	ns := "test-ns"
+	name := "b1"
+
+	// Test error case
 	svc := &BackupsService{repo: &stubXRepo{backupGetErr: assert.AnError}}
+	_, err := svc.RemoteInfo(ctx, cli, ns, name)
+	assert.Error(t, err)
 
-	c, w := ginCtx(http.MethodGet, "/", nil)
-	c.Set("k8sClient", fakeClient())
-	c.Params = gin.Params{{Key: "namespace", Value: "ns"}, {Key: "name", Value: "b1"}}
-	svc.RemoteInfo(c)
-	assert.Equal(t, http.StatusBadGateway, w.Code)
-
+	// Test success case
 	svc.repo = &stubXRepo{}
-	c, w = ginCtx(http.MethodGet, "/", nil)
-	c.Set("k8sClient", fakeClient())
-	c.Params = gin.Params{{Key: "namespace", Value: "ns"}, {Key: "name", Value: "b1"}}
-	svc.RemoteInfo(c)
-	assert.Equal(t, http.StatusOK, w.Code)
+	info, err := svc.RemoteInfo(ctx, cli, ns, name)
+	assert.NoError(t, err)
+	assert.NotNil(t, info)
 }
 
 // ---- Followers (service level) ----
 
-func TestFollowersService_List_ErrorAndSuccess(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	svc := &FollowersService{repo: &stubXRepo{followerListErr: assert.AnError}}
-
-	c, w := ginCtx(http.MethodGet, "/", nil)
-	c.Set("k8sClient", fakeClient())
-	svc.List(c)
-	assert.Equal(t, http.StatusBadGateway, w.Code)
-
-	svc.repo = &stubXRepo{}
-	c, w = ginCtx(http.MethodGet, "/", nil)
-	c.Set("k8sClient", fakeClient())
-	svc.List(c)
-	assert.Equal(t, http.StatusOK, w.Code)
-}
-
-func TestFollowersService_Create_ValidationAndErrorSuccess(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	svc := &FollowersService{repo: &stubXRepo{followerCreateErr: assert.AnError}}
-
-	// invalid json
-	c, w := ginCtx(http.MethodPost, "/", []byte("{"))
-	c.Set("k8sClient", fakeClient())
-	svc.Create(c)
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-
-	// missing name
-	c, w = ginCtx(http.MethodPost, "/", []byte(`{"spec":{"xStoreName":""}}`))
-	c.Set("k8sClient", fakeClient())
-	svc.Create(c)
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-
-	// missing xStoreName
-	c, w = ginCtx(http.MethodPost, "/", []byte(`{"name":"f1"}`))
-	c.Set("k8sClient", fakeClient())
-	svc.Create(c)
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-
-	// repo error
-	c, w = ginCtx(http.MethodPost, "/", []byte(`{"name":"f1","xStoreName":"x1"}`))
-	c.Set("k8sClient", fakeClient())
-	svc.Create(c)
-	assert.Equal(t, http.StatusBadGateway, w.Code)
-
-	// success
-	svc.repo = &stubXRepo{}
-	c, w = ginCtx(http.MethodPost, "/", []byte(`{"name":"f1","xStoreName":"x1"}`))
-	c.Set("k8sClient", fakeClient())
-	svc.Create(c)
-	assert.Equal(t, http.StatusCreated, w.Code)
-}
-
-func TestFollowersService_Get_ErrorAndSuccess(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	svc := &FollowersService{repo: &stubXRepo{followerGetErr: assert.AnError}}
-
-	c, w := ginCtx(http.MethodGet, "/", nil)
-	c.Set("k8sClient", fakeClient())
-	c.Params = gin.Params{{Key: "namespace", Value: "ns"}, {Key: "name", Value: "f1"}}
-	svc.Get(c)
-	assert.Equal(t, http.StatusBadGateway, w.Code)
-
-	svc.repo = &stubXRepo{}
-	c, w = ginCtx(http.MethodGet, "/", nil)
-	c.Set("k8sClient", fakeClient())
-	c.Params = gin.Params{{Key: "namespace", Value: "ns"}, {Key: "name", Value: "f1"}}
-	svc.Get(c)
-	assert.Equal(t, http.StatusOK, w.Code)
-}
-
-func TestFollowersService_Update_ValidationError_Error_Success(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	svc := &FollowersService{repo: &stubXRepo{followerUpdateErr: assert.AnError}}
-
-	c, w := ginCtx(http.MethodPut, "/", []byte("{"))
-	c.Set("k8sClient", fakeClient())
-	c.Params = gin.Params{{Key: "namespace", Value: "ns"}}
-	svc.Update(c)
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-
-	c, w = ginCtx(http.MethodPut, "/", []byte(`{"metadata":{"name":"f1"}}`))
-	c.Set("k8sClient", fakeClient())
-	c.Params = gin.Params{{Key: "namespace", Value: "ns"}}
-	svc.Update(c)
-	assert.Equal(t, http.StatusBadGateway, w.Code)
-
-	svc.repo = &stubXRepo{}
-	c, w = ginCtx(http.MethodPut, "/", []byte(`{"metadata":{"name":"f1"}}`))
-	c.Set("k8sClient", fakeClient())
-	c.Params = gin.Params{{Key: "namespace", Value: "ns"}}
-	svc.Update(c)
-	assert.Equal(t, http.StatusOK, w.Code)
-}
-
-func TestFollowersService_Delete_ErrorAndSuccess(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	svc := &FollowersService{repo: &stubXRepo{followerDeleteErr: assert.AnError}}
-
-	c, w := ginCtx(http.MethodDelete, "/", nil)
-	c.Set("k8sClient", fakeClient())
-	c.Params = gin.Params{{Key: "namespace", Value: "ns"}, {Key: "name", Value: "f1"}}
-	svc.Delete(c)
-	assert.Equal(t, http.StatusBadGateway, w.Code)
-
-	svc.repo = &stubXRepo{}
-	c, w = ginCtx(http.MethodDelete, "/", nil)
-	c.Set("k8sClient", fakeClient())
-	c.Params = gin.Params{{Key: "namespace", Value: "ns"}, {Key: "name", Value: "f1"}}
-	svc.Delete(c)
-	assert.Equal(t, http.StatusOK, w.Code)
-}
+// NOTE: FollowersService behavior is tested in followers_test.go and handlers tests.

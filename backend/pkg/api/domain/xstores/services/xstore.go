@@ -1,114 +1,87 @@
 package services
 
 import (
-	"polardbx-ui-backend/pkg/api/domain/xstores/k8srepo"
-	apierr "polardbx-ui-backend/pkg/api/errors"
-	"polardbx-ui-backend/pkg/api/util"
+	"context"
+	"fmt"
 
 	polardbxv1 "github.com/alibaba/polardbx-operator/api/v1"
-	"github.com/gin-gonic/gin"
+	corev1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"polardbx-ui-backend/pkg/api/domain/xstores/k8srepo"
+	apierr "polardbx-ui-backend/pkg/api/errors"
 )
 
 // XStoreService encapsulates XStore basic CRUD and Pod listing
+// Refactored to be independent of HTTP framework for better testability
 type XStoreService struct {
 	repo k8srepo.XStoreRepository
 }
 
-func NewXStoreService() *XStoreService { return &XStoreService{repo: k8srepo.NewXStoreRepository()} }
-
-func (s *XStoreService) List(c *gin.Context) {
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		return
+// NewXStoreService creates a new XStoreService with the given repository
+func NewXStoreService(repo k8srepo.XStoreRepository) *XStoreService {
+	if repo == nil {
+		repo = k8srepo.NewXStoreRepository()
 	}
-	ns := util.DefaultNamespace(c, "default")
-	items, err := s.repo.List(c.Request.Context(), cli, ns)
-	if err != nil {
-		util.HandleK8sError(c, "failed to list xstores", err)
-		return
-	}
-	apierr.OK(c, items)
+	return &XStoreService{repo: repo}
 }
 
-func (s *XStoreService) Create(c *gin.Context) {
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		return
-	}
-	ns := util.DefaultNamespace(c, "default")
-	var body polardbxv1.XStore
-	if err := c.ShouldBindJSON(&body); err != nil {
-		apierr.AbortValidation(c, "invalid xstore: "+err.Error())
-		return
-	}
-	created, err := s.repo.Create(c.Request.Context(), cli, ns, &body)
+// List lists XStores in the specified namespace
+func (s *XStoreService) List(ctx context.Context, cli client.Client, namespace string) ([]polardbxv1.XStore, error) {
+	items, err := s.repo.List(ctx, cli, namespace)
 	if err != nil {
-		util.HandleK8sError(c, "failed to create xstore", err)
-		return
+		return nil, fmt.Errorf("list xstores in namespace %s: %w", namespace, err)
 	}
-	apierr.Created(c, created)
+	return items, nil
 }
 
-func (s *XStoreService) Get(c *gin.Context) {
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		return
-	}
-	ns := c.Param("namespace")
-	name := c.Param("name")
-	item, err := s.repo.Get(c.Request.Context(), cli, ns, name)
+// Get gets the specified XStore
+func (s *XStoreService) Get(ctx context.Context, cli client.Client, namespace, name string) (*polardbxv1.XStore, error) {
+	item, err := s.repo.Get(ctx, cli, namespace, name)
 	if err != nil {
-		util.HandleK8sError(c, "failed to get xstore", err)
-		return
+		// When the underlying error is a Kubernetes NotFound, surface it as a
+		// service-level NotFoundError so that handlers can return a consistent
+		// RES_4001 error code instead of a lower-level K8S_* code.
+		if k8serrors.IsNotFound(err) {
+			return nil, apierr.NotFoundError("xstore", fmt.Sprintf("%s/%s", namespace, name))
+		}
+		return nil, fmt.Errorf("get xstore %s/%s: %w", namespace, name, err)
 	}
-	apierr.OK(c, item)
+	return item, nil
 }
 
-func (s *XStoreService) Update(c *gin.Context) {
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		return
-	}
-	ns := c.Param("namespace")
-	var body polardbxv1.XStore
-	if err := c.ShouldBindJSON(&body); err != nil {
-		apierr.AbortValidation(c, "invalid xstore: "+err.Error())
-		return
-	}
-	body.Namespace = ns
-	updated, err := s.repo.Update(c.Request.Context(), cli, ns, &body)
+// Create creates a new XStore
+func (s *XStoreService) Create(ctx context.Context, cli client.Client, namespace string, obj *polardbxv1.XStore) (*polardbxv1.XStore, error) {
+	created, err := s.repo.Create(ctx, cli, namespace, obj)
 	if err != nil {
-		util.HandleK8sError(c, "failed to update xstore", err)
-		return
+		return nil, fmt.Errorf("create xstore in namespace %s: %w", namespace, err)
 	}
-	apierr.OK(c, updated)
+	return created, nil
 }
 
-func (s *XStoreService) Delete(c *gin.Context) {
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		return
+// Update updates an existing XStore
+func (s *XStoreService) Update(ctx context.Context, cli client.Client, namespace string, obj *polardbxv1.XStore) (*polardbxv1.XStore, error) {
+	updated, err := s.repo.Update(ctx, cli, namespace, obj)
+	if err != nil {
+		return nil, fmt.Errorf("update xstore %s/%s: %w", namespace, obj.Name, err)
 	}
-	ns := c.Param("namespace")
-	name := c.Param("name")
-	if err := s.repo.Delete(c.Request.Context(), cli, ns, name); err != nil {
-		util.HandleK8sError(c, "failed to delete xstore", err)
-		return
-	}
-	apierr.OK(c, gin.H{"message": "xstore deleted"})
+	return updated, nil
 }
 
-func (s *XStoreService) ListPods(c *gin.Context) {
-	cli, ok := util.K8sClientFromContext(c)
-	if !ok {
-		return
+// Delete deletes the specified XStore
+func (s *XStoreService) Delete(ctx context.Context, cli client.Client, namespace, name string) error {
+	if err := s.repo.Delete(ctx, cli, namespace, name); err != nil {
+		return fmt.Errorf("delete xstore %s/%s: %w", namespace, name, err)
 	}
-	ns := c.Param("namespace")
-	name := c.Param("name")
-	items, err := s.repo.ListPods(c.Request.Context(), cli, ns, name)
+	return nil
+}
+
+// ListPods lists Pods that belong to the specified XStore
+func (s *XStoreService) ListPods(ctx context.Context, cli client.Client, namespace, xstoreName string) ([]corev1.Pod, error) {
+	items, err := s.repo.ListPods(ctx, cli, namespace, xstoreName)
 	if err != nil {
-		util.HandleK8sError(c, "failed to list pods for xstore", err)
-		return
+		return nil, fmt.Errorf("list pods for xstore %s/%s: %w", namespace, xstoreName, err)
 	}
-	apierr.OK(c, items)
+	return items, nil
 }

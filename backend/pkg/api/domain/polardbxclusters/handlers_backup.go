@@ -1,9 +1,15 @@
 package polardbxclusters
 
 import (
-	"polardbx-ui-backend/pkg/api/domain/polardbxclusters/services"
+	"net/http"
+	"time"
 
+	polardbxv1 "github.com/alibaba/polardbx-operator/api/v1"
 	"github.com/gin-gonic/gin"
+
+	"polardbx-ui-backend/pkg/api/domain/polardbxclusters/services"
+	apierr "polardbx-ui-backend/pkg/api/errors"
+	"polardbx-ui-backend/pkg/api/util"
 )
 
 // ListBackups lists backups for a given cluster by delegating to BackupService.
@@ -15,7 +21,22 @@ import (
 // @Param name path string true "Name of the PolarDB-X cluster"
 // @Success 200 {array} polardbxv1.PolarDBXBackup "List of backups"
 // @Failure 500 {object} map[string]any "Internal server error"
-func ListBackups(c *gin.Context) { services.NewBackupService().List(c) }
+func ListBackups(c *gin.Context) {
+	svc := services.NewBackupService()
+	cli, ok := util.K8sClientFromContext(c)
+	if !ok {
+		return
+	}
+	clusterName := c.Param("name")
+	namespace := c.Param("namespace")
+
+	backups, err := svc.ListBackups(c.Request.Context(), cli, namespace, clusterName)
+	if err != nil {
+		apierr.AbortWithError(c, err)
+		return
+	}
+	apierr.OK(c, backups)
+}
 
 // CreateBackup creates a new backup for a given cluster.
 // @Summary Create backup
@@ -29,7 +50,28 @@ func ListBackups(c *gin.Context) { services.NewBackupService().List(c) }
 // @Success 201 {object} polardbxv1.PolarDBXBackup "Created backup"
 // @Failure 400 {object} map[string]any "Invalid request body or parameters"
 // @Failure 500 {object} map[string]any "Internal server error"
-func CreateBackup(c *gin.Context) { services.NewBackupService().Create(c) }
+func CreateBackup(c *gin.Context) {
+	svc := services.NewBackupService()
+	cli, ok := util.K8sClientFromContext(c)
+	if !ok {
+		return
+	}
+
+	var backup polardbxv1.PolarDBXBackup
+	if err := c.ShouldBindJSON(&backup); err != nil {
+		apierr.AbortValidation(c, "failed to parse backup data: "+err.Error())
+		return
+	}
+	clusterName := c.Param("name")
+	namespace := c.Param("namespace")
+
+	created, err := svc.CreateBackup(c.Request.Context(), cli, namespace, clusterName, &backup)
+	if err != nil {
+		apierr.AbortWithError(c, err)
+		return
+	}
+	apierr.Created(c, created)
+}
 
 // GetBackupAdvice returns backup-related recommendations for a cluster.
 // @Summary Get backup advice
@@ -40,7 +82,27 @@ func CreateBackup(c *gin.Context) { services.NewBackupService().Create(c) }
 // @Param name path string true "Name of the PolarDB-X cluster"
 // @Success 200 {object} map[string]any "Advice payload"
 // @Failure 500 {object} map[string]any "Internal server error"
-func GetBackupAdvice(c *gin.Context) { services.NewBackupService().GetBackupAdvice(c) }
+func GetBackupAdvice(c *gin.Context) {
+	svc := services.NewBackupService()
+	cli, ok := util.K8sClientFromContext(c)
+	if !ok {
+		return
+	}
+	namespace := c.Param("namespace")
+	clusterName := c.Param("name")
+
+	hasFollower, role, reason, err := svc.GetBackupAdvice(c.Request.Context(), cli, namespace, clusterName)
+	if err != nil {
+		apierr.AbortWithError(c, err)
+		return
+	}
+
+	resp := gin.H{"hasFollower": hasFollower, "role": role}
+	if reason != nil {
+		resp["reason"] = reason
+	}
+	apierr.OK(c, resp)
+}
 
 // ValidateBackup validates a backup specification using a dry-run request.
 // @Summary Validate backup
@@ -54,7 +116,32 @@ func GetBackupAdvice(c *gin.Context) { services.NewBackupService().GetBackupAdvi
 // @Failure 400 {object} map[string]any "Invalid request body or parameters"
 // @Failure 422 {object} map[string]any "Backup validation failed"
 // @Failure 500 {object} map[string]any "Internal server error"
-func ValidateBackup(c *gin.Context) { services.NewBackupService().Validate(c) }
+func ValidateBackup(c *gin.Context) {
+	svc := services.NewBackupService()
+	cli, ok := util.K8sClientFromContext(c)
+	if !ok {
+		return
+	}
+
+	var backup polardbxv1.PolarDBXBackup
+	if err := c.ShouldBindJSON(&backup); err != nil {
+		apierr.AbortValidation(c, "failed to parse backup data: "+err.Error())
+		return
+	}
+	ns := c.Query("namespace")
+	if ns == "" {
+		ns = backup.Namespace
+	}
+	if ns == "" {
+		ns = "default"
+	}
+
+	if err := svc.ValidateBackup(c.Request.Context(), cli, ns, &backup); err != nil {
+		apierr.AbortWithError(c, err)
+		return
+	}
+	apierr.OK(c, gin.H{"valid": true})
+}
 
 // StreamBackupEvents streams backup phase changes and events using server-sent events.
 // @Summary Stream backup events
@@ -66,7 +153,29 @@ func ValidateBackup(c *gin.Context) { services.NewBackupService().Validate(c) }
 // @Success 200 {string} string "SSE stream of backup events"
 // @Failure 404 {object} map[string]any "Backup not found"
 // @Failure 500 {object} map[string]any "Internal server error or streaming unsupported"
-func StreamBackupEvents(c *gin.Context) { services.NewBackupService().StreamEvents(c) }
+func StreamBackupEvents(c *gin.Context) {
+	svc := services.NewBackupService()
+	cli, ok := util.K8sClientFromContext(c)
+	if !ok {
+		return
+	}
+	namespace := c.Param("namespace")
+	name := c.Param("name")
+	flusher, ok := c.Writer.(http.Flusher)
+	if !ok {
+		apierr.AbortInternal(c, "streaming unsupported")
+		return
+	}
+	// Set standard SSE headers before starting the stream.
+	c.Header("Content-Type", "text/event-stream")
+	c.Header("Cache-Control", "no-cache")
+	c.Header("Connection", "keep-alive")
+
+	if err := svc.StreamEvents(c.Request.Context(), cli, namespace, name, c.Writer, flusher.Flush); err != nil {
+		apierr.AbortWithError(c, err)
+		return
+	}
+}
 
 // GetBackupMetrics returns coarse-grained backup progress metrics for a backup.
 // @Summary Get backup metrics
@@ -78,7 +187,21 @@ func StreamBackupEvents(c *gin.Context) { services.NewBackupService().StreamEven
 // @Success 200 {object} map[string]any "Progress metrics and child backup stats"
 // @Failure 404 {object} map[string]any "Backup not found"
 // @Failure 500 {object} map[string]any "Internal server error"
-func GetBackupMetrics(c *gin.Context) { services.NewBackupService().GetMetrics(c) }
+func GetBackupMetrics(c *gin.Context) {
+	svc := services.NewBackupService()
+	cli, ok := util.K8sClientFromContext(c)
+	if !ok {
+		return
+	}
+	ns := c.Param("namespace")
+	name := c.Param("name")
+	resp, err := svc.GetBackupMetrics(c.Request.Context(), cli, ns, name)
+	if err != nil {
+		apierr.AbortWithError(c, err)
+		return
+	}
+	apierr.OK(c, resp)
+}
 
 // GetBinlogMetrics returns binlog backup related metrics for a cluster.
 // @Summary Get binlog backup metrics
@@ -90,7 +213,27 @@ func GetBackupMetrics(c *gin.Context) { services.NewBackupService().GetMetrics(c
 // @Success 200 {object} map[string]any "Binlog backup metrics"
 // @Failure 404 {object} map[string]any "Cluster or metrics not found"
 // @Failure 500 {object} map[string]any "Internal server error"
-func GetBinlogMetrics(c *gin.Context) { services.NewBackupService().GetBinlogMetrics(c) }
+func GetBinlogMetrics(c *gin.Context) {
+	svc := services.NewBackupService()
+	cli, ok := util.K8sClientFromContext(c)
+	if !ok {
+		return
+	}
+	namespace := c.DefaultQuery("namespace", "")
+	nowStr := c.DefaultQuery("now", "")
+	var now time.Time
+	if nowStr != "" {
+		if t, err := time.Parse(time.RFC3339, nowStr); err == nil {
+			now = t
+		}
+	}
+	resp, err := svc.GetBinlogMetrics(c.Request.Context(), cli, namespace, now)
+	if err != nil {
+		apierr.AbortWithError(c, err)
+		return
+	}
+	apierr.OK(c, resp)
+}
 
 // DeleteBackup deletes a PolarDB-X backup resource.
 // @Summary Delete backup
@@ -101,7 +244,20 @@ func GetBinlogMetrics(c *gin.Context) { services.NewBackupService().GetBinlogMet
 // @Success 204 "Backup deleted successfully"
 // @Failure 404 {object} map[string]any "Backup not found"
 // @Failure 500 {object} map[string]any "Internal server error"
-func DeleteBackup(c *gin.Context) { services.NewBackupService().Delete(c) }
+func DeleteBackup(c *gin.Context) {
+	svc := services.NewBackupService()
+	cli, ok := util.K8sClientFromContext(c)
+	if !ok {
+		return
+	}
+	ns := c.Param("namespace")
+	name := c.Param("name")
+	if err := svc.DeleteBackup(c.Request.Context(), cli, ns, name); err != nil {
+		apierr.AbortWithError(c, err)
+		return
+	}
+	apierr.OK(c, gin.H{"message": "backup deleted successfully"})
+}
 
 // ForceDeleteBackup forcefully deletes a backup by removing finalizers and then deleting the resource.
 // @Summary Force delete backup
@@ -112,7 +268,20 @@ func DeleteBackup(c *gin.Context) { services.NewBackupService().Delete(c) }
 // @Success 202 {object} map[string]any "Deletion requested"
 // @Failure 404 {object} map[string]any "Backup not found"
 // @Failure 500 {object} map[string]any "Internal server error"
-func ForceDeleteBackup(c *gin.Context) { services.NewBackupService().ForceDelete(c) }
+func ForceDeleteBackup(c *gin.Context) {
+	svc := services.NewBackupService()
+	cli, ok := util.K8sClientFromContext(c)
+	if !ok {
+		return
+	}
+	ns := c.Param("namespace")
+	name := c.Param("name")
+	if err := svc.ForceDeleteBackup(c.Request.Context(), cli, ns, name); err != nil {
+		apierr.AbortWithError(c, err)
+		return
+	}
+	apierr.OK(c, gin.H{"message": "backup finalizers removed and deletion triggered"})
+}
 
 // ListSchedules lists backup schedules for a cluster or namespace.
 // @Summary List backup schedules
@@ -123,7 +292,20 @@ func ForceDeleteBackup(c *gin.Context) { services.NewBackupService().ForceDelete
 // @Param name query string false "Filter by schedule name"
 // @Success 200 {array} polardbxv1.PolarDBXBackupSchedule "List of backup schedules"
 // @Failure 500 {object} map[string]any "Internal server error"
-func ListSchedules(c *gin.Context) { services.NewBackupScheduleService().List(c) }
+func ListSchedules(c *gin.Context) {
+	svc := services.NewBackupScheduleService()
+	cli, ok := util.K8sClientFromContext(c)
+	if !ok {
+		return
+	}
+	ns := util.DefaultNamespace(c, "default")
+	items, err := svc.ListSchedules(c.Request.Context(), cli, ns)
+	if err != nil {
+		apierr.AbortWithError(c, err)
+		return
+	}
+	apierr.OK(c, items)
+}
 
 // CreateSchedule creates a new backup schedule.
 // @Summary Create backup schedule
@@ -135,7 +317,25 @@ func ListSchedules(c *gin.Context) { services.NewBackupScheduleService().List(c)
 // @Success 201 {object} polardbxv1.PolarDBXBackupSchedule "Created backup schedule"
 // @Failure 400 {object} map[string]any "Invalid request body or parameters"
 // @Failure 500 {object} map[string]any "Internal server error"
-func CreateSchedule(c *gin.Context) { services.NewBackupScheduleService().Create(c) }
+func CreateSchedule(c *gin.Context) {
+	svc := services.NewBackupScheduleService()
+	cli, ok := util.K8sClientFromContext(c)
+	if !ok {
+		return
+	}
+	ns := util.DefaultNamespace(c, "default")
+	var body polardbxv1.PolarDBXBackupSchedule
+	if err := c.ShouldBindJSON(&body); err != nil {
+		apierr.AbortValidation(c, "invalid schedule: "+err.Error())
+		return
+	}
+	created, err := svc.CreateSchedule(c.Request.Context(), cli, ns, &body)
+	if err != nil {
+		apierr.AbortWithError(c, err)
+		return
+	}
+	apierr.Created(c, created)
+}
 
 // GetSchedule gets a specific backup schedule.
 // @Summary Get backup schedule
@@ -147,7 +347,21 @@ func CreateSchedule(c *gin.Context) { services.NewBackupScheduleService().Create
 // @Success 200 {object} polardbxv1.PolarDBXBackupSchedule "Backup schedule"
 // @Failure 404 {object} map[string]any "Schedule not found"
 // @Failure 500 {object} map[string]any "Internal server error"
-func GetSchedule(c *gin.Context) { services.NewBackupScheduleService().Get(c) }
+func GetSchedule(c *gin.Context) {
+	svc := services.NewBackupScheduleService()
+	cli, ok := util.K8sClientFromContext(c)
+	if !ok {
+		return
+	}
+	ns := c.Param("namespace")
+	name := c.Param("name")
+	item, err := svc.GetSchedule(c.Request.Context(), cli, ns, name)
+	if err != nil {
+		apierr.AbortWithError(c, err)
+		return
+	}
+	apierr.OK(c, item)
+}
 
 // UpdateSchedule updates an existing backup schedule.
 // @Summary Update backup schedule
@@ -162,7 +376,25 @@ func GetSchedule(c *gin.Context) { services.NewBackupScheduleService().Get(c) }
 // @Failure 400 {object} map[string]any "Invalid request body or parameters"
 // @Failure 404 {object} map[string]any "Schedule not found"
 // @Failure 500 {object} map[string]any "Internal server error"
-func UpdateSchedule(c *gin.Context) { services.NewBackupScheduleService().Update(c) }
+func UpdateSchedule(c *gin.Context) {
+	svc := services.NewBackupScheduleService()
+	cli, ok := util.K8sClientFromContext(c)
+	if !ok {
+		return
+	}
+	ns := c.Param("namespace")
+	var body polardbxv1.PolarDBXBackupSchedule
+	if err := c.ShouldBindJSON(&body); err != nil {
+		apierr.AbortValidation(c, "invalid schedule: "+err.Error())
+		return
+	}
+	updated, err := svc.UpdateSchedule(c.Request.Context(), cli, ns, &body)
+	if err != nil {
+		apierr.AbortWithError(c, err)
+		return
+	}
+	apierr.OK(c, updated)
+}
 
 // DeleteSchedule deletes a backup schedule.
 // @Summary Delete backup schedule
@@ -173,7 +405,20 @@ func UpdateSchedule(c *gin.Context) { services.NewBackupScheduleService().Update
 // @Success 204 "Backup schedule deleted successfully"
 // @Failure 404 {object} map[string]any "Schedule not found"
 // @Failure 500 {object} map[string]any "Internal server error"
-func DeleteSchedule(c *gin.Context) { services.NewBackupScheduleService().Delete(c) }
+func DeleteSchedule(c *gin.Context) {
+	svc := services.NewBackupScheduleService()
+	cli, ok := util.K8sClientFromContext(c)
+	if !ok {
+		return
+	}
+	ns := c.Param("namespace")
+	name := c.Param("name")
+	if err := svc.DeleteSchedule(c.Request.Context(), cli, ns, name); err != nil {
+		apierr.AbortWithError(c, err)
+		return
+	}
+	apierr.OK(c, gin.H{"message": "backup schedule deleted"})
+}
 
 // GetScheduleNextRuns returns the next execution times for backup schedules.
 // @Summary Get backup schedule next runs
@@ -183,7 +428,27 @@ func DeleteSchedule(c *gin.Context) { services.NewBackupScheduleService().Delete
 // @Param namespace query string false "Filter by namespace"
 // @Success 200 {object} map[string]any "Next-run aggregation"
 // @Failure 500 {object} map[string]any "Internal server error"
-func GetScheduleNextRuns(c *gin.Context) { services.NewBackupScheduleService().GetNextRuns(c) }
+func GetScheduleNextRuns(c *gin.Context) {
+	svc := services.NewBackupScheduleService()
+	cli, ok := util.K8sClientFromContext(c)
+	if !ok {
+		return
+	}
+	namespace := c.DefaultQuery("namespace", "")
+	nowStr := c.DefaultQuery("now", "")
+	var now time.Time
+	if nowStr != "" {
+		if t, err := time.Parse(time.RFC3339, nowStr); err == nil {
+			now = t
+		}
+	}
+	items, err := svc.GetNextRuns(c.Request.Context(), cli, namespace, now)
+	if err != nil {
+		apierr.AbortWithError(c, err)
+		return
+	}
+	apierr.OK(c, gin.H{"namespace": namespace, "total": len(items), "schedules": items})
+}
 
 // GetBackupOverview returns an aggregated overview of backup status for a cluster.
 // @Summary Get backup overview
@@ -195,7 +460,23 @@ func GetScheduleNextRuns(c *gin.Context) { services.NewBackupScheduleService().G
 // @Success 200 {object} map[string]any "Backup overview"
 // @Failure 404 {object} map[string]any "Cluster not found"
 // @Failure 500 {object} map[string]any "Internal server error"
-func GetBackupOverview(c *gin.Context) { services.NewBackupService().GetOverview(c) }
+func GetBackupOverview(c *gin.Context) {
+	svc := services.NewBackupService()
+	cli, ok := util.K8sClientFromContext(c)
+	if !ok {
+		return
+	}
+	namespace := c.DefaultQuery("namespace", "")
+	evaluateConnectivity := c.DefaultQuery("evaluateConnectivity", "false") == "true"
+	evaluateStorage := c.DefaultQuery("evaluateStorage", "false") == "true"
+	systemNS := c.DefaultQuery("systemNamespace", "polardbx-operator-system")
+	resp, err := svc.GetBackupOverview(c.Request.Context(), cli, namespace, evaluateConnectivity, evaluateStorage, systemNS)
+	if err != nil {
+		apierr.AbortWithError(c, err)
+		return
+	}
+	apierr.OK(c, resp)
+}
 
 // GetClusterBackupState returns a summarized backup state for the given cluster.
 // @Summary Get cluster backup state
@@ -207,7 +488,20 @@ func GetBackupOverview(c *gin.Context) { services.NewBackupService().GetOverview
 // @Success 200 {object} map[string]any "Cluster backup state"
 // @Failure 404 {object} map[string]any "Cluster not found"
 // @Failure 500 {object} map[string]any "Internal server error"
-func GetClusterBackupState(c *gin.Context) { services.NewBackupService().GetClusterState(c) }
+func GetClusterBackupState(c *gin.Context) {
+	svc := services.NewBackupService()
+	cli, ok := util.K8sClientFromContext(c)
+	if !ok {
+		return
+	}
+	namespace := c.DefaultQuery("namespace", "")
+	resp, err := svc.GetClusterBackupState(c.Request.Context(), cli, namespace)
+	if err != nil {
+		apierr.AbortWithError(c, err)
+		return
+	}
+	apierr.OK(c, resp)
+}
 
 // ListHpfsSinks lists configured HPFS sinks from the HPFS configuration.
 // @Summary List HPFS sinks
@@ -217,7 +511,20 @@ func GetClusterBackupState(c *gin.Context) { services.NewBackupService().GetClus
 // @Param systemNamespace query string false "Namespace of the HPFS config ConfigMap; defaults to polardbx-operator-system"
 // @Success 200 {object} map[string]any "HPFS sink definitions"
 // @Failure 500 {object} map[string]any "Internal server error or invalid config"
-func ListHpfsSinks(c *gin.Context) { services.NewBackupService().ListHpfsSinks(c) }
+func ListHpfsSinks(c *gin.Context) {
+	svc := services.NewBackupService()
+	cli, ok := util.K8sClientFromContext(c)
+	if !ok {
+		return
+	}
+	systemNS := c.DefaultQuery("systemNamespace", "polardbx-operator-system")
+	resp, err := svc.ListHpfsSinks(c.Request.Context(), cli, systemNS)
+	if err != nil {
+		apierr.AbortWithError(c, err)
+		return
+	}
+	apierr.OK(c, resp)
+}
 
 // ValidateHpfsSink validates that a given HPFS sink exists in the HPFS configuration.
 // @Summary Validate HPFS sink
@@ -230,4 +537,25 @@ func ListHpfsSinks(c *gin.Context) { services.NewBackupService().ListHpfsSinks(c
 // @Success 200 {object} map[string]any "Validation status and message"
 // @Failure 400 {object} map[string]any "Invalid request body"
 // @Failure 500 {object} map[string]any "Internal server error"
-func ValidateHpfsSink(c *gin.Context) { services.NewBackupService().ValidateHpfsSink(c) }
+func ValidateHpfsSink(c *gin.Context) {
+	svc := services.NewBackupService()
+	cli, ok := util.K8sClientFromContext(c)
+	if !ok {
+		return
+	}
+	var req struct {
+		Name string `json:"name"`
+		Type string `json:"type"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		apierr.AbortValidation(c, "invalid request body")
+		return
+	}
+	systemNS := c.DefaultQuery("systemNamespace", "polardbx-operator-system")
+	resp, err := svc.ValidateHpfsSink(c.Request.Context(), cli, systemNS, req.Name, req.Type)
+	if err != nil {
+		apierr.AbortWithError(c, err)
+		return
+	}
+	apierr.OK(c, resp)
+}
