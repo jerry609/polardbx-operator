@@ -12,7 +12,7 @@ import (
 	"polardbx-ui-backend/pkg/api/util"
 )
 
-// SettingsHandler handles HTTP requests related to settings
+// SettingsHandler handles HTTP requests related to platform settings.
 type SettingsHandler struct {
 	service *service.SettingsService
 }
@@ -39,7 +39,13 @@ func NewSettingsServiceFromClient(cli client.Client) *service.SettingsService {
 	return service.NewSettingsService(repo)
 }
 
-// Get gets all settings
+// Get gets all backup dashboard settings.
+// @Summary Get backup dashboard settings
+// @Description Get current backup dashboard settings for the platform.
+// @Tags platform, settings
+// @Produce json
+// @Success 200 {object} map[string]any "Settings payload"
+// @Failure 500 {object} map[string]any "Internal server error"
 func Get(c *gin.Context) {
 	h, ok := NewSettingsHandlerFromContext(c)
 	if !ok {
@@ -49,7 +55,16 @@ func Get(c *gin.Context) {
 	apierr.OK(c, data)
 }
 
-// Update updates settings
+// Update updates backup dashboard settings.
+// @Summary Update backup dashboard settings
+// @Description Update backup dashboard settings with the provided key-value map.
+// @Tags platform, settings
+// @Accept json
+// @Produce json
+// @Param body body map[string]any true "Settings payload"
+// @Success 200 {object} map[string]any "Updated settings"
+// @Failure 400 {object} map[string]any "Invalid payload"
+// @Failure 500 {object} map[string]any "Internal server error"
 func Update(c *gin.Context) {
 	h, ok := NewSettingsHandlerFromContext(c)
 	if !ok {
@@ -73,7 +88,13 @@ func ReadDashboardSettings(ctx context.Context, cli client.Client) service.Backu
 	return svc.GetDashboardSettings(ctx)
 }
 
-// GetImageRegistryConfig gets image registry configuration
+// GetImageRegistryConfig gets image registry configuration.
+// @Summary Get image registry configuration
+// @Description Get current image registry configuration used by the platform.
+// @Tags platform, settings
+// @Produce json
+// @Success 200 {object} map[string]any "Image registry configuration"
+// @Failure 500 {object} map[string]any "Internal server error"
 func GetImageRegistryConfig(c *gin.Context) {
 	h, ok := NewSettingsHandlerFromContext(c)
 	if !ok {
@@ -93,7 +114,16 @@ type UpdateImageRegistryRequest struct {
 	Mirrors         []string `json:"mirrors"`
 }
 
-// UpdateImageRegistryConfig updates image registry configuration
+// UpdateImageRegistryConfig updates image registry configuration.
+// @Summary Update image registry configuration
+// @Description Update image registry configuration such as registry presets and defaults.
+// @Tags platform, settings
+// @Accept json
+// @Produce json
+// @Param body body UpdateImageRegistryRequest true "Image registry configuration payload"
+// @Success 200 {object} map[string]any "Updated image registry configuration"
+// @Failure 400 {object} map[string]any "Invalid payload or validation error"
+// @Failure 500 {object} map[string]any "Internal server error"
 func UpdateImageRegistryConfig(c *gin.Context) {
 	h, ok := NewSettingsHandlerFromContext(c)
 	if !ok {
@@ -118,7 +148,13 @@ func UpdateImageRegistryConfig(c *gin.Context) {
 	})
 }
 
-// GetAvailableRegistries gets available image registry presets
+// GetAvailableRegistries gets available image registry presets.
+// @Summary List available image registries
+// @Description List available image registry presets that can be chosen.
+// @Tags platform, settings
+// @Produce json
+// @Success 200 {object} map[string]any "Available registry presets"
+// @Failure 500 {object} map[string]any "Internal server error"
 func GetAvailableRegistries(c *gin.Context) {
 	h, ok := NewSettingsHandlerFromContext(c)
 	if !ok {
@@ -135,7 +171,15 @@ type TestImageRegistryRequest struct {
 	Registry string `json:"registry" binding:"required"`
 }
 
-// TestImageRegistry tests image registry connectivity
+// TestImageRegistry tests image registry connectivity (placeholder implementation).
+// @Summary Test image registry connectivity
+// @Description Test connectivity to the given image registry (currently a stub implementation).
+// @Tags platform, settings
+// @Accept json
+// @Produce json
+// @Param body body TestImageRegistryRequest true "Registry test request"
+// @Success 200 {object} map[string]any "Test result (always reachable in current implementation)"
+// @Failure 400 {object} map[string]any "Invalid payload"
 func TestImageRegistry(c *gin.Context) {
 	var req TestImageRegistryRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

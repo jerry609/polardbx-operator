@@ -12,7 +12,8 @@ import (
 	jwt "github.com/golang-jwt/jwt/v5"
 )
 
-// Claims JWT claims
+// Claims represents JWT claims used by the auth endpoints.
+// It includes username, role, and standard registered claims.
 type Claims struct {
 	Username string `json:"username"`
 	Role     string `json:"role"`
@@ -23,7 +24,18 @@ func getJWTSecret() string {
 	return strings.TrimSpace(os.Getenv("JWT_SECRET"))
 }
 
-// Login login and issue JWT (when JWT_SECRET is configured)
+// Login authenticates the user and issues a JWT when JWT_SECRET is configured.
+// @Summary Login and issue JWT
+// @Description Authenticate using configured admin credentials and issue a signed JWT token.
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param body body struct{Username string `json:"username"`; Password string `json:"password"`} true "Login request"
+// @Success 200 {object} map[string]any "JWT token and metadata"
+// @Failure 400 {object} map[string]any "Invalid request payload"
+// @Failure 401 {object} map[string]any "Invalid credentials"
+// @Failure 503 {object} map[string]any "JWT not enabled (JWT_SECRET not configured)"
+// @Failure 500 {object} map[string]any "Internal server error"
 func Login(c *gin.Context) {
 	secret := getJWTSecret()
 	if secret == "" {
@@ -74,7 +86,13 @@ func Login(c *gin.Context) {
 	apierr.OK(c, gin.H{"token": signed, "expiresAt": exp.UTC().Format(time.RFC3339), "role": role})
 }
 
-// Me returns current JWT claims
+// Me returns current JWT claims and auth status for the caller.
+// @Summary Get current auth info
+// @Description Return current authentication status, username, role, and token expiration (if JWT is enabled).
+// @Tags auth
+// @Produce json
+// @Success 200 {object} map[string]any "Auth status and claims"
+// @Failure 401 {object} map[string]any "Unauthorized or invalid token"
 func Me(c *gin.Context) {
 	secret := getJWTSecret()
 	if secret == "" {

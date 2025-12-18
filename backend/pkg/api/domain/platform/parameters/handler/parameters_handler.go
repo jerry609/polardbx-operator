@@ -15,6 +15,15 @@ import (
 // ======================== Parameters ========================
 
 // List gets parameter list
+// @Summary List parameters
+// @Description Lists all PolarDB-X parameters in the specified namespace
+// @Tags parameters
+// @Accept json
+// @Produce json
+// @Param namespace query string false "Kubernetes namespace (default: default)"
+// @Success 200 {array} polardbxv1.PolarDBXParameter "List of parameters"
+// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Router /api/v1/polardbxclusters/parameters [get]
 func List(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -30,6 +39,17 @@ func List(c *gin.Context) {
 }
 
 // Get gets specified parameter
+// @Summary Get parameter
+// @Description Retrieves details of a specific PolarDB-X parameter
+// @Tags parameters
+// @Accept json
+// @Produce json
+// @Param namespace query string false "Kubernetes namespace (default: default)"
+// @Param name path string true "Name of the parameter"
+// @Success 200 {object} polardbxv1.PolarDBXParameter "Parameter details"
+// @Failure 404 {object} map[string]any "Parameter not found"
+// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Router /api/v1/polardbxclusters/parameters/{name} [get]
 func Get(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -46,6 +66,18 @@ func Get(c *gin.Context) {
 }
 
 // Create creates parameter
+// @Summary Create parameter
+// @Description Creates a new PolarDB-X parameter
+// @Tags parameters
+// @Accept json
+// @Produce json
+// @Param namespace query string false "Kubernetes namespace (default: default)"
+// @Param body body polardbxv1.PolarDBXParameter true "Parameter specification"
+// @Success 201 {object} polardbxv1.PolarDBXParameter "Created parameter"
+// @Failure 400 {object} map[string]any "Invalid parameter specification"
+// @Failure 409 {object} map[string]any "Parameter already exists"
+// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Router /api/v1/polardbxclusters/parameters [post]
 func Create(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -66,6 +98,19 @@ func Create(c *gin.Context) {
 }
 
 // Update updates parameter
+// @Summary Update parameter
+// @Description Updates an existing PolarDB-X parameter
+// @Tags parameters
+// @Accept json
+// @Produce json
+// @Param namespace query string false "Kubernetes namespace (default: default)"
+// @Param name path string true "Name of the parameter"
+// @Param body body polardbxv1.PolarDBXParameter true "Updated parameter specification"
+// @Success 200 {object} polardbxv1.PolarDBXParameter "Updated parameter"
+// @Failure 400 {object} map[string]any "Invalid parameter specification"
+// @Failure 404 {object} map[string]any "Parameter not found"
+// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Router /api/v1/polardbxclusters/parameters/{name} [put]
 func Update(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -86,6 +131,17 @@ func Update(c *gin.Context) {
 }
 
 // Delete deletes parameter
+// @Summary Delete parameter
+// @Description Deletes a PolarDB-X parameter
+// @Tags parameters
+// @Accept json
+// @Produce json
+// @Param namespace query string false "Kubernetes namespace (default: default)"
+// @Param name path string true "Name of the parameter"
+// @Success 200 {object} map[string]any "Deletion confirmation"
+// @Failure 404 {object} map[string]any "Parameter not found"
+// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Router /api/v1/polardbxclusters/parameters/{name} [delete]
 func Delete(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -103,6 +159,15 @@ func Delete(c *gin.Context) {
 // ======================== Parameter Templates ========================
 
 // ListTemplates gets parameter template list
+// @Summary List parameter templates
+// @Description Lists all PolarDB-X parameter templates in the specified namespace
+// @Tags parameter-templates
+// @Accept json
+// @Produce json
+// @Param namespace query string false "Kubernetes namespace (default: default)"
+// @Success 200 {array} polardbxv1.PolarDBXParameterTemplate "List of parameter templates"
+// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Router /api/v1/polardbxclusters/parameter-templates [get]
 func ListTemplates(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -118,6 +183,17 @@ func ListTemplates(c *gin.Context) {
 }
 
 // GetTemplate gets specified parameter template
+// @Summary Get parameter template
+// @Description Retrieves details of a specific PolarDB-X parameter template
+// @Tags parameter-templates
+// @Accept json
+// @Produce json
+// @Param namespace path string true "Kubernetes namespace"
+// @Param name path string true "Name of the parameter template"
+// @Success 200 {object} polardbxv1.PolarDBXParameterTemplate "Parameter template details"
+// @Failure 404 {object} map[string]any "Parameter template not found"
+// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Router /api/v1/polardbxclusters/parameter-templates/{namespace}/{name} [get]
 func GetTemplate(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -134,6 +210,18 @@ func GetTemplate(c *gin.Context) {
 }
 
 // CreateTemplate creates parameter template
+// @Summary Create parameter template
+// @Description Creates a new PolarDB-X parameter template
+// @Tags parameter-templates
+// @Accept json
+// @Produce json
+// @Param namespace query string false "Kubernetes namespace (default: default)"
+// @Param body body polardbxv1.PolarDBXParameterTemplate true "Parameter template specification"
+// @Success 201 {object} polardbxv1.PolarDBXParameterTemplate "Created parameter template"
+// @Failure 400 {object} map[string]any "Invalid parameter template specification"
+// @Failure 409 {object} map[string]any "Parameter template already exists"
+// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Router /api/v1/polardbxclusters/parameter-templates [post]
 func CreateTemplate(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -154,6 +242,19 @@ func CreateTemplate(c *gin.Context) {
 }
 
 // UpdateTemplate updates parameter template
+// @Summary Update parameter template
+// @Description Updates an existing PolarDB-X parameter template
+// @Tags parameter-templates
+// @Accept json
+// @Produce json
+// @Param namespace path string true "Kubernetes namespace"
+// @Param name path string true "Name of the parameter template"
+// @Param body body polardbxv1.PolarDBXParameterTemplate true "Updated parameter template specification"
+// @Success 200 {object} polardbxv1.PolarDBXParameterTemplate "Updated parameter template"
+// @Failure 400 {object} map[string]any "Invalid parameter template specification"
+// @Failure 404 {object} map[string]any "Parameter template not found"
+// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Router /api/v1/polardbxclusters/parameter-templates/{namespace}/{name} [put]
 func UpdateTemplate(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -174,6 +275,17 @@ func UpdateTemplate(c *gin.Context) {
 }
 
 // DeleteTemplate deletes parameter template
+// @Summary Delete parameter template
+// @Description Deletes a PolarDB-X parameter template
+// @Tags parameter-templates
+// @Accept json
+// @Produce json
+// @Param namespace path string true "Kubernetes namespace"
+// @Param name path string true "Name of the parameter template"
+// @Success 200 {object} map[string]any "Deletion confirmation"
+// @Failure 404 {object} map[string]any "Parameter template not found"
+// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Router /api/v1/polardbxclusters/parameter-templates/{namespace}/{name} [delete]
 func DeleteTemplate(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {

@@ -418,6 +418,20 @@ func verifyPrecheckToken(secret, plain, sig string) bool {
 // ======================== HTTP Handlers ========================
 
 // GetPrechangeChecklist gets pre-change checklist
+// @Summary Get pre-change checklist
+// @Description Retrieves a pre-change checklist for cluster operations (backup status, RPO, storage connectivity, etc.)
+// @Tags prechange
+// @Accept json
+// @Produce json
+// @Param namespace path string true "Kubernetes namespace of the cluster"
+// @Param name path string true "Name of the PolarDB-X cluster"
+// @Param windowHours query int false "Time window in hours for recent backup check (default: 24)"
+// @Param now query string false "Reference time in RFC3339 format (default: current time)"
+// @Success 200 {object} map[string]any "Pre-change checklist with backup status, RPO, storage connectivity"
+// @Failure 400 {object} map[string]any "Invalid request parameters"
+// @Failure 404 {object} map[string]any "Cluster not found"
+// @Failure 500 {object} map[string]any "Internal server error"
+// @Router /api/v1/polardbxclusters/{namespace}/{name}/prechange-check [get]
 func GetPrechangeChecklist(c *gin.Context) {
 	k8sClient, ok := getK8sClient(c)
 	if !ok {
@@ -463,6 +477,19 @@ func GetPrechangeChecklist(c *gin.Context) {
 }
 
 // Precheck performs precheck and returns pass/warnings/errors and lightweight token
+// @Summary Perform pre-change check
+// @Description Performs comprehensive pre-change validation for cluster operations (scale/upgrade/config), returns pass status, warnings, errors, and a validation token
+// @Tags prechange
+// @Accept json
+// @Produce json
+// @Param namespace path string true "Kubernetes namespace of the cluster"
+// @Param name path string true "Name of the PolarDB-X cluster"
+// @Param body body PrecheckRequest true "Precheck request with operation type and optional target spec"
+// @Success 200 {object} map[string]any "Precheck result with pass status, warnings, errors, checks, and validation token"
+// @Failure 400 {object} map[string]any "Invalid request or unsupported operation"
+// @Failure 404 {object} map[string]any "Cluster not found"
+// @Failure 500 {object} map[string]any "Internal server error"
+// @Router /api/v1/polardbxclusters/{namespace}/{name}/precheck [post]
 func Precheck(c *gin.Context) {
 	k8sClient, ok := getK8sClient(c)
 	if !ok {

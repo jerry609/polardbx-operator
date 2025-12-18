@@ -36,7 +36,13 @@ func NewAlertsHandlerFromContext(c *gin.Context) (*AlertsHandler, bool) {
 	return NewAlertsHandler(svc), true
 }
 
-// ListProfiles lists all configuration files
+// ListProfiles lists all alertmanager configuration profiles.
+// @Summary List alert profiles
+// @Description List all stored Alertmanager configuration profiles.
+// @Tags platform, alerts
+// @Produce json
+// @Success 200 {object} map[string]any "Profiles list (items)"
+// @Failure 500 {object} map[string]any "Internal server error"
 func ListProfiles(c *gin.Context) {
 	h, ok := NewAlertsHandlerFromContext(c)
 	if !ok {
@@ -46,7 +52,17 @@ func ListProfiles(c *gin.Context) {
 	apierr.OK(c, gin.H{"items": items})
 }
 
-// CreateProfile creates configuration file
+// CreateProfile creates a new alertmanager configuration profile.
+// @Summary Create alert profile
+// @Description Create a new Alertmanager configuration profile with the given name and content.
+// @Tags platform, alerts
+// @Accept json
+// @Produce json
+// @Param body body struct{Name string `json:"name"`; Content string `json:"content"`} true "Profile payload"
+// @Success 201 {object} map[string]any "Created profile name"
+// @Failure 400 {object} map[string]any "Invalid payload"
+// @Failure 409 {object} map[string]any "Profile already exists"
+// @Failure 500 {object} map[string]any "Internal server error"
 func CreateProfile(c *gin.Context) {
 	h, ok := NewAlertsHandlerFromContext(c)
 	if !ok {
@@ -71,7 +87,15 @@ func CreateProfile(c *gin.Context) {
 	apierr.Created(c, gin.H{"name": body.Name})
 }
 
-// GetProfile gets configuration file
+// GetProfile gets a single alertmanager configuration profile.
+// @Summary Get alert profile
+// @Description Get a specific Alertmanager configuration profile by name.
+// @Tags platform, alerts
+// @Produce json
+// @Param name path string true "Profile name"
+// @Success 200 {object} map[string]any "Profile name and content"
+// @Failure 404 {object} map[string]any "Profile not found"
+// @Failure 500 {object} map[string]any "Internal server error"
 func GetProfile(c *gin.Context) {
 	h, ok := NewAlertsHandlerFromContext(c)
 	if !ok {
@@ -86,7 +110,18 @@ func GetProfile(c *gin.Context) {
 	apierr.OK(c, gin.H{"name": profile.Name, "content": profile.Content})
 }
 
-// UpdateProfile updates configuration file
+// UpdateProfile updates an existing alertmanager configuration profile.
+// @Summary Update alert profile
+// @Description Update content of an existing Alertmanager configuration profile.
+// @Tags platform, alerts
+// @Accept json
+// @Produce json
+// @Param name path string true "Profile name"
+// @Param body body struct{Content string `json:"content"`} true "Updated profile content"
+// @Success 200 {object} map[string]any "Updated profile name"
+// @Failure 400 {object} map[string]any "Invalid payload"
+// @Failure 404 {object} map[string]any "Profile not found"
+// @Failure 500 {object} map[string]any "Internal server error"
 func UpdateProfile(c *gin.Context) {
 	h, ok := NewAlertsHandlerFromContext(c)
 	if !ok {
@@ -111,7 +146,15 @@ func UpdateProfile(c *gin.Context) {
 	apierr.OK(c, gin.H{"name": name})
 }
 
-// DeleteProfile deletes configuration file
+// DeleteProfile deletes an alertmanager configuration profile.
+// @Summary Delete alert profile
+// @Description Delete an Alertmanager configuration profile by name.
+// @Tags platform, alerts
+// @Produce json
+// @Param name path string true "Profile name"
+// @Success 200 {object} map[string]any "Deleted profile name"
+// @Failure 404 {object} map[string]any "Profile not found"
+// @Failure 500 {object} map[string]any "Internal server error"
 func DeleteProfile(c *gin.Context) {
 	h, ok := NewAlertsHandlerFromContext(c)
 	if !ok {
@@ -129,7 +172,16 @@ func DeleteProfile(c *gin.Context) {
 	apierr.OK(c, gin.H{"deleted": name})
 }
 
-// DryRunProfile validates Alertmanager YAML
+// DryRunProfile validates Alertmanager configuration content without persisting it.
+// @Summary Dry-run alert profile
+// @Description Validate Alertmanager YAML content and return validation result without saving.
+// @Tags platform, alerts
+// @Accept json
+// @Produce json
+// @Param body body struct{Content string `json:"content"`} true "Profile content to validate"
+// @Success 200 {object} map[string]any "Validation result (valid: true)"
+// @Failure 400 {object} map[string]any "Invalid payload or invalid configuration"
+// @Failure 500 {object} map[string]any "Internal server error"
 func DryRunProfile(c *gin.Context) {
 	h, ok := NewAlertsHandlerFromContext(c)
 	if !ok {
@@ -154,7 +206,13 @@ func DryRunProfile(c *gin.Context) {
 	apierr.OK(c, gin.H{"valid": true})
 }
 
-// GetRoutes gets routing configuration
+// GetRoutes gets Alertmanager routing configuration.
+// @Summary Get alert routes
+// @Description Get Alertmanager route configuration content.
+// @Tags platform, alerts
+// @Produce json
+// @Success 200 {object} map[string]any "Routing configuration content"
+// @Failure 500 {object} map[string]any "Internal server error"
 func GetRoutes(c *gin.Context) {
 	h, ok := NewAlertsHandlerFromContext(c)
 	if !ok {
@@ -164,7 +222,16 @@ func GetRoutes(c *gin.Context) {
 	apierr.OK(c, gin.H{"content": content})
 }
 
-// PutRoutes updates routing configuration
+// PutRoutes updates Alertmanager routing configuration.
+// @Summary Update alert routes
+// @Description Update Alertmanager route configuration.
+// @Tags platform, alerts
+// @Accept json
+// @Produce json
+// @Param body body struct{Content string `json:"content"`} true "Routing configuration content"
+// @Success 200 {object} map[string]any "Update confirmation"
+// @Failure 400 {object} map[string]any "Invalid payload"
+// @Failure 500 {object} map[string]any "Internal server error"
 func PutRoutes(c *gin.Context) {
 	h, ok := NewAlertsHandlerFromContext(c)
 	if !ok {
@@ -181,7 +248,16 @@ func PutRoutes(c *gin.Context) {
 	apierr.OK(c, gin.H{"message": "routes updated"})
 }
 
-// List aggregated alert list
+// List returns an aggregated list of alerts.
+// @Summary List alerts
+// @Description List alerts filtered by namespace, cluster, and optional Alertmanager base URL.
+// @Tags platform, alerts
+// @Produce json
+// @Param namespace query string false "Kubernetes namespace filter"
+// @Param cluster query string false "Cluster name filter"
+// @Param alertmanager query string false "Base URL of Alertmanager; defaults to in-cluster instance"
+// @Success 200 {object} map[string]any "Alerts list (items)"
+// @Failure 500 {object} map[string]any "Internal or upstream error"
 func List(c *gin.Context) {
 	h, ok := NewAlertsHandlerFromContext(c)
 	if !ok {
@@ -194,7 +270,15 @@ func List(c *gin.Context) {
 	apierr.OK(c, gin.H{"items": items})
 }
 
-// ListSilences Alertmanager silence list proxy
+// ListSilences proxies Alertmanager silence list.
+// @Summary List alert silences
+// @Description Proxy request to Alertmanager /api/v2/silences and return response as-is.
+// @Tags platform, alerts
+// @Produce json
+// @Param alertmanager query string true "Base URL of Alertmanager"
+// @Success 200 {array} map[string]any "List of silences (status 200 from Alertmanager)"
+// @Failure 400 {object} map[string]any "Missing Alertmanager base URL"
+// @Failure 502 {object} map[string]any "Upstream Alertmanager error"
 func ListSilences(c *gin.Context) {
 	_, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -216,7 +300,17 @@ func ListSilences(c *gin.Context) {
 	c.JSON(resp.StatusCode, out)
 }
 
-// CreateSilence creates silence
+// CreateSilence creates an Alertmanager silence.
+// @Summary Create alert silence
+// @Description Proxy request to Alertmanager /api/v2/silences to create a silence.
+// @Tags platform, alerts
+// @Accept json
+// @Produce json
+// @Param alertmanager query string true "Base URL of Alertmanager"
+// @Param body body map[string]any true "Silence payload (Alertmanager format)"
+// @Success 200 {object} map[string]any "Silence created (status propagated from Alertmanager)"
+// @Failure 400 {object} map[string]any "Missing Alertmanager base URL or invalid payload"
+// @Failure 502 {object} map[string]any "Upstream Alertmanager error"
 func CreateSilence(c *gin.Context) {
 	_, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -244,7 +338,16 @@ func CreateSilence(c *gin.Context) {
 	c.JSON(resp.StatusCode, out)
 }
 
-// DeleteSilence deletes silence
+// DeleteSilence deletes an Alertmanager silence.
+// @Summary Delete alert silence
+// @Description Proxy request to Alertmanager /api/v2/silence/{id} to delete a silence.
+// @Tags platform, alerts
+// @Produce json
+// @Param alertmanager query string true "Base URL of Alertmanager"
+// @Param id path string true "Silence ID"
+// @Success 200 {object} map[string]any "Silence deleted (status propagated from Alertmanager)"
+// @Failure 400 {object} map[string]any "Missing Alertmanager base URL"
+// @Failure 502 {object} map[string]any "Upstream Alertmanager error"
 func DeleteSilence(c *gin.Context) {
 	_, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -268,7 +371,16 @@ func DeleteSilence(c *gin.Context) {
 	c.JSON(resp.StatusCode, out)
 }
 
-// TestAlert sends test alert
+// TestAlert sends a test alert to Alertmanager.
+// @Summary Send test alert
+// @Description Send a synthetic test alert to Alertmanager with configurable labels.
+// @Tags platform, alerts
+// @Produce json
+// @Param alertmanager query string true "Base URL of Alertmanager"
+// @Param labels query string false "Comma-separated key=value label pairs (e.g., severity=warning,service=test)"
+// @Success 200 {object} map[string]any "Test alert result (status propagated from Alertmanager)"
+// @Failure 400 {object} map[string]any "Missing Alertmanager base URL"
+// @Failure 502 {object} map[string]any "Upstream Alertmanager error"
 func TestAlert(c *gin.Context) {
 	_, ok := util.K8sClientFromContext(c)
 	if !ok {

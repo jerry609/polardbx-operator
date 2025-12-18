@@ -50,6 +50,20 @@ func NewPodHandlerFromContext(c *gin.Context) (*PodHandler, bool) {
 }
 
 // GetLogs retrieves Pod logs
+// @Summary Get pod logs
+// @Description Retrieves logs from a specific pod, optionally filtered by container
+// @Tags pods
+// @Accept json
+// @Produce text/plain
+// @Param namespace query string false "Kubernetes namespace (default: default)"
+// @Param pod_name path string true "Name of the pod"
+// @Param container query string false "Container name (optional, defaults to first container)"
+// @Param tailLines query int false "Number of lines to retrieve from the end (default: 1000, max: 10000)"
+// @Success 200 {string} string "Pod logs in plain text"
+// @Failure 400 {object} map[string]any "Invalid request parameters"
+// @Failure 404 {object} map[string]any "Pod not found"
+// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Router /api/v1/platform/logs/{namespace}/{pod_name} [get]
 func GetLogs(c *gin.Context) {
 	h, ok := NewPodHandlerFromContext(c)
 	if !ok {
@@ -106,6 +120,15 @@ func (h *PodHandler) listForCluster(c *gin.Context) {
 }
 
 // List lists all Pods in a namespace
+// @Summary List pods
+// @Description Lists all pods in the specified namespace
+// @Tags pods
+// @Accept json
+// @Produce json
+// @Param namespace query string false "Kubernetes namespace (default: default)"
+// @Success 200 {array} corev1.Pod "List of pods"
+// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Router /api/v1/platform/pods [get]
 func List(c *gin.Context) {
 	h, ok := NewPodHandlerFromContext(c)
 	if !ok {
@@ -127,6 +150,17 @@ func (h *PodHandler) list(c *gin.Context) {
 }
 
 // Get retrieves a specific Pod
+// @Summary Get pod
+// @Description Retrieves details of a specific pod
+// @Tags pods
+// @Accept json
+// @Produce json
+// @Param namespace path string true "Kubernetes namespace"
+// @Param name path string true "Name of the pod"
+// @Success 200 {object} corev1.Pod "Pod details"
+// @Failure 404 {object} map[string]any "Pod not found"
+// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Router /api/v1/platform/pods/{namespace}/{name} [get]
 func Get(c *gin.Context) {
 	h, ok := NewPodHandlerFromContext(c)
 	if !ok {
@@ -149,6 +183,17 @@ func (h *PodHandler) get(c *gin.Context) {
 }
 
 // Delete removes a specific Pod
+// @Summary Delete pod
+// @Description Deletes a specific pod
+// @Tags pods
+// @Accept json
+// @Produce json
+// @Param namespace path string true "Kubernetes namespace"
+// @Param name path string true "Name of the pod"
+// @Success 200 {object} map[string]any "Deletion confirmation"
+// @Failure 404 {object} map[string]any "Pod not found"
+// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Router /api/v1/platform/pods/{namespace}/{name} [delete]
 func Delete(c *gin.Context) {
 	h, ok := NewPodHandlerFromContext(c)
 	if !ok {
@@ -171,6 +216,20 @@ func (h *PodHandler) delete(c *gin.Context) {
 
 // ExecWS proxies WebSocket to K8s Exec
 // Security improvement: Use backend authenticated kubeconfig instead of allowing client-provided config
+// @Summary Execute command in pod via WebSocket
+// @Description Establishes a WebSocket connection to execute commands in a pod's container
+// @Tags pods
+// @Accept json
+// @Produce json
+// @Param namespace path string true "Kubernetes namespace"
+// @Param name path string true "Name of the pod"
+// @Param container query string false "Container name (optional)"
+// @Param command query string false "Command to execute (default: /bin/sh)"
+// @Success 101 {string} string "Switching protocols to WebSocket"
+// @Failure 400 {object} map[string]any "Invalid request or WebSocket upgrade failed"
+// @Failure 404 {object} map[string]any "Pod not found"
+// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Router /api/v1/platform/pods/{namespace}/{name}/exec [get]
 func ExecWS(c *gin.Context) {
 	rows, cols := 24, 80
 	handleExecWebSocketSecure(c, rows, cols)
@@ -419,9 +478,9 @@ func handleExecWebSocketSecure(c *gin.Context, rows, cols int) {
 			TerminalSizeQueue: resizeQ,
 		})
 		logger.Info("AUDIT: Pod exec session ended",
-		"user", user,
-		"namespace", ns,
-		"pod", name)
+			"user", user,
+			"namespace", ns,
+			"pod", name)
 	}()
 
 	<-done

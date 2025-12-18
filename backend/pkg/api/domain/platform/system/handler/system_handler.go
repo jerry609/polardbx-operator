@@ -9,7 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// SystemHandler handles HTTP requests related to system
+// SystemHandler handles HTTP requests related to system-level information.
 type SystemHandler struct {
 	service *service.SystemService
 }
@@ -30,7 +30,14 @@ func NewSystemHandlerFromClient(c *gin.Context) (*SystemHandler, bool) {
 	return NewSystemHandler(svc), true
 }
 
-// ContextInfo returns current k8s user, context and default namespace
+// ContextInfo returns current Kubernetes user, context, and default namespace.
+// @Summary Get Kubernetes context info
+// @Description Get current Kubernetes user, context, and default namespace inferred from the request.
+// @Tags platform, system
+// @Produce json
+// @Param namespace query string false "Override default namespace"
+// @Success 200 {object} map[string]any "Context info (user, context, defaultNamespace)"
+// @Failure 500 {object} map[string]any "Internal error"
 func ContextInfo(c *gin.Context) {
 	_, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -49,7 +56,13 @@ func ContextInfo(c *gin.Context) {
 	apierr.OK(c, gin.H{"user": user, "context": ctxName, "defaultNamespace": defNS})
 }
 
-// ListNamespaces returns all visible namespaces
+// ListNamespaces returns all visible namespaces.
+// @Summary List namespaces
+// @Description List namespaces visible via the configured Kubernetes client.
+// @Tags platform, system
+// @Produce json
+// @Success 200 {object} map[string]any "Namespace list (items, count)"
+// @Failure 500 {object} map[string]any "Failed to list namespaces"
 func ListNamespaces(c *gin.Context) {
 	h, ok := NewSystemHandlerFromClient(c)
 	if !ok {
@@ -70,7 +83,13 @@ func (h *SystemHandler) listNamespaces(c *gin.Context) {
 	apierr.OK(c, gin.H{"items": items, "count": len(items)})
 }
 
-// ListStorageClasses returns all available storage classes
+// ListStorageClasses returns all available storage classes.
+// @Summary List storage classes
+// @Description List Kubernetes StorageClasses visible via the configured Kubernetes client.
+// @Tags platform, system
+// @Produce json
+// @Success 200 {object} map[string]any "StorageClass list (items, count)"
+// @Failure 500 {object} map[string]any "Failed to list storage classes"
 func ListStorageClasses(c *gin.Context) {
 	h, ok := NewSystemHandlerFromClient(c)
 	if !ok {
@@ -90,7 +109,12 @@ func (h *SystemHandler) listStorageClasses(c *gin.Context) {
 	apierr.OK(c, gin.H{"items": items, "count": len(items)})
 }
 
-// ListPolarDBXVersions returns supported PolarDB-X version list
+// ListPolarDBXVersions returns supported PolarDB-X version list.
+// @Summary List PolarDB-X versions
+// @Description List supported PolarDB-X versions configured for deployment.
+// @Tags platform, system
+// @Produce json
+// @Success 200 {object} map[string]any "PolarDB-X version list (items, count)"
 func ListPolarDBXVersions(c *gin.Context) {
 	h, ok := NewSystemHandlerFromClient(c)
 	if !ok {
