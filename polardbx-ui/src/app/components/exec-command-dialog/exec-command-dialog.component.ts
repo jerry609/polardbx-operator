@@ -1,13 +1,14 @@
-import { Component, Inject, inject } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { NzModalRef, NZ_MODAL_DATA } from 'ng-zorro-antd/modal';
+import { NzFormModule } from 'ng-zorro-antd/form';
+import { NzInputModule } from 'ng-zorro-antd/input';
+import { NzSelectModule } from 'ng-zorro-antd/select';
+import { NzButtonModule } from 'ng-zorro-antd/button';
+import { NzIconModule } from 'ng-zorro-antd/icon';
+import { NzMessageService } from 'ng-zorro-antd/message';
 import { ApiService } from '../../services/api.service';
 
 export interface ExecDialogData {
@@ -20,11 +21,11 @@ export interface ExecDialogData {
 @Component({
   selector: 'app-exec-command-dialog',
   template: `
-  <h2 mat-dialog-title>
-    <mat-icon>terminal</mat-icon>
-    执行命令
-  </h2>
-  <div mat-dialog-content [formGroup]="form">
+  <div class="modal-header">
+    <i nz-icon nzType="tool" class="modal-title-icon"></i>
+    <span class="modal-title-text">执行命令</span>
+  </div>
+  <div class="modal-body" [formGroup]="form">
     <div class="kv">
       <div class="k">命名空间</div>
       <div class="v">{{ data.namespace }}</div>
@@ -34,31 +35,63 @@ export interface ExecDialogData {
       <div class="v">{{ data.pod }}</div>
     </div>
 
-    <mat-form-field appearance="outline" class="w-100">
-      <mat-label>容器</mat-label>
-      <mat-select formControlName="container">
-        <mat-option *ngFor="let c of data.containers" [value]="c">{{ c }}</mat-option>
-      </mat-select>
-    </mat-form-field>
+    <nz-form-item>
+      <nz-form-label [nzSpan]="5">容器</nz-form-label>
+      <nz-form-control [nzSpan]="19">
+        <nz-select formControlName="container" nzPlaceHolder="选择容器">
+          <nz-option *ngFor="let c of data.containers" [nzValue]="c" [nzLabel]="c"></nz-option>
+        </nz-select>
+      </nz-form-control>
+    </nz-form-item>
 
-    <mat-form-field appearance="outline" class="w-100">
-      <mat-label>命令</mat-label>
-      <input matInput formControlName="cmd" placeholder="例如：/bin/sh -lc 'uname -a'">
-      <mat-icon matSuffix>play_arrow</mat-icon>
-    </mat-form-field>
+    <nz-form-item>
+      <nz-form-label [nzSpan]="5">命令</nz-form-label>
+      <nz-form-control [nzSpan]="19">
+        <nz-input-group nzSuffixIcon="play-circle">
+          <input nz-input formControlName="cmd" placeholder="例如：/bin/sh -lc 'uname -a'">
+        </nz-input-group>
+      </nz-form-control>
+    </nz-form-item>
 
     <pre class="output" *ngIf="output">{{ output }}</pre>
   </div>
-  <div mat-dialog-actions align="end">
-    <button mat-button (click)="onOpenTerminal()"><mat-icon>computer</mat-icon> 打开终端（预览）</button>
-    <button mat-stroked-button (click)="onCancel()">取消</button>
-    <button mat-raised-button color="primary" (click)="onRun()" [disabled]="form.invalid || running">
-      <mat-icon>play_arrow</mat-icon>
-      运行
+  <div class="modal-footer">
+    <button nz-button nzType="default" (click)="onOpenTerminal()">
+      <i nz-icon nzType="desktop"></i>
+      <span>打开终端（预览）</span>
+    </button>
+    <button nz-button nzType="default" (click)="onCancel()">取消</button>
+    <button nz-button nzType="primary" (click)="onRun()" [nzLoading]="running || form.invalid">
+      <i nz-icon nzType="play-circle"></i>
+      <span>运行</span>
     </button>
   </div>
   `,
   styles: [`
+    .modal-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px 4px 16px;
+      font-size: 16px;
+      font-weight: 600;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .modal-title-icon {
+      font-size: 18px;
+      color: #1890ff;
+    }
+    .modal-title-text {
+      flex: 1;
+    }
+    .modal-body {
+      padding: 12px 16px 16px 16px;
+    }
+    .modal-footer {
+      padding: 8px 16px 12px 16px;
+      text-align: right;
+      border-top: 1px solid #f0f0f0;
+    }
     .w-100 { width: 100%; }
     .kv { display: flex; gap: 8px; margin: 6px 0; font-size: 13px; }
     .k { color: #666; min-width: 80px; }
@@ -72,21 +105,24 @@ export interface ExecDialogData {
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    MatDialogModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
-    MatButtonModule,
-    MatIconModule,
-    MatSnackBarModule
+    NzFormModule,
+    NzInputModule,
+    NzSelectModule,
+    NzButtonModule,
+    NzIconModule
   ]
 })
 export class ExecCommandDialogComponent {
-  dialogRef = inject<MatDialogRef<ExecCommandDialogComponent>>(MatDialogRef);
-  data = inject<ExecDialogData>(MAT_DIALOG_DATA as any);
+  // 支持通过 MatDialog 和 NzModalService 两种方式打开
+  dialogRef = inject<MatDialogRef<ExecCommandDialogComponent> | null>(MatDialogRef, { optional: true });
+  nzModalRef = inject<NzModalRef<ExecCommandDialogComponent> | null>(NzModalRef as any, { optional: true });
+  // 兼容 MatDialog (MAT_DIALOG_DATA) 与 NzModal (NZ_MODAL_DATA) 两种数据来源
+  private matDialogData = inject<ExecDialogData | null>(MAT_DIALOG_DATA as any, { optional: true });
+  private nzModalData = inject<ExecDialogData | null>(NZ_MODAL_DATA, { optional: true });
+  data: ExecDialogData = (this.matDialogData || this.nzModalData)!;
   fb = inject(FormBuilder);
   api = inject(ApiService);
-  snackBar = inject(MatSnackBar);
+  message = inject(NzMessageService);
 
   output = '';
   running = false;
@@ -96,8 +132,16 @@ export class ExecCommandDialogComponent {
     cmd: ['/bin/sh -lc "uname -a"', [Validators.required, Validators.minLength(1)]]
   });
 
+  private close(result?: any): void {
+    if (this.dialogRef) {
+      this.dialogRef.close(result);
+    } else if (this.nzModalRef) {
+      this.nzModalRef.close(result);
+    }
+  }
+
   onCancel(): void {
-    this.dialogRef.close();
+    this.close();
   }
 
   onRun(): void {
@@ -109,18 +153,18 @@ export class ExecCommandDialogComponent {
       next: (text) => {
         this.output = text || '(no output)';
         this.running = false;
-        this.dialogRef.close({ runOnce: true });
+        this.close({ runOnce: true });
       },
       error: (err) => {
         this.running = false;
         this.output = err?.error || err?.message || '执行失败';
-        this.snackBar.open('执行失败', '关闭', { duration: 3000 });
+        this.message.error('执行失败');
       }
     });
   }
 
   onOpenTerminal(): void {
-    this.dialogRef.close();
+    this.close();
     // 交由外层触发 webshell 对话框
   }
 }

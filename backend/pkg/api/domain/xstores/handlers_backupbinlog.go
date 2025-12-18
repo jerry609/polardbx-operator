@@ -21,7 +21,7 @@ func backupBinlogSvc(c *gin.Context) *services.BackupBinlogService {
 // @Tags xstores, backup-binlogs
 // @Produce json
 // @Param namespace query string false "Kubernetes namespace; defaults to 'default' when omitted"
-// @Success 200 {array} map[string]any "List of XStore binlog backups"
+// @Success 200 {array} XStoreBackupBinlogDTO "List of XStore binlog backups"
 // @Failure 502 {object} map[string]any "Upstream Kubernetes error"
 // @Router /api/v1/xstores/backup-binlogs [get]
 func ListBackupBinlogs(c *gin.Context) {
@@ -46,8 +46,8 @@ func ListBackupBinlogs(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param namespace query string false "Kubernetes namespace; defaults to 'default' when omitted"
-// @Param body body map[string]any true "XStore binlog backup specification"
-// @Success 201 {object} map[string]any "Created XStore binlog backup"
+// @Param body body XStoreBackupBinlogSpecDTO true "XStore binlog backup specification"
+// @Success 201 {object} XStoreBackupBinlogDTO "Created XStore binlog backup"
 // @Failure 400 {object} map[string]any "Invalid request body"
 // @Failure 502 {object} map[string]any "Upstream Kubernetes error"
 // @Router /api/v1/xstores/backup-binlogs [post]
@@ -79,7 +79,7 @@ func CreateBackupBinlog(c *gin.Context) {
 // @Produce json
 // @Param namespace path string true "Kubernetes namespace of the binlog backup"
 // @Param name path string true "Name of the binlog backup"
-// @Success 200 {object} map[string]any "XStore binlog backup"
+// @Success 200 {object} XStoreBackupBinlogDTO "XStore binlog backup"
 // @Failure 404 {object} map[string]any "Binlog backup not found"
 // @Failure 502 {object} map[string]any "Upstream Kubernetes error"
 // @Router /api/v1/xstores/backup-binlogs/{namespace}/{name} [get]
@@ -107,8 +107,8 @@ func GetBackupBinlog(c *gin.Context) {
 // @Produce json
 // @Param namespace path string true "Kubernetes namespace of the binlog backup"
 // @Param name path string true "Name of the binlog backup"
-// @Param body body map[string]any true "Updated XStore binlog backup specification"
-// @Success 200 {object} map[string]any "Updated XStore binlog backup"
+// @Param body body XStoreBackupBinlogSpecDTO true "Updated XStore binlog backup specification"
+// @Success 200 {object} XStoreBackupBinlogDTO "Updated XStore binlog backup"
 // @Failure 400 {object} map[string]any "Invalid request body"
 // @Failure 404 {object} map[string]any "Binlog backup not found"
 // @Failure 502 {object} map[string]any "Upstream Kubernetes error"
@@ -140,7 +140,7 @@ func UpdateBackupBinlog(c *gin.Context) {
 // @Tags xstores, backup-binlogs
 // @Param namespace path string true "Kubernetes namespace of the binlog backup"
 // @Param name path string true "Name of the binlog backup"
-// @Success 200 {object} map[string]any "Deletion confirmation"
+// @Success 200 {object} MessageResponseDTO "Deletion confirmation"
 // @Failure 404 {object} map[string]any "Binlog backup not found"
 // @Failure 502 {object} map[string]any "Upstream Kubernetes error"
 // @Router /api/v1/xstores/backup-binlogs/{namespace}/{name} [delete]

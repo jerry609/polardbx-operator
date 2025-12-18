@@ -1,10 +1,11 @@
-import { AfterViewInit, OnInit, Component, ElementRef, Inject, ViewChild, inject } from '@angular/core';
+import { AfterViewInit, OnInit, Component, ElementRef, ViewChild, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatSelectModule } from '@angular/material/select';
-import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { NzModalRef, NZ_MODAL_DATA } from 'ng-zorro-antd/modal';
+import { NzButtonModule } from 'ng-zorro-antd/button';
+import { NzIconModule } from 'ng-zorro-antd/icon';
+import { NzSelectModule } from 'ng-zorro-antd/select';
+import { NzToolTipModule } from 'ng-zorro-antd/tooltip';
 
 // Type definitions for terminal interfaces  
 interface XTerminal {
@@ -39,36 +40,75 @@ export interface WebShellDialogData {
 @Component({
   selector: 'app-webshell-dialog',
   template: `
-  <h2 mat-dialog-title>
-    <mat-icon>computer</mat-icon>
-    WebShell
-  </h2>
-  <div mat-dialog-content>
+  <div class="modal-header">
+    <i nz-icon nzType="desktop" class="modal-title-icon"></i>
+    <span class="modal-title-text">WebShell</span>
+  </div>
+  <div class="modal-body">
     <div class="toolbar">
-      <mat-icon>dns</mat-icon>
+      <i nz-icon nzType="cluster"></i>
       <span class="kv">ns</span><span class="vv">{{ data.namespace }}</span>
       <span class="kv">pod</span><span class="vv">{{ data.pod }}</span>
       <span class="kv">容器</span>
-      <mat-select [(value)]="currentContainer" (valueChange)="onContainerChange($event)" class="container-select" [disabled]="connecting">
-        <mat-option *ngFor="let c of containerList" [value]="c">{{ c }}</mat-option>
-      </mat-select>
+      <nz-select
+        [(ngModel)]="currentContainer"
+        (ngModelChange)="onContainerChange($event)"
+        class="container-select"
+        [nzDisabled]="connecting">
+        <nz-option *ngFor="let c of containerList" [nzValue]="c" [nzLabel]="c"></nz-option>
+      </nz-select>
       <span class="spacer"></span>
-      <button mat-icon-button matTooltip="复制" (click)="copySelection()" [disabled]="connecting"><mat-icon>content_copy</mat-icon></button>
-      <button mat-icon-button matTooltip="粘贴" (click)="pasteFromClipboard()" [disabled]="connecting"><mat-icon>content_paste</mat-icon></button>
-      <button mat-icon-button matTooltip="清屏 (Ctrl+L)" (click)="clearScreen()"><mat-icon>clear_all</mat-icon></button>
-      <button mat-icon-button matTooltip="下载输出" (click)="downloadLog()"><mat-icon>download</mat-icon></button>
-      <button mat-stroked-button (click)="reconnect()" [disabled]="connecting"><mat-icon>refresh</mat-icon> 重连</button>
+      <button nz-button nzType="default" nzShape="circle" nz-tooltip nzTooltipTitle="复制" (click)="copySelection()" [nzDisabled]="connecting">
+        <i nz-icon nzType="copy"></i>
+      </button>
+      <button nz-button nzType="default" nzShape="circle" nz-tooltip nzTooltipTitle="粘贴" (click)="pasteFromClipboard()" [nzDisabled]="connecting">
+        <i nz-icon nzType="file-text"></i>
+      </button>
+      <button nz-button nzType="default" nzShape="circle" nz-tooltip nzTooltipTitle="清屏 (Ctrl+L)" (click)="clearScreen()">
+        <i nz-icon nzType="delete"></i>
+      </button>
+      <button nz-button nzType="default" nzShape="circle" nz-tooltip nzTooltipTitle="下载输出" (click)="downloadLog()">
+        <i nz-icon nzType="download"></i>
+      </button>
+      <button nz-button nzType="default" (click)="reconnect()" [nzLoading]="connecting">
+        <i nz-icon nzType="reload"></i>
+        <span>重连</span>
+      </button>
     </div>
     <div #term class="terminal"></div>
     <div class="tips">
       快捷键：Ctrl+C 结束进程；Ctrl+L 清屏；如需复制/粘贴请使用上方按钮（浏览器权限限制）。
     </div>
   </div>
-  <div mat-dialog-actions align="end">
-    <button mat-stroked-button (click)="onClose()">关闭</button>
+  <div class="modal-footer">
+    <button nz-button nzType="default" (click)="onClose()">关闭</button>
   </div>
   `,
   styles: [`
+    .modal-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px 4px 16px;
+      font-size: 16px;
+      font-weight: 600;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .modal-title-icon {
+      font-size: 18px;
+      color: #1890ff;
+    }
+    .modal-title-text {
+      flex: 1;
+    }
+    .modal-body {
+      padding: 12px 16px 16px 16px;
+    }
+    .modal-footer {
+      padding: 8px 16px 12px 16px;
+      text-align: right;
+      border-top: 1px solid #f0f0f0;
+    }
     .toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 12px; }
     .kv { color: #666; margin-left: 8px; }
     .vv { font-weight: 600; margin-right: 12px; }
@@ -78,11 +118,16 @@ export interface WebShellDialogData {
     .tips { margin-top: 8px; font-size: 12px; color: #666; }
   `],
   standalone: true,
-  imports: [CommonModule, MatDialogModule, MatButtonModule, MatIconModule, MatSelectModule, MatTooltipModule]
+  imports: [CommonModule, NzButtonModule, NzIconModule, NzSelectModule, NzToolTipModule]
 })
 export class WebShellDialogComponent implements OnInit, AfterViewInit {
-  dialogRef = inject<MatDialogRef<WebShellDialogComponent>>(MatDialogRef);
-  data = inject<WebShellDialogData>(MAT_DIALOG_DATA as any);
+  // 支持通过 MatDialog 或 NzModalService 打开
+  dialogRef = inject<MatDialogRef<WebShellDialogComponent> | null>(MatDialogRef, { optional: true });
+  nzModalRef = inject<NzModalRef<WebShellDialogComponent> | null>(NzModalRef as any, { optional: true });
+  // 兼容 MatDialog (MAT_DIALOG_DATA) 与 NzModal (NZ_MODAL_DATA) 两种数据来源
+  private matDialogData = inject<WebShellDialogData | null>(MAT_DIALOG_DATA as any, { optional: true });
+  private nzModalData = inject<WebShellDialogData | null>(NZ_MODAL_DATA, { optional: true });
+  data: WebShellDialogData = (this.matDialogData || this.nzModalData)!;
   @ViewChild('term', { static: false }) termRef!: ElementRef<HTMLDivElement>;
   private term: any;
   private ws?: WebSocket;
@@ -92,6 +137,16 @@ export class WebShellDialogComponent implements OnInit, AfterViewInit {
   connecting = false;
   private fallbackTried = false;
   private pendingInput = '';
+
+  private close(result?: any): void {
+    this.term?.dispose();
+    try { this.ws?.close(); } catch {}
+    if (this.dialogRef) {
+      this.dialogRef.close(result);
+    } else if (this.nzModalRef) {
+      this.nzModalRef.close(result);
+    }
+  }
 
   ngOnInit(): void {
     // 先完成与模板双向绑定相关的初始化，避免在 AfterViewInit 里改动触发 NG0100
@@ -260,9 +315,7 @@ export class WebShellDialogComponent implements OnInit, AfterViewInit {
   }
 
   onClose(): void {
-    this.term?.dispose();
-    try { this.ws?.close(); } catch {}
-    this.dialogRef.close();
+    this.close();
   }
 
   onContainerChange(_c: string): void {
