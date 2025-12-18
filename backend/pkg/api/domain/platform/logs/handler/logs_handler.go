@@ -97,6 +97,17 @@ const presetsKey = "presets.json"
 // ============================================================================
 
 // Query handles log query requests
+// @Summary Query logs
+// @Description Queries logs from Elasticsearch/OpenSearch with support for aggregations, facets, and histograms
+// @Tags logs
+// @Accept json
+// @Produce json
+// @Param body body QueryRequest true "Log query request with host, index, query DSL, aggregations, etc."
+// @Success 200 {object} NormalizedResponse "Query results with total count, items, facets, and histogram"
+// @Failure 400 {object} map[string]any "Invalid request parameters"
+// @Failure 403 {object} map[string]any "Target host not allowed"
+// @Failure 500 {object} map[string]any "Internal server error or security bootstrap failed"
+// @Router /api/v1/platform/logs/query [post]
 func Query(c *gin.Context) {
 	if err := util.EnsureLogsSecurityBootstrap(c); err != nil {
 		apierr.AbortInternal(c, "security bootstrap failed: "+err.Error())
@@ -409,6 +420,16 @@ func toInt64(v any) int64 {
 // ============================================================================
 
 // Bootstrap installs log collection stack
+// @Summary Bootstrap log collection
+// @Description Installs log collection stack (Filebeat/Logstash) via Helm chart
+// @Tags logs
+// @Accept json
+// @Produce json
+// @Param body body map[string]any true "Bootstrap request with mode, namespace, releaseName, enableFilebeat, enableLogstash, esHost, etc."
+// @Success 200 {object} map[string]any "Bootstrap status and release information"
+// @Failure 400 {object} map[string]any "Invalid request parameters"
+// @Failure 500 {object} map[string]any "Internal server error"
+// @Router /api/v1/platform/logs/bootstrap [post]
 func Bootstrap(c *gin.Context) {
 	type req struct {
 		Mode           string `json:"mode"` // managed|assisted|byo
@@ -760,6 +781,18 @@ func Bootstrap(c *gin.Context) {
 }
 
 // BootstrapStatus returns the status of a logs bootstrap job
+// BootstrapStatus returns log collection bootstrap job status
+// @Summary Get bootstrap status
+// @Description Returns the status of log collection stack bootstrap job
+// @Tags logs
+// @Accept json
+// @Produce json
+// @Param namespace query string false "Namespace where bootstrap job is running"
+// @Param jobName query string false "Bootstrap job name"
+// @Success 200 {object} map[string]any "Bootstrap job status with conditions"
+// @Failure 404 {object} map[string]any "Bootstrap job not found"
+// @Failure 500 {object} map[string]any "Internal server error"
+// @Router /api/v1/platform/logs/bootstrap/status [get]
 func BootstrapStatus(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -835,6 +868,19 @@ func BootstrapStatus(c *gin.Context) {
 }
 
 // BootstrapLogs returns the logs of a logs bootstrap job
+// BootstrapLogs retrieves logs from bootstrap job
+// @Summary Get bootstrap logs
+// @Description Retrieves logs from log collection bootstrap job
+// @Tags logs
+// @Accept json
+// @Produce text/plain
+// @Param namespace query string false "Namespace where bootstrap job is running"
+// @Param jobName query string false "Bootstrap job name"
+// @Param tailLines query int false "Number of lines to retrieve (default: 1000)"
+// @Success 200 {string} string "Bootstrap job logs in plain text"
+// @Failure 404 {object} map[string]any "Bootstrap job not found"
+// @Failure 500 {object} map[string]any "Internal server error"
+// @Router /api/v1/platform/logs/bootstrap/logs [get]
 func BootstrapLogs(c *gin.Context) {
 	cs, ok := util.ClientsetFromContext(c)
 	if !ok {
@@ -1013,6 +1059,13 @@ func loadPresets(c *gin.Context) map[string]LogPreset {
 }
 
 // Presets returns all presets
+// @Summary List log query presets
+// @Description Returns all available log query presets with default aggregations and histogram configurations
+// @Tags logs
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]any "List of log query presets"
+// @Router /api/v1/platform/logs/presets [get]
 func Presets(c *gin.Context) {
 	m := loadPresets(c)
 	list := make([]LogPreset, 0, len(m))
@@ -1023,6 +1076,15 @@ func Presets(c *gin.Context) {
 }
 
 // PresetByPattern returns preset for a given pattern
+// @Summary Get log preset by pattern
+// @Description Returns log query preset configuration for a specific index pattern
+// @Tags logs
+// @Accept json
+// @Produce json
+// @Param pattern path string true "Index pattern name"
+// @Success 200 {object} LogPreset "Log preset configuration"
+// @Failure 404 {object} map[string]any "Preset not found"
+// @Router /api/v1/platform/logs/presets/{pattern} [get]
 func PresetByPattern(c *gin.Context) {
 	pattern := c.Param("pattern")
 	m := loadPresets(c)

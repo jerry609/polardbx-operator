@@ -85,6 +85,14 @@ func saveList(c *gin.Context, cm *corev1.ConfigMap, list []Strategy) error {
 }
 
 // List returns all strategies
+// @Summary List log strategies
+// @Description Lists all log collection strategies configured for clusters
+// @Tags log-strategies
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]any "List of log strategies with total count"
+// @Failure 500 {object} map[string]any "Internal server error (returns empty list with warning for frontend compatibility)"
+// @Router /api/v1/platform/log-strategies [get]
 func List(c *gin.Context) {
 	cm, err := getStore(c)
 	if err != nil {
@@ -102,6 +110,16 @@ func List(c *gin.Context) {
 }
 
 // Get returns a strategy by name
+// @Summary Get log strategy
+// @Description Retrieves details of a specific log collection strategy
+// @Tags log-strategies
+// @Accept json
+// @Produce json
+// @Param name path string true "Name of the log strategy"
+// @Success 200 {object} Strategy "Log strategy details"
+// @Failure 404 {object} map[string]any "Strategy not found"
+// @Failure 500 {object} map[string]any "Internal server error"
+// @Router /api/v1/platform/log-strategies/{name} [get]
 func Get(c *gin.Context) {
 	name := c.Param("name")
 	cm, err := getStore(c)
@@ -119,6 +137,17 @@ func Get(c *gin.Context) {
 }
 
 // Create creates a new strategy
+// @Summary Create log strategy
+// @Description Creates a new log collection strategy for a cluster
+// @Tags log-strategies
+// @Accept json
+// @Produce json
+// @Param body body Strategy true "Log strategy specification with name, cluster info, and output configuration"
+// @Success 201 {object} Strategy "Created log strategy"
+// @Failure 400 {object} map[string]any "Invalid strategy specification"
+// @Failure 409 {object} map[string]any "Strategy already exists"
+// @Failure 500 {object} map[string]any "Internal server error"
+// @Router /api/v1/platform/log-strategies [post]
 func Create(c *gin.Context) {
 	cm, err := getStore(c)
 	if err != nil {
@@ -146,6 +175,18 @@ func Create(c *gin.Context) {
 }
 
 // Update updates an existing strategy
+// @Summary Update log strategy
+// @Description Updates an existing log collection strategy
+// @Tags log-strategies
+// @Accept json
+// @Produce json
+// @Param name path string true "Name of the log strategy"
+// @Param body body Strategy true "Updated log strategy specification (body.name must equal path name)"
+// @Success 200 {object} Strategy "Updated log strategy"
+// @Failure 400 {object} map[string]any "Invalid strategy specification"
+// @Failure 404 {object} map[string]any "Strategy not found"
+// @Failure 500 {object} map[string]any "Internal server error"
+// @Router /api/v1/platform/log-strategies/{name} [put]
 func Update(c *gin.Context) {
 	name := c.Param("name")
 	cm, err := getStore(c)
@@ -190,6 +231,16 @@ func Update(c *gin.Context) {
 }
 
 // Delete deletes a strategy by name
+// @Summary Delete log strategy
+// @Description Deletes a log collection strategy
+// @Tags log-strategies
+// @Accept json
+// @Produce json
+// @Param name path string true "Name of the log strategy"
+// @Success 200 {object} map[string]any "Deletion confirmation"
+// @Failure 404 {object} map[string]any "Strategy not found"
+// @Failure 500 {object} map[string]any "Internal server error"
+// @Router /api/v1/platform/log-strategies/{name} [delete]
 func Delete(c *gin.Context) {
 	name := c.Param("name")
 	cm, err := getStore(c)
@@ -277,6 +328,16 @@ func performCleanupForCluster(c *gin.Context, ns string, clusterName string) {
 }
 
 // Precheck validates cluster existence and output configuration syntax
+// Precheck validates log strategy configuration
+// @Summary Precheck log strategy
+// @Description Validates log strategy configuration (cluster existence, ES hosts, auth, TLS certificates)
+// @Tags log-strategies
+// @Accept json
+// @Produce json
+// @Param body body Strategy true "Log strategy to validate"
+// @Success 200 {object} map[string]any "Validation result with checks, errors, and warnings"
+// @Failure 400 {object} map[string]any "Invalid strategy specification"
+// @Router /api/v1/platform/log-strategies/precheck [post]
 func Precheck(c *gin.Context) {
 	var s Strategy
 	if err := c.ShouldBindJSON(&s); err != nil || s.Name == "" || s.ClusterName == "" {
@@ -388,6 +449,16 @@ func buildLogstashOutput(s *Strategy) string {
 }
 
 // Apply persists secrets/config and triggers rollout for logstash; also marks cluster to enable log collection
+// @Summary Apply log strategy
+// @Description Applies a log strategy by persisting secrets/config and triggering logstash rollout
+// @Tags log-strategies
+// @Accept json
+// @Produce json
+// @Param name path string true "Name of the log strategy to apply"
+// @Success 200 {object} map[string]any "Apply status and rollout information"
+// @Failure 404 {object} map[string]any "Strategy not found"
+// @Failure 500 {object} map[string]any "Internal server error"
+// @Router /api/v1/platform/log-strategies/{name}/apply [post]
 func Apply(c *gin.Context) {
 	name := c.Param("name")
 	cm, err := getStore(c)
@@ -529,6 +600,16 @@ func Apply(c *gin.Context) {
 
 // TestConnection validates connectivity to Elasticsearch using simple HTTP request
 // Payload example: {"hosts":["https://es:9200"], "username":"elastic", "password":"xxx"}
+// TestConnection tests Elasticsearch connection
+// @Summary Test ES connection
+// @Description Tests connectivity and authentication to Elasticsearch hosts
+// @Tags log-strategies
+// @Accept json
+// @Produce json
+// @Param body body map[string]any true "Connection test request with hosts, username, password"
+// @Success 200 {object} map[string]any "Connection test result"
+// @Failure 400 {object} map[string]any "Invalid request parameters"
+// @Router /api/v1/platform/log-strategies/test-connection [post]
 func TestConnection(c *gin.Context) {
 	var payload struct {
 		Hosts    []string `json:"hosts"`
@@ -593,6 +674,14 @@ const (
 )
 
 // ListApplyRecords returns the application history of log strategies
+// ListApplyRecords lists log strategy apply records
+// @Summary List apply records
+// @Description Lists all apply records for log strategies
+// @Tags log-strategies
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]any "List of apply records with total count"
+// @Router /api/v1/platform/log-strategies/apply-records [get]
 func ListApplyRecords(c *gin.Context) {
 	cs, ok := util.ClientsetFromContext(c)
 	if !ok {

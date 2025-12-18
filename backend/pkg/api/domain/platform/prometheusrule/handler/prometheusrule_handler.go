@@ -1135,6 +1135,16 @@ func getHandler(c *gin.Context) (*PrometheusRuleHandler, bool) {
 }
 
 // List package-level function for main.go route registration
+// List lists all PrometheusRule resources
+// @Summary List PrometheusRules
+// @Description Lists all PrometheusRule custom resources, optionally filtered by namespace
+// @Tags prometheus-rules
+// @Accept json
+// @Produce json
+// @Param namespace query string false "Kubernetes namespace filter (optional, lists all namespaces if not specified)"
+// @Success 200 {array} PrometheusRule "List of PrometheusRule resources"
+// @Failure 500 {object} map[string]any "Internal server error"
+// @Router /api/v1/platform/prometheus-rules/templates [get]
 func List(c *gin.Context) {
 	h, ok := getHandler(c)
 	if !ok {
@@ -1144,6 +1154,18 @@ func List(c *gin.Context) {
 }
 
 // GetYAML package-level function for main.go route registration
+// @Summary Get PrometheusRule YAML
+// @Description Retrieves YAML content of a specific PrometheusRule resource
+// @Tags prometheus-rules
+// @Accept json
+// @Produce json
+// @Param namespace path string true "Kubernetes namespace"
+// @Param name path string true "Name of the PrometheusRule"
+// @Success 200 {object} map[string]string "YAML content of the PrometheusRule"
+// @Failure 400 {object} map[string]any "Invalid request parameters"
+// @Failure 404 {object} map[string]any "PrometheusRule not found"
+// @Failure 500 {object} map[string]any "Internal server error"
+// @Router /api/v1/platform/prometheus-rules/{namespace}/{name}/yaml [get]
 func GetYAML(c *gin.Context) {
 	h, ok := getHandler(c)
 	if !ok {
@@ -1153,6 +1175,16 @@ func GetYAML(c *gin.Context) {
 }
 
 // ValidateRule package-level function for main.go route registration
+// @Summary Validate PrometheusRule
+// @Description Validates PrometheusRule YAML content for syntax and PromQL correctness
+// @Tags prometheus-rules
+// @Accept json
+// @Produce json
+// @Param body body map[string]string true "YAML content to validate (key: 'yaml')"
+// @Success 200 {object} map[string]any "Validation result with success status, message, details, errors, and warnings"
+// @Failure 400 {object} map[string]any "Invalid request or YAML syntax error"
+// @Failure 500 {object} map[string]any "Internal server error"
+// @Router /api/v1/platform/prometheus-rules/validate [post]
 func ValidateRule(c *gin.Context) {
 	h, ok := getHandler(c)
 	if !ok {
@@ -1162,6 +1194,14 @@ func ValidateRule(c *gin.Context) {
 }
 
 // ListTemplates package-level function for main.go route registration
+// @Summary List alert rule templates
+// @Description Lists all available PrometheusRule alert rule templates from embedded files and Helm chart
+// @Tags prometheus-rules
+// @Accept json
+// @Produce json
+// @Success 200 {array} AlertRuleTemplateSummary "List of alert rule templates with metadata"
+// @Failure 500 {object} map[string]any "Internal server error"
+// @Router /api/v1/platform/prometheus-rules/templates [get]
 func ListTemplates(c *gin.Context) {
 	h, ok := getHandler(c)
 	if !ok {
@@ -1171,6 +1211,16 @@ func ListTemplates(c *gin.Context) {
 }
 
 // GetTemplate package-level function for main.go route registration
+// @Summary Get alert rule template
+// @Description Retrieves detailed content of a specific alert rule template
+// @Tags prometheus-rules
+// @Accept json
+// @Produce json
+// @Param name path string true "Name of the alert rule template"
+// @Success 200 {object} AlertRuleTemplateDetail "Template details with content"
+// @Failure 404 {object} map[string]any "Template not found"
+// @Failure 500 {object} map[string]any "Internal server error"
+// @Router /api/v1/platform/prometheus-rules/templates/{name} [get]
 func GetTemplate(c *gin.Context) {
 	h, ok := getHandler(c)
 	if !ok {
@@ -1180,6 +1230,16 @@ func GetTemplate(c *gin.Context) {
 }
 
 // ApplyTemplate package-level function for main.go route registration
+// @Summary Apply alert rule template
+// @Description Applies an alert rule template to create or update PrometheusRule resources
+// @Tags prometheus-rules
+// @Accept json
+// @Produce json
+// @Param body body map[string]any true "Apply request with template name, namespace, and optional overrides"
+// @Success 200 {object} map[string]any "Apply result with created/updated resources"
+// @Failure 400 {object} map[string]any "Invalid request or template not found"
+// @Failure 500 {object} map[string]any "Internal server error"
+// @Router /api/v1/platform/prometheus-rules/templates/apply [post]
 func ApplyTemplate(c *gin.Context) {
 	h, ok := getHandler(c)
 	if !ok {
