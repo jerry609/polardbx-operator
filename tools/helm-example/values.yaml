@@ -1,0 +1,70 @@
+# PolarDB-X Management Platform - Helm Chart Values
+# This example demonstrates how to deploy the all-in-one UI backend with K8s-native config
+
+backend:
+  enabled: true
+  image:
+    repository: polardbx-ui-backend
+    tag: v1.0.0
+    pullPolicy: IfNotPresent
+  
+  # Configuration via ConfigMap
+  config:
+    logLevel: info
+    listenAddress: ":8080"
+    uiStaticDir: "/app/ui"
+    kubeMode: "incluster"  # incluster | kubeconfig
+    kubeconfigPath: "/etc/kube/kubeconfig"
+  
+  # Secrets (sensitive data)
+  secrets:
+    # If using external cluster, provide kubeconfig content (base64 encoded)
+    kubeconfig: ""
+    hpfsAccessKey: ""
+    hpfsSecretKey: ""
+  
+  # Resource limits
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  
+  # Service configuration
+  service:
+    type: ClusterIP
+    port: 8080
+  
+  # Ingress (optional)
+  ingress:
+    enabled: false
+    className: nginx
+    hosts:
+      - host: polardbx-ui.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+
+# Operator configuration (if deploying operator separately)
+operator:
+  enabled: true
+  image:
+    repository: polardbx-operator
+    tag: v1.0.0
+    pullPolicy: IfNotPresent
+  
+  config:
+    logLevel: info
+    reconcileConcurrency: 4
+  
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+

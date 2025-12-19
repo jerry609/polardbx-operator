@@ -117,3 +117,6 @@ func LogGroupedRoutes(engine *gin.Engine) {
 		"others", counters["others"],
 	)
 }
+
+// Note: SetupRouter is now defined in setup.go to avoid duplicate declaration.
+// This file contains route registration helpers.

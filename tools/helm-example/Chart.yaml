@@ -1,0 +1,7 @@
+apiVersion: v2
+name: polardbx-management-platform
+description: PolarDB-X Management Platform (All-in-one UI Backend + Operator)
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+

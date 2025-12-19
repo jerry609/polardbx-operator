@@ -1,7 +1,9 @@
 package api
 
 import (
+	"context"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -9,10 +11,12 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/version"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
@@ -258,16 +262,36 @@ func Connect(c *gin.Context) {
 		"defaultNamespace": defNs,
 	}
 
-	// 1) Communicate with apiserver
+	// Create a context with timeout for API server operations
+	connectTimeout := 10 * time.Second
+	connectCtx, cancel := context.WithTimeout(c.Request.Context(), connectTimeout)
+	defer cancel()
+
+	// 1) Communicate with apiserver using RESTClient with context timeout
 	logger.Info("Connect: querying apiserver version",
 		"context", ctxName,
-		"user", user)
-	sv, err := cs.Discovery().ServerVersion()
-	if err != nil {
+		"user", user,
+		"timeout", connectTimeout)
+
+	// Use RESTClient with context for timeout control
+	versionResult := cs.Discovery().RESTClient().Get().AbsPath("/version").Do(connectCtx)
+	if versionResult.Error() != nil {
+		err := versionResult.Error()
 		logger.Error("Connect: server version query failed",
 			"context", ctxName,
 			"user", user,
 			"error", err)
+
+		// Check if context was cancelled due to timeout
+		if connectCtx.Err() == context.DeadlineExceeded {
+			logger.Error("Connect: apiserver connection timeout",
+				"context", ctxName,
+				"user", user,
+				"timeout", connectTimeout)
+			apierr.Abort(c, apierr.Timeout("apiserver connection timeout - check network connectivity and kubeconfig server address"))
+			return
+		}
+
 		switch {
 		case k8serrors.IsUnauthorized(err):
 			apierr.AbortUnauthorized(c, "authentication failed")
@@ -276,27 +300,58 @@ func Connect(c *gin.Context) {
 		default:
 			var netErr net.Error
 			if errors.As(err, &netErr) {
-				apiErr := apierr.Timeout("apiserver unreachable")
+				apiErr := apierr.Timeout("apiserver unreachable - check network connectivity and kubeconfig server address")
 				if !netErr.Timeout() {
-					apiErr = apierr.ServiceUnavailable("apiserver unreachable", 0)
+					apiErr = apierr.ServiceUnavailable("apiserver unreachable - check network connectivity and kubeconfig server address", 0)
 				}
 				apierr.Abort(c, apiErr)
 			} else {
-				apierr.Abort(c, apierr.ServiceUnavailable("apiserver unreachable", 0))
+				apierr.Abort(c, apierr.ServiceUnavailable("apiserver unreachable - check network connectivity and kubeconfig server address", 0))
 			}
 		}
 		return
 	}
-	logger.Info("Connect: apiserver version query succeeded",
-		"context", ctxName,
-		"user", user)
+
+	// Parse version info from raw response
+	var sv *version.Info
+	raw, err := versionResult.Raw()
+	if err == nil && len(raw) > 0 {
+		if err := json.Unmarshal(raw, &sv); err != nil {
+			logger.Warn("Connect: failed to parse version response, continuing without version info",
+				"context", ctxName,
+				"user", user,
+				"error", err)
+			sv = nil
+		} else {
+			logger.Info("Connect: apiserver version query succeeded",
+				"context", ctxName,
+				"user", user)
+		}
+	} else {
+		logger.Warn("Connect: failed to get version raw response, continuing without version info",
+			"context", ctxName,
+			"user", user,
+			"error", err)
+		sv = nil
+	}
 
 	// 2) Lightweight RBAC validation: list namespaces (limit 1)
-	if _, err := cs.CoreV1().Namespaces().List(c.Request.Context(), metav1.ListOptions{Limit: 1}); err != nil {
+	if _, err := cs.CoreV1().Namespaces().List(connectCtx, metav1.ListOptions{Limit: 1}); err != nil {
 		logger.Error("Connect: namespace list failed",
 			"context", ctxName,
 			"user", user,
 			"error", err)
+
+		// Check if context was cancelled due to timeout
+		if connectCtx.Err() == context.DeadlineExceeded {
+			logger.Error("Connect: namespace list timeout",
+				"context", ctxName,
+				"user", user,
+				"timeout", connectTimeout)
+			apierr.Abort(c, apierr.Timeout("apiserver connection timeout - check network connectivity"))
+			return
+		}
+
 		apierr.AbortWithError(c, err)
 		return
 	}

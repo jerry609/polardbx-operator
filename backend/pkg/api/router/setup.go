@@ -1,6 +1,8 @@
 package router
 
 import (
+	"net/http"
+	"os"
 	"strconv"
 	"strings"
 
@@ -23,11 +25,56 @@ func SetupRouter() *gin.Engine {
 
 	r := gin.New()
 
-	// Setup middleware
+	// Setup middleware (must be before routes)
 	setupMiddleware(r, cfg)
 
-	// Setup routes
+	// Setup routes (API routes must be registered before static file serving)
 	setupRoutes(r)
+
+	// Serve static frontend assets if UI_STATIC_DIR is set (for all-in-one deployment)
+	// This must be AFTER API routes to avoid conflicts with /api/* and /swagger/*
+	if uiDir := strings.TrimSpace(os.Getenv("UI_STATIC_DIR")); uiDir != "" {
+		logger.Info("Serving static UI assets", "dir", uiDir)
+		// Use NoRoute to handle unmatched paths (for SPA routing)
+		// API routes are already registered, so they take precedence
+		r.NoRoute(func(c *gin.Context) {
+			path := c.Request.URL.Path
+			// API paths should return 404
+			if strings.HasPrefix(path, "/api/") {
+				c.JSON(http.StatusNotFound, gin.H{
+					"error":   "API route not found",
+					"path":    path,
+					"message": "The requested API endpoint does not exist",
+				})
+				return
+			}
+			// For SPA: try to serve the requested file, fallback to index.html
+			filePath := strings.TrimPrefix(path, "/")
+			if filePath == "" {
+				filePath = "index.html"
+			}
+			// Try to serve the file, if not found, serve index.html for SPA routing
+			fs := http.Dir(uiDir)
+			file, err := fs.Open(filePath)
+			if err != nil {
+				// File not found, serve index.html for SPA routing
+				filePath = "index.html"
+				file, err = fs.Open(filePath)
+				if err != nil {
+					c.String(http.StatusNotFound, "index.html not found")
+					return
+				}
+			}
+			defer file.Close()
+			stat, err := file.Stat()
+			if err != nil {
+				c.String(http.StatusInternalServerError, "Failed to stat file")
+				return
+			}
+			// Serve the file directly without redirect
+			http.ServeContent(c.Writer, c.Request, filePath, stat.ModTime(), file)
+		})
+	}
 
 	return r
 }
