@@ -166,6 +166,8 @@ spec:
         - name: kubeconfig
           mountPath: /etc/kube
           readOnly: true
+        # Note: If kubeconfig references external certificate files (e.g., minikube),
+        # you may need to mount additional volumes or use ServiceAccount with in-cluster config
         resources:
           requests:
             cpu: 100m

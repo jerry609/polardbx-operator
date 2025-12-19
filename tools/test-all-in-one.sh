@@ -4,9 +4,9 @@
 
 set -e
 
-IMAGE_NAME="polardbx-ui-all-in-one"
-IMAGE_TAG="dev"
-CONTAINER_NAME="polardbx-ui-test"
+IMAGE_NAME="polardbx-dashboard-all-in-one"
+IMAGE_TAG="test"
+CONTAINER_NAME="polardbx-dashboard-test"
 PORT=8080
 
 echo "=== Building all-in-one Docker image ==="
@@ -19,10 +19,17 @@ docker rm ${CONTAINER_NAME} 2>/dev/null || true
 
 echo ""
 echo "=== Starting container ==="
+# Note: For local development with minikube, we need to:
+# 1. Use host network mode to access minikube API server
+# 2. Mount kubeconfig file
+# 3. Mount .minikube directory (contains certificate files referenced by kubeconfig)
 docker run -d \
   --name ${CONTAINER_NAME} \
-  -p ${PORT}:8080 \
+  --network host \
+  -v ${HOME}/.kube/config:/etc/kube/kubeconfig:ro \
+  -v ${HOME}/.minikube:${HOME}/.minikube:ro \
   -e UI_STATIC_DIR=/app/ui \
+  -e KUBECONFIG=/etc/kube/kubeconfig \
   ${IMAGE_NAME}:${IMAGE_TAG}
 
 echo ""
@@ -33,8 +40,8 @@ echo ""
 echo "=== Testing endpoints ==="
 
 # Test health endpoint
-echo "1. Testing /api/v1/health"
-HEALTH_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:${PORT}/api/v1/health || echo "000")
+echo "1. Testing /health"
+HEALTH_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:${PORT}/health || echo "000")
 if [ "$HEALTH_RESPONSE" = "200" ]; then
   echo "   ✓ Health check passed (200)"
 else

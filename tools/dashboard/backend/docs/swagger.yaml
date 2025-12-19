@@ -1,0 +1,5432 @@
+definitions:
+  handler.AlertRuleGroupSummary:
+    properties:
+      interval:
+        description: rule evaluation interval
+        type: string
+      name:
+        type: string
+      rules:
+        description: frontend uses rules instead of rulesCount
+        type: integer
+      severities:
+        description: list of severity levels within the group
+        items:
+          type: string
+        type: array
+    type: object
+  handler.AlertRuleTemplateDetail:
+    properties:
+      category:
+        type: string
+      content:
+        type: string
+      description:
+        type: string
+      displayName:
+        type: string
+      name:
+        type: string
+    type: object
+  handler.AlertRuleTemplateSummary:
+    properties:
+      annotations:
+        additionalProperties:
+          type: string
+        type: object
+      categories:
+        items:
+          type: string
+        type: array
+      category:
+        type: string
+      description:
+        type: string
+      displayName:
+        type: string
+      file:
+        description: source filename
+        type: string
+      groups:
+        items:
+          $ref: '#/definitions/handler.AlertRuleGroupSummary'
+        type: array
+      labels:
+        additionalProperties:
+          type: string
+        type: object
+      name:
+        type: string
+      primarySeverity:
+        type: string
+      size:
+        description: file size
+        type: integer
+      source:
+        description: chart or embedded
+        type: string
+      title:
+        description: used by frontend
+        type: string
+      updatedAt:
+        description: update time
+        type: string
+    type: object
+  handler.FacetBucket:
+    properties:
+      count:
+        type: integer
+      key:
+        type: string
+    type: object
+  handler.FacetSpec:
+    properties:
+      field:
+        type: string
+      name:
+        type: string
+      order:
+        description: count|key
+        type: string
+      size:
+        type: integer
+    type: object
+  handler.HistogramBucket:
+    properties:
+      count:
+        type: integer
+      key:
+        type: string
+    type: object
+  handler.HistogramSpec:
+    properties:
+      field:
+        type: string
+      interval:
+        description: 1m,5m,1h
+        type: string
+      minDocCount:
+        type: integer
+      name:
+        type: string
+    type: object
+  handler.LogPreset:
+    properties:
+      facets:
+        items:
+          type: string
+        type: array
+      histogram:
+        properties:
+          field:
+            type: string
+          intervals:
+            description: 'recommendation list: e.g. ["1m","5m","1h","1d"]'
+            items:
+              type: string
+            type: array
+        type: object
+      indexPattern:
+        type: string
+    type: object
+  handler.NormalizedResponse:
+    properties:
+      facets:
+        additionalProperties:
+          items:
+            $ref: '#/definitions/handler.FacetBucket'
+          type: array
+        type: object
+      histogram:
+        items:
+          $ref: '#/definitions/handler.HistogramBucket'
+        type: array
+      items:
+        items:
+          additionalProperties: {}
+          type: object
+        type: array
+      total:
+        type: integer
+    type: object
+  handler.PrecheckRequest:
+    properties:
+      operation:
+        description: scale|upgrade|config
+        type: string
+      targetSpec:
+        additionalProperties: {}
+        description: optional, reserved
+        type: object
+    type: object
+  handler.PrometheusRule:
+    properties:
+      alertsCount:
+        type: integer
+      groups:
+        items: {}
+        type: array
+      groupsCount:
+        type: integer
+      labels:
+        additionalProperties:
+          type: string
+        type: object
+      name:
+        type: string
+      namespace:
+        type: string
+      recordingCount:
+        type: integer
+      rulesCount:
+        type: integer
+    type: object
+  handler.QueryRequest:
+    properties:
+      aggs:
+        additionalProperties: {}
+        type: object
+      facets:
+        items:
+          $ref: '#/definitions/handler.FacetSpec'
+        type: array
+      from:
+        type: integer
+      histogram:
+        $ref: '#/definitions/handler.HistogramSpec'
+      host:
+        type: string
+      index:
+        type: string
+      normalize:
+        type: boolean
+      query:
+        additionalProperties: {}
+        type: object
+      size:
+        type: integer
+      sort:
+        items:
+          additionalProperties: {}
+          type: object
+        type: array
+      timeRange:
+        additionalProperties:
+          type: string
+        description: '{"field":"@timestamp","from":"2024-01-01T00:00:00Z","to":"2024-01-02T00:00:00Z"}'
+        type: object
+    type: object
+  handler.Strategy:
+    properties:
+      clusterName:
+        type: string
+      clusterNamespace:
+        type: string
+      enableCN:
+        type: boolean
+      enableDN:
+        type: boolean
+      name:
+        type: string
+      output:
+        properties:
+          authType:
+            description: none|basic
+            type: string
+          caCrt:
+            description: ditto
+            type: string
+          hosts:
+            type: string
+          password:
+            description: only for precheck; should be provided once and persisted
+              to Secret by apply
+            type: string
+          type:
+            description: elasticsearch|stdout
+            type: string
+          useTLS:
+            type: boolean
+          username:
+            type: string
+        type: object
+    type: object
+  handler.TestImageRegistryRequest:
+    properties:
+      registry:
+        type: string
+    required:
+    - registry
+    type: object
+  handler.UpdateImageRegistryRequest:
+    properties:
+      customRegistry:
+        type: string
+      defaultRegistry:
+        type: string
+      mirrors:
+        items:
+          type: string
+        type: array
+      registry:
+        type: string
+    type: object
+  polardbxclusters.UpgradeCandidate:
+    properties:
+      notes:
+        type: string
+      recommended:
+        type: boolean
+      version:
+        type: string
+    type: object
+  polardbxclusters.UpgradePlanResponse:
+    properties:
+      candidates:
+        items:
+          $ref: '#/definitions/polardbxclusters.UpgradeCandidate'
+        type: array
+      currentVersion:
+        type: string
+      matrix:
+        additionalProperties: {}
+        type: object
+    type: object
+  service.DiagnosticJob:
+    properties:
+      cluster:
+        type: string
+      completedAt:
+        type: string
+      id:
+        type: string
+      message:
+        type: string
+      namespace:
+        type: string
+      outputPath:
+        type: string
+      progress:
+        type: integer
+      startedAt:
+        type: string
+      status:
+        type: string
+    type: object
+  xstores.BackupRemoteInfoDTO:
+    description: Remote storage information for a backup.
+    properties:
+      path:
+        description: Remote path or URL
+        example: s3://my-bucket/backups/my-xstore/20240115
+        type: string
+      sink:
+        description: Sink name
+        example: my-s3-sink
+        type: string
+      size:
+        description: Backup size
+        example: 1.5Gi
+        type: string
+      storageType:
+        description: Storage type
+        example: s3
+        type: string
+    type: object
+  xstores.BackupStorageProviderDTO:
+    description: Configuration for backup storage destination.
+    properties:
+      sink:
+        description: Sink name reference
+        example: my-s3-sink
+        type: string
+      storageName:
+        description: Storage type (S3, OSS, NFS, etc.)
+        example: s3
+        type: string
+    type: object
+  xstores.ConditionDTO:
+    description: Resource condition indicating current state.
+    properties:
+      lastTransitionTime:
+        description: Last time the condition transitioned
+        type: string
+      message:
+        description: Human-readable message
+        example: All pods are ready
+        type: string
+      reason:
+        description: Reason for the condition's last transition
+        example: PodReady
+        type: string
+      status:
+        description: Status of the condition (True, False, Unknown)
+        example: "True"
+        type: string
+      type:
+        description: Type of the condition
+        example: Ready
+        type: string
+    type: object
+  xstores.ContainerStatusDTO:
+    description: Status of a container within a pod.
+    properties:
+      image:
+        description: Container image
+        example: polardbx/polardbx-engine:latest
+        type: string
+      name:
+        description: Container name
+        example: engine
+        type: string
+      ready:
+        description: Whether container is ready
+        example: true
+        type: boolean
+      restartCount:
+        description: Restart count
+        example: 0
+        type: integer
+    type: object
+  xstores.MessageResponseDTO:
+    description: Simple response with a message field.
+    properties:
+      message:
+        description: Response message
+        example: Operation completed successfully
+        type: string
+    type: object
+  xstores.ObjectMetaDTO:
+    description: Kubernetes resource metadata including name, namespace, labels and
+      annotations.
+    properties:
+      annotations:
+        additionalProperties:
+          type: string
+        description: Annotations attached to the resource
+        type: object
+      creationTimestamp:
+        description: Creation timestamp
+        type: string
+      generation:
+        description: Generation number, incremented on spec changes
+        example: 1
+        type: integer
+      labels:
+        additionalProperties:
+          type: string
+        description: Labels attached to the resource
+        type: object
+      name:
+        description: Resource name, unique within namespace
+        example: my-xstore
+        type: string
+      namespace:
+        description: Kubernetes namespace
+        example: default
+        type: string
+      resourceVersion:
+        description: Resource version for optimistic concurrency
+        example: "12345"
+        type: string
+      uid:
+        description: Unique identifier for the resource
+        example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+        type: string
+    type: object
+  xstores.RebuildProgressDTO:
+    description: Detailed progress of an XStore rebuild operation.
+    properties:
+      currentStep:
+        description: Current step name
+        example: CopyingData
+        type: string
+      eta:
+        description: Estimated time remaining
+        example: 10m
+        type: string
+      message:
+        description: Status message
+        example: Copying data from leader
+        type: string
+      percentage:
+        description: Progress percentage (0-100)
+        example: 60
+        type: integer
+      stepNumber:
+        description: Step number
+        example: 3
+        type: integer
+      targetPod:
+        description: Target pod being rebuilt
+        example: my-xstore-1
+        type: string
+      totalSteps:
+        description: Total steps
+        example: 5
+        type: integer
+    type: object
+  xstores.RebuildStatusDTO:
+    description: Status of an XStore rebuild operation.
+    properties:
+      endTime:
+        description: End time of rebuild
+        type: string
+      error:
+        description: Error message if failed
+        type: string
+      phase:
+        description: Current rebuild phase
+        example: Completed
+        type: string
+      progress:
+        description: Progress percentage (0-100)
+        example: 100
+        type: integer
+      rebuilding:
+        description: Whether rebuild is in progress
+        example: false
+        type: boolean
+      startTime:
+        description: Start time of rebuild
+        type: string
+      targetPod:
+        description: Pod being rebuilt
+        example: my-xstore-1
+        type: string
+    type: object
+  xstores.ResourceListDTO:
+    description: Resource quantities for CPU and memory.
+    properties:
+      cpu:
+        description: CPU resource (e.g., "2", "500m")
+        example: "2"
+        type: string
+      memory:
+        description: Memory resource (e.g., "4Gi", "512Mi")
+        example: 4Gi
+        type: string
+    type: object
+  xstores.ResourceRequirementsDTO:
+    description: CPU and memory resource requirements.
+    properties:
+      limits:
+        allOf:
+        - $ref: '#/definitions/xstores.ResourceListDTO'
+        description: Resource limits
+      requests:
+        allOf:
+        - $ref: '#/definitions/xstores.ResourceListDTO'
+        description: Resource requests
+    type: object
+  xstores.XSTORETDEDTO:
+    description: TDE (Transparent Data Encryption) configuration.
+    properties:
+      enable:
+        description: Enable TDE
+        example: false
+        type: boolean
+    type: object
+  xstores.XStoreBackupBinlogDTO:
+    description: XStoreBackupBinlog represents continuous binlog backup for an XStore.
+    properties:
+      apiVersion:
+        description: API version
+        example: polardbx.aliyun.com/v1
+        type: string
+      kind:
+        description: Resource kind
+        example: XStoreBackupBinlog
+        type: string
+      metadata:
+        allOf:
+        - $ref: '#/definitions/xstores.ObjectMetaDTO'
+        description: Resource metadata
+      spec:
+        allOf:
+        - $ref: '#/definitions/xstores.XStoreBackupBinlogSpecDTO'
+        description: Desired state specification
+      status:
+        allOf:
+        - $ref: '#/definitions/xstores.XStoreBackupBinlogStatusDTO'
+        description: Observed state status
+    type: object
+  xstores.XStoreBackupBinlogSpecDTO:
+    description: Desired state specification for XStore binlog backup.
+    properties:
+      localExpireLogSeconds:
+        description: Local expire time for binlogs
+        example: 604800
+        type: integer
+      maxLocalBinlogCount:
+        description: Maximum local binlog usage
+        example: 10
+        type: integer
+      storageProvider:
+        allOf:
+        - $ref: '#/definitions/xstores.BackupStorageProviderDTO'
+        description: Storage provider configuration
+      xstore:
+        allOf:
+        - $ref: '#/definitions/xstores.XStoreReferenceDTO'
+        description: Reference to the source XStore
+    type: object
+  xstores.XStoreBackupBinlogStatusDTO:
+    description: Current observed state of XStore binlog backup.
+    properties:
+      checkpointTime:
+        description: Checkpoint timestamp
+        type: string
+      lastUploadedFile:
+        description: Last uploaded binlog file
+        example: mysql-bin.000015
+        type: string
+      phase:
+        description: Current phase
+        example: Running
+        type: string
+    type: object
+  xstores.XStoreBackupDTO:
+    description: XStoreBackup represents a point-in-time backup of an XStore instance.
+    properties:
+      apiVersion:
+        description: API version
+        example: polardbx.aliyun.com/v1
+        type: string
+      kind:
+        description: Resource kind
+        example: XStoreBackup
+        type: string
+      metadata:
+        allOf:
+        - $ref: '#/definitions/xstores.ObjectMetaDTO'
+        description: Resource metadata
+      spec:
+        allOf:
+        - $ref: '#/definitions/xstores.XStoreBackupSpecDTO'
+        description: Desired state specification
+      status:
+        allOf:
+        - $ref: '#/definitions/xstores.XStoreBackupStatusDTO'
+        description: Observed state status
+    type: object
+  xstores.XStoreBackupSpecDTO:
+    description: Desired state specification for an XStore backup.
+    properties:
+      cleanPolicy:
+        description: Cleanup policy when backup is deleted (Retain, Delete, OnFailure)
+        example: Retain
+        type: string
+      engine:
+        description: Storage engine type
+        example: galaxy
+        type: string
+      preferredBackupRole:
+        description: Preferred node role for backup (leader, follower)
+        example: follower
+        type: string
+      retentionTime:
+        description: How long to retain this backup
+        example: 168h
+        type: string
+      storageProvider:
+        allOf:
+        - $ref: '#/definitions/xstores.BackupStorageProviderDTO'
+        description: Storage provider configuration
+      timezone:
+        description: Timezone for backup timestamps
+        example: Asia/Shanghai
+        type: string
+      xstore:
+        allOf:
+        - $ref: '#/definitions/xstores.XStoreReferenceDTO'
+        description: Reference to the source XStore
+    type: object
+  xstores.XStoreBackupStatusDTO:
+    description: Current observed state of the XStore backup.
+    properties:
+      backupSetPath:
+        description: Backup set path/name
+        example: /backups/my-xstore/20240115
+        type: string
+      backupSize:
+        description: Total backup size
+        example: 1.5Gi
+        type: string
+      commitIndex:
+        description: Commit index at backup time
+        example: 12345
+        type: integer
+      endTime:
+        description: Backup end time
+        type: string
+      phase:
+        description: Current backup phase (New, Running, Completed, Failed, Deleting)
+        example: Completed
+        type: string
+      startTime:
+        description: Backup start time
+        type: string
+      storageName:
+        description: Storage type used
+        example: s3
+        type: string
+      targetPod:
+        description: Pod where backup was executed
+        example: my-xstore-1
+        type: string
+    type: object
+  xstores.XStoreConfigDTO:
+    description: MySQL configuration overlay for XStore.
+    properties:
+      dynamic:
+        additionalProperties: {}
+        description: MySQL dynamic configuration parameters
+        type: object
+      engine:
+        additionalProperties: {}
+        description: Engine-specific configuration
+        type: object
+    type: object
+  xstores.XStoreDTO:
+    description: XStore is a distributed MySQL-compatible storage engine instance.
+    properties:
+      apiVersion:
+        description: API version
+        example: polardbx.aliyun.com/v1
+        type: string
+      kind:
+        description: Resource kind
+        example: XStore
+        type: string
+      metadata:
+        allOf:
+        - $ref: '#/definitions/xstores.ObjectMetaDTO'
+        description: Resource metadata
+      spec:
+        allOf:
+        - $ref: '#/definitions/xstores.XStoreSpecDTO'
+        description: Desired state specification
+      status:
+        allOf:
+        - $ref: '#/definitions/xstores.XStoreStatusDTO'
+        description: Observed state status
+    type: object
+  xstores.XStoreFollowerDTO:
+    description: XStoreFollower represents a read-only follower of an XStore.
+    properties:
+      apiVersion:
+        description: API version
+        example: polardbx.aliyun.com/v1
+        type: string
+      kind:
+        description: Resource kind
+        example: XStoreFollower
+        type: string
+      metadata:
+        allOf:
+        - $ref: '#/definitions/xstores.ObjectMetaDTO'
+        description: Resource metadata
+      spec:
+        allOf:
+        - $ref: '#/definitions/xstores.XStoreFollowerSpecDTO'
+        description: Desired state specification
+      status:
+        allOf:
+        - $ref: '#/definitions/xstores.XStoreFollowerStatusDTO'
+        description: Observed state status
+    type: object
+  xstores.XStoreFollowerSpecDTO:
+    description: Desired state specification for XStore follower.
+    properties:
+      local:
+        description: Local mode (no remote data center)
+        example: true
+        type: boolean
+      resources:
+        allOf:
+        - $ref: '#/definitions/xstores.ResourceRequirementsDTO'
+        description: Resource requirements
+      role:
+        description: Role of the follower node
+        example: Learner
+        type: string
+      xstore:
+        allOf:
+        - $ref: '#/definitions/xstores.XStoreReferenceDTO'
+        description: Reference to the source XStore
+    type: object
+  xstores.XStoreFollowerStatusDTO:
+    description: Current observed state of XStore follower.
+    properties:
+      lagSeconds:
+        description: Replication lag in seconds
+        example: 0
+        type: integer
+      phase:
+        description: Current phase
+        example: Running
+        type: string
+      podName:
+        description: Target pod name
+        example: my-xstore-follower-0
+        type: string
+      ready:
+        description: Ready status
+        example: true
+        type: boolean
+    type: object
+  xstores.XStoreNodeSetDTO:
+    description: Configuration for a group of XStore nodes.
+    properties:
+      name:
+        description: Node set name
+        example: cand
+        type: string
+      replicas:
+        description: Number of replicas
+        example: 3
+        type: integer
+      role:
+        description: Role of nodes in this set (Candidate, Voter, Learner)
+        example: Candidate
+        type: string
+      template:
+        allOf:
+        - $ref: '#/definitions/xstores.XStorePodTemplateDTO'
+        description: Resource requirements
+    type: object
+  xstores.XStoreParameterTemplateDTO:
+    description: Reference to a parameter template.
+    properties:
+      name:
+        description: Template name
+        example: default-params
+        type: string
+      namespace:
+        description: Namespace of the template
+        example: default
+        type: string
+    type: object
+  xstores.XStorePodDTO:
+    description: Pod information for XStore instance.
+    properties:
+      containerStatuses:
+        description: Container statuses
+        items:
+          $ref: '#/definitions/xstores.ContainerStatusDTO'
+        type: array
+      creationTimestamp:
+        description: Pod creation timestamp
+        type: string
+      hostIP:
+        description: Host IP where pod is running
+        example: 192.168.1.100
+        type: string
+      name:
+        description: Pod name
+        example: my-xstore-0
+        type: string
+      namespace:
+        description: Pod namespace
+        example: default
+        type: string
+      nodeName:
+        description: Node name where pod is scheduled
+        example: worker-node-1
+        type: string
+      phase:
+        description: Pod phase (Pending, Running, Succeeded, Failed, Unknown)
+        example: Running
+        type: string
+      podIP:
+        description: Pod IP address
+        example: 10.244.0.15
+        type: string
+      role:
+        description: Pod role (Leader, Follower, Learner)
+        example: Leader
+        type: string
+    type: object
+  xstores.XStorePodTemplateDTO:
+    description: Pod template specification for XStore node resources.
+    properties:
+      hostNetwork:
+        description: Host network mode
+        type: boolean
+      resources:
+        allOf:
+        - $ref: '#/definitions/xstores.ResourceRequirementsDTO'
+        description: Resource requirements
+    type: object
+  xstores.XStorePrivilegeDTO:
+    description: Database account configuration for XStore.
+    properties:
+      password:
+        description: Password (may be referenced from secret)
+        type: string
+      type:
+        description: Privilege type (Super, ReadWrite, ReadOnly, DDLOnly, DMLOnly)
+        example: Super
+        type: string
+      username:
+        description: Username for the account
+        example: admin
+        type: string
+    type: object
+  xstores.XStoreReferenceDTO:
+    description: Reference to the source XStore for backup.
+    properties:
+      name:
+        description: Name of the XStore
+        example: my-xstore
+        type: string
+      uid:
+        description: UID of the XStore
+        example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+        type: string
+    type: object
+  xstores.XStoreRestoreSpecDTO:
+    description: Specification for restoring XStore from backup.
+    properties:
+      backupSet:
+        description: Backup set name to restore from
+        example: my-backup
+        type: string
+      time:
+        description: Point-in-time to restore to (RFC3339 format)
+        example: "2024-01-15T10:30:00Z"
+        type: string
+    type: object
+  xstores.XStoreSpecDTO:
+    description: Desired state specification for an XStore instance.
+    properties:
+      config:
+        allOf:
+        - $ref: '#/definitions/xstores.XStoreConfigDTO'
+        description: MySQL configuration overlay
+      engine:
+        description: 'Storage engine type (default: galaxy)'
+        example: galaxy
+        type: string
+      exclusive:
+        description: Resource isolation mode
+        example: false
+        type: boolean
+      parameterTemplate:
+        allOf:
+        - $ref: '#/definitions/xstores.XStoreParameterTemplateDTO'
+        description: Parameter template reference
+      primaryCluster:
+        description: Primary cluster name for read-only replicas
+        type: string
+      primaryXStore:
+        description: Primary XStore name for read-only replicas
+        type: string
+      privileges:
+        description: Database accounts/privileges configuration
+        items:
+          $ref: '#/definitions/xstores.XStorePrivilegeDTO'
+        type: array
+      readonly:
+        description: Whether the instance is read-only
+        example: false
+        type: boolean
+      restore:
+        allOf:
+        - $ref: '#/definitions/xstores.XStoreRestoreSpecDTO'
+        description: Restore specification for point-in-time recovery
+      serviceLabels:
+        additionalProperties:
+          type: string
+        description: Extra labels for the service
+        type: object
+      serviceName:
+        description: Service name override
+        example: my-xstore-svc
+        type: string
+      serviceType:
+        description: Kubernetes service type (ClusterIP, NodePort, LoadBalancer)
+        example: NodePort
+        type: string
+      tde:
+        allOf:
+        - $ref: '#/definitions/xstores.XSTORETDEDTO'
+        description: Transparent Data Encryption configuration
+      topology:
+        allOf:
+        - $ref: '#/definitions/xstores.XStoreTopologyDTO'
+        description: Topology specification (nodes, replicas, resources)
+      upgradeStrategy:
+        description: Upgrade strategy (Force, BestEffort)
+        example: BestEffort
+        type: string
+    type: object
+  xstores.XStoreStatusDTO:
+    description: Current observed state of the XStore instance.
+    properties:
+      conditions:
+        description: Status conditions
+        items:
+          $ref: '#/definitions/xstores.ConditionDTO'
+        type: array
+      engineVersion:
+        description: Engine version
+        example: 8.0.18
+        type: string
+      leaderPod:
+        description: Name of the leader pod
+        example: my-xstore-0
+        type: string
+      observedGeneration:
+        description: Last observed generation
+        example: 1
+        type: integer
+      parameterName:
+        description: Associated parameter template name
+        type: string
+      phase:
+        description: Current lifecycle phase
+        example: Running
+        type: string
+      readyPods:
+        description: Number of ready pods
+        example: 3
+        type: integer
+      readyStatus:
+        description: Ready status string (e.g., "3/3")
+        example: 3/3
+        type: string
+      restarting:
+        description: Whether pods need restart
+        example: false
+        type: boolean
+      stage:
+        description: Current stage within phase
+        example: Idle
+        type: string
+      totalDataDirSize:
+        description: Total data directory size
+        example: 10Gi
+        type: string
+      totalPods:
+        description: Total number of pods
+        example: 3
+        type: integer
+    type: object
+  xstores.XStoreTopologyDTO:
+    description: Topology configuration defining node layout and resources.
+    properties:
+      nodeSets:
+        description: Node sets configuration
+        items:
+          $ref: '#/definitions/xstores.XStoreNodeSetDTO'
+        type: array
+    type: object
+info:
+  contact: {}
+paths:
+  /api/v1/diagnostics/{namespace}/{cluster}/start:
+    post:
+      consumes:
+      - application/json
+      description: Create a polardbx-clinic Pod to collect diagnostic information
+        for the given cluster.
+      parameters:
+      - description: Kubernetes namespace of the cluster
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of the PolarDB-X cluster
+        in: path
+        name: cluster
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Diagnostic task started
+          schema:
+            $ref: '#/definitions/service.DiagnosticJob'
+        "400":
+          description: Request parameter error
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Start diagnosis
+      tags:
+      - diagnostics
+  /api/v1/diagnostics/{namespace}/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete diagnostic Pod and related resources
+      parameters:
+      - description: namespace
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: diagnostic task ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: deletion successful
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: task not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete diagnostic task
+      tags:
+      - diagnostics
+  /api/v1/diagnostics/{namespace}/{id}/download:
+    get:
+      consumes:
+      - application/json
+      description: Get download link or path for diagnostic report
+      parameters:
+      - description: Kubernetes namespace of the diagnostic job
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: diagnostic task ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Download information including path, URL, and helper command
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Request parameter error
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Diagnostic report not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Download diagnostic report
+      tags:
+      - diagnostics
+  /api/v1/diagnostics/{namespace}/{id}/file:
+    get:
+      description: Get diagnostic report file content from Pod
+      parameters:
+      - description: Kubernetes namespace of the diagnostic job
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: diagnostic task ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/gzip
+      responses:
+        "200":
+          description: Diagnostic report file
+          schema:
+            type: file
+        "400":
+          description: Request parameter error (e.g., invalid ID)
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Authentication required or invalid authentication state
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Diagnostic job or file not found
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Diagnostic report not ready yet
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get diagnostic report file
+      tags:
+      - diagnostics
+  /api/v1/diagnostics/{namespace}/{id}/status:
+    get:
+      consumes:
+      - application/json
+      description: Get current status and progress of specified diagnostic task
+      parameters:
+      - description: Kubernetes namespace of the diagnostic job
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: diagnostic task ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Diagnostic task status
+          schema:
+            $ref: '#/definitions/service.DiagnosticJob'
+        "400":
+          description: Request parameter error
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Diagnostic task not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get diagnostic status
+      tags:
+      - diagnostics
+  /api/v1/diagnostics/reports:
+    get:
+      consumes:
+      - application/json
+      description: List all diagnostic reports under specified namespace
+      parameters:
+      - description: Kubernetes namespace; list all namespaces if not specified
+        in: query
+        name: namespace
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Diagnostic reports list
+          schema:
+            items:
+              $ref: '#/definitions/service.DiagnosticJob'
+            type: array
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: List diagnostic reports
+      tags:
+      - diagnostics
+  /api/v1/platform/grafana/config:
+    get:
+      description: Get current Grafana configuration from the platform.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Grafana configuration
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get Grafana config
+      tags:
+      - platform
+      - grafana
+    put:
+      consumes:
+      - application/json
+      description: Update Grafana configuration with the provided payload.
+      parameters:
+      - description: Grafana configuration payload
+        in: body
+        name: body
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Updated Grafana configuration
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid payload
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update Grafana config
+      tags:
+      - platform
+      - grafana
+  /api/v1/platform/grafana/dashboards:
+    get:
+      description: List all Grafana dashboards stored in the platform.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Dashboard list with names and version counts
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: List Grafana dashboards
+      tags:
+      - platform
+      - grafana
+  /api/v1/platform/grafana/dashboards/{name}/rollback:
+    post:
+      consumes:
+      - application/json
+      description: Rollback a Grafana dashboard to a specific previous version.
+      parameters:
+      - description: Dashboard name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Version payload (version number)
+        in: body
+        name: body
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Rollback confirmation
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid payload
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Dashboard version not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Rollback dashboard
+      tags:
+      - platform
+      - grafana
+  /api/v1/platform/grafana/dashboards/{name}/versions:
+    get:
+      description: List all stored versions of a specific Grafana dashboard.
+      parameters:
+      - description: Dashboard name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Dashboard name and version list
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: List dashboard versions
+      tags:
+      - platform
+      - grafana
+  /api/v1/platform/grafana/dashboards/sync:
+    post:
+      consumes:
+      - application/json
+      description: Synchronize Grafana dashboards with optional overwrite flag.
+      parameters:
+      - description: Dashboards payload (dashboards map and overwrite flag)
+        in: body
+        name: body
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Dashboards synced confirmation
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid payload
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Sync Grafana dashboards
+      tags:
+      - platform
+      - grafana
+  /api/v1/platform/grafana/templates:
+    get:
+      description: List all available Grafana dashboard templates from the templates
+        directory.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Template list and directory
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Templates directory not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: List Grafana dashboard templates
+      tags:
+      - platform
+      - grafana
+  /api/v1/platform/grafana/templates/{name}:
+    get:
+      description: Get a specific Grafana dashboard template including its content.
+      parameters:
+      - description: Template name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Template details including content
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Template name required
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Template not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get Grafana dashboard template
+      tags:
+      - platform
+      - grafana
+  /api/v1/platform/log-strategies:
+    get:
+      consumes:
+      - application/json
+      description: Lists all log collection strategies configured for clusters
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of log strategies with total count
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: List log strategies
+      tags:
+      - log-strategies
+    post:
+      consumes:
+      - application/json
+      description: Creates a new log collection strategy for a cluster
+      parameters:
+      - description: Log strategy specification with name, cluster info, and output
+          configuration
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handler.Strategy'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created log strategy
+          schema:
+            $ref: '#/definitions/handler.Strategy'
+        "400":
+          description: Invalid strategy specification
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Strategy already exists
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create log strategy
+      tags:
+      - log-strategies
+  /api/v1/platform/log-strategies/{name}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes a log collection strategy
+      parameters:
+      - description: Name of the log strategy
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Deletion confirmation
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Strategy not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete log strategy
+      tags:
+      - log-strategies
+    get:
+      consumes:
+      - application/json
+      description: Retrieves details of a specific log collection strategy
+      parameters:
+      - description: Name of the log strategy
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Log strategy details
+          schema:
+            $ref: '#/definitions/handler.Strategy'
+        "404":
+          description: Strategy not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get log strategy
+      tags:
+      - log-strategies
+    put:
+      consumes:
+      - application/json
+      description: Updates an existing log collection strategy
+      parameters:
+      - description: Name of the log strategy
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Updated log strategy specification (body.name must equal path
+          name)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handler.Strategy'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Updated log strategy
+          schema:
+            $ref: '#/definitions/handler.Strategy'
+        "400":
+          description: Invalid strategy specification
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Strategy not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update log strategy
+      tags:
+      - log-strategies
+  /api/v1/platform/log-strategies/{name}/apply:
+    post:
+      consumes:
+      - application/json
+      description: Applies a log strategy by persisting secrets/config and triggering
+        logstash rollout
+      parameters:
+      - description: Name of the log strategy to apply
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Apply status and rollout information
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Strategy not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Apply log strategy
+      tags:
+      - log-strategies
+  /api/v1/platform/log-strategies/apply-records:
+    get:
+      consumes:
+      - application/json
+      description: Lists all apply records for log strategies
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of apply records with total count
+          schema:
+            additionalProperties: true
+            type: object
+      summary: List apply records
+      tags:
+      - log-strategies
+  /api/v1/platform/log-strategies/precheck:
+    post:
+      consumes:
+      - application/json
+      description: Validates log strategy configuration (cluster existence, ES hosts,
+        auth, TLS certificates)
+      parameters:
+      - description: Log strategy to validate
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handler.Strategy'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Validation result with checks, errors, and warnings
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid strategy specification
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Precheck log strategy
+      tags:
+      - log-strategies
+  /api/v1/platform/log-strategies/test-connection:
+    post:
+      consumes:
+      - application/json
+      description: Tests connectivity and authentication to Elasticsearch hosts
+      parameters:
+      - description: Connection test request with hosts, username, password
+        in: body
+        name: body
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Connection test result
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request parameters
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Test ES connection
+      tags:
+      - log-strategies
+  /api/v1/platform/logcollectors:
+    get:
+      description: List all PolarDB-X log collectors in the specified namespace.
+      parameters:
+      - description: 'Kubernetes namespace (default: default)'
+        in: query
+        name: namespace
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of log collectors
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: List log collectors
+      tags:
+      - platform
+      - logcollector
+    post:
+      consumes:
+      - application/json
+      description: Create a new PolarDB-X log collector resource.
+      parameters:
+      - description: 'Kubernetes namespace (default: default)'
+        in: query
+        name: namespace
+        type: string
+      - description: Log collector specification
+        in: body
+        name: body
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created log collector
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create log collector
+      tags:
+      - platform
+      - logcollector
+  /api/v1/platform/logcollectors/{namespace}/{name}:
+    delete:
+      description: Delete a PolarDB-X log collector resource.
+      parameters:
+      - description: Kubernetes namespace
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Log collector name
+        in: path
+        name: name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: Deletion confirmation
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Log collector not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete log collector
+      tags:
+      - platform
+      - logcollector
+    get:
+      description: Get a PolarDB-X log collector by namespace and name.
+      parameters:
+      - description: Kubernetes namespace
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Log collector name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Log collector details
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Log collector not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get log collector
+      tags:
+      - platform
+      - logcollector
+    put:
+      consumes:
+      - application/json
+      description: Update an existing PolarDB-X log collector resource.
+      parameters:
+      - description: Kubernetes namespace
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Log collector name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Updated log collector specification
+        in: body
+        name: body
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Updated log collector
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update log collector
+      tags:
+      - platform
+      - logcollector
+  /api/v1/platform/logcollectors/{namespace}/{name}/status:
+    get:
+      description: Get aggregated Filebeat/Logstash ready status and output mode for
+        a log collector.
+      parameters:
+      - description: Kubernetes namespace
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Log collector name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Log collector status
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get log collector status
+      tags:
+      - platform
+      - logcollector
+  /api/v1/platform/logcollectors/{namespace}/es-cert:
+    get:
+      description: Get Elasticsearch CA certificate information from the secret.
+      parameters:
+      - description: Kubernetes namespace
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: 'Secret name (default: elastic-certs-public)'
+        in: query
+        name: name
+        type: string
+      - description: 'Include certificate content in response (default: false)'
+        in: query
+        name: include
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Certificate information
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get Elasticsearch certificate
+      tags:
+      - platform
+      - logcollector
+    put:
+      consumes:
+      - application/json
+      description: Update or create Elasticsearch CA certificate in the secret.
+      parameters:
+      - description: Kubernetes namespace
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: 'Secret name (default: elastic-certs-public)'
+        in: query
+        name: name
+        type: string
+      - description: Certificate payload (caCrt field)
+        in: body
+        name: body
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Updated certificate info
+          schema:
+            additionalProperties: true
+            type: object
+        "201":
+          description: Created certificate info
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid caCrt
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update Elasticsearch certificate
+      tags:
+      - platform
+      - logcollector
+  /api/v1/platform/logcollectors/{namespace}/logs:
+    get:
+      description: Stream logs from a Logstash pod in the specified namespace.
+      parameters:
+      - description: Kubernetes namespace
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Pod name (auto-detected if not specified)
+        in: query
+        name: pod
+        type: string
+      - description: 'Container name (default: logstash)'
+        in: query
+        name: container
+        type: string
+      - description: 'Follow log stream (default: true)'
+        in: query
+        name: follow
+        type: string
+      - description: 'Number of tail lines (default: 200)'
+        in: query
+        name: tailLines
+        type: string
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: Log stream
+          schema:
+            type: string
+        "404":
+          description: Logstash pod not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Stream Logstash logs
+      tags:
+      - platform
+      - logcollector
+  /api/v1/platform/logcollectors/{namespace}/pipeline:
+    get:
+      description: Get the Logstash pipeline ConfigMap content for a namespace.
+      parameters:
+      - description: Kubernetes namespace
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: 'ConfigMap name (default: logstash-pipeline)'
+        in: query
+        name: configMap
+        type: string
+      - description: Specific key to retrieve from ConfigMap
+        in: query
+        name: key
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Pipeline ConfigMap data
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: ConfigMap or key not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get Logstash pipeline
+      tags:
+      - platform
+      - logcollector
+    put:
+      consumes:
+      - application/json
+      description: Update or create Logstash pipeline ConfigMap content.
+      parameters:
+      - description: Kubernetes namespace
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: 'ConfigMap name (default: logstash-pipeline)'
+        in: query
+        name: configMap
+        type: string
+      - description: Pipeline data payload
+        in: body
+        name: body
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Updated pipeline ConfigMap
+          schema:
+            additionalProperties: true
+            type: object
+        "201":
+          description: Created pipeline ConfigMap
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update Logstash pipeline
+      tags:
+      - platform
+      - logcollector
+  /api/v1/platform/logcollectors/{namespace}/test:
+    get:
+      description: Perform simple diagnostic checks to find common configuration errors.
+      parameters:
+      - description: Kubernetes namespace
+        in: path
+        name: namespace
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Diagnostic check results
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Test log collector
+      tags:
+      - platform
+      - logcollector
+  /api/v1/platform/logs/{namespace}/{pod_name}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves logs from a specific pod, optionally filtered by container
+      parameters:
+      - description: 'Kubernetes namespace (default: default)'
+        in: query
+        name: namespace
+        type: string
+      - description: Name of the pod
+        in: path
+        name: pod_name
+        required: true
+        type: string
+      - description: Container name (optional, defaults to first container)
+        in: query
+        name: container
+        type: string
+      - description: 'Number of lines to retrieve from the end (default: 1000, max:
+          10000)'
+        in: query
+        name: tailLines
+        type: integer
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: Pod logs in plain text
+          schema:
+            type: string
+        "400":
+          description: Invalid request parameters
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Pod not found
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Kubernetes API error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get pod logs
+      tags:
+      - pods
+  /api/v1/platform/logs/bootstrap:
+    post:
+      consumes:
+      - application/json
+      description: Installs log collection stack (Filebeat/Logstash) via Helm chart
+      parameters:
+      - description: Bootstrap request with mode, namespace, releaseName, enableFilebeat,
+          enableLogstash, esHost, etc.
+        in: body
+        name: body
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Bootstrap status and release information
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request parameters
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Bootstrap log collection
+      tags:
+      - logs
+  /api/v1/platform/logs/bootstrap/logs:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves logs from log collection bootstrap job
+      parameters:
+      - description: Namespace where bootstrap job is running
+        in: query
+        name: namespace
+        type: string
+      - description: Bootstrap job name
+        in: query
+        name: jobName
+        type: string
+      - description: 'Number of lines to retrieve (default: 1000)'
+        in: query
+        name: tailLines
+        type: integer
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: Bootstrap job logs in plain text
+          schema:
+            type: string
+        "404":
+          description: Bootstrap job not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get bootstrap logs
+      tags:
+      - logs
+  /api/v1/platform/logs/bootstrap/status:
+    get:
+      consumes:
+      - application/json
+      description: Returns the status of log collection stack bootstrap job
+      parameters:
+      - description: Namespace where bootstrap job is running
+        in: query
+        name: namespace
+        type: string
+      - description: Bootstrap job name
+        in: query
+        name: jobName
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Bootstrap job status with conditions
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Bootstrap job not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get bootstrap status
+      tags:
+      - logs
+  /api/v1/platform/logs/presets:
+    get:
+      consumes:
+      - application/json
+      description: Returns all available log query presets with default aggregations
+        and histogram configurations
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of log query presets
+          schema:
+            additionalProperties: true
+            type: object
+      summary: List log query presets
+      tags:
+      - logs
+  /api/v1/platform/logs/presets/{pattern}:
+    get:
+      consumes:
+      - application/json
+      description: Returns log query preset configuration for a specific index pattern
+      parameters:
+      - description: Index pattern name
+        in: path
+        name: pattern
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Log preset configuration
+          schema:
+            $ref: '#/definitions/handler.LogPreset'
+        "404":
+          description: Preset not found
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get log preset by pattern
+      tags:
+      - logs
+  /api/v1/platform/logs/query:
+    post:
+      consumes:
+      - application/json
+      description: Queries logs from Elasticsearch/OpenSearch with support for aggregations,
+        facets, and histograms
+      parameters:
+      - description: Log query request with host, index, query DSL, aggregations,
+          etc.
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handler.QueryRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Query results with total count, items, facets, and histogram
+          schema:
+            $ref: '#/definitions/handler.NormalizedResponse'
+        "400":
+          description: Invalid request parameters
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Target host not allowed
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error or security bootstrap failed
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Query logs
+      tags:
+      - logs
+  /api/v1/platform/logservice/status:
+    get:
+      description: Get aggregated readiness status and configuration of Filebeat/Logstash
+        components.
+      parameters:
+      - description: 'Kubernetes namespace (default: polardbx-logcollector)'
+        in: query
+        name: namespace
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Log service status including component health and state
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get log service status
+      tags:
+      - platform
+      - logservice
+  /api/v1/platform/pods:
+    get:
+      consumes:
+      - application/json
+      description: Lists all pods in the specified namespace
+      parameters:
+      - description: 'Kubernetes namespace (default: default)'
+        in: query
+        name: namespace
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of pods
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+        "502":
+          description: Kubernetes API error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: List pods
+      tags:
+      - pods
+  /api/v1/platform/pods/{namespace}/{name}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes a specific pod
+      parameters:
+      - description: Kubernetes namespace
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of the pod
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Deletion confirmation
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Pod not found
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Kubernetes API error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete pod
+      tags:
+      - pods
+    get:
+      consumes:
+      - application/json
+      description: Retrieves details of a specific pod
+      parameters:
+      - description: Kubernetes namespace
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of the pod
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Pod details
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Pod not found
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Kubernetes API error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get pod
+      tags:
+      - pods
+  /api/v1/platform/pods/{namespace}/{name}/exec:
+    get:
+      consumes:
+      - application/json
+      description: Establishes a WebSocket connection to execute commands in a pod's
+        container
+      parameters:
+      - description: Kubernetes namespace
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of the pod
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Container name (optional)
+        in: query
+        name: container
+        type: string
+      - description: 'Command to execute (default: /bin/sh)'
+        in: query
+        name: command
+        type: string
+      produces:
+      - application/json
+      responses:
+        "101":
+          description: Switching protocols to WebSocket
+          schema:
+            type: string
+        "400":
+          description: Invalid request or WebSocket upgrade failed
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Pod not found
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Kubernetes API error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Execute command in pod via WebSocket
+      tags:
+      - pods
+  /api/v1/platform/prometheus-rules/{namespace}/{name}/yaml:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves YAML content of a specific PrometheusRule resource
+      parameters:
+      - description: Kubernetes namespace
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of the PrometheusRule
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: YAML content of the PrometheusRule
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid request parameters
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: PrometheusRule not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get PrometheusRule YAML
+      tags:
+      - prometheus-rules
+  /api/v1/platform/prometheus-rules/templates:
+    get:
+      consumes:
+      - application/json
+      description: Lists all available PrometheusRule alert rule templates from embedded
+        files and Helm chart
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of alert rule templates with metadata
+          schema:
+            items:
+              $ref: '#/definitions/handler.AlertRuleTemplateSummary'
+            type: array
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: List alert rule templates
+      tags:
+      - prometheus-rules
+  /api/v1/platform/prometheus-rules/templates/{name}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves detailed content of a specific alert rule template
+      parameters:
+      - description: Name of the alert rule template
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Template details with content
+          schema:
+            $ref: '#/definitions/handler.AlertRuleTemplateDetail'
+        "404":
+          description: Template not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get alert rule template
+      tags:
+      - prometheus-rules
+  /api/v1/platform/prometheus-rules/templates/apply:
+    post:
+      consumes:
+      - application/json
+      description: Applies an alert rule template to create or update PrometheusRule
+        resources
+      parameters:
+      - description: Apply request with template name, namespace, and optional overrides
+        in: body
+        name: body
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Apply result with created/updated resources
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request or template not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Apply alert rule template
+      tags:
+      - prometheus-rules
+  /api/v1/platform/prometheus-rules/validate:
+    post:
+      consumes:
+      - application/json
+      description: Validates PrometheusRule YAML content for syntax and PromQL correctness
+      parameters:
+      - description: 'YAML content to validate (key: ''yaml'')'
+        in: body
+        name: body
+        required: true
+        schema:
+          additionalProperties:
+            type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Validation result with success status, message, details, errors,
+            and warnings
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request or YAML syntax error
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Validate PrometheusRule
+      tags:
+      - prometheus-rules
+  /api/v1/polardbxclusters:
+    get:
+      description: List PolarDB-X clusters in the specified namespace (or all when
+        omitted).
+      parameters:
+      - description: Kubernetes namespace filter
+        in: query
+        name: namespace
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of clusters
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+        "502":
+          description: Kubernetes API error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: List PolarDB-X clusters
+      tags:
+      - polardbxclusters
+    post:
+      consumes:
+      - application/json
+      description: Create a new PolarDB-X cluster from full CRD spec.
+      parameters:
+      - description: PolarDB-X cluster specification
+        in: body
+        name: body
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created cluster
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid specification
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Kubernetes API error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create PolarDB-X cluster
+      tags:
+      - polardbxclusters
+  /api/v1/polardbxclusters/{namespace}/{name}:
+    delete:
+      description: Delete a PolarDB-X cluster by namespace and name.
+      parameters:
+      - description: Kubernetes namespace
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Cluster name
+        in: path
+        name: name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: Deletion initiated
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Cluster not found
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Kubernetes API error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete PolarDB-X cluster
+      tags:
+      - polardbxclusters
+    get:
+      description: Get a PolarDB-X cluster by namespace and name.
+      parameters:
+      - description: Kubernetes namespace
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Cluster name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Cluster
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Cluster not found
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Kubernetes API error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get PolarDB-X cluster
+      tags:
+      - polardbxclusters
+    put:
+      consumes:
+      - application/json
+      description: Update an existing PolarDB-X cluster.
+      parameters:
+      - description: Kubernetes namespace
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Cluster name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Updated cluster spec
+        in: body
+        name: body
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Updated cluster
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid specification
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Cluster not found
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Kubernetes API error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update PolarDB-X cluster
+      tags:
+      - polardbxclusters
+  /api/v1/polardbxclusters/{namespace}/{name}/alerts-summary:
+    get:
+      description: Get aggregated alert summary for the specified PolarDB-X cluster.
+      parameters:
+      - description: Kubernetes namespace
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Cluster name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Alerts summary
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Cluster not found
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Backend error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get cluster alerts summary
+      tags:
+      - polardbxclusters
+      - monitoring
+  /api/v1/polardbxclusters/{namespace}/{name}/log-config/{nodeType}:
+    patch:
+      consumes:
+      - application/json
+      description: Update log configuration for a given node type of a PolarDB-X cluster.
+      parameters:
+      - description: Kubernetes namespace
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Cluster name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Node type (e.g. cn, dn, gms)
+        in: path
+        name: nodeType
+        required: true
+        type: string
+      - description: Log config payload
+        in: body
+        name: body
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Update confirmation
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid payload
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Cluster not found
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Kubernetes API error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update cluster log config
+      tags:
+      - polardbxclusters
+      - ops
+  /api/v1/polardbxclusters/{namespace}/{name}/pitr:
+    post:
+      consumes:
+      - application/json
+      description: Create a new PolarDB-X cluster restored to a specific point in
+        time.
+      parameters:
+      - description: Kubernetes namespace of the source cluster
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of the source PolarDB-X cluster
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: 'PITR request payload (expects fields: time/targetTime, timezone,
+          backupSet/backupName, targetCluster/targetName, storageProvider)'
+        in: body
+        name: body
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: PITR initiated successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request body, missing time, or backup not ready
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Backup or source cluster not found
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Target cluster already exists
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Initiate PITR
+      tags:
+      - restore
+  /api/v1/polardbxclusters/{namespace}/{name}/pods:
+    get:
+      description: List pods belonging to the specified PolarDB-X cluster.
+      parameters:
+      - description: Kubernetes namespace
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Cluster name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of pods
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+        "404":
+          description: Cluster or pods not found
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Kubernetes API error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: List cluster pods
+      tags:
+      - polardbxclusters
+      - pods
+  /api/v1/polardbxclusters/{namespace}/{name}/prechange-check:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a pre-change checklist for cluster operations (backup
+        status, RPO, storage connectivity, etc.)
+      parameters:
+      - description: Kubernetes namespace of the cluster
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of the PolarDB-X cluster
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: 'Time window in hours for recent backup check (default: 24)'
+        in: query
+        name: windowHours
+        type: integer
+      - description: 'Reference time in RFC3339 format (default: current time)'
+        in: query
+        name: now
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Pre-change checklist with backup status, RPO, storage connectivity
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request parameters
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Cluster not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get pre-change checklist
+      tags:
+      - prechange
+  /api/v1/polardbxclusters/{namespace}/{name}/precheck:
+    post:
+      consumes:
+      - application/json
+      description: Performs comprehensive pre-change validation for cluster operations
+        (scale/upgrade/config), returns pass status, warnings, errors, and a validation
+        token
+      parameters:
+      - description: Kubernetes namespace of the cluster
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of the PolarDB-X cluster
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Precheck request with operation type and optional target spec
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handler.PrecheckRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Precheck result with pass status, warnings, errors, checks,
+            and validation token
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request or unsupported operation
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Cluster not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Perform pre-change check
+      tags:
+      - prechange
+  /api/v1/polardbxclusters/{namespace}/{name}/restore:
+    post:
+      consumes:
+      - application/json
+      description: Create a new PolarDB-X cluster from a completed backup of the source
+        cluster.
+      parameters:
+      - description: Kubernetes namespace of the source cluster
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of the source PolarDB-X cluster
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: 'Restore request payload (expects fields: backupSet/backupName,
+          targetCluster/targetName, storageProvider, time, timezone)'
+        in: body
+        name: body
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Restore initiated successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request body or backup not ready
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Backup or source cluster not found
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Target cluster already exists
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Restore cluster from backup
+      tags:
+      - restore
+  /api/v1/polardbxclusters/{namespace}/{name}/restore-status:
+    get:
+      description: Get restore-related status and phase for a (potentially restored)
+        cluster.
+      parameters:
+      - description: Kubernetes namespace of the cluster
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of the cluster
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Restore status payload
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Cluster not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get restore status
+      tags:
+      - restore
+  /api/v1/polardbxclusters/{namespace}/{name}/scale:
+    patch:
+      consumes:
+      - application/json
+      description: Initiate scaling operation (e.g. change node replicas) for a PolarDB-X
+        cluster.
+      parameters:
+      - description: Kubernetes namespace
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Cluster name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Scaling request
+        in: body
+        name: body
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Scaling initiated
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Cluster not found
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Kubernetes API error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Scale cluster
+      tags:
+      - polardbxclusters
+      - ops
+  /api/v1/polardbxclusters/{namespace}/{name}/upgrade:
+    patch:
+      consumes:
+      - application/json
+      description: Initiate version upgrade for a PolarDB-X cluster.
+      parameters:
+      - description: Kubernetes namespace
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Cluster name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Upgrade request
+        in: body
+        name: body
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Upgrade initiated
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Cluster not found
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Kubernetes API error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Upgrade cluster
+      tags:
+      - polardbxclusters
+      - ops
+  /api/v1/polardbxclusters/{namespace}/{name}/upgrade-plan:
+    get:
+      description: Get upgrade plan and candidate versions for a PolarDB-X cluster.
+      parameters:
+      - description: Kubernetes namespace
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Cluster name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Upgrade plan
+          schema:
+            $ref: '#/definitions/polardbxclusters.UpgradePlanResponse'
+        "404":
+          description: Cluster not found
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Kubernetes API error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get cluster upgrade plan
+      tags:
+      - polardbxclusters
+      - ops
+  /api/v1/polardbxclusters/{namespace}/create:
+    post:
+      consumes:
+      - application/json
+      description: Create a new PolarDB-X cluster from user-friendly configuration
+        payload.
+      parameters:
+      - description: Kubernetes namespace
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Cluster creation config
+        in: body
+        name: body
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created cluster
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid configuration
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Kubernetes API error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create cluster from config
+      tags:
+      - polardbxclusters
+  /api/v1/polardbxclusters/backup-binlogs:
+    get:
+      description: List PolarDB-X backup binlog resources, optionally filtered by
+        namespace.
+      parameters:
+      - description: Kubernetes namespace filter
+        in: query
+        name: namespace
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of backup binlogs
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+        "502":
+          description: Kubernetes API error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: List backup binlogs
+      tags:
+      - polardbxclusters
+      - backup-binlogs
+    post:
+      consumes:
+      - application/json
+      description: Create a new PolarDB-X backup binlog resource.
+      parameters:
+      - description: 'Kubernetes namespace (default: default)'
+        in: query
+        name: namespace
+        type: string
+      - description: Backup binlog specification
+        in: body
+        name: body
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created backup binlog
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid specification
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Kubernetes API error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create backup binlog
+      tags:
+      - polardbxclusters
+      - backup-binlogs
+  /api/v1/polardbxclusters/backup-binlogs/{namespace}/{name}:
+    delete:
+      description: Delete a PolarDB-X backup binlog resource by namespace and name.
+      parameters:
+      - description: Kubernetes namespace
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Backup binlog name
+        in: path
+        name: name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: Deletion confirmation
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Backup binlog not found
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Kubernetes API error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete backup binlog
+      tags:
+      - polardbxclusters
+      - backup-binlogs
+    get:
+      description: Get a PolarDB-X backup binlog resource by namespace and name.
+      parameters:
+      - description: Kubernetes namespace
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Backup binlog name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Backup binlog
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Backup binlog not found
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Kubernetes API error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get backup binlog
+      tags:
+      - polardbxclusters
+      - backup-binlogs
+    put:
+      consumes:
+      - application/json
+      description: Update an existing PolarDB-X backup binlog resource.
+      parameters:
+      - description: Kubernetes namespace
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Backup binlog name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Updated backup binlog specification
+        in: body
+        name: body
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Updated backup binlog
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid specification
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Backup binlog not found
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Kubernetes API error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update backup binlog
+      tags:
+      - polardbxclusters
+      - backup-binlogs
+  /api/v1/polardbxclusters/cluster-knobs:
+    get:
+      consumes:
+      - application/json
+      description: Lists all cluster parameter knobs configurations
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of cluster knobs
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+        "502":
+          description: Kubernetes API error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: List cluster knobs
+      tags:
+      - cluster-knobs
+    post:
+      consumes:
+      - application/json
+      description: Creates a new cluster parameter knobs configuration
+      parameters:
+      - description: Cluster knobs specification
+        in: body
+        name: body
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created cluster knobs
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid cluster knobs specification
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Cluster knobs already exists
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Kubernetes API error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create cluster knobs
+      tags:
+      - cluster-knobs
+  /api/v1/polardbxclusters/cluster-knobs/{namespace}/{name}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes a cluster parameter knobs configuration
+      parameters:
+      - description: Kubernetes namespace
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of the cluster knobs
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Deletion confirmation
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Cluster knobs not found
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Kubernetes API error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete cluster knobs
+      tags:
+      - cluster-knobs
+    get:
+      consumes:
+      - application/json
+      description: Retrieves details of a specific cluster parameter knobs configuration
+      parameters:
+      - description: Kubernetes namespace
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of the cluster knobs
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Cluster knobs details
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Cluster knobs not found
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Kubernetes API error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get cluster knobs
+      tags:
+      - cluster-knobs
+    put:
+      consumes:
+      - application/json
+      description: Updates an existing cluster parameter knobs configuration
+      parameters:
+      - description: Kubernetes namespace
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of the cluster knobs
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Updated cluster knobs specification
+        in: body
+        name: body
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Updated cluster knobs
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid cluster knobs specification
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Cluster knobs not found
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Kubernetes API error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update cluster knobs
+      tags:
+      - cluster-knobs
+  /api/v1/polardbxclusters/parameter-templates:
+    get:
+      consumes:
+      - application/json
+      description: Lists all PolarDB-X parameter templates in the specified namespace
+      parameters:
+      - description: 'Kubernetes namespace (default: default)'
+        in: query
+        name: namespace
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of parameter templates
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+        "502":
+          description: Kubernetes API error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: List parameter templates
+      tags:
+      - parameter-templates
+    post:
+      consumes:
+      - application/json
+      description: Creates a new PolarDB-X parameter template
+      parameters:
+      - description: 'Kubernetes namespace (default: default)'
+        in: query
+        name: namespace
+        type: string
+      - description: Parameter template specification
+        in: body
+        name: body
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created parameter template
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid parameter template specification
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Parameter template already exists
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Kubernetes API error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create parameter template
+      tags:
+      - parameter-templates
+  /api/v1/polardbxclusters/parameter-templates/{namespace}/{name}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes a PolarDB-X parameter template
+      parameters:
+      - description: Kubernetes namespace
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of the parameter template
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Deletion confirmation
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Parameter template not found
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Kubernetes API error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete parameter template
+      tags:
+      - parameter-templates
+    get:
+      consumes:
+      - application/json
+      description: Retrieves details of a specific PolarDB-X parameter template
+      parameters:
+      - description: Kubernetes namespace
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of the parameter template
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Parameter template details
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Parameter template not found
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Kubernetes API error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get parameter template
+      tags:
+      - parameter-templates
+    put:
+      consumes:
+      - application/json
+      description: Updates an existing PolarDB-X parameter template
+      parameters:
+      - description: Kubernetes namespace
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of the parameter template
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Updated parameter template specification
+        in: body
+        name: body
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Updated parameter template
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid parameter template specification
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Parameter template not found
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Kubernetes API error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update parameter template
+      tags:
+      - parameter-templates
+  /api/v1/polardbxclusters/parameters:
+    get:
+      consumes:
+      - application/json
+      description: Lists all PolarDB-X parameters in the specified namespace
+      parameters:
+      - description: 'Kubernetes namespace (default: default)'
+        in: query
+        name: namespace
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of parameters
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+        "502":
+          description: Kubernetes API error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: List parameters
+      tags:
+      - parameters
+    post:
+      consumes:
+      - application/json
+      description: Creates a new PolarDB-X parameter
+      parameters:
+      - description: 'Kubernetes namespace (default: default)'
+        in: query
+        name: namespace
+        type: string
+      - description: Parameter specification
+        in: body
+        name: body
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created parameter
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid parameter specification
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Parameter already exists
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Kubernetes API error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create parameter
+      tags:
+      - parameters
+  /api/v1/polardbxclusters/parameters/{name}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes a PolarDB-X parameter
+      parameters:
+      - description: 'Kubernetes namespace (default: default)'
+        in: query
+        name: namespace
+        type: string
+      - description: Name of the parameter
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Deletion confirmation
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Parameter not found
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Kubernetes API error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete parameter
+      tags:
+      - parameters
+    get:
+      consumes:
+      - application/json
+      description: Retrieves details of a specific PolarDB-X parameter
+      parameters:
+      - description: 'Kubernetes namespace (default: default)'
+        in: query
+        name: namespace
+        type: string
+      - description: Name of the parameter
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Parameter details
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Parameter not found
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Kubernetes API error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get parameter
+      tags:
+      - parameters
+    put:
+      consumes:
+      - application/json
+      description: Updates an existing PolarDB-X parameter
+      parameters:
+      - description: 'Kubernetes namespace (default: default)'
+        in: query
+        name: namespace
+        type: string
+      - description: Name of the parameter
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Updated parameter specification
+        in: body
+        name: body
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Updated parameter
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid parameter specification
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Parameter not found
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Kubernetes API error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update parameter
+      tags:
+      - parameters
+  /api/v1/restore-jobs:
+    get:
+      description: List clusters that are or were created via restore flows, as logical
+        restore jobs.
+      parameters:
+      - description: Kubernetes namespace filter; list all namespaces if omitted
+        in: query
+        name: namespace
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of restore jobs
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: List restore jobs
+      tags:
+      - restore
+  /api/v1/restore-jobs/{namespace}/{name}:
+    delete:
+      description: Request cancellation of a restore job (best-effort, depends on
+        implementation).
+      parameters:
+      - description: Kubernetes namespace of the restore job
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of the restore job
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Cancel requested
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Restore job not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Cancel restore job
+      tags:
+      - restore
+    get:
+      description: Get restore status for a single restore job identified by namespace
+        and name.
+      parameters:
+      - description: Kubernetes namespace of the restore job
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of the restore job (cluster name)
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Restore job status
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Restore job not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get restore job
+      tags:
+      - restore
+  /api/v1/xstores:
+    get:
+      description: List XStore instances in the specified namespace.
+      parameters:
+      - description: Kubernetes namespace; defaults to 'default' when omitted
+        in: query
+        name: namespace
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of XStores
+          schema:
+            items:
+              $ref: '#/definitions/xstores.XStoreDTO'
+            type: array
+        "502":
+          description: Upstream Kubernetes error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: List XStores
+      tags:
+      - xstores
+    post:
+      consumes:
+      - application/json
+      description: Create a new XStore resource in the specified or default namespace.
+      parameters:
+      - description: Kubernetes namespace; defaults to 'default' when omitted
+        in: query
+        name: namespace
+        type: string
+      - description: XStore specification
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/xstores.XStoreSpecDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created XStore
+          schema:
+            $ref: '#/definitions/xstores.XStoreDTO'
+        "400":
+          description: Invalid request body
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Upstream Kubernetes error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create XStore
+      tags:
+      - xstores
+  /api/v1/xstores/{namespace}/{name}:
+    delete:
+      description: Delete an XStore resource by namespace and name.
+      parameters:
+      - description: Kubernetes namespace of the XStore
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of the XStore
+        in: path
+        name: name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: Deletion confirmation
+          schema:
+            $ref: '#/definitions/xstores.MessageResponseDTO'
+        "404":
+          description: XStore not found
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Upstream Kubernetes error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete XStore
+      tags:
+      - xstores
+    get:
+      description: Get an XStore resource by namespace and name.
+      parameters:
+      - description: Kubernetes namespace of the XStore
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of the XStore
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: XStore
+          schema:
+            $ref: '#/definitions/xstores.XStoreDTO'
+        "404":
+          description: XStore not found
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Upstream Kubernetes error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get XStore
+      tags:
+      - xstores
+    put:
+      consumes:
+      - application/json
+      description: Update an existing XStore resource.
+      parameters:
+      - description: Kubernetes namespace of the XStore
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of the XStore
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Updated XStore specification
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/xstores.XStoreSpecDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Updated XStore
+          schema:
+            $ref: '#/definitions/xstores.XStoreDTO'
+        "400":
+          description: Invalid request body
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: XStore not found
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Upstream Kubernetes error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update XStore
+      tags:
+      - xstores
+  /api/v1/xstores/{namespace}/{name}/pods:
+    get:
+      description: List Pods under the specified XStore.
+      parameters:
+      - description: Kubernetes namespace of the XStore
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of the XStore
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of Pods
+          schema:
+            items:
+              $ref: '#/definitions/xstores.XStorePodDTO'
+            type: array
+        "404":
+          description: XStore or Pods not found
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Upstream Kubernetes error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: List XStore pods
+      tags:
+      - xstores
+  /api/v1/xstores/{namespace}/{name}/rebuild/auto:
+    post:
+      description: Trigger automatic rebuild of XStore roles using internal heuristics.
+      parameters:
+      - description: Kubernetes namespace of the XStore
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of the XStore
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Rebuild requested
+          schema:
+            $ref: '#/definitions/xstores.MessageResponseDTO'
+        "404":
+          description: XStore not found
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Upstream Kubernetes error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Auto rebuild XStore
+      tags:
+      - xstores
+      - rebuild
+  /api/v1/xstores/{namespace}/{name}/rebuild/cancel:
+    delete:
+      description: Cancel an ongoing rebuild operation for the specified XStore.
+      parameters:
+      - description: Kubernetes namespace of the XStore
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of the XStore
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Cancellation requested
+          schema:
+            $ref: '#/definitions/xstores.MessageResponseDTO'
+        "404":
+          description: Rebuild or XStore not found
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Upstream Kubernetes error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Cancel rebuild
+      tags:
+      - xstores
+      - rebuild
+  /api/v1/xstores/{namespace}/{name}/rebuild/learner:
+    post:
+      description: Trigger rebuild of the learner role for the specified XStore.
+      parameters:
+      - description: Kubernetes namespace of the XStore
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of the XStore
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Rebuild requested
+          schema:
+            $ref: '#/definitions/xstores.MessageResponseDTO'
+        "404":
+          description: XStore not found
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Upstream Kubernetes error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Rebuild learner
+      tags:
+      - xstores
+      - rebuild
+  /api/v1/xstores/{namespace}/{name}/rebuild/logger:
+    post:
+      description: Trigger rebuild of the logger role for the specified XStore.
+      parameters:
+      - description: Kubernetes namespace of the XStore
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of the XStore
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Rebuild requested
+          schema:
+            $ref: '#/definitions/xstores.MessageResponseDTO'
+        "404":
+          description: XStore not found
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Upstream Kubernetes error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Rebuild logger
+      tags:
+      - xstores
+      - rebuild
+  /api/v1/xstores/{namespace}/{name}/rebuild/progress:
+    get:
+      description: Get detailed progress information for an ongoing rebuild.
+      parameters:
+      - description: Kubernetes namespace of the XStore
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of the XStore
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Rebuild progress details
+          schema:
+            $ref: '#/definitions/xstores.RebuildProgressDTO'
+        "404":
+          description: Rebuild or XStore not found
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Upstream Kubernetes error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get rebuild progress
+      tags:
+      - xstores
+      - rebuild
+  /api/v1/xstores/{namespace}/{name}/rebuild/status:
+    get:
+      description: Get status of an ongoing rebuild operation for the specified XStore.
+      parameters:
+      - description: Kubernetes namespace of the XStore
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of the XStore
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Rebuild status
+          schema:
+            $ref: '#/definitions/xstores.RebuildStatusDTO'
+        "404":
+          description: Rebuild or XStore not found
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Upstream Kubernetes error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get rebuild status
+      tags:
+      - xstores
+      - rebuild
+  /api/v1/xstores/{namespace}/{name}/rebuild/wait:
+    get:
+      description: Block until a rebuild operation finishes or times out.
+      parameters:
+      - description: Kubernetes namespace of the XStore
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of the XStore
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Final rebuild status
+          schema:
+            $ref: '#/definitions/xstores.RebuildStatusDTO'
+        "404":
+          description: Rebuild or XStore not found
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Upstream Kubernetes error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Wait rebuild
+      tags:
+      - xstores
+      - rebuild
+  /api/v1/xstores/backup-binlogs:
+    get:
+      description: List binlog backups for XStore instances in the specified or default
+        namespace.
+      parameters:
+      - description: Kubernetes namespace; defaults to 'default' when omitted
+        in: query
+        name: namespace
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of XStore binlog backups
+          schema:
+            items:
+              $ref: '#/definitions/xstores.XStoreBackupBinlogDTO'
+            type: array
+        "502":
+          description: Upstream Kubernetes error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: List XStore binlog backups
+      tags:
+      - xstores
+      - backup-binlogs
+    post:
+      consumes:
+      - application/json
+      description: Create a new binlog backup for an XStore.
+      parameters:
+      - description: Kubernetes namespace; defaults to 'default' when omitted
+        in: query
+        name: namespace
+        type: string
+      - description: XStore binlog backup specification
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/xstores.XStoreBackupBinlogSpecDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created XStore binlog backup
+          schema:
+            $ref: '#/definitions/xstores.XStoreBackupBinlogDTO'
+        "400":
+          description: Invalid request body
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Upstream Kubernetes error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create XStore binlog backup
+      tags:
+      - xstores
+      - backup-binlogs
+  /api/v1/xstores/backup-binlogs/{namespace}/{name}:
+    delete:
+      description: Delete an XStore binlog backup by namespace and name.
+      parameters:
+      - description: Kubernetes namespace of the binlog backup
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of the binlog backup
+        in: path
+        name: name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: Deletion confirmation
+          schema:
+            $ref: '#/definitions/xstores.MessageResponseDTO'
+        "404":
+          description: Binlog backup not found
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Upstream Kubernetes error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete XStore binlog backup
+      tags:
+      - xstores
+      - backup-binlogs
+    get:
+      description: Get a binlog backup by namespace and name.
+      parameters:
+      - description: Kubernetes namespace of the binlog backup
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of the binlog backup
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: XStore binlog backup
+          schema:
+            $ref: '#/definitions/xstores.XStoreBackupBinlogDTO'
+        "404":
+          description: Binlog backup not found
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Upstream Kubernetes error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get XStore binlog backup
+      tags:
+      - xstores
+      - backup-binlogs
+    put:
+      consumes:
+      - application/json
+      description: Update an existing XStore binlog backup resource.
+      parameters:
+      - description: Kubernetes namespace of the binlog backup
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of the binlog backup
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Updated XStore binlog backup specification
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/xstores.XStoreBackupBinlogSpecDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Updated XStore binlog backup
+          schema:
+            $ref: '#/definitions/xstores.XStoreBackupBinlogDTO'
+        "400":
+          description: Invalid request body
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Binlog backup not found
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Upstream Kubernetes error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update XStore binlog backup
+      tags:
+      - xstores
+      - backup-binlogs
+  /api/v1/xstores/backups:
+    get:
+      description: List backups for XStore instances in the specified or default namespace.
+      parameters:
+      - description: Kubernetes namespace; defaults to 'default' when omitted
+        in: query
+        name: namespace
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of XStore backups
+          schema:
+            items:
+              $ref: '#/definitions/xstores.XStoreBackupDTO'
+            type: array
+        "502":
+          description: Upstream Kubernetes error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: List XStore backups
+      tags:
+      - xstores
+      - backups
+    post:
+      consumes:
+      - application/json
+      description: Create a new backup for an XStore.
+      parameters:
+      - description: Kubernetes namespace; defaults to 'default' when omitted
+        in: query
+        name: namespace
+        type: string
+      - description: XStore backup specification
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/xstores.XStoreBackupSpecDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created XStore backup
+          schema:
+            $ref: '#/definitions/xstores.XStoreBackupDTO'
+        "400":
+          description: Invalid request body
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Upstream Kubernetes error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create XStore backup
+      tags:
+      - xstores
+      - backups
+  /api/v1/xstores/backups/{namespace}/{name}:
+    delete:
+      description: Delete an XStore backup by namespace and name.
+      parameters:
+      - description: Kubernetes namespace of the backup
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of the backup
+        in: path
+        name: name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: Deletion confirmation
+          schema:
+            $ref: '#/definitions/xstores.MessageResponseDTO'
+        "404":
+          description: Backup not found
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Upstream Kubernetes error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete XStore backup
+      tags:
+      - xstores
+      - backups
+    get:
+      description: Get a backup for a given XStore by namespace and name.
+      parameters:
+      - description: Kubernetes namespace of the backup
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of the backup
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: XStore backup
+          schema:
+            $ref: '#/definitions/xstores.XStoreBackupDTO'
+        "404":
+          description: Backup not found
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Upstream Kubernetes error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get XStore backup
+      tags:
+      - xstores
+      - backups
+    put:
+      consumes:
+      - application/json
+      description: Update an existing XStore backup resource.
+      parameters:
+      - description: Kubernetes namespace of the backup
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of the backup
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Updated XStore backup specification
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/xstores.XStoreBackupSpecDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Updated XStore backup
+          schema:
+            $ref: '#/definitions/xstores.XStoreBackupDTO'
+        "400":
+          description: Invalid request body
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Backup not found
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Upstream Kubernetes error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update XStore backup
+      tags:
+      - xstores
+      - backups
+  /api/v1/xstores/backups/{namespace}/{name}/force-delete:
+    post:
+      description: Force delete an XStore backup resource by bypassing safeguards.
+      parameters:
+      - description: Kubernetes namespace of the backup
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of the backup
+        in: path
+        name: name
+        required: true
+        type: string
+      responses:
+        "202":
+          description: Deletion requested
+          schema:
+            $ref: '#/definitions/xstores.MessageResponseDTO'
+        "404":
+          description: Backup not found
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Upstream Kubernetes error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Force delete XStore backup
+      tags:
+      - xstores
+      - backups
+  /api/v1/xstores/backups/{namespace}/{name}/remote-info:
+    get:
+      description: Get remote storage information for an XStore backup (e.g., remote
+        path or location).
+      parameters:
+      - description: Kubernetes namespace of the backup
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of the backup
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Remote backup information
+          schema:
+            $ref: '#/definitions/xstores.BackupRemoteInfoDTO'
+        "404":
+          description: Backup not found
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Upstream Kubernetes error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get XStore backup remote info
+      tags:
+      - xstores
+      - backups
+  /api/v1/xstores/followers:
+    get:
+      description: List follower XStores in the specified or default namespace.
+      parameters:
+      - description: Kubernetes namespace; defaults to 'default' when omitted
+        in: query
+        name: namespace
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of follower XStores
+          schema:
+            items:
+              $ref: '#/definitions/xstores.XStoreFollowerDTO'
+            type: array
+        "502":
+          description: Upstream Kubernetes error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: List XStore followers
+      tags:
+      - xstores
+      - followers
+    post:
+      consumes:
+      - application/json
+      description: Create a follower XStore that replicates from a primary XStore.
+      parameters:
+      - description: Kubernetes namespace; defaults to 'default' when omitted
+        in: query
+        name: namespace
+        type: string
+      - description: Follower XStore specification
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/xstores.XStoreFollowerSpecDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created follower XStore
+          schema:
+            $ref: '#/definitions/xstores.XStoreFollowerDTO'
+        "400":
+          description: Invalid request body
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Upstream Kubernetes error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create XStore follower
+      tags:
+      - xstores
+      - followers
+  /api/v1/xstores/followers/{namespace}/{name}:
+    delete:
+      description: Delete a follower XStore by namespace and name.
+      parameters:
+      - description: Kubernetes namespace of the follower
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of the follower XStore
+        in: path
+        name: name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: Deletion confirmation
+          schema:
+            $ref: '#/definitions/xstores.MessageResponseDTO'
+        "404":
+          description: Follower not found
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Upstream Kubernetes error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete XStore follower
+      tags:
+      - xstores
+      - followers
+    get:
+      description: Get a follower XStore by namespace and name.
+      parameters:
+      - description: Kubernetes namespace of the follower
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of the follower XStore
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Follower XStore
+          schema:
+            $ref: '#/definitions/xstores.XStoreFollowerDTO'
+        "404":
+          description: Follower not found
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Upstream Kubernetes error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get XStore follower
+      tags:
+      - xstores
+      - followers
+    put:
+      consumes:
+      - application/json
+      description: Update an existing follower XStore.
+      parameters:
+      - description: Kubernetes namespace of the follower
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of the follower XStore
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Updated follower specification
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/xstores.XStoreFollowerSpecDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Updated follower XStore
+          schema:
+            $ref: '#/definitions/xstores.XStoreFollowerDTO'
+        "400":
+          description: Invalid request body
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Follower not found
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Upstream Kubernetes error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update XStore follower
+      tags:
+      - xstores
+      - followers
+swagger: "2.0"

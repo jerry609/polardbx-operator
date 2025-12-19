@@ -30,6 +30,8 @@ spec:
         - name: kubeconfig
           mountPath: /etc/kube
           readOnly: true
+        # Note: If kubeconfig references external certificate files,
+        # consider using ServiceAccount with in-cluster config instead
         resources:
           requests:
             cpu: 100m
