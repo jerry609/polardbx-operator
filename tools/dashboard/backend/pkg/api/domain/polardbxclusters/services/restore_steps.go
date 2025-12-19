@@ -4,9 +4,9 @@ import (
 	"errors"
 	"fmt"
 
-	domain_restore "polardbx-ui-backend/pkg/api/domain/platform/restore/handler"
-	"polardbx-ui-backend/pkg/api/domain/polardbxclusters/services/runner"
-	"polardbx-ui-backend/pkg/api/util"
+	domain_restore "polardbx-dashboard-backend/pkg/api/domain/platform/restore/handler"
+	"polardbx-dashboard-backend/pkg/api/domain/polardbxclusters/services/runner"
+	"polardbx-dashboard-backend/pkg/api/util"
 
 	"github.com/gin-gonic/gin"
 )

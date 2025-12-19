@@ -7,10 +7,10 @@ import (
 	"os/signal"
 	"syscall"
 
-	"polardbx-ui-backend/pkg/api/router"
-	"polardbx-ui-backend/pkg/cache"
-	"polardbx-ui-backend/pkg/config"
-	"polardbx-ui-backend/pkg/logger"
+	"polardbx-dashboard-backend/pkg/api/router"
+	"polardbx-dashboard-backend/pkg/cache"
+	"polardbx-dashboard-backend/pkg/config"
+	"polardbx-dashboard-backend/pkg/logger"
 
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"

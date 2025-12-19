@@ -1,7 +1,7 @@
 package polardbxbackupbinlogs
 
 import (
-	domain_pxc "polardbx-ui-backend/pkg/api/domain/polardbxclusters"
+	domain_pxc "polardbx-dashboard-backend/pkg/api/domain/polardbxclusters"
 
 	"github.com/gin-gonic/gin"
 )

@@ -12,7 +12,7 @@ import (
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 
-	"polardbx-ui-backend/pkg/logger"
+	"polardbx-dashboard-backend/pkg/logger"
 )
 
 // RequestLogConfig is the configuration for request logging

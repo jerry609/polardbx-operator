@@ -1,9 +1,9 @@
 package domain_monitoring
 
 import (
-	apierr "polardbx-ui-backend/pkg/api/errors"
-	"polardbx-ui-backend/pkg/api/util"
-	"polardbx-ui-backend/pkg/k8s"
+	apierr "polardbx-dashboard-backend/pkg/api/errors"
+	"polardbx-dashboard-backend/pkg/api/util"
+	"polardbx-dashboard-backend/pkg/k8s"
 
 	polardbxv1 "github.com/alibaba/polardbx-operator/api/v1"
 	"github.com/gin-gonic/gin"

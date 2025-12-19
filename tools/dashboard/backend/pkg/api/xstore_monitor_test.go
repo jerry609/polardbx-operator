@@ -18,8 +18,8 @@ import (
 	polardbxv1 "github.com/alibaba/polardbx-operator/api/v1"
 	"github.com/alibaba/polardbx-operator/api/v1/xstore"
 
-	domain_xs "polardbx-ui-backend/pkg/api/domain/xstores"
-	domain_monitoring "polardbx-ui-backend/pkg/api/domain/monitoring"
+	domain_xs "polardbx-dashboard-backend/pkg/api/domain/xstores"
+	domain_monitoring "polardbx-dashboard-backend/pkg/api/domain/monitoring"
 )
 
 func TestXStoreEndpoints(t *testing.T) {

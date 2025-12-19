@@ -8,8 +8,8 @@ import (
 	polardbxv1xstore "github.com/alibaba/polardbx-operator/api/v1/xstore"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"polardbx-ui-backend/pkg/api/domain/xstores/k8srepo"
-	svcerr "polardbx-ui-backend/pkg/api/errors"
+	"polardbx-dashboard-backend/pkg/api/domain/xstores/k8srepo"
+	svcerr "polardbx-dashboard-backend/pkg/api/errors"
 )
 
 // FollowersService encapsulates XStoreFollower related orchestration (using k8srepo).

@@ -19,7 +19,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	domain_pxc "polardbx-ui-backend/pkg/api/domain/polardbxclusters"
+	domain_pxc "polardbx-dashboard-backend/pkg/api/domain/polardbxclusters"
 )
 
 func setupBackupBinlogTest() (*gin.Engine, client.Client) {

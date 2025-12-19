@@ -24,11 +24,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 
-	"polardbx-ui-backend/pkg/api/domain/monitoring/service"
-	spec "polardbx-ui-backend/pkg/api/domain/monitoring/spec"
-	apierr "polardbx-ui-backend/pkg/api/errors"
-	"polardbx-ui-backend/pkg/api/util"
-	"polardbx-ui-backend/pkg/config"
+	"polardbx-dashboard-backend/pkg/api/domain/monitoring/service"
+	spec "polardbx-dashboard-backend/pkg/api/domain/monitoring/spec"
+	apierr "polardbx-dashboard-backend/pkg/api/errors"
+	"polardbx-dashboard-backend/pkg/api/util"
+	"polardbx-dashboard-backend/pkg/config"
 )
 
 var (

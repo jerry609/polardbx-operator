@@ -1,9 +1,9 @@
 package systemtasks
 
 import (
-	"polardbx-ui-backend/pkg/api/domain/systemtasks/handler"
-	"polardbx-ui-backend/pkg/api/domain/systemtasks/repository"
-	"polardbx-ui-backend/pkg/api/domain/systemtasks/service"
+	"polardbx-dashboard-backend/pkg/api/domain/systemtasks/handler"
+	"polardbx-dashboard-backend/pkg/api/domain/systemtasks/repository"
+	"polardbx-dashboard-backend/pkg/api/domain/systemtasks/service"
 
 	"github.com/gin-gonic/gin"
 )

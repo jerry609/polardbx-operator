@@ -14,8 +14,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	"polardbx-ui-backend/pkg/api/test/fixtures"
-	"polardbx-ui-backend/pkg/api/util"
+	"polardbx-dashboard-backend/pkg/api/test/fixtures"
+	"polardbx-dashboard-backend/pkg/api/util"
 )
 
 // setupRouterE2E sets up a test router with necessary routes and injected fake clients.

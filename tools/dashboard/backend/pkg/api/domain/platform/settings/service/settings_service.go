@@ -8,13 +8,13 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"polardbx-ui-backend/pkg/api/domain/platform/settings/repository"
-	"polardbx-ui-backend/pkg/config"
+	"polardbx-dashboard-backend/pkg/api/domain/platform/settings/repository"
+	"polardbx-dashboard-backend/pkg/config"
 )
 
 const (
 	SettingsNamespace = "polardbx-operator-system"
-	SettingsConfigMap = "polardbx-ui-backend-config"
+	SettingsConfigMap = "polardbx-dashboard-backend-config"
 )
 
 // BackupDashboardSettings backup dashboard settings

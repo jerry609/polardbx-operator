@@ -15,8 +15,8 @@ import (
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	spec "polardbx-ui-backend/pkg/api/domain/monitoring/spec"
-	"polardbx-ui-backend/pkg/config"
+	spec "polardbx-dashboard-backend/pkg/api/domain/monitoring/spec"
+	"polardbx-dashboard-backend/pkg/config"
 )
 
 func withAutoFixOverlayConfig(t *testing.T, mutate func(cfg *config.AutoFixOverlayConfig)) {

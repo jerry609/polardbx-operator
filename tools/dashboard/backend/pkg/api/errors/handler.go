@@ -11,7 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 
-	"polardbx-ui-backend/pkg/logger"
+	"polardbx-dashboard-backend/pkg/logger"
 )
 
 // ============================================================================

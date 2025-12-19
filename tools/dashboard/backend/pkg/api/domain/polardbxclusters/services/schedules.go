@@ -8,8 +8,8 @@ import (
 	cronv3 "github.com/robfig/cron/v3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	svcerr "polardbx-ui-backend/pkg/api/errors"
-	"polardbx-ui-backend/pkg/k8s"
+	svcerr "polardbx-dashboard-backend/pkg/api/errors"
+	"polardbx-dashboard-backend/pkg/k8s"
 )
 
 // BackupScheduleService encapsulates BackupSchedule related orchestration (pure service).

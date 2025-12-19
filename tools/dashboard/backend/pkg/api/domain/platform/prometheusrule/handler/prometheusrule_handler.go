@@ -14,8 +14,8 @@ import (
 	"strings"
 	"sync"
 
-	apierr "polardbx-ui-backend/pkg/api/errors"
-	"polardbx-ui-backend/pkg/api/util"
+	apierr "polardbx-dashboard-backend/pkg/api/errors"
+	"polardbx-dashboard-backend/pkg/api/util"
 
 	"github.com/gin-gonic/gin"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

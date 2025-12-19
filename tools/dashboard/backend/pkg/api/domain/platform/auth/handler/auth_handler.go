@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	apierr "polardbx-ui-backend/pkg/api/errors"
+	apierr "polardbx-dashboard-backend/pkg/api/errors"
 
 	"github.com/gin-gonic/gin"
 	jwt "github.com/golang-jwt/jwt/v5"

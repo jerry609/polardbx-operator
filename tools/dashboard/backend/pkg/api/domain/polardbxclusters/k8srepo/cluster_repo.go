@@ -7,7 +7,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"polardbx-ui-backend/pkg/k8s"
+	"polardbx-dashboard-backend/pkg/k8s"
 )
 
 // ClusterRepository abstracts cluster-related K8s access.

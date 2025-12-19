@@ -3,8 +3,8 @@ package runner
 import (
 	"github.com/gin-gonic/gin"
 
-	apierr "polardbx-ui-backend/pkg/api/errors"
-	"polardbx-ui-backend/pkg/logger"
+	apierr "polardbx-dashboard-backend/pkg/api/errors"
+	"polardbx-dashboard-backend/pkg/logger"
 )
 
 type Step struct {

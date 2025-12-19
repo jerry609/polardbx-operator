@@ -1,7 +1,7 @@
 package router
 
 import (
-	domain_diagnostics "polardbx-ui-backend/pkg/api/domain/platform/diagnostics/handler"
+	domain_diagnostics "polardbx-dashboard-backend/pkg/api/domain/platform/diagnostics/handler"
 
 	"github.com/gin-gonic/gin"
 )

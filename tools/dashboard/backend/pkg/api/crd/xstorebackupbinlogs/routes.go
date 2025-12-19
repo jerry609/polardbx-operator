@@ -1,8 +1,8 @@
 package xstorebackupbinlogs
 
 import (
-	domain_xstores "polardbx-ui-backend/pkg/api/domain/xstores"
-	"polardbx-ui-backend/pkg/api/routerutil"
+	domain_xstores "polardbx-dashboard-backend/pkg/api/domain/xstores"
+	"polardbx-dashboard-backend/pkg/api/routerutil"
 
 	"github.com/gin-gonic/gin"
 )

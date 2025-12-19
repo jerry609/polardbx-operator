@@ -1,7 +1,7 @@
 package polardbxclusters
 
 import (
-	domain_parameters "polardbx-ui-backend/pkg/api/domain/platform/parameters/handler"
+	domain_parameters "polardbx-dashboard-backend/pkg/api/domain/platform/parameters/handler"
 
 	"github.com/gin-gonic/gin"
 )

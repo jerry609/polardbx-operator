@@ -1,8 +1,8 @@
 package polardbxlogcollectors
 
 import (
-	domain_logcollector "polardbx-ui-backend/pkg/api/domain/platform/logcollector/handler"
-	"polardbx-ui-backend/pkg/api/routerutil"
+	domain_logcollector "polardbx-dashboard-backend/pkg/api/domain/platform/logcollector/handler"
+	"polardbx-dashboard-backend/pkg/api/routerutil"
 
 	"github.com/gin-gonic/gin"
 )

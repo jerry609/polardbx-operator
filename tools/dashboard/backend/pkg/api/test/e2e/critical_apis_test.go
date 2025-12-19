@@ -17,7 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"polardbx-ui-backend/pkg/api/test/fixtures"
+	"polardbx-dashboard-backend/pkg/api/test/fixtures"
 )
 
 // setupCriticalAPIsRouter sets up test router with critical API routes

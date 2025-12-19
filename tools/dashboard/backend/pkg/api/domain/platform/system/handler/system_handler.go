@@ -1,10 +1,10 @@
 package handler
 
 import (
-	"polardbx-ui-backend/pkg/api/domain/platform/system/repository"
-	"polardbx-ui-backend/pkg/api/domain/platform/system/service"
-	apierr "polardbx-ui-backend/pkg/api/errors"
-	"polardbx-ui-backend/pkg/api/util"
+	"polardbx-dashboard-backend/pkg/api/domain/platform/system/repository"
+	"polardbx-dashboard-backend/pkg/api/domain/platform/system/service"
+	apierr "polardbx-dashboard-backend/pkg/api/errors"
+	"polardbx-dashboard-backend/pkg/api/util"
 
 	"github.com/gin-gonic/gin"
 )

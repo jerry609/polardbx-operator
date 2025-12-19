@@ -9,8 +9,8 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"polardbx-ui-backend/pkg/api/domain/xstores/k8srepo"
-	apierr "polardbx-ui-backend/pkg/api/errors"
+	"polardbx-dashboard-backend/pkg/api/domain/xstores/k8srepo"
+	apierr "polardbx-dashboard-backend/pkg/api/errors"
 )
 
 // XStoreService encapsulates XStore basic CRUD and Pod listing

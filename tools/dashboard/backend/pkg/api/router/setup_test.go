@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"polardbx-ui-backend/pkg/config"
+	"polardbx-dashboard-backend/pkg/config"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"

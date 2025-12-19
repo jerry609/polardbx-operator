@@ -14,7 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	domain_pxc "polardbx-ui-backend/pkg/api/domain/polardbxclusters"
+	domain_pxc "polardbx-dashboard-backend/pkg/api/domain/polardbxclusters"
 )
 
 func TestGetBinlogMetrics(t *testing.T) {

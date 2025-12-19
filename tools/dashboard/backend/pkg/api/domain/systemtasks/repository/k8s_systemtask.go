@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 
-	"polardbx-ui-backend/pkg/k8s"
+	"polardbx-dashboard-backend/pkg/k8s"
 
 	polardbxv1 "github.com/alibaba/polardbx-operator/api/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"

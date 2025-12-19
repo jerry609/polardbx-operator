@@ -13,8 +13,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	crfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	domain_diagnostics "polardbx-ui-backend/pkg/api/domain/platform/diagnostics/handler"
-	diagservice "polardbx-ui-backend/pkg/api/domain/platform/diagnostics/service"
+	domain_diagnostics "polardbx-dashboard-backend/pkg/api/domain/platform/diagnostics/handler"
+	diagservice "polardbx-dashboard-backend/pkg/api/domain/platform/diagnostics/service"
 )
 
 func TestDiagnostics_Placeholders(t *testing.T) {

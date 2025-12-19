@@ -14,7 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	spec "polardbx-ui-backend/pkg/api/domain/monitoring/spec"
+	spec "polardbx-dashboard-backend/pkg/api/domain/monitoring/spec"
 )
 
 const (

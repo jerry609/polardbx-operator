@@ -7,7 +7,7 @@ import (
 	polardbxv1 "github.com/alibaba/polardbx-operator/api/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	svcerr "polardbx-ui-backend/pkg/api/errors"
+	svcerr "polardbx-dashboard-backend/pkg/api/errors"
 )
 
 // Since backupbinlog CRUD is implemented in existing modules, here we use a minimal implementation

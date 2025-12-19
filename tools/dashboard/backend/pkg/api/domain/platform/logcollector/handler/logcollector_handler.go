@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	apierr "polardbx-ui-backend/pkg/api/errors"
+	apierr "polardbx-dashboard-backend/pkg/api/errors"
 
 	"github.com/gin-gonic/gin"
 	appsv1 "k8s.io/api/apps/v1"
@@ -20,9 +20,9 @@ import (
 
 	polardbxv1 "github.com/alibaba/polardbx-operator/api/v1"
 
-	"polardbx-ui-backend/pkg/api/domain/platform/logcollector/repository"
-	"polardbx-ui-backend/pkg/api/util"
-	"polardbx-ui-backend/pkg/k8s"
+	"polardbx-dashboard-backend/pkg/api/domain/platform/logcollector/repository"
+	"polardbx-dashboard-backend/pkg/api/util"
+	"polardbx-dashboard-backend/pkg/k8s"
 )
 
 // LogCollectorHandler handles HTTP requests related to log collectors

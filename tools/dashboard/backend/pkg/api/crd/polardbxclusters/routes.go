@@ -1,10 +1,10 @@
 package polardbxclusters
 
 import (
-	domain_pod "polardbx-ui-backend/pkg/api/domain/platform/pod/handler"
-	domain_restore "polardbx-ui-backend/pkg/api/domain/platform/restore/handler"
+	domain_pod "polardbx-dashboard-backend/pkg/api/domain/platform/pod/handler"
+	domain_restore "polardbx-dashboard-backend/pkg/api/domain/platform/restore/handler"
 
-	domain_pxc "polardbx-ui-backend/pkg/api/domain/polardbxclusters"
+	domain_pxc "polardbx-dashboard-backend/pkg/api/domain/polardbxclusters"
 
 	"github.com/gin-gonic/gin"
 )

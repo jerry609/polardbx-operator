@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"polardbx-ui-backend/pkg/logger"
+	"polardbx-dashboard-backend/pkg/logger"
 )
 
 // ServerConfig holds all server configuration

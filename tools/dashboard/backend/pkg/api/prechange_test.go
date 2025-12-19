@@ -14,7 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	domain_prechange "polardbx-ui-backend/pkg/api/domain/platform/prechange/handler"
+	domain_prechange "polardbx-dashboard-backend/pkg/api/domain/platform/prechange/handler"
 )
 
 func TestGetPrechangeChecklist(t *testing.T) {

@@ -13,9 +13,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"polardbx-ui-backend/pkg/api/domain/platform/grafana/repository"
-	apierr "polardbx-ui-backend/pkg/api/errors"
-	"polardbx-ui-backend/pkg/api/util"
+	"polardbx-dashboard-backend/pkg/api/domain/platform/grafana/repository"
+	apierr "polardbx-dashboard-backend/pkg/api/errors"
+	"polardbx-dashboard-backend/pkg/api/util"
 )
 
 // GrafanaHandler handles HTTP requests related to Grafana

@@ -7,7 +7,7 @@ import (
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 
-	"polardbx-ui-backend/pkg/config"
+	"polardbx-dashboard-backend/pkg/config"
 )
 
 // RegisterSwaggerRoutes registers Swagger/OpenAPI documentation routes.

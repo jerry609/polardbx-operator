@@ -10,9 +10,9 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	apierr "polardbx-ui-backend/pkg/api/errors"
-	"polardbx-ui-backend/pkg/k8s"
-	"polardbx-ui-backend/pkg/logger"
+	apierr "polardbx-dashboard-backend/pkg/api/errors"
+	"polardbx-dashboard-backend/pkg/k8s"
+	"polardbx-dashboard-backend/pkg/logger"
 
 	"k8s.io/client-go/tools/clientcmd"
 

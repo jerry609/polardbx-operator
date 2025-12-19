@@ -11,9 +11,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	apierr "polardbx-ui-backend/pkg/api/errors"
-	"polardbx-ui-backend/pkg/cache"
-	"polardbx-ui-backend/pkg/config"
+	apierr "polardbx-dashboard-backend/pkg/api/errors"
+	"polardbx-dashboard-backend/pkg/cache"
+	"polardbx-dashboard-backend/pkg/config"
 
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"

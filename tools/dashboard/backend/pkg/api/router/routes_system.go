@@ -1,9 +1,9 @@
 package router
 
 import (
-	domain_system "polardbx-ui-backend/pkg/api/domain/platform/system/handler"
-	domain_st "polardbx-ui-backend/pkg/api/domain/systemtasks"
-	"polardbx-ui-backend/pkg/api/routerutil"
+	domain_system "polardbx-dashboard-backend/pkg/api/domain/platform/system/handler"
+	domain_st "polardbx-dashboard-backend/pkg/api/domain/systemtasks"
+	"polardbx-dashboard-backend/pkg/api/routerutil"
 
 	"github.com/gin-gonic/gin"
 )

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"polardbx-ui-backend/pkg/api/domain/systemtasks/repository"
+	"polardbx-dashboard-backend/pkg/api/domain/systemtasks/repository"
 
 	polardbxv1 "github.com/alibaba/polardbx-operator/api/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"

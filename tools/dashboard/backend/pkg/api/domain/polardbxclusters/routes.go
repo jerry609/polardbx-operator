@@ -1,8 +1,8 @@
 package polardbxclusters
 
 import (
-	domain_clusterknobs "polardbx-ui-backend/pkg/api/domain/platform/clusterknobs/handler"
-	"polardbx-ui-backend/pkg/api/domain/polardbxclusters/services"
+	domain_clusterknobs "polardbx-dashboard-backend/pkg/api/domain/platform/clusterknobs/handler"
+	"polardbx-dashboard-backend/pkg/api/domain/polardbxclusters/services"
 
 	"os"
 	"strings"

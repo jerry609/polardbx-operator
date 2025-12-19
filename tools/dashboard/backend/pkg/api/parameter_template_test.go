@@ -17,7 +17,7 @@ import (
 
 	polardbxv1 "github.com/alibaba/polardbx-operator/api/v1"
 
-	domain_parameters "polardbx-ui-backend/pkg/api/domain/platform/parameters/handler"
+	domain_parameters "polardbx-dashboard-backend/pkg/api/domain/platform/parameters/handler"
 )
 
 func TestParameterTemplateEndpoints(t *testing.T) {

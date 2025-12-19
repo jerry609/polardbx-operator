@@ -1,8 +1,8 @@
 package router
 
 import (
-	domain_xs "polardbx-ui-backend/pkg/api/domain/xstores"
-	"polardbx-ui-backend/pkg/api/routerutil"
+	domain_xs "polardbx-dashboard-backend/pkg/api/domain/xstores"
+	"polardbx-dashboard-backend/pkg/api/routerutil"
 
 	"github.com/gin-gonic/gin"
 )

@@ -1,11 +1,11 @@
 package router
 
 import (
-	domain_logcollector "polardbx-ui-backend/pkg/api/domain/platform/logcollector/handler"
-	domain_logs "polardbx-ui-backend/pkg/api/domain/platform/logs/handler"
-	domain_logservice "polardbx-ui-backend/pkg/api/domain/platform/logservice/handler"
-	domain_logstrategy "polardbx-ui-backend/pkg/api/domain/platform/logstrategy/handler"
-	"polardbx-ui-backend/pkg/api/routerutil"
+	domain_logcollector "polardbx-dashboard-backend/pkg/api/domain/platform/logcollector/handler"
+	domain_logs "polardbx-dashboard-backend/pkg/api/domain/platform/logs/handler"
+	domain_logservice "polardbx-dashboard-backend/pkg/api/domain/platform/logservice/handler"
+	domain_logstrategy "polardbx-dashboard-backend/pkg/api/domain/platform/logstrategy/handler"
+	"polardbx-dashboard-backend/pkg/api/routerutil"
 
 	"github.com/gin-gonic/gin"
 )

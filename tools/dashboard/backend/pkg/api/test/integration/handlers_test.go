@@ -21,16 +21,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	crfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	"polardbx-ui-backend/pkg/api"
-	domain_monitoring "polardbx-ui-backend/pkg/api/domain/monitoring"
-	domain_parameters "polardbx-ui-backend/pkg/api/domain/platform/parameters/handler"
-	domain_restore "polardbx-ui-backend/pkg/api/domain/platform/restore/handler"
-	"polardbx-ui-backend/pkg/api/provider"
-	"polardbx-ui-backend/pkg/k8s"
+	"polardbx-dashboard-backend/pkg/api"
+	domain_monitoring "polardbx-dashboard-backend/pkg/api/domain/monitoring"
+	domain_parameters "polardbx-dashboard-backend/pkg/api/domain/platform/parameters/handler"
+	domain_restore "polardbx-dashboard-backend/pkg/api/domain/platform/restore/handler"
+	"polardbx-dashboard-backend/pkg/api/provider"
+	"polardbx-dashboard-backend/pkg/k8s"
 
 	// domain handlers
-	domain_pxc "polardbx-ui-backend/pkg/api/domain/polardbxclusters"
-	domain_xs "polardbx-ui-backend/pkg/api/domain/xstores"
+	domain_pxc "polardbx-dashboard-backend/pkg/api/domain/polardbxclusters"
+	domain_xs "polardbx-dashboard-backend/pkg/api/domain/xstores"
 )
 
 func extractErr(resp map[string]interface{}) string {

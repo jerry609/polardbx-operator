@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 
-	spec "polardbx-ui-backend/pkg/api/domain/monitoring/spec"
+	spec "polardbx-dashboard-backend/pkg/api/domain/monitoring/spec"
 )
 
 // SuggestedFixType identifies the form of recommended fixes, used to distinguish between automatic execution, scripted, or manual operation steps.

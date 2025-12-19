@@ -1,7 +1,7 @@
 package polardbxmonitors
 
 import (
-	domain_monitoring "polardbx-ui-backend/pkg/api/domain/monitoring"
+	domain_monitoring "polardbx-dashboard-backend/pkg/api/domain/monitoring"
 
 	"github.com/gin-gonic/gin"
 )

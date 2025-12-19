@@ -8,10 +8,10 @@ import (
 	"strings"
 	"testing"
 
-	domain_logstrategy "polardbx-ui-backend/pkg/api/domain/platform/logstrategy/handler"
-	domain_prometheusrule "polardbx-ui-backend/pkg/api/domain/platform/prometheusrule/handler"
-	domain_system "polardbx-ui-backend/pkg/api/domain/platform/system/handler"
-	"polardbx-ui-backend/pkg/api/test/fixtures"
+	domain_logstrategy "polardbx-dashboard-backend/pkg/api/domain/platform/logstrategy/handler"
+	domain_prometheusrule "polardbx-dashboard-backend/pkg/api/domain/platform/prometheusrule/handler"
+	domain_system "polardbx-dashboard-backend/pkg/api/domain/platform/system/handler"
+	"polardbx-dashboard-backend/pkg/api/test/fixtures"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"

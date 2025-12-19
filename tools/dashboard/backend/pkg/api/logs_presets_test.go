@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	domain_logs "polardbx-ui-backend/pkg/api/domain/platform/logs/handler"
+	domain_logs "polardbx-dashboard-backend/pkg/api/domain/platform/logs/handler"
 
 	"github.com/gin-gonic/gin"
 	corev1 "k8s.io/api/core/v1"

@@ -1,16 +1,16 @@
 package platform
 
 import (
-	domain_monitoring "polardbx-ui-backend/pkg/api/domain/monitoring"
-	domain_alerts "polardbx-ui-backend/pkg/api/domain/platform/alerts/handler"
-	domain_grafana "polardbx-ui-backend/pkg/api/domain/platform/grafana/handler"
-	domain_logs "polardbx-ui-backend/pkg/api/domain/platform/logs/handler"
-	domain_logservice "polardbx-ui-backend/pkg/api/domain/platform/logservice/handler"
-	domain_logstrategy "polardbx-ui-backend/pkg/api/domain/platform/logstrategy/handler"
-	domain_pod "polardbx-ui-backend/pkg/api/domain/platform/pod/handler"
-	domain_prometheusrule "polardbx-ui-backend/pkg/api/domain/platform/prometheusrule/handler"
-	domain_settings "polardbx-ui-backend/pkg/api/domain/platform/settings/handler"
-	domain_system "polardbx-ui-backend/pkg/api/domain/platform/system/handler"
+	domain_monitoring "polardbx-dashboard-backend/pkg/api/domain/monitoring"
+	domain_alerts "polardbx-dashboard-backend/pkg/api/domain/platform/alerts/handler"
+	domain_grafana "polardbx-dashboard-backend/pkg/api/domain/platform/grafana/handler"
+	domain_logs "polardbx-dashboard-backend/pkg/api/domain/platform/logs/handler"
+	domain_logservice "polardbx-dashboard-backend/pkg/api/domain/platform/logservice/handler"
+	domain_logstrategy "polardbx-dashboard-backend/pkg/api/domain/platform/logstrategy/handler"
+	domain_pod "polardbx-dashboard-backend/pkg/api/domain/platform/pod/handler"
+	domain_prometheusrule "polardbx-dashboard-backend/pkg/api/domain/platform/prometheusrule/handler"
+	domain_settings "polardbx-dashboard-backend/pkg/api/domain/platform/settings/handler"
+	domain_system "polardbx-dashboard-backend/pkg/api/domain/platform/system/handler"
 
 	"github.com/gin-gonic/gin"
 )

@@ -14,7 +14,7 @@ import (
 
 	"k8s.io/client-go/kubernetes"
 
-	"polardbx-ui-backend/pkg/config"
+	"polardbx-dashboard-backend/pkg/config"
 )
 
 func ensureAutoFixOverlay(ctx context.Context, namespace string, cli client.Client, cs kubernetes.Interface) error {

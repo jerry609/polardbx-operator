@@ -1,8 +1,8 @@
 package router
 
 import (
-	domain_restore "polardbx-ui-backend/pkg/api/domain/platform/restore/handler"
-	"polardbx-ui-backend/pkg/api/routerutil"
+	domain_restore "polardbx-dashboard-backend/pkg/api/domain/platform/restore/handler"
+	"polardbx-dashboard-backend/pkg/api/routerutil"
 
 	"github.com/gin-gonic/gin"
 )

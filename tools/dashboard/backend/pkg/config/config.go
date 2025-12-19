@@ -6,7 +6,7 @@ import (
 	"strings"
 	"sync"
 
-	"polardbx-ui-backend/pkg/logger"
+	"polardbx-dashboard-backend/pkg/logger"
 )
 
 // ImageRegistryConfig holds image registry configuration

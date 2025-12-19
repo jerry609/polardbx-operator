@@ -5,7 +5,7 @@ import (
 	"os"
 	"sync"
 
-	"polardbx-ui-backend/pkg/logger"
+	"polardbx-dashboard-backend/pkg/logger"
 )
 
 // KubeConfig holds Kubernetes client configuration

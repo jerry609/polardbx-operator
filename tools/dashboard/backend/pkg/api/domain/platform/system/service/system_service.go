@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"polardbx-ui-backend/pkg/api/domain/platform/system/repository"
+	"polardbx-dashboard-backend/pkg/api/domain/platform/system/repository"
 )
 
 // NamespaceInfo namespace information

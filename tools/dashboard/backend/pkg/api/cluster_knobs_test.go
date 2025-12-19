@@ -18,7 +18,7 @@ import (
 
 	polardbxv1 "github.com/alibaba/polardbx-operator/api/v1"
 
-	domain_clusterknobs "polardbx-ui-backend/pkg/api/domain/platform/clusterknobs/handler"
+	domain_clusterknobs "polardbx-dashboard-backend/pkg/api/domain/platform/clusterknobs/handler"
 )
 
 func TestClusterKnobsEndpoints(t *testing.T) {

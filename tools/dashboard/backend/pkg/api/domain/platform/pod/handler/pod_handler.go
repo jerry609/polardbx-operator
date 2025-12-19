@@ -18,11 +18,11 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/remotecommand"
 
-	"polardbx-ui-backend/pkg/api/domain/platform/pod/service"
-	apierr "polardbx-ui-backend/pkg/api/errors"
-	"polardbx-ui-backend/pkg/api/provider"
-	"polardbx-ui-backend/pkg/api/util"
-	"polardbx-ui-backend/pkg/logger"
+	"polardbx-dashboard-backend/pkg/api/domain/platform/pod/service"
+	apierr "polardbx-dashboard-backend/pkg/api/errors"
+	"polardbx-dashboard-backend/pkg/api/provider"
+	"polardbx-dashboard-backend/pkg/api/util"
+	"polardbx-dashboard-backend/pkg/logger"
 )
 
 // PodHandler handles Pod-related HTTP requests

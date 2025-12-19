@@ -8,9 +8,9 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	svcerr "polardbx-ui-backend/pkg/api/errors"
-	"polardbx-ui-backend/pkg/api/util"
-	"polardbx-ui-backend/pkg/logger"
+	svcerr "polardbx-dashboard-backend/pkg/api/errors"
+	"polardbx-dashboard-backend/pkg/api/util"
+	"polardbx-dashboard-backend/pkg/logger"
 )
 
 // patchClusterJSON is a test-hookable wrapper around util.K8sPatchClusterJSON.

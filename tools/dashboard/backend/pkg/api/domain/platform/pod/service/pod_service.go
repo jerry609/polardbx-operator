@@ -5,7 +5,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 
-	"polardbx-ui-backend/pkg/api/domain/platform/pod/repository"
+	"polardbx-dashboard-backend/pkg/api/domain/platform/pod/repository"
 )
 
 // PodService defines the Pod business logic layer

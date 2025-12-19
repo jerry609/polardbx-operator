@@ -18,7 +18,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	domain_xs "polardbx-ui-backend/pkg/api/domain/xstores"
+	domain_xs "polardbx-dashboard-backend/pkg/api/domain/xstores"
 )
 
 func setupXStoreBackupTestRouter(fakeClient client.Client) *gin.Engine {

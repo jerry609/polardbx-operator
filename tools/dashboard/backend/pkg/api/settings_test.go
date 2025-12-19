@@ -13,8 +13,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	domain_settings "polardbx-ui-backend/pkg/api/domain/platform/settings/handler"
-	settings_service "polardbx-ui-backend/pkg/api/domain/platform/settings/service"
+	domain_settings "polardbx-dashboard-backend/pkg/api/domain/platform/settings/handler"
+	settings_service "polardbx-dashboard-backend/pkg/api/domain/platform/settings/service"
 )
 
 func TestBackupDashboardSettings_DefaultsAndUpdate(t *testing.T) {

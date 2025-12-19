@@ -20,10 +20,10 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
-	apierr "polardbx-ui-backend/pkg/api/errors"
-	apiutil "polardbx-ui-backend/pkg/api/util"
-	"polardbx-ui-backend/pkg/k8s"
-	"polardbx-ui-backend/pkg/logger"
+	apierr "polardbx-dashboard-backend/pkg/api/errors"
+	apiutil "polardbx-dashboard-backend/pkg/api/util"
+	"polardbx-dashboard-backend/pkg/k8s"
+	"polardbx-dashboard-backend/pkg/logger"
 )
 
 var newAllClientsFromKubeconfig = k8s.NewAllClientsFromKubeconfig

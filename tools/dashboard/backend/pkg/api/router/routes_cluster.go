@@ -1,12 +1,12 @@
 package router
 
 import (
-	domain_alerts "polardbx-ui-backend/pkg/api/domain/platform/alerts/handler"
-	domain_auth "polardbx-ui-backend/pkg/api/domain/platform/auth/handler"
-	domain_clusterknobs "polardbx-ui-backend/pkg/api/domain/platform/clusterknobs/handler"
-	domain_pod "polardbx-ui-backend/pkg/api/domain/platform/pod/handler"
-	domain_pxc "polardbx-ui-backend/pkg/api/domain/polardbxclusters"
-	"polardbx-ui-backend/pkg/api/routerutil"
+	domain_alerts "polardbx-dashboard-backend/pkg/api/domain/platform/alerts/handler"
+	domain_auth "polardbx-dashboard-backend/pkg/api/domain/platform/auth/handler"
+	domain_clusterknobs "polardbx-dashboard-backend/pkg/api/domain/platform/clusterknobs/handler"
+	domain_pod "polardbx-dashboard-backend/pkg/api/domain/platform/pod/handler"
+	domain_pxc "polardbx-dashboard-backend/pkg/api/domain/polardbxclusters"
+	"polardbx-dashboard-backend/pkg/api/routerutil"
 
 	"github.com/gin-gonic/gin"
 )

@@ -1,11 +1,11 @@
 package xstores
 
 import (
-	"polardbx-ui-backend/pkg/api/domain/xstores/k8srepo"
-	"polardbx-ui-backend/pkg/api/domain/xstores/services"
-	apierr "polardbx-ui-backend/pkg/api/errors"
-	"polardbx-ui-backend/pkg/api/provider"
-	"polardbx-ui-backend/pkg/api/util"
+	"polardbx-dashboard-backend/pkg/api/domain/xstores/k8srepo"
+	"polardbx-dashboard-backend/pkg/api/domain/xstores/services"
+	apierr "polardbx-dashboard-backend/pkg/api/errors"
+	"polardbx-dashboard-backend/pkg/api/provider"
+	"polardbx-dashboard-backend/pkg/api/util"
 
 	"github.com/gin-gonic/gin"
 )

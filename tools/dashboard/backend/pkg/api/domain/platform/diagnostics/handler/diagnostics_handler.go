@@ -15,10 +15,10 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/remotecommand"
 
-	"polardbx-ui-backend/pkg/api/domain/platform/diagnostics/service"
-	apierr "polardbx-ui-backend/pkg/api/errors"
-	"polardbx-ui-backend/pkg/api/util"
-	"polardbx-ui-backend/pkg/logger"
+	"polardbx-dashboard-backend/pkg/api/domain/platform/diagnostics/service"
+	apierr "polardbx-dashboard-backend/pkg/api/errors"
+	"polardbx-dashboard-backend/pkg/api/util"
+	"polardbx-dashboard-backend/pkg/logger"
 )
 
 // Start triggers cluster diagnostic task.

@@ -20,7 +20,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	apierr "polardbx-ui-backend/pkg/api/errors"
+	apierr "polardbx-dashboard-backend/pkg/api/errors"
 )
 
 // ======================== Types ========================
@@ -103,7 +103,7 @@ func computePrechangeChecklist(c *gin.Context, k8sClient client.Client, namespac
 	}
 	rpoThreshold := 3600
 	var settingsCM corev1.ConfigMap
-	if e := k8sClient.Get(c.Request.Context(), client.ObjectKey{Namespace: "polardbx-operator-system", Name: "polardbx-ui-backend-config"}, &settingsCM); e == nil {
+	if e := k8sClient.Get(c.Request.Context(), client.ObjectKey{Namespace: "polardbx-operator-system", Name: "polardbx-dashboard-backend-config"}, &settingsCM); e == nil {
 		if settingsCM.Data != nil {
 			if v := settingsCM.Data["rpoThresholdSeconds"]; v != "" {
 				if n, err := strconv.Atoi(v); err == nil {
@@ -389,7 +389,7 @@ func parseVersion(s string) (major int, minor int, patch int, ok bool) {
 
 func getPrecheckSecret(c *gin.Context, cli client.Client) string {
 	cm := corev1.ConfigMap{}
-	if err := cli.Get(c.Request.Context(), client.ObjectKey{Namespace: "polardbx-operator-system", Name: "polardbx-ui-backend-config"}, &cm); err == nil {
+	if err := cli.Get(c.Request.Context(), client.ObjectKey{Namespace: "polardbx-operator-system", Name: "polardbx-dashboard-backend-config"}, &cm); err == nil {
 		if cm.Data != nil && cm.Data["precheck.secret"] != "" {
 			return cm.Data["precheck.secret"]
 		}

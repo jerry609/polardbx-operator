@@ -1,8 +1,8 @@
 package systemtasks
 
 import (
-	domain_st "polardbx-ui-backend/pkg/api/domain/systemtasks"
-	"polardbx-ui-backend/pkg/api/routerutil"
+	domain_st "polardbx-dashboard-backend/pkg/api/domain/systemtasks"
+	"polardbx-dashboard-backend/pkg/api/routerutil"
 
 	"github.com/gin-gonic/gin"
 )

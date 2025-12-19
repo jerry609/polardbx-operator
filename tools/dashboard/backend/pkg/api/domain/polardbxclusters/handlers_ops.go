@@ -5,12 +5,12 @@ import (
 	"github.com/gin-gonic/gin"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"polardbx-ui-backend/pkg/api/domain/platform/pod/handler"
-	domain_prechange "polardbx-ui-backend/pkg/api/domain/platform/prechange/handler"
-	domain_restore "polardbx-ui-backend/pkg/api/domain/platform/restore/handler"
-	"polardbx-ui-backend/pkg/api/domain/polardbxclusters/services"
-	apierr "polardbx-ui-backend/pkg/api/errors"
-	"polardbx-ui-backend/pkg/api/util"
+	"polardbx-dashboard-backend/pkg/api/domain/platform/pod/handler"
+	domain_prechange "polardbx-dashboard-backend/pkg/api/domain/platform/prechange/handler"
+	domain_restore "polardbx-dashboard-backend/pkg/api/domain/platform/restore/handler"
+	"polardbx-dashboard-backend/pkg/api/domain/polardbxclusters/services"
+	apierr "polardbx-dashboard-backend/pkg/api/errors"
+	"polardbx-dashboard-backend/pkg/api/util"
 )
 
 // --- Thin handlers forwarding to services/others ---

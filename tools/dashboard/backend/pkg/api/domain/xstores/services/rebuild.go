@@ -11,9 +11,9 @@ import (
 	polardbxv1 "github.com/alibaba/polardbx-operator/api/v1"
 	polardbxv1xstore "github.com/alibaba/polardbx-operator/api/v1/xstore"
 
-	"polardbx-ui-backend/pkg/api/domain/xstores/k8srepo"
-	svcerr "polardbx-ui-backend/pkg/api/errors"
-	"polardbx-ui-backend/pkg/logger"
+	"polardbx-dashboard-backend/pkg/api/domain/xstores/k8srepo"
+	svcerr "polardbx-dashboard-backend/pkg/api/errors"
+	"polardbx-dashboard-backend/pkg/logger"
 )
 
 // RebuildService: Migrate Status first, other entries to be orchestrated later

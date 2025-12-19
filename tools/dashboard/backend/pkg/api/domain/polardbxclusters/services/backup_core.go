@@ -12,8 +12,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	svcerr "polardbx-ui-backend/pkg/api/errors"
-	"polardbx-ui-backend/pkg/k8s"
+	svcerr "polardbx-dashboard-backend/pkg/api/errors"
+	"polardbx-dashboard-backend/pkg/k8s"
 )
 
 // BackupService provides core backup operations for PolarDB-X clusters.

@@ -1,10 +1,10 @@
 package router
 
 import (
-	domain_monitoring "polardbx-ui-backend/pkg/api/domain/monitoring"
-	domain_grafana "polardbx-ui-backend/pkg/api/domain/platform/grafana/handler"
-	domain_prometheusrule "polardbx-ui-backend/pkg/api/domain/platform/prometheusrule/handler"
-	"polardbx-ui-backend/pkg/api/routerutil"
+	domain_monitoring "polardbx-dashboard-backend/pkg/api/domain/monitoring"
+	domain_grafana "polardbx-dashboard-backend/pkg/api/domain/platform/grafana/handler"
+	domain_prometheusrule "polardbx-dashboard-backend/pkg/api/domain/platform/prometheusrule/handler"
+	"polardbx-dashboard-backend/pkg/api/routerutil"
 
 	"github.com/gin-gonic/gin"
 )

@@ -3,8 +3,8 @@ package polardbxbackupschedules
 import (
 	"github.com/gin-gonic/gin"
 
-	domain_pxc "polardbx-ui-backend/pkg/api/domain/polardbxclusters"
-	"polardbx-ui-backend/pkg/api/routerutil"
+	domain_pxc "polardbx-dashboard-backend/pkg/api/domain/polardbxclusters"
+	"polardbx-dashboard-backend/pkg/api/routerutil"
 )
 
 func RegisterRoutes(crd *gin.RouterGroup) {

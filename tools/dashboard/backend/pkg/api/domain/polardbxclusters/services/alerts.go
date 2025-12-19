@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strings"
 
-	apierr "polardbx-ui-backend/pkg/api/errors"
-	"polardbx-ui-backend/pkg/api/util"
+	apierr "polardbx-dashboard-backend/pkg/api/errors"
+	"polardbx-dashboard-backend/pkg/api/util"
 
 	"github.com/gin-gonic/gin"
 	corev1 "k8s.io/api/core/v1"

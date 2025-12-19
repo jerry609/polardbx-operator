@@ -11,7 +11,7 @@ import (
 	"k8s.io/client-go/tools/remotecommand"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"polardbx-ui-backend/pkg/k8s"
+	"polardbx-dashboard-backend/pkg/k8s"
 )
 
 // K8sPodRepository implements PodRepository using Kubernetes client

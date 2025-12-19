@@ -17,7 +17,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	domain_logcollector "polardbx-ui-backend/pkg/api/domain/platform/logcollector/handler"
+	domain_logcollector "polardbx-dashboard-backend/pkg/api/domain/platform/logcollector/handler"
 )
 
 func setupLogCollectorTest() (*gin.Engine, client.Client) {

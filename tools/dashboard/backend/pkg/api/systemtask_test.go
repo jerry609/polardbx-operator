@@ -19,7 +19,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	domain_st "polardbx-ui-backend/pkg/api/domain/systemtasks"
+	domain_st "polardbx-dashboard-backend/pkg/api/domain/systemtasks"
 )
 
 func setupSystemTaskTest() (*gin.Engine, client.Client) {

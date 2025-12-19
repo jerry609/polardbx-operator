@@ -15,8 +15,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"polardbx-ui-backend/pkg/api/domain/polardbxclusters/k8srepo"
-	svcerr "polardbx-ui-backend/pkg/api/errors"
+	"polardbx-dashboard-backend/pkg/api/domain/polardbxclusters/k8srepo"
+	svcerr "polardbx-dashboard-backend/pkg/api/errors"
 )
 
 // ValidationError validation error

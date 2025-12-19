@@ -19,7 +19,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	crfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	"polardbx-ui-backend/pkg/api/domain/polardbxclusters/services"
+	"polardbx-dashboard-backend/pkg/api/domain/polardbxclusters/services"
 )
 
 // setupRestoreFlowRouter sets up a test router with restore flow routes

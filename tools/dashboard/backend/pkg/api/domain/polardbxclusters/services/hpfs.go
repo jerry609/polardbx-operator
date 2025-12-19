@@ -14,7 +14,7 @@ import (
 	yamlutil "k8s.io/apimachinery/pkg/util/yaml"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	svcerr "polardbx-ui-backend/pkg/api/errors"
+	svcerr "polardbx-dashboard-backend/pkg/api/errors"
 )
 
 // normalizeSinkType maps aliases to canonical types for robustness.

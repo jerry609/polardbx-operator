@@ -8,12 +8,12 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"polardbx-ui-backend/pkg/api"
-	apierr "polardbx-ui-backend/pkg/api/errors"
-	"polardbx-ui-backend/pkg/api/middleware"
-	"polardbx-ui-backend/pkg/api/provider"
-	"polardbx-ui-backend/pkg/config"
-	"polardbx-ui-backend/pkg/logger"
+	"polardbx-dashboard-backend/pkg/api"
+	apierr "polardbx-dashboard-backend/pkg/api/errors"
+	"polardbx-dashboard-backend/pkg/api/middleware"
+	"polardbx-dashboard-backend/pkg/api/provider"
+	"polardbx-dashboard-backend/pkg/config"
+	"polardbx-dashboard-backend/pkg/logger"
 )
 
 // SetupRouter creates and configures the main Gin router

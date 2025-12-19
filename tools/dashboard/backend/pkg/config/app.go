@@ -4,7 +4,7 @@ import (
 	"log"
 	"sync"
 
-	"polardbx-ui-backend/pkg/logger"
+	"polardbx-dashboard-backend/pkg/logger"
 )
 
 // AppConfig is the unified application configuration

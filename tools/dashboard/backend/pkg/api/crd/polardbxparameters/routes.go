@@ -1,8 +1,8 @@
 package polardbxparameters
 
 import (
-	domain_parameters "polardbx-ui-backend/pkg/api/domain/platform/parameters/handler"
-	"polardbx-ui-backend/pkg/api/routerutil"
+	domain_parameters "polardbx-dashboard-backend/pkg/api/domain/platform/parameters/handler"
+	"polardbx-dashboard-backend/pkg/api/routerutil"
 
 	"github.com/gin-gonic/gin"
 )

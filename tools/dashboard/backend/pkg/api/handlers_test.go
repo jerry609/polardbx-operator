@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	domain_logcollector "polardbx-ui-backend/pkg/api/domain/platform/logcollector/handler"
+	domain_logcollector "polardbx-dashboard-backend/pkg/api/domain/platform/logcollector/handler"
 
 	polardbxv1 "github.com/alibaba/polardbx-operator/api/v1"
 	"github.com/gin-gonic/gin"
@@ -23,7 +23,7 @@ import (
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 	crfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	domain_pxc "polardbx-ui-backend/pkg/api/domain/polardbxclusters"
+	domain_pxc "polardbx-dashboard-backend/pkg/api/domain/polardbxclusters"
 )
 
 func setupRouter() *gin.Engine {

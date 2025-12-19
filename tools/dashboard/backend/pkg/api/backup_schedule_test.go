@@ -18,7 +18,7 @@ import (
 	polardbxv1 "github.com/alibaba/polardbx-operator/api/v1"
 	"github.com/alibaba/polardbx-operator/api/v1/polardbx"
 
-	domain_pxc "polardbx-ui-backend/pkg/api/domain/polardbxclusters"
+	domain_pxc "polardbx-dashboard-backend/pkg/api/domain/polardbxclusters"
 )
 
 func TestBackupScheduleEndpoints(t *testing.T) {

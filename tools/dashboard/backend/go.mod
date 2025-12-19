@@ -1,4 +1,4 @@
-module polardbx-ui-backend
+module polardbx-dashboard-backend
 
 go 1.24.0
 

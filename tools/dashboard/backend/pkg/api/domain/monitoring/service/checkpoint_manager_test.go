@@ -8,7 +8,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 
-	spec "polardbx-ui-backend/pkg/api/domain/monitoring/spec"
+	spec "polardbx-dashboard-backend/pkg/api/domain/monitoring/spec"
 )
 
 func TestConfigMapCheckpointManager_SaveRestoreDelete(t *testing.T) {

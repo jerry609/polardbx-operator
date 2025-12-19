@@ -7,7 +7,7 @@ import (
 	polardbxv1 "github.com/alibaba/polardbx-operator/api/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"polardbx-ui-backend/pkg/api/domain/xstores/k8srepo"
+	"polardbx-dashboard-backend/pkg/api/domain/xstores/k8srepo"
 )
 
 // BackupsService encapsulates XStore backup related orchestration

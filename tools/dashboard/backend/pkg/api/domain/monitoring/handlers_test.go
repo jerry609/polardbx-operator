@@ -13,8 +13,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 
-	"polardbx-ui-backend/pkg/api/domain/monitoring/service"
-	spec "polardbx-ui-backend/pkg/api/domain/monitoring/spec"
+	"polardbx-dashboard-backend/pkg/api/domain/monitoring/service"
+	spec "polardbx-dashboard-backend/pkg/api/domain/monitoring/spec"
 )
 
 func init() {

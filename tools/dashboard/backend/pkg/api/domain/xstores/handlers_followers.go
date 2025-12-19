@@ -8,10 +8,10 @@ import (
 	polardbxv1xstore "github.com/alibaba/polardbx-operator/api/v1/xstore"
 	"github.com/gin-gonic/gin"
 
-	"polardbx-ui-backend/pkg/api/domain/xstores/services"
-	apierr "polardbx-ui-backend/pkg/api/errors"
-	"polardbx-ui-backend/pkg/api/provider"
-	"polardbx-ui-backend/pkg/api/util"
+	"polardbx-dashboard-backend/pkg/api/domain/xstores/services"
+	apierr "polardbx-dashboard-backend/pkg/api/errors"
+	"polardbx-dashboard-backend/pkg/api/provider"
+	"polardbx-dashboard-backend/pkg/api/util"
 )
 
 // followersSvc gets FollowersService from Provider

@@ -16,7 +16,7 @@ import (
 	polardbxv1 "github.com/alibaba/polardbx-operator/api/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	domain_restore "polardbx-ui-backend/pkg/api/domain/platform/restore/handler"
+	domain_restore "polardbx-dashboard-backend/pkg/api/domain/platform/restore/handler"
 )
 
 func setupRecoveryTestRouter(fakeClient client.Client) *gin.Engine {

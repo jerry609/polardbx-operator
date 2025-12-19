@@ -12,9 +12,9 @@ import (
 	"strings"
 	"time"
 
-	apierr "polardbx-ui-backend/pkg/api/errors"
-	"polardbx-ui-backend/pkg/api/util"
-	"polardbx-ui-backend/pkg/k8s"
+	apierr "polardbx-dashboard-backend/pkg/api/errors"
+	"polardbx-dashboard-backend/pkg/api/util"
+	"polardbx-dashboard-backend/pkg/k8s"
 
 	"github.com/gin-gonic/gin"
 	corev1 "k8s.io/api/core/v1"

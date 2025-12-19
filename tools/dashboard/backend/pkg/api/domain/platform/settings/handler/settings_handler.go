@@ -6,10 +6,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"polardbx-ui-backend/pkg/api/domain/platform/settings/repository"
-	"polardbx-ui-backend/pkg/api/domain/platform/settings/service"
-	apierr "polardbx-ui-backend/pkg/api/errors"
-	"polardbx-ui-backend/pkg/api/util"
+	"polardbx-dashboard-backend/pkg/api/domain/platform/settings/repository"
+	"polardbx-dashboard-backend/pkg/api/domain/platform/settings/service"
+	apierr "polardbx-dashboard-backend/pkg/api/errors"
+	"polardbx-dashboard-backend/pkg/api/util"
 )
 
 // SettingsHandler handles HTTP requests related to platform settings.

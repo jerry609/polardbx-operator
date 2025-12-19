@@ -11,9 +11,9 @@ import (
 	polardbxv1 "github.com/alibaba/polardbx-operator/api/v1"
 	polardbx "github.com/alibaba/polardbx-operator/api/v1/polardbx"
 
-	"polardbx-ui-backend/pkg/api/domain/platform/restore/repository"
-	apierr "polardbx-ui-backend/pkg/api/errors"
-	"polardbx-ui-backend/pkg/api/util"
+	"polardbx-dashboard-backend/pkg/api/domain/platform/restore/repository"
+	apierr "polardbx-dashboard-backend/pkg/api/errors"
+	"polardbx-dashboard-backend/pkg/api/util"
 )
 
 // RestoreHandler handles HTTP requests related to restore operations

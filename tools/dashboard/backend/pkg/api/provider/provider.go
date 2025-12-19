@@ -6,12 +6,12 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	podrepo "polardbx-ui-backend/pkg/api/domain/platform/pod/repository"
-	podsvc "polardbx-ui-backend/pkg/api/domain/platform/pod/service"
-	"polardbx-ui-backend/pkg/api/domain/polardbxclusters/services"
-	xstorerepo "polardbx-ui-backend/pkg/api/domain/xstores/k8srepo"
-	xstoreservices "polardbx-ui-backend/pkg/api/domain/xstores/services"
-	"polardbx-ui-backend/pkg/api/util"
+	podrepo "polardbx-dashboard-backend/pkg/api/domain/platform/pod/repository"
+	podsvc "polardbx-dashboard-backend/pkg/api/domain/platform/pod/service"
+	"polardbx-dashboard-backend/pkg/api/domain/polardbxclusters/services"
+	xstorerepo "polardbx-dashboard-backend/pkg/api/domain/xstores/k8srepo"
+	xstoreservices "polardbx-dashboard-backend/pkg/api/domain/xstores/services"
+	"polardbx-dashboard-backend/pkg/api/util"
 )
 
 const providerKey = "serviceProvider"
