@@ -16,7 +16,7 @@ docker run -d --name polardbx-dashboard-test \
   -v ${HOME}/.minikube:${HOME}/.minikube:ro \
   -e UI_STATIC_DIR=/app/ui \
   -e KUBECONFIG=/etc/kube/kubeconfig \
-  polardbx-dashboard-all-in-one:test
+  polardbx-dashboard:test
 ```
 
 ### 为什么需要挂载 .minikube 目录？

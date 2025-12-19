@@ -12,7 +12,7 @@ NC='\033[0m' # No Color
 
 # 默认配置
 NAMESPACE="polardbx-system"
-IMAGE_NAME="polardbx-ui-all-in-one"
+IMAGE_NAME="polardbx-dashboard"
 IMAGE_TAG="latest"
 KUBECONFIG_PATH="${HOME}/.kube/config"
 BUILD_IMAGE=true
@@ -78,7 +78,7 @@ echo ""
 # 构建镜像
 if [ "$BUILD_IMAGE" = true ]; then
     echo -e "${YELLOW}[2/8] 构建 Docker 镜像...${NC}"
-    if docker build -f tools/ui-all-in-one.Dockerfile -t ${IMAGE_NAME}:${IMAGE_TAG} .; then
+    if docker build -f tools/dashboard.Dockerfile -t ${IMAGE_NAME}:${IMAGE_TAG} .; then
         echo -e "${GREEN}✓ 镜像构建成功${NC}"
     else
         echo -e "${RED}错误: 镜像构建失败${NC}"

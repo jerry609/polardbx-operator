@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: backend
-        image: polardbx-ui-all-in-one:latest
+        image: polardbx-dashboard:latest
         imagePullPolicy: IfNotPresent
         ports:
         - name: http

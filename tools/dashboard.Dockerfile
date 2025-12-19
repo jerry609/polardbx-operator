@@ -34,7 +34,7 @@ WORKDIR /workspace/backend
 RUN go mod tidy
 # Build from backend directory
 WORKDIR /workspace/backend
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /bin/polardbx-ui-backend ./main.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /bin/polardbx-dashboard-backend ./main.go
 
 FROM alpine:latest
 
@@ -42,13 +42,13 @@ FROM alpine:latest
 RUN apk --no-cache add ca-certificates
 
 WORKDIR /app
-COPY --from=backend-build /bin/polardbx-ui-backend /app/polardbx-ui-backend
+COPY --from=backend-build /bin/polardbx-dashboard-backend /app/polardbx-dashboard-backend
 # Angular build outputs to dist/polardbx-ui/browser/ (new Angular build system)
 COPY --from=frontend-build /workspace/dashboard-frontend/dist/polardbx-ui/browser/ /app/ui/
 
 ENV UI_STATIC_DIR=/app/ui
 EXPOSE 8080
 
-ENTRYPOINT ["/app/polardbx-ui-backend"]
+ENTRYPOINT ["/app/polardbx-dashboard-backend"]
 
 

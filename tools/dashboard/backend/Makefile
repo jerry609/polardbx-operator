@@ -3,20 +3,20 @@ all: build
 
 # --- Variables ---
 # Binary name
-BINARY_NAME=polardbx-ui-backend
+BINARY_NAME=polardbx-dashboard-backend
 # Feature Flags (override via `make run MONITORING_V2_ENABLED=false`)
 MONITORING_V2_ENABLED ?= true
 # Docker image settings
-IMG ?= polardbx/polardbx-ui-backend:latest
+IMG ?= polardbx/polardbx-dashboard-backend:latest
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
 BUILD_DATE ?= $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 GO_VERSION ?= $(shell go env GOVERSION 2>/dev/null || go version | awk '{print $$3}')
 LDFLAGS := -w -s \
-	-X 'polardbx-ui-backend/pkg/api/router.Version=$(VERSION)' \
-	-X 'polardbx-ui-backend/pkg/api/router.Commit=$(COMMIT)' \
-	-X 'polardbx-ui-backend/pkg/api/router.BuildDate=$(BUILD_DATE)' \
-	-X 'polardbx-ui-backend/pkg/api/router.GoVersion=$(GO_VERSION)'
+	-X 'polardbx-dashboard-backend/pkg/api/router.Version=$(VERSION)' \
+	-X 'polardbx-dashboard-backend/pkg/api/router.Commit=$(COMMIT)' \
+	-X 'polardbx-dashboard-backend/pkg/api/router.BuildDate=$(BUILD_DATE)' \
+	-X 'polardbx-dashboard-backend/pkg/api/router.GoVersion=$(GO_VERSION)'
 
 # --- Build Targets ---
 

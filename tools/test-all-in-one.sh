@@ -4,13 +4,13 @@
 
 set -e
 
-IMAGE_NAME="polardbx-dashboard-all-in-one"
+IMAGE_NAME="polardbx-dashboard"
 IMAGE_TAG="test"
 CONTAINER_NAME="polardbx-dashboard-test"
 PORT=8080
 
 echo "=== Building all-in-one Docker image ==="
-docker build -f tools/ui-all-in-one.Dockerfile -t ${IMAGE_NAME}:${IMAGE_TAG} .
+docker build -f tools/dashboard.Dockerfile -t ${IMAGE_NAME}:${IMAGE_TAG} .
 
 echo ""
 echo "=== Stopping existing container if any ==="

@@ -28,21 +28,21 @@ RUN go mod download
 # CGO_ENABLED=0 is important for a static build
 # -ldflags="-w -s" strips debug information to reduce binary size
 RUN CGO_ENABLED=0 GOOS=linux go build -a -ldflags="-w -s \
-    -X 'polardbx-ui-backend/pkg/api/router.Version=${VERSION}' \
-    -X 'polardbx-ui-backend/pkg/api/router.Commit=${COMMIT}' \
-    -X 'polardbx-ui-backend/pkg/api/router.BuildDate=${BUILD_DATE}' \
-    -X 'polardbx-ui-backend/pkg/api/router.GoVersion=${GO_VERSION}'" \
-    -o /polardbx-ui-backend ./main.go
+    -X 'polardbx-dashboard-backend/pkg/api/router.Version=${VERSION}' \
+    -X 'polardbx-dashboard-backend/pkg/api/router.Commit=${COMMIT}' \
+    -X 'polardbx-dashboard-backend/pkg/api/router.BuildDate=${BUILD_DATE}' \
+    -X 'polardbx-dashboard-backend/pkg/api/router.GoVersion=${GO_VERSION}'" \
+    -o /polardbx-dashboard-backend ./main.go
 
 # --- Stage 2: Final ---
 # Use a minimal image for the final stage
 FROM scratch
 
 # Copy the static binary from the builder stage
-COPY --from=builder /polardbx-ui-backend /polardbx-ui-backend
+COPY --from=builder /polardbx-dashboard-backend /polardbx-dashboard-backend
 
 # Expose the port the app runs on
 EXPOSE 8080
 
 # The command to run the application
-ENTRYPOINT ["/polardbx-ui-backend"] 
+ENTRYPOINT ["/polardbx-dashboard-backend"] 
