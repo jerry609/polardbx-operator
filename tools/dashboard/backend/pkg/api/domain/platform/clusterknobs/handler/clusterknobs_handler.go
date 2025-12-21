@@ -19,7 +19,7 @@ import (
 // @Accept json
 // @Produce json
 // @Success 200 {array} map[string]any "List of cluster knobs"
-// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Failure 502 {object} apierr.ErrorResponse "Kubernetes API error"
 // @Router /api/v1/polardbxclusters/cluster-knobs [get]
 func GetList(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
@@ -43,9 +43,9 @@ func GetList(c *gin.Context) {
 // @Produce json
 // @Param body body map[string]any true "Cluster knobs specification"
 // @Success 201 {object} map[string]any "Created cluster knobs"
-// @Failure 400 {object} map[string]any "Invalid cluster knobs specification"
-// @Failure 409 {object} map[string]any "Cluster knobs already exists"
-// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Failure 400 {object} apierr.ErrorResponse "Invalid cluster knobs specification"
+// @Failure 409 {object} apierr.ErrorResponse "Cluster knobs already exists"
+// @Failure 502 {object} apierr.ErrorResponse "Kubernetes API error"
 // @Router /api/v1/polardbxclusters/cluster-knobs [post]
 func Create(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
@@ -75,8 +75,8 @@ func Create(c *gin.Context) {
 // @Param namespace path string true "Kubernetes namespace"
 // @Param name path string true "Name of the cluster knobs"
 // @Success 200 {object} map[string]any "Cluster knobs details"
-// @Failure 404 {object} map[string]any "Cluster knobs not found"
-// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Failure 404 {object} apierr.ErrorResponse "Cluster knobs not found"
+// @Failure 502 {object} apierr.ErrorResponse "Kubernetes API error"
 // @Router /api/v1/polardbxclusters/cluster-knobs/{namespace}/{name} [get]
 func Get(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
@@ -104,9 +104,9 @@ func Get(c *gin.Context) {
 // @Param name path string true "Name of the cluster knobs"
 // @Param body body map[string]any true "Updated cluster knobs specification"
 // @Success 200 {object} map[string]any "Updated cluster knobs"
-// @Failure 400 {object} map[string]any "Invalid cluster knobs specification"
-// @Failure 404 {object} map[string]any "Cluster knobs not found"
-// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Failure 400 {object} apierr.ErrorResponse "Invalid cluster knobs specification"
+// @Failure 404 {object} apierr.ErrorResponse "Cluster knobs not found"
+// @Failure 502 {object} apierr.ErrorResponse "Kubernetes API error"
 // @Router /api/v1/polardbxclusters/cluster-knobs/{namespace}/{name} [put]
 func Update(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
@@ -140,8 +140,8 @@ func Update(c *gin.Context) {
 // @Param namespace path string true "Kubernetes namespace"
 // @Param name path string true "Name of the cluster knobs"
 // @Success 200 {object} map[string]any "Deletion confirmation"
-// @Failure 404 {object} map[string]any "Cluster knobs not found"
-// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Failure 404 {object} apierr.ErrorResponse "Cluster knobs not found"
+// @Failure 502 {object} apierr.ErrorResponse "Kubernetes API error"
 // @Router /api/v1/polardbxclusters/cluster-knobs/{namespace}/{name} [delete]
 func Delete(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)

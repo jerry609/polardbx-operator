@@ -18,7 +18,7 @@ import (
 // @Produce json
 // @Param namespace query string false "Kubernetes namespace filter"
 // @Success 200 {array} map[string]any "List of backup binlogs"
-// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Failure 502 {object} apierr.ErrorResponse "Kubernetes API error"
 // @Router /api/v1/polardbxclusters/backup-binlogs [get]
 func ListBackupBinlogs(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
@@ -43,8 +43,8 @@ func ListBackupBinlogs(c *gin.Context) {
 // @Param namespace query string false "Kubernetes namespace (default: default)"
 // @Param body body map[string]any true "Backup binlog specification"
 // @Success 201 {object} map[string]any "Created backup binlog"
-// @Failure 400 {object} map[string]any "Invalid specification"
-// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Failure 400 {object} apierr.ErrorResponse "Invalid specification"
+// @Failure 502 {object} apierr.ErrorResponse "Kubernetes API error"
 // @Router /api/v1/polardbxclusters/backup-binlogs [post]
 func CreateBackupBinlog(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
@@ -73,8 +73,8 @@ func CreateBackupBinlog(c *gin.Context) {
 // @Param namespace path string true "Kubernetes namespace"
 // @Param name path string true "Backup binlog name"
 // @Success 200 {object} map[string]any "Backup binlog"
-// @Failure 404 {object} map[string]any "Backup binlog not found"
-// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Failure 404 {object} apierr.ErrorResponse "Backup binlog not found"
+// @Failure 502 {object} apierr.ErrorResponse "Kubernetes API error"
 // @Router /api/v1/polardbxclusters/backup-binlogs/{namespace}/{name} [get]
 func GetBackupBinlog(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
@@ -101,9 +101,9 @@ func GetBackupBinlog(c *gin.Context) {
 // @Param name path string true "Backup binlog name"
 // @Param body body map[string]any true "Updated backup binlog specification"
 // @Success 200 {object} map[string]any "Updated backup binlog"
-// @Failure 400 {object} map[string]any "Invalid specification"
-// @Failure 404 {object} map[string]any "Backup binlog not found"
-// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Failure 400 {object} apierr.ErrorResponse "Invalid specification"
+// @Failure 404 {object} apierr.ErrorResponse "Backup binlog not found"
+// @Failure 502 {object} apierr.ErrorResponse "Kubernetes API error"
 // @Router /api/v1/polardbxclusters/backup-binlogs/{namespace}/{name} [put]
 func UpdateBackupBinlog(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
@@ -131,8 +131,8 @@ func UpdateBackupBinlog(c *gin.Context) {
 // @Param namespace path string true "Kubernetes namespace"
 // @Param name path string true "Backup binlog name"
 // @Success 200 {object} map[string]any "Deletion confirmation"
-// @Failure 404 {object} map[string]any "Backup binlog not found"
-// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Failure 404 {object} apierr.ErrorResponse "Backup binlog not found"
+// @Failure 502 {object} apierr.ErrorResponse "Kubernetes API error"
 // @Router /api/v1/polardbxclusters/backup-binlogs/{namespace}/{name} [delete]
 func DeleteBackupBinlog(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)

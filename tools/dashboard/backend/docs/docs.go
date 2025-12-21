@@ -49,8 +49,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -95,15 +94,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Request parameter error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -209,22 +206,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Request parameter error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Diagnostic report not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -266,36 +260,31 @@ const docTemplate = `{
                     "400": {
                         "description": "Request parameter error (e.g., invalid ID)",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Authentication required or invalid authentication state",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Diagnostic job or file not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Diagnostic report not ready yet",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -340,22 +329,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Request parameter error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Diagnostic task not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -383,8 +369,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -425,15 +410,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid payload",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -461,8 +444,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -505,15 +487,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid payload",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -563,22 +543,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid payload",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Dashboard version not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -615,8 +592,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -644,15 +620,13 @@ const docTemplate = `{
                     "404": {
                         "description": "Templates directory not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -689,22 +663,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Template name required",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Template not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -734,8 +705,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -773,22 +743,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid strategy specification",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Strategy already exists",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -853,8 +820,7 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid strategy specification",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -896,8 +862,7 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid request parameters",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -935,15 +900,13 @@ const docTemplate = `{
                     "404": {
                         "description": "Strategy not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -988,22 +951,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid strategy specification",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Strategy not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -1040,15 +1000,13 @@ const docTemplate = `{
                     "404": {
                         "description": "Strategy not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -1087,15 +1045,13 @@ const docTemplate = `{
                     "404": {
                         "description": "Strategy not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -1134,8 +1090,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -1182,15 +1137,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid request body",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -1239,8 +1192,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -1301,15 +1253,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid caCrt",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -1369,15 +1319,13 @@ const docTemplate = `{
                     "404": {
                         "description": "Logstash pod not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -1426,15 +1374,13 @@ const docTemplate = `{
                     "404": {
                         "description": "ConfigMap or key not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -1495,15 +1441,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid request body",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -1540,8 +1484,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -1585,15 +1528,13 @@ const docTemplate = `{
                     "404": {
                         "description": "Log collector not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -1648,15 +1589,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid request body",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -1695,15 +1634,13 @@ const docTemplate = `{
                     "404": {
                         "description": "Log collector not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -1747,8 +1684,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -2081,22 +2017,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid request parameters",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Pod not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Kubernetes API error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -2132,8 +2065,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -2174,8 +2106,7 @@ const docTemplate = `{
                     "502": {
                         "description": "Kubernetes API error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -2221,15 +2152,13 @@ const docTemplate = `{
                     "404": {
                         "description": "Pod not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Kubernetes API error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -2273,15 +2202,13 @@ const docTemplate = `{
                     "404": {
                         "description": "Pod not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Kubernetes API error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -2338,266 +2265,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid request or WebSocket upgrade failed",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Pod not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Kubernetes API error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/platform/prometheus-rules/templates": {
-            "get": {
-                "description": "Lists all available PrometheusRule alert rule templates from embedded files and Helm chart",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "prometheus-rules"
-                ],
-                "summary": "List alert rule templates",
-                "responses": {
-                    "200": {
-                        "description": "List of alert rule templates with metadata",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/handler.AlertRuleTemplateSummary"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/platform/prometheus-rules/templates/apply": {
-            "post": {
-                "description": "Applies an alert rule template to create or update PrometheusRule resources",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "prometheus-rules"
-                ],
-                "summary": "Apply alert rule template",
-                "parameters": [
-                    {
-                        "description": "Apply request with template name, namespace, and optional overrides",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Apply result with created/updated resources",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid request or template not found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/platform/prometheus-rules/templates/{name}": {
-            "get": {
-                "description": "Retrieves detailed content of a specific alert rule template",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "prometheus-rules"
-                ],
-                "summary": "Get alert rule template",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Name of the alert rule template",
-                        "name": "name",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Template details with content",
-                        "schema": {
-                            "$ref": "#/definitions/handler.AlertRuleTemplateDetail"
-                        }
-                    },
-                    "404": {
-                        "description": "Template not found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/platform/prometheus-rules/validate": {
-            "post": {
-                "description": "Validates PrometheusRule YAML content for syntax and PromQL correctness",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "prometheus-rules"
-                ],
-                "summary": "Validate PrometheusRule",
-                "parameters": [
-                    {
-                        "description": "YAML content to validate (key: 'yaml')",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Validation result with success status, message, details, errors, and warnings",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid request or YAML syntax error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/platform/prometheus-rules/{namespace}/{name}/yaml": {
-            "get": {
-                "description": "Retrieves YAML content of a specific PrometheusRule resource",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "prometheus-rules"
-                ],
-                "summary": "Get PrometheusRule YAML",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Kubernetes namespace",
-                        "name": "namespace",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Name of the PrometheusRule",
-                        "name": "name",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "YAML content of the PrometheusRule",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid request parameters",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "PrometheusRule not found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -2635,8 +2315,7 @@ const docTemplate = `{
                     "502": {
                         "description": "Kubernetes API error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -2676,15 +2355,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid specification",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Kubernetes API error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -2723,8 +2400,7 @@ const docTemplate = `{
                     "502": {
                         "description": "Kubernetes API error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -2771,15 +2447,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid specification",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Kubernetes API error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -2823,15 +2497,13 @@ const docTemplate = `{
                     "404": {
                         "description": "Backup binlog not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Kubernetes API error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -2886,22 +2558,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid specification",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Backup binlog not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Kubernetes API error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -2940,15 +2609,13 @@ const docTemplate = `{
                     "404": {
                         "description": "Backup binlog not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Kubernetes API error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -2981,8 +2648,7 @@ const docTemplate = `{
                     "502": {
                         "description": "Kubernetes API error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -3022,22 +2688,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid cluster knobs specification",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Cluster knobs already exists",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Kubernetes API error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -3083,15 +2746,13 @@ const docTemplate = `{
                     "404": {
                         "description": "Cluster knobs not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Kubernetes API error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -3145,22 +2806,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid cluster knobs specification",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Cluster knobs not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Kubernetes API error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -3204,15 +2862,13 @@ const docTemplate = `{
                     "404": {
                         "description": "Cluster knobs not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Kubernetes API error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -3253,8 +2909,7 @@ const docTemplate = `{
                     "502": {
                         "description": "Kubernetes API error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -3300,22 +2955,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid parameter template specification",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Parameter template already exists",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Kubernetes API error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -3361,15 +3013,13 @@ const docTemplate = `{
                     "404": {
                         "description": "Parameter template not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Kubernetes API error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -3423,22 +3073,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid parameter template specification",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Parameter template not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Kubernetes API error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -3482,15 +3129,13 @@ const docTemplate = `{
                     "404": {
                         "description": "Parameter template not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Kubernetes API error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -3531,8 +3176,7 @@ const docTemplate = `{
                     "502": {
                         "description": "Kubernetes API error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -3578,22 +3222,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid parameter specification",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Parameter already exists",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Kubernetes API error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -3638,15 +3279,13 @@ const docTemplate = `{
                     "404": {
                         "description": "Parameter not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Kubernetes API error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -3699,22 +3338,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid parameter specification",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Parameter not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Kubernetes API error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -3757,15 +3393,13 @@ const docTemplate = `{
                     "404": {
                         "description": "Parameter not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Kubernetes API error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -3814,15 +3448,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid configuration",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Kubernetes API error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -3865,15 +3497,13 @@ const docTemplate = `{
                     "404": {
                         "description": "Cluster not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Kubernetes API error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -3927,22 +3557,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid specification",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Cluster not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Kubernetes API error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -3980,15 +3607,13 @@ const docTemplate = `{
                     "404": {
                         "description": "Cluster not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Kubernetes API error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -4032,15 +3657,13 @@ const docTemplate = `{
                     "404": {
                         "description": "Cluster not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Backend error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -4104,22 +3727,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid payload",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Cluster not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Kubernetes API error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -4175,29 +3795,25 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid request body, missing time, or backup not ready",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Backup or source cluster not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Target cluster already exists",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -4244,15 +3860,13 @@ const docTemplate = `{
                     "404": {
                         "description": "Cluster or pods not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Kubernetes API error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -4310,22 +3924,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid request parameters",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Cluster not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -4380,22 +3991,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid request or unsupported operation",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Cluster not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -4451,29 +4059,25 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid request body or backup not ready",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Backup or source cluster not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Target cluster already exists",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -4516,15 +4120,13 @@ const docTemplate = `{
                     "404": {
                         "description": "Cluster not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -4581,22 +4183,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid request",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Cluster not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Kubernetes API error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -4653,22 +4252,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid request",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Cluster not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Kubernetes API error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -4711,15 +4307,287 @@ const docTemplate = `{
                     "404": {
                         "description": "Cluster not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Kubernetes API error",
                         "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/prometheus-rules": {
+            "get": {
+                "description": "Lists all PrometheusRule custom resources, optionally filtered by namespace",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "prometheus-rules"
+                ],
+                "summary": "List PrometheusRules",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Kubernetes namespace filter (optional, lists all namespaces if not specified)",
+                        "name": "namespace",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of PrometheusRule resources",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/handler.PrometheusRule"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/prometheus-rules/templates": {
+            "get": {
+                "description": "Lists all available PrometheusRule alert rule templates from embedded files and Helm chart",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "prometheus-rules"
+                ],
+                "summary": "List alert rule templates",
+                "responses": {
+                    "200": {
+                        "description": "List of alert rule templates with metadata",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/handler.AlertRuleTemplateSummary"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/prometheus-rules/templates/apply": {
+            "post": {
+                "description": "Applies an alert rule template to create or update PrometheusRule resources",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "prometheus-rules"
+                ],
+                "summary": "Apply alert rule template",
+                "parameters": [
+                    {
+                        "description": "Apply request with template name, namespace, and optional overrides",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
                             "type": "object",
                             "additionalProperties": true
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Apply result with created/updated resources",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request or template not found",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/prometheus-rules/templates/{name}": {
+            "get": {
+                "description": "Retrieves detailed content of a specific alert rule template",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "prometheus-rules"
+                ],
+                "summary": "Get alert rule template",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Name of the alert rule template",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Template details with content",
+                        "schema": {
+                            "$ref": "#/definitions/handler.AlertRuleTemplateDetail"
+                        }
+                    },
+                    "404": {
+                        "description": "Template not found",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/prometheus-rules/validate": {
+            "post": {
+                "description": "Validates PrometheusRule YAML content for syntax and PromQL correctness",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "prometheus-rules"
+                ],
+                "summary": "Validate PrometheusRule",
+                "parameters": [
+                    {
+                        "description": "YAML content to validate (key: 'yaml')",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Validation result with success status, message, details, errors, and warnings",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request or YAML syntax error",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/prometheus-rules/{namespace}/{name}/yaml": {
+            "get": {
+                "description": "Retrieves YAML content of a specific PrometheusRule resource",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "prometheus-rules"
+                ],
+                "summary": "Get PrometheusRule YAML",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Kubernetes namespace",
+                        "name": "namespace",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Name of the PrometheusRule",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "YAML content of the PrometheusRule",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request parameters",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "PrometheusRule not found",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -4754,8 +4622,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -4798,15 +4665,13 @@ const docTemplate = `{
                     "404": {
                         "description": "Restore job not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -4847,15 +4712,13 @@ const docTemplate = `{
                     "404": {
                         "description": "Restore job not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -4892,8 +4755,7 @@ const docTemplate = `{
                     "502": {
                         "description": "Upstream Kubernetes error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -4937,15 +4799,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid request body",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Upstream Kubernetes error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -4983,8 +4843,7 @@ const docTemplate = `{
                     "502": {
                         "description": "Upstream Kubernetes error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -5029,15 +4888,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid request body",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Upstream Kubernetes error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -5080,15 +4937,13 @@ const docTemplate = `{
                     "404": {
                         "description": "Binlog backup not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Upstream Kubernetes error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -5141,22 +4996,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid request body",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Binlog backup not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Upstream Kubernetes error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -5194,15 +5046,13 @@ const docTemplate = `{
                     "404": {
                         "description": "Binlog backup not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Upstream Kubernetes error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -5240,8 +5090,7 @@ const docTemplate = `{
                     "502": {
                         "description": "Upstream Kubernetes error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -5286,15 +5135,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid request body",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Upstream Kubernetes error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -5337,15 +5184,13 @@ const docTemplate = `{
                     "404": {
                         "description": "Backup not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Upstream Kubernetes error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -5398,22 +5243,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid request body",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Backup not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Upstream Kubernetes error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -5451,15 +5293,13 @@ const docTemplate = `{
                     "404": {
                         "description": "Backup not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Upstream Kubernetes error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -5499,15 +5339,13 @@ const docTemplate = `{
                     "404": {
                         "description": "Backup not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Upstream Kubernetes error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -5550,15 +5388,13 @@ const docTemplate = `{
                     "404": {
                         "description": "Backup not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Upstream Kubernetes error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -5596,8 +5432,7 @@ const docTemplate = `{
                     "502": {
                         "description": "Upstream Kubernetes error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -5642,15 +5477,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid request body",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Upstream Kubernetes error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -5693,15 +5526,13 @@ const docTemplate = `{
                     "404": {
                         "description": "Follower not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Upstream Kubernetes error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -5754,22 +5585,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid request body",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Follower not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Upstream Kubernetes error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -5807,15 +5635,13 @@ const docTemplate = `{
                     "404": {
                         "description": "Follower not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Upstream Kubernetes error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -5857,15 +5683,13 @@ const docTemplate = `{
                     "404": {
                         "description": "XStore not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Upstream Kubernetes error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -5917,22 +5741,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid request body",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "XStore not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Upstream Kubernetes error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -5969,15 +5790,13 @@ const docTemplate = `{
                     "404": {
                         "description": "XStore not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Upstream Kubernetes error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -6022,15 +5841,13 @@ const docTemplate = `{
                     "404": {
                         "description": "XStore or Pods not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Upstream Kubernetes error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -6073,15 +5890,13 @@ const docTemplate = `{
                     "404": {
                         "description": "XStore not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Upstream Kubernetes error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -6124,15 +5939,13 @@ const docTemplate = `{
                     "404": {
                         "description": "Rebuild or XStore not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Upstream Kubernetes error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -6175,15 +5988,13 @@ const docTemplate = `{
                     "404": {
                         "description": "XStore not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Upstream Kubernetes error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -6226,15 +6037,13 @@ const docTemplate = `{
                     "404": {
                         "description": "XStore not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Upstream Kubernetes error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -6277,15 +6086,13 @@ const docTemplate = `{
                     "404": {
                         "description": "Rebuild or XStore not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Upstream Kubernetes error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -6328,15 +6135,13 @@ const docTemplate = `{
                     "404": {
                         "description": "Rebuild or XStore not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Upstream Kubernetes error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -6379,15 +6184,13 @@ const docTemplate = `{
                     "404": {
                         "description": "Rebuild or XStore not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Upstream Kubernetes error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     }
                 }
@@ -6395,6 +6198,213 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "errors.ErrorBody": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "$ref": "#/definitions/errors.ErrorCode"
+                },
+                "details": {},
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "errors.ErrorCode": {
+            "type": "string",
+            "enum": [
+                "SYS_1001",
+                "SYS_1002",
+                "SYS_1003",
+                "SYS_1004",
+                "SYS_1005",
+                "AUTH_2001",
+                "AUTH_2002",
+                "AUTH_2003",
+                "AUTH_2004",
+                "AUTH_2005",
+                "VAL_3001",
+                "VAL_3002",
+                "VAL_3003",
+                "VAL_3004",
+                "VAL_3005",
+                "RES_4001",
+                "RES_4002",
+                "RES_4003",
+                "RES_4004",
+                "RES_4005",
+                "K8S_5001",
+                "K8S_5002",
+                "K8S_5003",
+                "K8S_5004",
+                "K8S_5005",
+                "K8S_5006",
+                "CLU_6001",
+                "CLU_6002",
+                "CLU_6003",
+                "CLU_6004",
+                "CLU_6005",
+                "BAK_7001",
+                "BAK_7002",
+                "BAK_7003",
+                "BAK_7004",
+                "BAK_7005",
+                "MON_8001",
+                "MON_8002",
+                "MON_8003",
+                "MON_8004",
+                "MON_8005",
+                "GW_9001",
+                "GW_9002",
+                "GW_9003"
+            ],
+            "x-enum-comments": {
+                "ErrAlreadyExists": "Resource already exists",
+                "ErrBackupFailed": "Backup operation failed",
+                "ErrBackupInProgress": "Backup already in progress",
+                "ErrBackupNotFound": "Backup not found",
+                "ErrBadGateway": "Bad gateway (upstream error)",
+                "ErrCRDNotFound": "CRD not installed",
+                "ErrClusterLocked": "Cluster operation in progress",
+                "ErrClusterNotReady": "Cluster not ready",
+                "ErrConflict": "Resource conflict",
+                "ErrDeleteFailed": "Delete operation failed",
+                "ErrForbidden": "Not authorized",
+                "ErrGatewayTimeout": "Gateway timeout",
+                "ErrGrafanaFailed": "Grafana operation failed",
+                "ErrHelmFailed": "Helm operation failed",
+                "ErrInstallFailed": "Installation failed",
+                "ErrInternal": "Internal server error",
+                "ErrInvalidFormat": "Invalid format",
+                "ErrInvalidKubeconf": "Invalid kubeconfig",
+                "ErrInvalidParam": "Invalid parameter",
+                "ErrInvalidSink": "Invalid backup sink",
+                "ErrInvalidState": "Invalid resource state",
+                "ErrInvalidToken": "Invalid or expired token",
+                "ErrInvalidYAML": "Invalid YAML",
+                "ErrK8sConflict": "Kubernetes resource conflict",
+                "ErrK8sConnection": "Failed to connect to cluster",
+                "ErrK8sNotFound": "Kubernetes resource not found",
+                "ErrK8sPermission": "Insufficient permissions",
+                "ErrK8sTimeout": "Kubernetes operation timeout",
+                "ErrKubeconfigReq": "Kubeconfig required",
+                "ErrMaintenanceMode": "System in maintenance mode",
+                "ErrMissingParam": "Required parameter missing",
+                "ErrMonitorNotInst": "Monitoring not installed",
+                "ErrNotFound": "Resource not found",
+                "ErrPrometheusFailed": "Prometheus operation failed",
+                "ErrQuotaExceeded": "Resource quota exceeded",
+                "ErrRateLimited": "Rate limit exceeded",
+                "ErrRestoreFailed": "Restore operation failed",
+                "ErrScaleFailed": "Scale operation failed",
+                "ErrServiceUnavail": "Service temporarily unavailable",
+                "ErrServiceUnavailable": "Service unavailable",
+                "ErrTimeout": "Request timeout",
+                "ErrUnauthorized": "Not authenticated",
+                "ErrUpgradeFailed": "Upgrade operation failed",
+                "ErrValidation": "Validation failed"
+            },
+            "x-enum-descriptions": [
+                "Internal server error",
+                "Service temporarily unavailable",
+                "Request timeout",
+                "Rate limit exceeded",
+                "System in maintenance mode",
+                "Not authenticated",
+                "Not authorized",
+                "Invalid or expired token",
+                "Kubeconfig required",
+                "Invalid kubeconfig",
+                "Validation failed",
+                "Invalid parameter",
+                "Required parameter missing",
+                "Invalid format",
+                "Invalid YAML",
+                "Resource not found",
+                "Resource already exists",
+                "Resource conflict",
+                "Resource quota exceeded",
+                "Invalid resource state",
+                "Failed to connect to cluster",
+                "Insufficient permissions",
+                "Kubernetes resource not found",
+                "Kubernetes resource conflict",
+                "Kubernetes operation timeout",
+                "CRD not installed",
+                "Cluster not ready",
+                "Cluster operation in progress",
+                "Scale operation failed",
+                "Upgrade operation failed",
+                "Delete operation failed",
+                "Backup operation failed",
+                "Restore operation failed",
+                "Backup not found",
+                "Backup already in progress",
+                "Invalid backup sink",
+                "Monitoring not installed",
+                "Grafana operation failed",
+                "Prometheus operation failed",
+                "Helm operation failed",
+                "Installation failed",
+                "Bad gateway (upstream error)",
+                "Gateway timeout",
+                "Service unavailable"
+            ],
+            "x-enum-varnames": [
+                "ErrInternal",
+                "ErrServiceUnavail",
+                "ErrTimeout",
+                "ErrRateLimited",
+                "ErrMaintenanceMode",
+                "ErrUnauthorized",
+                "ErrForbidden",
+                "ErrInvalidToken",
+                "ErrKubeconfigReq",
+                "ErrInvalidKubeconf",
+                "ErrValidation",
+                "ErrInvalidParam",
+                "ErrMissingParam",
+                "ErrInvalidFormat",
+                "ErrInvalidYAML",
+                "ErrNotFound",
+                "ErrAlreadyExists",
+                "ErrConflict",
+                "ErrQuotaExceeded",
+                "ErrInvalidState",
+                "ErrK8sConnection",
+                "ErrK8sPermission",
+                "ErrK8sNotFound",
+                "ErrK8sConflict",
+                "ErrK8sTimeout",
+                "ErrCRDNotFound",
+                "ErrClusterNotReady",
+                "ErrClusterLocked",
+                "ErrScaleFailed",
+                "ErrUpgradeFailed",
+                "ErrDeleteFailed",
+                "ErrBackupFailed",
+                "ErrRestoreFailed",
+                "ErrBackupNotFound",
+                "ErrBackupInProgress",
+                "ErrInvalidSink",
+                "ErrMonitorNotInst",
+                "ErrGrafanaFailed",
+                "ErrPrometheusFailed",
+                "ErrHelmFailed",
+                "ErrInstallFailed",
+                "ErrBadGateway",
+                "ErrGatewayTimeout",
+                "ErrServiceUnavailable"
+            ]
+        },
+        "errors.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "$ref": "#/definitions/errors.ErrorBody"
+                }
+            }
+        },
         "handler.AlertRuleGroupSummary": {
             "type": "object",
             "properties": {
@@ -6557,6 +6567,48 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                }
+            }
+        },
+        "handler.ListNamespacesResponse": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/service.NamespaceInfo"
+                    }
+                }
+            }
+        },
+        "handler.ListPolarDBXVersionsResponse": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/service.PolarDBXVersionInfo"
+                    }
+                }
+            }
+        },
+        "handler.ListStorageClassesResponse": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/service.StorageClassInfo"
+                    }
                 }
             }
         },
@@ -6830,6 +6882,20 @@ const docTemplate = `{
                 }
             }
         },
+        "service.ContextInfo": {
+            "type": "object",
+            "properties": {
+                "context": {
+                    "type": "string"
+                },
+                "defaultNamespace": {
+                    "type": "string"
+                },
+                "user": {
+                    "type": "string"
+                }
+            }
+        },
         "service.DiagnosticJob": {
             "type": "object",
             "properties": {
@@ -6858,6 +6924,66 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "service.NamespaceInfo": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "service.PolarDBXVersionInfo": {
+            "type": "object",
+            "properties": {
+                "deprecated": {
+                    "type": "boolean"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "recommended": {
+                    "type": "boolean"
+                },
+                "version": {
+                    "type": "string"
+                }
+            }
+        },
+        "service.StorageClassInfo": {
+            "type": "object",
+            "properties": {
+                "isDefault": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "parameters": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "provisioner": {
+                    "type": "string"
+                },
+                "reclaimPolicy": {
+                    "type": "string"
+                },
+                "volumeBindingMode": {
                     "type": "string"
                 }
             }

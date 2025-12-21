@@ -91,7 +91,7 @@ func saveList(c *gin.Context, cm *corev1.ConfigMap, list []Strategy) error {
 // @Accept json
 // @Produce json
 // @Success 200 {object} map[string]any "List of log strategies with total count"
-// @Failure 500 {object} map[string]any "Internal server error"
+// @Failure 500 {object} apierr.ErrorResponse "Internal server error"
 // @Router /api/v1/platform/log-strategies [get]
 func List(c *gin.Context) {
 	cm, err := getStore(c)
@@ -116,8 +116,8 @@ func List(c *gin.Context) {
 // @Produce json
 // @Param name path string true "Name of the log strategy"
 // @Success 200 {object} Strategy "Log strategy details"
-// @Failure 404 {object} map[string]any "Strategy not found"
-// @Failure 500 {object} map[string]any "Internal server error"
+// @Failure 404 {object} apierr.ErrorResponse "Strategy not found"
+// @Failure 500 {object} apierr.ErrorResponse "Internal server error"
 // @Router /api/v1/platform/log-strategies/{name} [get]
 func Get(c *gin.Context) {
 	name := c.Param("name")
@@ -147,9 +147,9 @@ func Get(c *gin.Context) {
 // @Produce json
 // @Param body body Strategy true "Log strategy specification with name, cluster info, and output configuration"
 // @Success 201 {object} Strategy "Created log strategy"
-// @Failure 400 {object} map[string]any "Invalid strategy specification"
-// @Failure 409 {object} map[string]any "Strategy already exists"
-// @Failure 500 {object} map[string]any "Internal server error"
+// @Failure 400 {object} apierr.ErrorResponse "Invalid strategy specification"
+// @Failure 409 {object} apierr.ErrorResponse "Strategy already exists"
+// @Failure 500 {object} apierr.ErrorResponse "Internal server error"
 // @Router /api/v1/platform/log-strategies [post]
 func Create(c *gin.Context) {
 	cm, err := getStore(c)
@@ -190,9 +190,9 @@ func Create(c *gin.Context) {
 // @Param name path string true "Name of the log strategy"
 // @Param body body Strategy true "Updated log strategy specification (body.name must equal path name)"
 // @Success 200 {object} Strategy "Updated log strategy"
-// @Failure 400 {object} map[string]any "Invalid strategy specification"
-// @Failure 404 {object} map[string]any "Strategy not found"
-// @Failure 500 {object} map[string]any "Internal server error"
+// @Failure 400 {object} apierr.ErrorResponse "Invalid strategy specification"
+// @Failure 404 {object} apierr.ErrorResponse "Strategy not found"
+// @Failure 500 {object} apierr.ErrorResponse "Internal server error"
 // @Router /api/v1/platform/log-strategies/{name} [put]
 func Update(c *gin.Context) {
 	name := c.Param("name")
@@ -249,8 +249,8 @@ func Update(c *gin.Context) {
 // @Produce json
 // @Param name path string true "Name of the log strategy"
 // @Success 200 {object} map[string]any "Deletion confirmation"
-// @Failure 404 {object} map[string]any "Strategy not found"
-// @Failure 500 {object} map[string]any "Internal server error"
+// @Failure 404 {object} apierr.ErrorResponse "Strategy not found"
+// @Failure 500 {object} apierr.ErrorResponse "Internal server error"
 // @Router /api/v1/platform/log-strategies/{name} [delete]
 func Delete(c *gin.Context) {
 	name := c.Param("name")
@@ -347,7 +347,7 @@ func performCleanupForCluster(c *gin.Context, ns string, clusterName string) {
 // @Produce json
 // @Param body body Strategy true "Log strategy to validate"
 // @Success 200 {object} map[string]any "Validation result with checks, errors, and warnings"
-// @Failure 400 {object} map[string]any "Invalid strategy specification"
+// @Failure 400 {object} apierr.ErrorResponse "Invalid strategy specification"
 // @Router /api/v1/platform/log-strategies/precheck [post]
 func Precheck(c *gin.Context) {
 	var s Strategy
@@ -471,8 +471,8 @@ func buildLogstashOutput(s *Strategy) string {
 // @Produce json
 // @Param name path string true "Name of the log strategy to apply"
 // @Success 200 {object} map[string]any "Apply status and rollout information"
-// @Failure 404 {object} map[string]any "Strategy not found"
-// @Failure 500 {object} map[string]any "Internal server error"
+// @Failure 404 {object} apierr.ErrorResponse "Strategy not found"
+// @Failure 500 {object} apierr.ErrorResponse "Internal server error"
 // @Router /api/v1/platform/log-strategies/{name}/apply [post]
 func Apply(c *gin.Context) {
 	name := c.Param("name")
@@ -624,7 +624,7 @@ func Apply(c *gin.Context) {
 // @Produce json
 // @Param body body map[string]any true "Connection test request with hosts, username, password"
 // @Success 200 {object} map[string]any "Connection test result"
-// @Failure 400 {object} map[string]any "Invalid request parameters"
+// @Failure 400 {object} apierr.ErrorResponse "Invalid request parameters"
 // @Router /api/v1/platform/log-strategies/test-connection [post]
 func TestConnection(c *gin.Context) {
 	var payload struct {

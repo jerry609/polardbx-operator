@@ -22,7 +22,7 @@ func svc(c *gin.Context) *services.ClusterService { return provider.Must(c).Clus
 // @Produce json
 // @Param namespace query string false "Kubernetes namespace filter"
 // @Success 200 {array} map[string]any "List of clusters"
-// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Failure 502 {object} apierr.ErrorResponse "Kubernetes API error"
 // @Router /api/v1/polardbxclusters [get]
 func List(c *gin.Context) {
 	logger := middleware.NewBusinessLogger(c, "ClusterService")
@@ -56,8 +56,8 @@ func List(c *gin.Context) {
 // @Produce json
 // @Param body body map[string]any true "PolarDB-X cluster specification"
 // @Success 201 {object} map[string]any "Created cluster"
-// @Failure 400 {object} map[string]any "Invalid specification"
-// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Failure 400 {object} apierr.ErrorResponse "Invalid specification"
+// @Failure 502 {object} apierr.ErrorResponse "Kubernetes API error"
 // @Router /api/v1/polardbxclusters [post]
 func Create(c *gin.Context) {
 	logger := middleware.NewBusinessLogger(c, "ClusterService")
@@ -102,8 +102,8 @@ func Create(c *gin.Context) {
 // @Param namespace path string true "Kubernetes namespace"
 // @Param body body map[string]any true "Cluster creation config"
 // @Success 201 {object} map[string]any "Created cluster"
-// @Failure 400 {object} map[string]any "Invalid configuration"
-// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Failure 400 {object} apierr.ErrorResponse "Invalid configuration"
+// @Failure 502 {object} apierr.ErrorResponse "Kubernetes API error"
 // @Router /api/v1/polardbxclusters/{namespace}/create [post]
 func CreateFromConfig(c *gin.Context) {
 	logger := middleware.NewBusinessLogger(c, "ClusterService")
@@ -147,8 +147,8 @@ func CreateFromConfig(c *gin.Context) {
 // @Param namespace path string true "Kubernetes namespace"
 // @Param name path string true "Cluster name"
 // @Success 200 {object} map[string]any "Cluster"
-// @Failure 404 {object} map[string]any "Cluster not found"
-// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Failure 404 {object} apierr.ErrorResponse "Cluster not found"
+// @Failure 502 {object} apierr.ErrorResponse "Kubernetes API error"
 // @Router /api/v1/polardbxclusters/{namespace}/{name} [get]
 func Get(c *gin.Context) {
 	logger := middleware.NewBusinessLogger(c, "ClusterService")
@@ -186,9 +186,9 @@ func Get(c *gin.Context) {
 // @Param name path string true "Cluster name"
 // @Param body body map[string]any true "Updated cluster spec"
 // @Success 200 {object} map[string]any "Updated cluster"
-// @Failure 400 {object} map[string]any "Invalid specification"
-// @Failure 404 {object} map[string]any "Cluster not found"
-// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Failure 400 {object} apierr.ErrorResponse "Invalid specification"
+// @Failure 404 {object} apierr.ErrorResponse "Cluster not found"
+// @Failure 502 {object} apierr.ErrorResponse "Kubernetes API error"
 // @Router /api/v1/polardbxclusters/{namespace}/{name} [put]
 func Update(c *gin.Context) {
 	logger := middleware.NewBusinessLogger(c, "ClusterService")
@@ -229,8 +229,8 @@ func Update(c *gin.Context) {
 // @Param namespace path string true "Kubernetes namespace"
 // @Param name path string true "Cluster name"
 // @Success 200 {object} map[string]any "Deletion initiated"
-// @Failure 404 {object} map[string]any "Cluster not found"
-// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Failure 404 {object} apierr.ErrorResponse "Cluster not found"
+// @Failure 502 {object} apierr.ErrorResponse "Kubernetes API error"
 // @Router /api/v1/polardbxclusters/{namespace}/{name} [delete]
 func Delete(c *gin.Context) {
 	logger := middleware.NewBusinessLogger(c, "ClusterService")

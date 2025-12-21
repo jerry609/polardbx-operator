@@ -60,9 +60,9 @@ func NewPodHandlerFromContext(c *gin.Context) (*PodHandler, bool) {
 // @Param container query string false "Container name (optional, defaults to first container)"
 // @Param tailLines query int false "Number of lines to retrieve from the end (default: 1000, max: 10000)"
 // @Success 200 {string} string "Pod logs in plain text"
-// @Failure 400 {object} map[string]any "Invalid request parameters"
-// @Failure 404 {object} map[string]any "Pod not found"
-// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Failure 400 {object} apierr.ErrorResponse "Invalid request parameters"
+// @Failure 404 {object} apierr.ErrorResponse "Pod not found"
+// @Failure 502 {object} apierr.ErrorResponse "Kubernetes API error"
 // @Router /api/v1/platform/logs/{namespace}/{pod_name} [get]
 func GetLogs(c *gin.Context) {
 	h, ok := NewPodHandlerFromContext(c)
@@ -127,7 +127,7 @@ func (h *PodHandler) listForCluster(c *gin.Context) {
 // @Produce json
 // @Param namespace query string false "Kubernetes namespace (default: default)"
 // @Success 200 {array} map[string]any "List of pods"
-// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Failure 502 {object} apierr.ErrorResponse "Kubernetes API error"
 // @Router /api/v1/platform/pods [get]
 func List(c *gin.Context) {
 	h, ok := NewPodHandlerFromContext(c)
@@ -158,8 +158,8 @@ func (h *PodHandler) list(c *gin.Context) {
 // @Param namespace path string true "Kubernetes namespace"
 // @Param name path string true "Name of the pod"
 // @Success 200 {object} map[string]any "Pod details"
-// @Failure 404 {object} map[string]any "Pod not found"
-// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Failure 404 {object} apierr.ErrorResponse "Pod not found"
+// @Failure 502 {object} apierr.ErrorResponse "Kubernetes API error"
 // @Router /api/v1/platform/pods/{namespace}/{name} [get]
 func Get(c *gin.Context) {
 	h, ok := NewPodHandlerFromContext(c)
@@ -191,8 +191,8 @@ func (h *PodHandler) get(c *gin.Context) {
 // @Param namespace path string true "Kubernetes namespace"
 // @Param name path string true "Name of the pod"
 // @Success 200 {object} map[string]any "Deletion confirmation"
-// @Failure 404 {object} map[string]any "Pod not found"
-// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Failure 404 {object} apierr.ErrorResponse "Pod not found"
+// @Failure 502 {object} apierr.ErrorResponse "Kubernetes API error"
 // @Router /api/v1/platform/pods/{namespace}/{name} [delete]
 func Delete(c *gin.Context) {
 	h, ok := NewPodHandlerFromContext(c)
@@ -226,9 +226,9 @@ func (h *PodHandler) delete(c *gin.Context) {
 // @Param container query string false "Container name (optional)"
 // @Param command query string false "Command to execute (default: /bin/sh)"
 // @Success 101 {string} string "Switching protocols to WebSocket"
-// @Failure 400 {object} map[string]any "Invalid request or WebSocket upgrade failed"
-// @Failure 404 {object} map[string]any "Pod not found"
-// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Failure 400 {object} apierr.ErrorResponse "Invalid request or WebSocket upgrade failed"
+// @Failure 404 {object} apierr.ErrorResponse "Pod not found"
+// @Failure 502 {object} apierr.ErrorResponse "Kubernetes API error"
 // @Router /api/v1/platform/pods/{namespace}/{name}/exec [get]
 func ExecWS(c *gin.Context) {
 	rows, cols := 24, 80

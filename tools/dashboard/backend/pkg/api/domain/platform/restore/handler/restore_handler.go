@@ -46,10 +46,10 @@ func NewRestoreHandlerFromContext(c *gin.Context) (*RestoreHandler, bool) {
 // @Param name path string true "Name of the source PolarDB-X cluster"
 // @Param body body map[string]any true "Restore request payload (expects fields: backupSet/backupName, targetCluster/targetName, storageProvider, time, timezone)"
 // @Success 201 {object} map[string]any "Restore initiated successfully"
-// @Failure 400 {object} map[string]any "Invalid request body or backup not ready"
-// @Failure 404 {object} map[string]any "Backup or source cluster not found"
-// @Failure 409 {object} map[string]any "Target cluster already exists"
-// @Failure 500 {object} map[string]any "Internal server error"
+// @Failure 400 {object} apierr.ErrorResponse "Invalid request body or backup not ready"
+// @Failure 404 {object} apierr.ErrorResponse "Backup or source cluster not found"
+// @Failure 409 {object} apierr.ErrorResponse "Target cluster already exists"
+// @Failure 500 {object} apierr.ErrorResponse "Internal server error"
 // @Router /api/v1/polardbxclusters/{namespace}/{name}/restore [post]
 func RestoreCluster(c *gin.Context) {
 	h, ok := NewRestoreHandlerFromContext(c)
@@ -173,10 +173,10 @@ func (h *RestoreHandler) restoreCluster(c *gin.Context) {
 // @Param name path string true "Name of the source PolarDB-X cluster"
 // @Param body body map[string]any true "PITR request payload (expects fields: time/targetTime, timezone, backupSet/backupName, targetCluster/targetName, storageProvider)"
 // @Success 201 {object} map[string]any "PITR initiated successfully"
-// @Failure 400 {object} map[string]any "Invalid request body, missing time, or backup not ready"
-// @Failure 404 {object} map[string]any "Backup or source cluster not found"
-// @Failure 409 {object} map[string]any "Target cluster already exists"
-// @Failure 500 {object} map[string]any "Internal server error"
+// @Failure 400 {object} apierr.ErrorResponse "Invalid request body, missing time, or backup not ready"
+// @Failure 404 {object} apierr.ErrorResponse "Backup or source cluster not found"
+// @Failure 409 {object} apierr.ErrorResponse "Target cluster already exists"
+// @Failure 500 {object} apierr.ErrorResponse "Internal server error"
 // @Router /api/v1/polardbxclusters/{namespace}/{name}/pitr [post]
 func InitiatePITR(c *gin.Context) {
 	h, ok := NewRestoreHandlerFromContext(c)
@@ -319,8 +319,8 @@ func (h *RestoreHandler) initiatePITR(c *gin.Context) {
 // @Param namespace path string true "Kubernetes namespace of the cluster"
 // @Param name path string true "Name of the cluster"
 // @Success 200 {object} map[string]any "Restore status payload"
-// @Failure 404 {object} map[string]any "Cluster not found"
-// @Failure 500 {object} map[string]any "Internal server error"
+// @Failure 404 {object} apierr.ErrorResponse "Cluster not found"
+// @Failure 500 {object} apierr.ErrorResponse "Internal server error"
 // @Router /api/v1/polardbxclusters/{namespace}/{name}/restore-status [get]
 func GetRestoreStatus(c *gin.Context) {
 	h, ok := NewRestoreHandlerFromContext(c)
@@ -461,7 +461,7 @@ func (h *RestoreHandler) getRestoreStatus(c *gin.Context) {
 // @Produce json
 // @Param namespace query string false "Kubernetes namespace filter; list all namespaces if omitted"
 // @Success 200 {object} map[string]any "List of restore jobs"
-// @Failure 500 {object} map[string]any "Internal server error"
+// @Failure 500 {object} apierr.ErrorResponse "Internal server error"
 // @Router /api/v1/restore-jobs [get]
 func ListJobs(c *gin.Context) {
 	h, ok := NewRestoreHandlerFromContext(c)
@@ -501,8 +501,8 @@ func (h *RestoreHandler) listJobs(c *gin.Context) {
 // @Param namespace path string true "Kubernetes namespace of the restore job"
 // @Param name path string true "Name of the restore job (cluster name)"
 // @Success 200 {object} map[string]any "Restore job status"
-// @Failure 404 {object} map[string]any "Restore job not found"
-// @Failure 500 {object} map[string]any "Internal server error"
+// @Failure 404 {object} apierr.ErrorResponse "Restore job not found"
+// @Failure 500 {object} apierr.ErrorResponse "Internal server error"
 // @Router /api/v1/restore-jobs/{namespace}/{name} [get]
 func GetJob(c *gin.Context) {
 	GetRestoreStatus(c)
@@ -516,8 +516,8 @@ func GetJob(c *gin.Context) {
 // @Param namespace path string true "Kubernetes namespace of the restore job"
 // @Param name path string true "Name of the restore job"
 // @Success 200 {object} map[string]any "Cancel requested"
-// @Failure 404 {object} map[string]any "Restore job not found"
-// @Failure 500 {object} map[string]any "Internal server error"
+// @Failure 404 {object} apierr.ErrorResponse "Restore job not found"
+// @Failure 500 {object} apierr.ErrorResponse "Internal server error"
 // @Router /api/v1/restore-jobs/{namespace}/{name} [delete]
 func CancelJob(c *gin.Context) {
 	h, ok := NewRestoreHandlerFromContext(c)

@@ -42,7 +42,7 @@ func NewAlertsHandlerFromContext(c *gin.Context) (*AlertsHandler, bool) {
 // @Tags platform, alerts
 // @Produce json
 // @Success 200 {object} map[string]any "Profiles list (items)"
-// @Failure 500 {object} map[string]any "Internal server error"
+// @Failure 500 {object} apierr.ErrorResponse "Internal server error"
 func ListProfiles(c *gin.Context) {
 	h, ok := NewAlertsHandlerFromContext(c)
 	if !ok {
@@ -60,9 +60,9 @@ func ListProfiles(c *gin.Context) {
 // @Produce json
 // @Param body body map[string]any true "Profile payload (expects fields: name, content)"
 // @Success 201 {object} map[string]any "Created profile name"
-// @Failure 400 {object} map[string]any "Invalid payload"
-// @Failure 409 {object} map[string]any "Profile already exists"
-// @Failure 500 {object} map[string]any "Internal server error"
+// @Failure 400 {object} apierr.ErrorResponse "Invalid payload"
+// @Failure 409 {object} apierr.ErrorResponse "Profile already exists"
+// @Failure 500 {object} apierr.ErrorResponse "Internal server error"
 func CreateProfile(c *gin.Context) {
 	h, ok := NewAlertsHandlerFromContext(c)
 	if !ok {
@@ -98,8 +98,8 @@ func CreateProfile(c *gin.Context) {
 // @Produce json
 // @Param name path string true "Profile name"
 // @Success 200 {object} map[string]any "Profile name and content"
-// @Failure 404 {object} map[string]any "Profile not found"
-// @Failure 500 {object} map[string]any "Internal server error"
+// @Failure 404 {object} apierr.ErrorResponse "Profile not found"
+// @Failure 500 {object} apierr.ErrorResponse "Internal server error"
 func GetProfile(c *gin.Context) {
 	h, ok := NewAlertsHandlerFromContext(c)
 	if !ok {
@@ -123,9 +123,9 @@ func GetProfile(c *gin.Context) {
 // @Param name path string true "Profile name"
 // @Param body body map[string]any true "Updated profile content (expects field: content)"
 // @Success 200 {object} map[string]any "Updated profile name"
-// @Failure 400 {object} map[string]any "Invalid payload"
-// @Failure 404 {object} map[string]any "Profile not found"
-// @Failure 500 {object} map[string]any "Internal server error"
+// @Failure 400 {object} apierr.ErrorResponse "Invalid payload"
+// @Failure 404 {object} apierr.ErrorResponse "Profile not found"
+// @Failure 500 {object} apierr.ErrorResponse "Internal server error"
 func UpdateProfile(c *gin.Context) {
 	h, ok := NewAlertsHandlerFromContext(c)
 	if !ok {
@@ -161,8 +161,8 @@ func UpdateProfile(c *gin.Context) {
 // @Produce json
 // @Param name path string true "Profile name"
 // @Success 200 {object} map[string]any "Deleted profile name"
-// @Failure 404 {object} map[string]any "Profile not found"
-// @Failure 500 {object} map[string]any "Internal server error"
+// @Failure 404 {object} apierr.ErrorResponse "Profile not found"
+// @Failure 500 {object} apierr.ErrorResponse "Internal server error"
 func DeleteProfile(c *gin.Context) {
 	h, ok := NewAlertsHandlerFromContext(c)
 	if !ok {
@@ -188,8 +188,8 @@ func DeleteProfile(c *gin.Context) {
 // @Produce json
 // @Param body body map[string]any true "Profile content to validate (expects field: content)"
 // @Success 200 {object} map[string]any "Validation result (valid: true)"
-// @Failure 400 {object} map[string]any "Invalid payload or invalid configuration"
-// @Failure 500 {object} map[string]any "Internal server error"
+// @Failure 400 {object} apierr.ErrorResponse "Invalid payload or invalid configuration"
+// @Failure 500 {object} apierr.ErrorResponse "Internal server error"
 func DryRunProfile(c *gin.Context) {
 	h, ok := NewAlertsHandlerFromContext(c)
 	if !ok {
@@ -220,7 +220,7 @@ func DryRunProfile(c *gin.Context) {
 // @Tags platform, alerts
 // @Produce json
 // @Success 200 {object} map[string]any "Routing configuration content"
-// @Failure 500 {object} map[string]any "Internal server error"
+// @Failure 500 {object} apierr.ErrorResponse "Internal server error"
 func GetRoutes(c *gin.Context) {
 	h, ok := NewAlertsHandlerFromContext(c)
 	if !ok {
@@ -238,8 +238,8 @@ func GetRoutes(c *gin.Context) {
 // @Produce json
 // @Param body body map[string]any true "Routing configuration content (expects field: content)"
 // @Success 200 {object} map[string]any "Update confirmation"
-// @Failure 400 {object} map[string]any "Invalid payload"
-// @Failure 500 {object} map[string]any "Internal server error"
+// @Failure 400 {object} apierr.ErrorResponse "Invalid payload"
+// @Failure 500 {object} apierr.ErrorResponse "Internal server error"
 func PutRoutes(c *gin.Context) {
 	h, ok := NewAlertsHandlerFromContext(c)
 	if !ok {
@@ -265,7 +265,7 @@ func PutRoutes(c *gin.Context) {
 // @Param cluster query string false "Cluster name filter"
 // @Param alertmanager query string false "Base URL of Alertmanager; defaults to in-cluster instance"
 // @Success 200 {object} map[string]any "Alerts list (items)"
-// @Failure 500 {object} map[string]any "Internal or upstream error"
+// @Failure 500 {object} apierr.ErrorResponse "Internal or upstream error"
 func List(c *gin.Context) {
 	h, ok := NewAlertsHandlerFromContext(c)
 	if !ok {
@@ -285,8 +285,8 @@ func List(c *gin.Context) {
 // @Produce json
 // @Param alertmanager query string true "Base URL of Alertmanager"
 // @Success 200 {array} map[string]any "List of silences (status 200 from Alertmanager)"
-// @Failure 400 {object} map[string]any "Missing Alertmanager base URL"
-// @Failure 502 {object} map[string]any "Upstream Alertmanager error"
+// @Failure 400 {object} apierr.ErrorResponse "Missing Alertmanager base URL"
+// @Failure 502 {object} apierr.ErrorResponse "Upstream Alertmanager error"
 func ListSilences(c *gin.Context) {
 	_, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -317,8 +317,8 @@ func ListSilences(c *gin.Context) {
 // @Param alertmanager query string true "Base URL of Alertmanager"
 // @Param body body map[string]any true "Silence payload (Alertmanager format)"
 // @Success 200 {object} map[string]any "Silence created (status propagated from Alertmanager)"
-// @Failure 400 {object} map[string]any "Missing Alertmanager base URL or invalid payload"
-// @Failure 502 {object} map[string]any "Upstream Alertmanager error"
+// @Failure 400 {object} apierr.ErrorResponse "Missing Alertmanager base URL or invalid payload"
+// @Failure 502 {object} apierr.ErrorResponse "Upstream Alertmanager error"
 func CreateSilence(c *gin.Context) {
 	_, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -354,8 +354,8 @@ func CreateSilence(c *gin.Context) {
 // @Param alertmanager query string true "Base URL of Alertmanager"
 // @Param id path string true "Silence ID"
 // @Success 200 {object} map[string]any "Silence deleted (status propagated from Alertmanager)"
-// @Failure 400 {object} map[string]any "Missing Alertmanager base URL"
-// @Failure 502 {object} map[string]any "Upstream Alertmanager error"
+// @Failure 400 {object} apierr.ErrorResponse "Missing Alertmanager base URL"
+// @Failure 502 {object} apierr.ErrorResponse "Upstream Alertmanager error"
 func DeleteSilence(c *gin.Context) {
 	_, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -387,8 +387,8 @@ func DeleteSilence(c *gin.Context) {
 // @Param alertmanager query string true "Base URL of Alertmanager"
 // @Param labels query string false "Comma-separated key=value label pairs (e.g., severity=warning,service=test)"
 // @Success 200 {object} map[string]any "Test alert result (status propagated from Alertmanager)"
-// @Failure 400 {object} map[string]any "Missing Alertmanager base URL"
-// @Failure 502 {object} map[string]any "Upstream Alertmanager error"
+// @Failure 400 {object} apierr.ErrorResponse "Missing Alertmanager base URL"
+// @Failure 502 {object} apierr.ErrorResponse "Upstream Alertmanager error"
 func TestAlert(c *gin.Context) {
 	_, ok := util.K8sClientFromContext(c)
 	if !ok {

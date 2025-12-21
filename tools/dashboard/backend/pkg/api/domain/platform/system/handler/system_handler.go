@@ -36,8 +36,8 @@ func NewSystemHandlerFromClient(c *gin.Context) (*SystemHandler, bool) {
 // @Tags platform, system
 // @Produce json
 // @Param namespace query string false "Override default namespace"
-// @Success 200 {object} map[string]any "Context info (user, context, defaultNamespace)"
-// @Failure 500 {object} map[string]any "Internal error"
+// @Success 200 {object} service.ContextInfo "Context info (user, context, defaultNamespace)"
+// @Failure 500 {object} apierr.ErrorResponse "Internal error"
 func ContextInfo(c *gin.Context) {
 	_, ok := util.K8sClientFromContext(c)
 	if !ok {
@@ -53,7 +53,11 @@ func ContextInfo(c *gin.Context) {
 			}
 		}
 	}
-	apierr.OK(c, gin.H{"user": user, "context": ctxName, "defaultNamespace": defNS})
+	apierr.OK(c, service.ContextInfo{
+		User:             asString(user),
+		Context:          asString(ctxName),
+		DefaultNamespace: defNS,
+	})
 }
 
 // ListNamespaces returns all visible namespaces.
@@ -61,8 +65,8 @@ func ContextInfo(c *gin.Context) {
 // @Description List namespaces visible via the configured Kubernetes client.
 // @Tags platform, system
 // @Produce json
-// @Success 200 {object} map[string]any "Namespace list (items, count)"
-// @Failure 500 {object} map[string]any "Failed to list namespaces"
+// @Success 200 {object} ListNamespacesResponse "Namespace list (items, count)"
+// @Failure 500 {object} apierr.ErrorResponse "Failed to list namespaces"
 func ListNamespaces(c *gin.Context) {
 	h, ok := NewSystemHandlerFromClient(c)
 	if !ok {
@@ -79,7 +83,7 @@ func (h *SystemHandler) listNamespaces(c *gin.Context) {
 		apierr.AbortWithError(c, err)
 		return
 	}
-	apierr.OK(c, gin.H{"items": items, "count": len(items)})
+	apierr.OK(c, ListNamespacesResponse{Items: items, Count: len(items)})
 }
 
 // ListStorageClasses returns all available storage classes.
@@ -87,8 +91,8 @@ func (h *SystemHandler) listNamespaces(c *gin.Context) {
 // @Description List Kubernetes StorageClasses visible via the configured Kubernetes client.
 // @Tags platform, system
 // @Produce json
-// @Success 200 {object} map[string]any "StorageClass list (items, count)"
-// @Failure 500 {object} map[string]any "Failed to list storage classes"
+// @Success 200 {object} ListStorageClassesResponse "StorageClass list (items, count)"
+// @Failure 500 {object} apierr.ErrorResponse "Failed to list storage classes"
 func ListStorageClasses(c *gin.Context) {
 	h, ok := NewSystemHandlerFromClient(c)
 	if !ok {
@@ -105,7 +109,7 @@ func (h *SystemHandler) listStorageClasses(c *gin.Context) {
 		apierr.AbortWithError(c, err)
 		return
 	}
-	apierr.OK(c, gin.H{"items": items, "count": len(items)})
+	apierr.OK(c, ListStorageClassesResponse{Items: items, Count: len(items)})
 }
 
 // ListPolarDBXVersions returns supported PolarDB-X version list.
@@ -113,16 +117,38 @@ func (h *SystemHandler) listStorageClasses(c *gin.Context) {
 // @Description List supported PolarDB-X versions configured for deployment.
 // @Tags platform, system
 // @Produce json
-// @Success 200 {object} map[string]any "PolarDB-X version list (items, count)"
+// @Success 200 {object} ListPolarDBXVersionsResponse "PolarDB-X version list (items, count)"
 func ListPolarDBXVersions(c *gin.Context) {
 	h, ok := NewSystemHandlerFromClient(c)
 	if !ok {
 		// Version list can be returned even without k8s client
 		svc := service.NewSystemService(nil)
 		versions := svc.GetPolarDBXVersions()
-		apierr.OK(c, gin.H{"items": versions, "count": len(versions)})
+		apierr.OK(c, ListPolarDBXVersionsResponse{Items: versions, Count: len(versions)})
 		return
 	}
 	versions := h.service.GetPolarDBXVersions()
-	apierr.OK(c, gin.H{"items": versions, "count": len(versions)})
+	apierr.OK(c, ListPolarDBXVersionsResponse{Items: versions, Count: len(versions)})
+}
+
+type ListNamespacesResponse struct {
+	Items []service.NamespaceInfo `json:"items"`
+	Count int                    `json:"count"`
+}
+
+type ListStorageClassesResponse struct {
+	Items []service.StorageClassInfo `json:"items"`
+	Count int                       `json:"count"`
+}
+
+type ListPolarDBXVersionsResponse struct {
+	Items []service.PolarDBXVersionInfo `json:"items"`
+	Count int                          `json:"count"`
+}
+
+func asString(v any) string {
+	if s, ok := v.(string); ok {
+		return s
+	}
+	return ""
 }

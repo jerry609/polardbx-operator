@@ -32,10 +32,10 @@ func getJWTSecret() string {
 // @Produce json
 // @Param body body map[string]any true "Login request (expects fields: username, password)"
 // @Success 200 {object} map[string]any "JWT token and metadata"
-// @Failure 400 {object} map[string]any "Invalid request payload"
-// @Failure 401 {object} map[string]any "Invalid credentials"
-// @Failure 503 {object} map[string]any "JWT not enabled (JWT_SECRET not configured)"
-// @Failure 500 {object} map[string]any "Internal server error"
+// @Failure 400 {object} apierr.ErrorResponse "Invalid request payload"
+// @Failure 401 {object} apierr.ErrorResponse "Invalid credentials"
+// @Failure 503 {object} apierr.ErrorResponse "JWT not enabled (JWT_SECRET not configured)"
+// @Failure 500 {object} apierr.ErrorResponse "Internal server error"
 func Login(c *gin.Context) {
 	secret := getJWTSecret()
 	if secret == "" {
@@ -96,7 +96,7 @@ func Login(c *gin.Context) {
 // @Tags auth
 // @Produce json
 // @Success 200 {object} map[string]any "Auth status and claims"
-// @Failure 401 {object} map[string]any "Unauthorized or invalid token"
+// @Failure 401 {object} apierr.ErrorResponse "Unauthorized or invalid token"
 func Me(c *gin.Context) {
 	secret := getJWTSecret()
 	if secret == "" {

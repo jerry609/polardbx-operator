@@ -46,7 +46,7 @@ const (
 // @Produce json
 // @Param namespace query string false "Kubernetes namespace (default: polardbx-logcollector)"
 // @Success 200 {object} map[string]any "Log service status including component health and state"
-// @Failure 500 {object} map[string]any "Internal server error"
+// @Failure 500 {object} apierr.ErrorResponse "Internal server error"
 // @Router /api/v1/platform/logservice/status [get]
 func Status(c *gin.Context) {
 	h, ok := NewLogServiceHandlerFromContext(c)

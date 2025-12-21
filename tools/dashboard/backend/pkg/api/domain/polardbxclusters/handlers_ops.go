@@ -26,9 +26,9 @@ import (
 // @Param nodeType path string true "Node type (e.g. cn, dn, gms)"
 // @Param body body map[string]any true "Log config payload"
 // @Success 200 {object} map[string]any "Update confirmation"
-// @Failure 400 {object} map[string]any "Invalid payload"
-// @Failure 404 {object} map[string]any "Cluster not found"
-// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Failure 400 {object} apierr.ErrorResponse "Invalid payload"
+// @Failure 404 {object} apierr.ErrorResponse "Cluster not found"
+// @Failure 502 {object} apierr.ErrorResponse "Kubernetes API error"
 // @Router /api/v1/polardbxclusters/{namespace}/{name}/log-config/{nodeType} [patch]
 func UpdateLogConfig(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
@@ -60,9 +60,9 @@ func UpdateLogConfig(c *gin.Context) {
 // @Param name path string true "Cluster name"
 // @Param body body map[string]any true "Scaling request"
 // @Success 200 {object} map[string]any "Scaling initiated"
-// @Failure 400 {object} map[string]any "Invalid request"
-// @Failure 404 {object} map[string]any "Cluster not found"
-// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Failure 400 {object} apierr.ErrorResponse "Invalid request"
+// @Failure 404 {object} apierr.ErrorResponse "Cluster not found"
+// @Failure 502 {object} apierr.ErrorResponse "Kubernetes API error"
 // @Router /api/v1/polardbxclusters/{namespace}/{name}/scale [patch]
 func Scale(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
@@ -93,9 +93,9 @@ func Scale(c *gin.Context) {
 // @Param name path string true "Cluster name"
 // @Param body body map[string]any true "Upgrade request"
 // @Success 200 {object} map[string]any "Upgrade initiated"
-// @Failure 400 {object} map[string]any "Invalid request"
-// @Failure 404 {object} map[string]any "Cluster not found"
-// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Failure 400 {object} apierr.ErrorResponse "Invalid request"
+// @Failure 404 {object} apierr.ErrorResponse "Cluster not found"
+// @Failure 502 {object} apierr.ErrorResponse "Kubernetes API error"
 // @Router /api/v1/polardbxclusters/{namespace}/{name}/upgrade [patch]
 func Upgrade(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
@@ -124,8 +124,8 @@ func Upgrade(c *gin.Context) {
 // @Param namespace path string true "Kubernetes namespace"
 // @Param name path string true "Cluster name"
 // @Success 200 {object} map[string]any "Alerts summary"
-// @Failure 404 {object} map[string]any "Cluster not found"
-// @Failure 502 {object} map[string]any "Backend error"
+// @Failure 404 {object} apierr.ErrorResponse "Cluster not found"
+// @Failure 502 {object} apierr.ErrorResponse "Backend error"
 // @Router /api/v1/polardbxclusters/{namespace}/{name}/alerts-summary [get]
 func GetAlertsSummary(c *gin.Context) { services.GetAlertsSummary(c) }
 
@@ -137,8 +137,8 @@ func GetAlertsSummary(c *gin.Context) { services.GetAlertsSummary(c) }
 // @Param namespace path string true "Kubernetes namespace"
 // @Param name path string true "Cluster name"
 // @Success 200 {array} map[string]any "List of pods"
-// @Failure 404 {object} map[string]any "Cluster or pods not found"
-// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Failure 404 {object} apierr.ErrorResponse "Cluster or pods not found"
+// @Failure 502 {object} apierr.ErrorResponse "Kubernetes API error"
 // @Router /api/v1/polardbxclusters/{namespace}/{name}/pods [get]
 func ListPods(c *gin.Context) { handler.ListForCluster(c) }
 
@@ -171,8 +171,8 @@ type UpgradePlanResponse struct {
 // @Param namespace path string true "Kubernetes namespace"
 // @Param name path string true "Cluster name"
 // @Success 200 {object} polardbxclusters.UpgradePlanResponse "Upgrade plan"
-// @Failure 404 {object} map[string]any "Cluster not found"
-// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Failure 404 {object} apierr.ErrorResponse "Cluster not found"
+// @Failure 502 {object} apierr.ErrorResponse "Kubernetes API error"
 // @Router /api/v1/polardbxclusters/{namespace}/{name}/upgrade-plan [get]
 func GetUpgradePlan(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)

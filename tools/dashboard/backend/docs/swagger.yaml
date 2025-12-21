@@ -1,4 +1,199 @@
 definitions:
+  errors.ErrorBody:
+    properties:
+      code:
+        $ref: '#/definitions/errors.ErrorCode'
+      details: {}
+      message:
+        type: string
+    type: object
+  errors.ErrorCode:
+    enum:
+    - SYS_1001
+    - SYS_1002
+    - SYS_1003
+    - SYS_1004
+    - SYS_1005
+    - AUTH_2001
+    - AUTH_2002
+    - AUTH_2003
+    - AUTH_2004
+    - AUTH_2005
+    - VAL_3001
+    - VAL_3002
+    - VAL_3003
+    - VAL_3004
+    - VAL_3005
+    - RES_4001
+    - RES_4002
+    - RES_4003
+    - RES_4004
+    - RES_4005
+    - K8S_5001
+    - K8S_5002
+    - K8S_5003
+    - K8S_5004
+    - K8S_5005
+    - K8S_5006
+    - CLU_6001
+    - CLU_6002
+    - CLU_6003
+    - CLU_6004
+    - CLU_6005
+    - BAK_7001
+    - BAK_7002
+    - BAK_7003
+    - BAK_7004
+    - BAK_7005
+    - MON_8001
+    - MON_8002
+    - MON_8003
+    - MON_8004
+    - MON_8005
+    - GW_9001
+    - GW_9002
+    - GW_9003
+    type: string
+    x-enum-comments:
+      ErrAlreadyExists: Resource already exists
+      ErrBackupFailed: Backup operation failed
+      ErrBackupInProgress: Backup already in progress
+      ErrBackupNotFound: Backup not found
+      ErrBadGateway: Bad gateway (upstream error)
+      ErrCRDNotFound: CRD not installed
+      ErrClusterLocked: Cluster operation in progress
+      ErrClusterNotReady: Cluster not ready
+      ErrConflict: Resource conflict
+      ErrDeleteFailed: Delete operation failed
+      ErrForbidden: Not authorized
+      ErrGatewayTimeout: Gateway timeout
+      ErrGrafanaFailed: Grafana operation failed
+      ErrHelmFailed: Helm operation failed
+      ErrInstallFailed: Installation failed
+      ErrInternal: Internal server error
+      ErrInvalidFormat: Invalid format
+      ErrInvalidKubeconf: Invalid kubeconfig
+      ErrInvalidParam: Invalid parameter
+      ErrInvalidSink: Invalid backup sink
+      ErrInvalidState: Invalid resource state
+      ErrInvalidToken: Invalid or expired token
+      ErrInvalidYAML: Invalid YAML
+      ErrK8sConflict: Kubernetes resource conflict
+      ErrK8sConnection: Failed to connect to cluster
+      ErrK8sNotFound: Kubernetes resource not found
+      ErrK8sPermission: Insufficient permissions
+      ErrK8sTimeout: Kubernetes operation timeout
+      ErrKubeconfigReq: Kubeconfig required
+      ErrMaintenanceMode: System in maintenance mode
+      ErrMissingParam: Required parameter missing
+      ErrMonitorNotInst: Monitoring not installed
+      ErrNotFound: Resource not found
+      ErrPrometheusFailed: Prometheus operation failed
+      ErrQuotaExceeded: Resource quota exceeded
+      ErrRateLimited: Rate limit exceeded
+      ErrRestoreFailed: Restore operation failed
+      ErrScaleFailed: Scale operation failed
+      ErrServiceUnavail: Service temporarily unavailable
+      ErrServiceUnavailable: Service unavailable
+      ErrTimeout: Request timeout
+      ErrUnauthorized: Not authenticated
+      ErrUpgradeFailed: Upgrade operation failed
+      ErrValidation: Validation failed
+    x-enum-descriptions:
+    - Internal server error
+    - Service temporarily unavailable
+    - Request timeout
+    - Rate limit exceeded
+    - System in maintenance mode
+    - Not authenticated
+    - Not authorized
+    - Invalid or expired token
+    - Kubeconfig required
+    - Invalid kubeconfig
+    - Validation failed
+    - Invalid parameter
+    - Required parameter missing
+    - Invalid format
+    - Invalid YAML
+    - Resource not found
+    - Resource already exists
+    - Resource conflict
+    - Resource quota exceeded
+    - Invalid resource state
+    - Failed to connect to cluster
+    - Insufficient permissions
+    - Kubernetes resource not found
+    - Kubernetes resource conflict
+    - Kubernetes operation timeout
+    - CRD not installed
+    - Cluster not ready
+    - Cluster operation in progress
+    - Scale operation failed
+    - Upgrade operation failed
+    - Delete operation failed
+    - Backup operation failed
+    - Restore operation failed
+    - Backup not found
+    - Backup already in progress
+    - Invalid backup sink
+    - Monitoring not installed
+    - Grafana operation failed
+    - Prometheus operation failed
+    - Helm operation failed
+    - Installation failed
+    - Bad gateway (upstream error)
+    - Gateway timeout
+    - Service unavailable
+    x-enum-varnames:
+    - ErrInternal
+    - ErrServiceUnavail
+    - ErrTimeout
+    - ErrRateLimited
+    - ErrMaintenanceMode
+    - ErrUnauthorized
+    - ErrForbidden
+    - ErrInvalidToken
+    - ErrKubeconfigReq
+    - ErrInvalidKubeconf
+    - ErrValidation
+    - ErrInvalidParam
+    - ErrMissingParam
+    - ErrInvalidFormat
+    - ErrInvalidYAML
+    - ErrNotFound
+    - ErrAlreadyExists
+    - ErrConflict
+    - ErrQuotaExceeded
+    - ErrInvalidState
+    - ErrK8sConnection
+    - ErrK8sPermission
+    - ErrK8sNotFound
+    - ErrK8sConflict
+    - ErrK8sTimeout
+    - ErrCRDNotFound
+    - ErrClusterNotReady
+    - ErrClusterLocked
+    - ErrScaleFailed
+    - ErrUpgradeFailed
+    - ErrDeleteFailed
+    - ErrBackupFailed
+    - ErrRestoreFailed
+    - ErrBackupNotFound
+    - ErrBackupInProgress
+    - ErrInvalidSink
+    - ErrMonitorNotInst
+    - ErrGrafanaFailed
+    - ErrPrometheusFailed
+    - ErrHelmFailed
+    - ErrInstallFailed
+    - ErrBadGateway
+    - ErrGatewayTimeout
+    - ErrServiceUnavailable
+  errors.ErrorResponse:
+    properties:
+      error:
+        $ref: '#/definitions/errors.ErrorBody'
+    type: object
   handler.AlertRuleGroupSummary:
     properties:
       interval:
@@ -109,6 +304,33 @@ definitions:
         type: integer
       name:
         type: string
+    type: object
+  handler.ListNamespacesResponse:
+    properties:
+      count:
+        type: integer
+      items:
+        items:
+          $ref: '#/definitions/service.NamespaceInfo'
+        type: array
+    type: object
+  handler.ListPolarDBXVersionsResponse:
+    properties:
+      count:
+        type: integer
+      items:
+        items:
+          $ref: '#/definitions/service.PolarDBXVersionInfo'
+        type: array
+    type: object
+  handler.ListStorageClassesResponse:
+    properties:
+      count:
+        type: integer
+      items:
+        items:
+          $ref: '#/definitions/service.StorageClassInfo'
+        type: array
     type: object
   handler.LogPreset:
     properties:
@@ -292,6 +514,15 @@ definitions:
         additionalProperties: {}
         type: object
     type: object
+  service.ContextInfo:
+    properties:
+      context:
+        type: string
+      defaultNamespace:
+        type: string
+      user:
+        type: string
+    type: object
   service.DiagnosticJob:
     properties:
       cluster:
@@ -311,6 +542,45 @@ definitions:
       startedAt:
         type: string
       status:
+        type: string
+    type: object
+  service.NamespaceInfo:
+    properties:
+      createdAt:
+        type: string
+      name:
+        type: string
+      status:
+        type: string
+    type: object
+  service.PolarDBXVersionInfo:
+    properties:
+      deprecated:
+        type: boolean
+      description:
+        type: string
+      label:
+        type: string
+      recommended:
+        type: boolean
+      version:
+        type: string
+    type: object
+  service.StorageClassInfo:
+    properties:
+      isDefault:
+        type: boolean
+      name:
+        type: string
+      parameters:
+        additionalProperties:
+          type: string
+        type: object
+      provisioner:
+        type: string
+      reclaimPolicy:
+        type: string
+      volumeBindingMode:
         type: string
     type: object
   xstores.BackupRemoteInfoDTO:
@@ -1053,13 +1323,11 @@ paths:
         "400":
           description: Request parameter error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "500":
           description: Internal server error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Start diagnosis
       tags:
       - diagnostics
@@ -1130,18 +1398,15 @@ paths:
         "400":
           description: Request parameter error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "404":
           description: Diagnostic report not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "500":
           description: Internal server error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Download diagnostic report
       tags:
       - diagnostics
@@ -1169,28 +1434,23 @@ paths:
         "400":
           description: Request parameter error (e.g., invalid ID)
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "401":
           description: Authentication required or invalid authentication state
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "404":
           description: Diagnostic job or file not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "409":
           description: Diagnostic report not ready yet
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "500":
           description: Internal server error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Get diagnostic report file
       tags:
       - diagnostics
@@ -1220,18 +1480,15 @@ paths:
         "400":
           description: Request parameter error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "404":
           description: Diagnostic task not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "500":
           description: Internal server error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Get diagnostic status
       tags:
       - diagnostics
@@ -1257,8 +1514,7 @@ paths:
         "500":
           description: Internal server error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: List diagnostic reports
       tags:
       - diagnostics
@@ -1276,8 +1532,7 @@ paths:
         "500":
           description: Internal server error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Get Grafana config
       tags:
       - platform
@@ -1305,13 +1560,11 @@ paths:
         "400":
           description: Invalid payload
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "500":
           description: Internal server error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Update Grafana config
       tags:
       - platform
@@ -1330,8 +1583,7 @@ paths:
         "500":
           description: Internal server error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: List Grafana dashboards
       tags:
       - platform
@@ -1365,18 +1617,15 @@ paths:
         "400":
           description: Invalid payload
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "404":
           description: Dashboard version not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "500":
           description: Internal server error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Rollback dashboard
       tags:
       - platform
@@ -1401,8 +1650,7 @@ paths:
         "500":
           description: Internal server error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: List dashboard versions
       tags:
       - platform
@@ -1431,13 +1679,11 @@ paths:
         "400":
           description: Invalid payload
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "500":
           description: Internal server error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Sync Grafana dashboards
       tags:
       - platform
@@ -1457,13 +1703,11 @@ paths:
         "404":
           description: Templates directory not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "500":
           description: Internal server error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: List Grafana dashboard templates
       tags:
       - platform
@@ -1488,18 +1732,15 @@ paths:
         "400":
           description: Template name required
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "404":
           description: Template not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "500":
           description: Internal server error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Get Grafana dashboard template
       tags:
       - platform
@@ -1520,8 +1761,7 @@ paths:
         "500":
           description: Internal server error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: List log strategies
       tags:
       - log-strategies
@@ -1547,18 +1787,15 @@ paths:
         "400":
           description: Invalid strategy specification
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "409":
           description: Strategy already exists
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "500":
           description: Internal server error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Create log strategy
       tags:
       - log-strategies
@@ -1584,13 +1821,11 @@ paths:
         "404":
           description: Strategy not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "500":
           description: Internal server error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Delete log strategy
       tags:
       - log-strategies
@@ -1614,13 +1849,11 @@ paths:
         "404":
           description: Strategy not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "500":
           description: Internal server error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Get log strategy
       tags:
       - log-strategies
@@ -1651,18 +1884,15 @@ paths:
         "400":
           description: Invalid strategy specification
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "404":
           description: Strategy not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "500":
           description: Internal server error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Update log strategy
       tags:
       - log-strategies
@@ -1689,13 +1919,11 @@ paths:
         "404":
           description: Strategy not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "500":
           description: Internal server error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Apply log strategy
       tags:
       - log-strategies
@@ -1739,8 +1967,7 @@ paths:
         "400":
           description: Invalid strategy specification
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Precheck log strategy
       tags:
       - log-strategies
@@ -1768,8 +1995,7 @@ paths:
         "400":
           description: Invalid request parameters
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Test ES connection
       tags:
       - log-strategies
@@ -1794,8 +2020,7 @@ paths:
         "500":
           description: Internal server error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: List log collectors
       tags:
       - platform
@@ -1827,13 +2052,11 @@ paths:
         "400":
           description: Invalid request body
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "500":
           description: Internal server error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Create log collector
       tags:
       - platform
@@ -1861,13 +2084,11 @@ paths:
         "404":
           description: Log collector not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "500":
           description: Internal server error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Delete log collector
       tags:
       - platform
@@ -1896,13 +2117,11 @@ paths:
         "404":
           description: Log collector not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "500":
           description: Internal server error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Get log collector
       tags:
       - platform
@@ -1940,13 +2159,11 @@ paths:
         "400":
           description: Invalid request body
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "500":
           description: Internal server error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Update log collector
       tags:
       - platform
@@ -1977,8 +2194,7 @@ paths:
         "500":
           description: Internal server error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Get log collector status
       tags:
       - platform
@@ -2011,8 +2227,7 @@ paths:
         "500":
           description: Internal server error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Get Elasticsearch certificate
       tags:
       - platform
@@ -2054,13 +2269,11 @@ paths:
         "400":
           description: Invalid caCrt
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "500":
           description: Internal server error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Update Elasticsearch certificate
       tags:
       - platform
@@ -2100,13 +2313,11 @@ paths:
         "404":
           description: Logstash pod not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "500":
           description: Internal server error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Stream Logstash logs
       tags:
       - platform
@@ -2139,13 +2350,11 @@ paths:
         "404":
           description: ConfigMap or key not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "500":
           description: Internal server error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Get Logstash pipeline
       tags:
       - platform
@@ -2187,13 +2396,11 @@ paths:
         "400":
           description: Invalid request body
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "500":
           description: Internal server error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Update Logstash pipeline
       tags:
       - platform
@@ -2218,8 +2425,7 @@ paths:
         "500":
           description: Internal server error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Test log collector
       tags:
       - platform
@@ -2258,18 +2464,15 @@ paths:
         "400":
           description: Invalid request parameters
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "404":
           description: Pod not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Kubernetes API error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Get pod logs
       tags:
       - pods
@@ -2483,8 +2686,7 @@ paths:
         "500":
           description: Internal server error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Get log service status
       tags:
       - platform
@@ -2512,8 +2714,7 @@ paths:
         "502":
           description: Kubernetes API error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: List pods
       tags:
       - pods
@@ -2544,13 +2745,11 @@ paths:
         "404":
           description: Pod not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Kubernetes API error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Delete pod
       tags:
       - pods
@@ -2580,13 +2779,11 @@ paths:
         "404":
           description: Pod not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Kubernetes API error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Get pod
       tags:
       - pods
@@ -2625,189 +2822,18 @@ paths:
         "400":
           description: Invalid request or WebSocket upgrade failed
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "404":
           description: Pod not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Kubernetes API error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Execute command in pod via WebSocket
       tags:
       - pods
-  /api/v1/platform/prometheus-rules/{namespace}/{name}/yaml:
-    get:
-      consumes:
-      - application/json
-      description: Retrieves YAML content of a specific PrometheusRule resource
-      parameters:
-      - description: Kubernetes namespace
-        in: path
-        name: namespace
-        required: true
-        type: string
-      - description: Name of the PrometheusRule
-        in: path
-        name: name
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: YAML content of the PrometheusRule
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Invalid request parameters
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: PrometheusRule not found
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal server error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Get PrometheusRule YAML
-      tags:
-      - prometheus-rules
-  /api/v1/platform/prometheus-rules/templates:
-    get:
-      consumes:
-      - application/json
-      description: Lists all available PrometheusRule alert rule templates from embedded
-        files and Helm chart
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: List of alert rule templates with metadata
-          schema:
-            items:
-              $ref: '#/definitions/handler.AlertRuleTemplateSummary'
-            type: array
-        "500":
-          description: Internal server error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: List alert rule templates
-      tags:
-      - prometheus-rules
-  /api/v1/platform/prometheus-rules/templates/{name}:
-    get:
-      consumes:
-      - application/json
-      description: Retrieves detailed content of a specific alert rule template
-      parameters:
-      - description: Name of the alert rule template
-        in: path
-        name: name
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Template details with content
-          schema:
-            $ref: '#/definitions/handler.AlertRuleTemplateDetail'
-        "404":
-          description: Template not found
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal server error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Get alert rule template
-      tags:
-      - prometheus-rules
-  /api/v1/platform/prometheus-rules/templates/apply:
-    post:
-      consumes:
-      - application/json
-      description: Applies an alert rule template to create or update PrometheusRule
-        resources
-      parameters:
-      - description: Apply request with template name, namespace, and optional overrides
-        in: body
-        name: body
-        required: true
-        schema:
-          additionalProperties: true
-          type: object
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Apply result with created/updated resources
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Invalid request or template not found
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal server error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Apply alert rule template
-      tags:
-      - prometheus-rules
-  /api/v1/platform/prometheus-rules/validate:
-    post:
-      consumes:
-      - application/json
-      description: Validates PrometheusRule YAML content for syntax and PromQL correctness
-      parameters:
-      - description: 'YAML content to validate (key: ''yaml'')'
-        in: body
-        name: body
-        required: true
-        schema:
-          additionalProperties:
-            type: string
-          type: object
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Validation result with success status, message, details, errors,
-            and warnings
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Invalid request or YAML syntax error
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal server error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Validate PrometheusRule
-      tags:
-      - prometheus-rules
   /api/v1/polardbxclusters:
     get:
       description: List PolarDB-X clusters in the specified namespace (or all when
@@ -2830,8 +2856,7 @@ paths:
         "502":
           description: Kubernetes API error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: List PolarDB-X clusters
       tags:
       - polardbxclusters
@@ -2858,13 +2883,11 @@ paths:
         "400":
           description: Invalid specification
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Kubernetes API error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Create PolarDB-X cluster
       tags:
       - polardbxclusters
@@ -2891,13 +2914,11 @@ paths:
         "404":
           description: Cluster not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Kubernetes API error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Delete PolarDB-X cluster
       tags:
       - polardbxclusters
@@ -2925,13 +2946,11 @@ paths:
         "404":
           description: Cluster not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Kubernetes API error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Get PolarDB-X cluster
       tags:
       - polardbxclusters
@@ -2968,18 +2987,15 @@ paths:
         "400":
           description: Invalid specification
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "404":
           description: Cluster not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Kubernetes API error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Update PolarDB-X cluster
       tags:
       - polardbxclusters
@@ -3008,13 +3024,11 @@ paths:
         "404":
           description: Cluster not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Backend error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Get cluster alerts summary
       tags:
       - polardbxclusters
@@ -3058,18 +3072,15 @@ paths:
         "400":
           description: Invalid payload
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "404":
           description: Cluster not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Kubernetes API error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Update cluster log config
       tags:
       - polardbxclusters
@@ -3110,23 +3121,19 @@ paths:
         "400":
           description: Invalid request body, missing time, or backup not ready
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "404":
           description: Backup or source cluster not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "409":
           description: Target cluster already exists
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "500":
           description: Internal server error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Initiate PITR
       tags:
       - restore
@@ -3157,13 +3164,11 @@ paths:
         "404":
           description: Cluster or pods not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Kubernetes API error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: List cluster pods
       tags:
       - polardbxclusters
@@ -3204,18 +3209,15 @@ paths:
         "400":
           description: Invalid request parameters
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "404":
           description: Cluster not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "500":
           description: Internal server error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Get pre-change checklist
       tags:
       - prechange
@@ -3255,18 +3257,15 @@ paths:
         "400":
           description: Invalid request or unsupported operation
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "404":
           description: Cluster not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "500":
           description: Internal server error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Perform pre-change check
       tags:
       - prechange
@@ -3306,23 +3305,19 @@ paths:
         "400":
           description: Invalid request body or backup not ready
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "404":
           description: Backup or source cluster not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "409":
           description: Target cluster already exists
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "500":
           description: Internal server error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Restore cluster from backup
       tags:
       - restore
@@ -3352,13 +3347,11 @@ paths:
         "404":
           description: Cluster not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "500":
           description: Internal server error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Get restore status
       tags:
       - restore
@@ -3397,18 +3390,15 @@ paths:
         "400":
           description: Invalid request
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "404":
           description: Cluster not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Kubernetes API error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Scale cluster
       tags:
       - polardbxclusters
@@ -3447,18 +3437,15 @@ paths:
         "400":
           description: Invalid request
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "404":
           description: Cluster not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Kubernetes API error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Upgrade cluster
       tags:
       - polardbxclusters
@@ -3487,13 +3474,11 @@ paths:
         "404":
           description: Cluster not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Kubernetes API error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Get cluster upgrade plan
       tags:
       - polardbxclusters
@@ -3528,13 +3513,11 @@ paths:
         "400":
           description: Invalid configuration
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Kubernetes API error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Create cluster from config
       tags:
       - polardbxclusters
@@ -3560,8 +3543,7 @@ paths:
         "502":
           description: Kubernetes API error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: List backup binlogs
       tags:
       - polardbxclusters
@@ -3593,13 +3575,11 @@ paths:
         "400":
           description: Invalid specification
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Kubernetes API error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Create backup binlog
       tags:
       - polardbxclusters
@@ -3627,13 +3607,11 @@ paths:
         "404":
           description: Backup binlog not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Kubernetes API error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Delete backup binlog
       tags:
       - polardbxclusters
@@ -3662,13 +3640,11 @@ paths:
         "404":
           description: Backup binlog not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Kubernetes API error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Get backup binlog
       tags:
       - polardbxclusters
@@ -3706,18 +3682,15 @@ paths:
         "400":
           description: Invalid specification
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "404":
           description: Backup binlog not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Kubernetes API error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Update backup binlog
       tags:
       - polardbxclusters
@@ -3740,8 +3713,7 @@ paths:
         "502":
           description: Kubernetes API error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: List cluster knobs
       tags:
       - cluster-knobs
@@ -3768,18 +3740,15 @@ paths:
         "400":
           description: Invalid cluster knobs specification
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "409":
           description: Cluster knobs already exists
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Kubernetes API error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Create cluster knobs
       tags:
       - cluster-knobs
@@ -3810,13 +3779,11 @@ paths:
         "404":
           description: Cluster knobs not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Kubernetes API error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Delete cluster knobs
       tags:
       - cluster-knobs
@@ -3846,13 +3813,11 @@ paths:
         "404":
           description: Cluster knobs not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Kubernetes API error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Get cluster knobs
       tags:
       - cluster-knobs
@@ -3889,18 +3854,15 @@ paths:
         "400":
           description: Invalid cluster knobs specification
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "404":
           description: Cluster knobs not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Kubernetes API error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Update cluster knobs
       tags:
       - cluster-knobs
@@ -3927,8 +3889,7 @@ paths:
         "502":
           description: Kubernetes API error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: List parameter templates
       tags:
       - parameter-templates
@@ -3959,18 +3920,15 @@ paths:
         "400":
           description: Invalid parameter template specification
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "409":
           description: Parameter template already exists
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Kubernetes API error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Create parameter template
       tags:
       - parameter-templates
@@ -4001,13 +3959,11 @@ paths:
         "404":
           description: Parameter template not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Kubernetes API error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Delete parameter template
       tags:
       - parameter-templates
@@ -4037,13 +3993,11 @@ paths:
         "404":
           description: Parameter template not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Kubernetes API error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Get parameter template
       tags:
       - parameter-templates
@@ -4080,18 +4034,15 @@ paths:
         "400":
           description: Invalid parameter template specification
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "404":
           description: Parameter template not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Kubernetes API error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Update parameter template
       tags:
       - parameter-templates
@@ -4118,8 +4069,7 @@ paths:
         "502":
           description: Kubernetes API error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: List parameters
       tags:
       - parameters
@@ -4150,18 +4100,15 @@ paths:
         "400":
           description: Invalid parameter specification
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "409":
           description: Parameter already exists
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Kubernetes API error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Create parameter
       tags:
       - parameters
@@ -4191,13 +4138,11 @@ paths:
         "404":
           description: Parameter not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Kubernetes API error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Delete parameter
       tags:
       - parameters
@@ -4226,13 +4171,11 @@ paths:
         "404":
           description: Parameter not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Kubernetes API error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Get parameter
       tags:
       - parameters
@@ -4268,21 +4211,204 @@ paths:
         "400":
           description: Invalid parameter specification
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "404":
           description: Parameter not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Kubernetes API error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Update parameter
       tags:
       - parameters
+  /api/v1/prometheus-rules:
+    get:
+      consumes:
+      - application/json
+      description: Lists all PrometheusRule custom resources, optionally filtered
+        by namespace
+      parameters:
+      - description: Kubernetes namespace filter (optional, lists all namespaces if
+          not specified)
+        in: query
+        name: namespace
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of PrometheusRule resources
+          schema:
+            items:
+              $ref: '#/definitions/handler.PrometheusRule'
+            type: array
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      summary: List PrometheusRules
+      tags:
+      - prometheus-rules
+  /api/v1/prometheus-rules/{namespace}/{name}/yaml:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves YAML content of a specific PrometheusRule resource
+      parameters:
+      - description: Kubernetes namespace
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of the PrometheusRule
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: YAML content of the PrometheusRule
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid request parameters
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "404":
+          description: PrometheusRule not found
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      summary: Get PrometheusRule YAML
+      tags:
+      - prometheus-rules
+  /api/v1/prometheus-rules/templates:
+    get:
+      consumes:
+      - application/json
+      description: Lists all available PrometheusRule alert rule templates from embedded
+        files and Helm chart
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of alert rule templates with metadata
+          schema:
+            items:
+              $ref: '#/definitions/handler.AlertRuleTemplateSummary'
+            type: array
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      summary: List alert rule templates
+      tags:
+      - prometheus-rules
+  /api/v1/prometheus-rules/templates/{name}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves detailed content of a specific alert rule template
+      parameters:
+      - description: Name of the alert rule template
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Template details with content
+          schema:
+            $ref: '#/definitions/handler.AlertRuleTemplateDetail'
+        "404":
+          description: Template not found
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      summary: Get alert rule template
+      tags:
+      - prometheus-rules
+  /api/v1/prometheus-rules/templates/apply:
+    post:
+      consumes:
+      - application/json
+      description: Applies an alert rule template to create or update PrometheusRule
+        resources
+      parameters:
+      - description: Apply request with template name, namespace, and optional overrides
+        in: body
+        name: body
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Apply result with created/updated resources
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request or template not found
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      summary: Apply alert rule template
+      tags:
+      - prometheus-rules
+  /api/v1/prometheus-rules/validate:
+    post:
+      consumes:
+      - application/json
+      description: Validates PrometheusRule YAML content for syntax and PromQL correctness
+      parameters:
+      - description: 'YAML content to validate (key: ''yaml'')'
+        in: body
+        name: body
+        required: true
+        schema:
+          additionalProperties:
+            type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Validation result with success status, message, details, errors,
+            and warnings
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request or YAML syntax error
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      summary: Validate PrometheusRule
+      tags:
+      - prometheus-rules
   /api/v1/restore-jobs:
     get:
       description: List clusters that are or were created via restore flows, as logical
@@ -4303,8 +4429,7 @@ paths:
         "500":
           description: Internal server error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: List restore jobs
       tags:
       - restore
@@ -4334,13 +4459,11 @@ paths:
         "404":
           description: Restore job not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "500":
           description: Internal server error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Cancel restore job
       tags:
       - restore
@@ -4369,13 +4492,11 @@ paths:
         "404":
           description: Restore job not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "500":
           description: Internal server error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Get restore job
       tags:
       - restore
@@ -4399,8 +4520,7 @@ paths:
         "502":
           description: Upstream Kubernetes error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: List XStores
       tags:
       - xstores
@@ -4429,13 +4549,11 @@ paths:
         "400":
           description: Invalid request body
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Upstream Kubernetes error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Create XStore
       tags:
       - xstores
@@ -4461,13 +4579,11 @@ paths:
         "404":
           description: XStore not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Upstream Kubernetes error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Delete XStore
       tags:
       - xstores
@@ -4494,13 +4610,11 @@ paths:
         "404":
           description: XStore not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Upstream Kubernetes error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Get XStore
       tags:
       - xstores
@@ -4535,18 +4649,15 @@ paths:
         "400":
           description: Invalid request body
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "404":
           description: XStore not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Upstream Kubernetes error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Update XStore
       tags:
       - xstores
@@ -4576,13 +4687,11 @@ paths:
         "404":
           description: XStore or Pods not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Upstream Kubernetes error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: List XStore pods
       tags:
       - xstores
@@ -4610,13 +4719,11 @@ paths:
         "404":
           description: XStore not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Upstream Kubernetes error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Auto rebuild XStore
       tags:
       - xstores
@@ -4645,13 +4752,11 @@ paths:
         "404":
           description: Rebuild or XStore not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Upstream Kubernetes error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Cancel rebuild
       tags:
       - xstores
@@ -4680,13 +4785,11 @@ paths:
         "404":
           description: XStore not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Upstream Kubernetes error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Rebuild learner
       tags:
       - xstores
@@ -4715,13 +4818,11 @@ paths:
         "404":
           description: XStore not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Upstream Kubernetes error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Rebuild logger
       tags:
       - xstores
@@ -4750,13 +4851,11 @@ paths:
         "404":
           description: Rebuild or XStore not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Upstream Kubernetes error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Get rebuild progress
       tags:
       - xstores
@@ -4785,13 +4884,11 @@ paths:
         "404":
           description: Rebuild or XStore not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Upstream Kubernetes error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Get rebuild status
       tags:
       - xstores
@@ -4820,13 +4917,11 @@ paths:
         "404":
           description: Rebuild or XStore not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Upstream Kubernetes error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Wait rebuild
       tags:
       - xstores
@@ -4852,8 +4947,7 @@ paths:
         "502":
           description: Upstream Kubernetes error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: List XStore binlog backups
       tags:
       - xstores
@@ -4883,13 +4977,11 @@ paths:
         "400":
           description: Invalid request body
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Upstream Kubernetes error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Create XStore binlog backup
       tags:
       - xstores
@@ -4916,13 +5008,11 @@ paths:
         "404":
           description: Binlog backup not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Upstream Kubernetes error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Delete XStore binlog backup
       tags:
       - xstores
@@ -4950,13 +5040,11 @@ paths:
         "404":
           description: Binlog backup not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Upstream Kubernetes error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Get XStore binlog backup
       tags:
       - xstores
@@ -4992,18 +5080,15 @@ paths:
         "400":
           description: Invalid request body
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "404":
           description: Binlog backup not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Upstream Kubernetes error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Update XStore binlog backup
       tags:
       - xstores
@@ -5028,8 +5113,7 @@ paths:
         "502":
           description: Upstream Kubernetes error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: List XStore backups
       tags:
       - xstores
@@ -5059,13 +5143,11 @@ paths:
         "400":
           description: Invalid request body
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Upstream Kubernetes error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Create XStore backup
       tags:
       - xstores
@@ -5092,13 +5174,11 @@ paths:
         "404":
           description: Backup not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Upstream Kubernetes error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Delete XStore backup
       tags:
       - xstores
@@ -5126,13 +5206,11 @@ paths:
         "404":
           description: Backup not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Upstream Kubernetes error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Get XStore backup
       tags:
       - xstores
@@ -5168,18 +5246,15 @@ paths:
         "400":
           description: Invalid request body
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "404":
           description: Backup not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Upstream Kubernetes error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Update XStore backup
       tags:
       - xstores
@@ -5206,13 +5281,11 @@ paths:
         "404":
           description: Backup not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Upstream Kubernetes error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Force delete XStore backup
       tags:
       - xstores
@@ -5242,13 +5315,11 @@ paths:
         "404":
           description: Backup not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Upstream Kubernetes error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Get XStore backup remote info
       tags:
       - xstores
@@ -5273,8 +5344,7 @@ paths:
         "502":
           description: Upstream Kubernetes error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: List XStore followers
       tags:
       - xstores
@@ -5304,13 +5374,11 @@ paths:
         "400":
           description: Invalid request body
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Upstream Kubernetes error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Create XStore follower
       tags:
       - xstores
@@ -5337,13 +5405,11 @@ paths:
         "404":
           description: Follower not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Upstream Kubernetes error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Delete XStore follower
       tags:
       - xstores
@@ -5371,13 +5437,11 @@ paths:
         "404":
           description: Follower not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Upstream Kubernetes error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Get XStore follower
       tags:
       - xstores
@@ -5413,18 +5477,15 @@ paths:
         "400":
           description: Invalid request body
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "404":
           description: Follower not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
         "502":
           description: Upstream Kubernetes error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Update XStore follower
       tags:
       - xstores

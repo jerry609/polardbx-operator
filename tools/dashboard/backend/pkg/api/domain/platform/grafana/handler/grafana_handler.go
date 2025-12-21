@@ -44,7 +44,7 @@ func NewGrafanaHandlerFromContext(c *gin.Context) (*GrafanaHandler, bool) {
 // @Tags platform, grafana
 // @Produce json
 // @Success 200 {object} map[string]any "Grafana configuration"
-// @Failure 500 {object} map[string]any "Internal server error"
+// @Failure 500 {object} apierr.ErrorResponse "Internal server error"
 // @Router /api/v1/platform/grafana/config [get]
 func GetConfig(c *gin.Context) {
 	h, ok := NewGrafanaHandlerFromContext(c)
@@ -71,8 +71,8 @@ func (h *GrafanaHandler) getConfig(c *gin.Context) {
 // @Produce json
 // @Param body body map[string]any true "Grafana configuration payload"
 // @Success 200 {object} map[string]any "Updated Grafana configuration"
-// @Failure 400 {object} map[string]any "Invalid payload"
-// @Failure 500 {object} map[string]any "Internal server error"
+// @Failure 400 {object} apierr.ErrorResponse "Invalid payload"
+// @Failure 500 {object} apierr.ErrorResponse "Internal server error"
 // @Router /api/v1/platform/grafana/config [put]
 func PutConfig(c *gin.Context) {
 	h, ok := NewGrafanaHandlerFromContext(c)
@@ -104,8 +104,8 @@ func (h *GrafanaHandler) putConfig(c *gin.Context) {
 // @Produce json
 // @Param body body map[string]any true "Dashboards payload (dashboards map and overwrite flag)"
 // @Success 202 {object} map[string]any "Dashboards synced confirmation"
-// @Failure 400 {object} map[string]any "Invalid payload"
-// @Failure 500 {object} map[string]any "Internal server error"
+// @Failure 400 {object} apierr.ErrorResponse "Invalid payload"
+// @Failure 500 {object} apierr.ErrorResponse "Internal server error"
 // @Router /api/v1/platform/grafana/dashboards/sync [post]
 func SyncDashboards(c *gin.Context) {
 	h, ok := NewGrafanaHandlerFromContext(c)
@@ -139,7 +139,7 @@ func (h *GrafanaHandler) syncDashboards(c *gin.Context) {
 // @Tags platform, grafana
 // @Produce json
 // @Success 200 {object} map[string]any "Dashboard list with names and version counts"
-// @Failure 500 {object} map[string]any "Internal server error"
+// @Failure 500 {object} apierr.ErrorResponse "Internal server error"
 // @Router /api/v1/platform/grafana/dashboards [get]
 func ListDashboards(c *gin.Context) {
 	h, ok := NewGrafanaHandlerFromContext(c)
@@ -191,7 +191,7 @@ func (h *GrafanaHandler) listDashboards(c *gin.Context) {
 // @Produce json
 // @Param name path string true "Dashboard name"
 // @Success 200 {object} map[string]any "Dashboard name and version list"
-// @Failure 500 {object} map[string]any "Internal server error"
+// @Failure 500 {object} apierr.ErrorResponse "Internal server error"
 // @Router /api/v1/platform/grafana/dashboards/{name}/versions [get]
 func ListDashboardVersions(c *gin.Context) {
 	h, ok := NewGrafanaHandlerFromContext(c)
@@ -228,9 +228,9 @@ func (h *GrafanaHandler) listDashboardVersions(c *gin.Context) {
 // @Param name path string true "Dashboard name"
 // @Param body body map[string]any true "Version payload (version number)"
 // @Success 200 {object} map[string]any "Rollback confirmation"
-// @Failure 400 {object} map[string]any "Invalid payload"
-// @Failure 404 {object} map[string]any "Dashboard version not found"
-// @Failure 500 {object} map[string]any "Internal server error"
+// @Failure 400 {object} apierr.ErrorResponse "Invalid payload"
+// @Failure 404 {object} apierr.ErrorResponse "Dashboard version not found"
+// @Failure 500 {object} apierr.ErrorResponse "Internal server error"
 // @Router /api/v1/platform/grafana/dashboards/{name}/rollback [post]
 func RollbackDashboard(c *gin.Context) {
 	h, ok := NewGrafanaHandlerFromContext(c)
@@ -308,8 +308,8 @@ type DashboardTemplateDetail struct {
 // @Tags platform, grafana
 // @Produce json
 // @Success 200 {object} map[string]any "Template list and directory"
-// @Failure 404 {object} map[string]any "Templates directory not found"
-// @Failure 500 {object} map[string]any "Internal server error"
+// @Failure 404 {object} apierr.ErrorResponse "Templates directory not found"
+// @Failure 500 {object} apierr.ErrorResponse "Internal server error"
 // @Router /api/v1/platform/grafana/templates [get]
 func ListTemplates(c *gin.Context) {
 	dir, err := ResolveTemplatesDir()
@@ -341,9 +341,9 @@ func ListTemplates(c *gin.Context) {
 // @Produce json
 // @Param name path string true "Template name"
 // @Success 200 {object} map[string]any "Template details including content"
-// @Failure 400 {object} map[string]any "Template name required"
-// @Failure 404 {object} map[string]any "Template not found"
-// @Failure 500 {object} map[string]any "Internal server error"
+// @Failure 400 {object} apierr.ErrorResponse "Template name required"
+// @Failure 404 {object} apierr.ErrorResponse "Template not found"
+// @Failure 500 {object} apierr.ErrorResponse "Internal server error"
 // @Router /api/v1/platform/grafana/templates/{name} [get]
 func GetTemplate(c *gin.Context) {
 	name := c.Param("name")

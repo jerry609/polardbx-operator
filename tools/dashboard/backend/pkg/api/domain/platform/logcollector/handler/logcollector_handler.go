@@ -67,7 +67,7 @@ func k8sClientFromContext(c *gin.Context) (client.Client, bool) {
 // @Produce json
 // @Param namespace query string false "Kubernetes namespace (default: default)"
 // @Success 200 {array} map[string]any "List of log collectors"
-// @Failure 500 {object} map[string]any "Internal server error"
+// @Failure 500 {object} apierr.ErrorResponse "Internal server error"
 // @Router /api/v1/platform/logcollectors [get]
 func List(c *gin.Context) {
 	h, ok := NewLogCollectorHandlerFromContext(c)
@@ -96,8 +96,8 @@ func (h *LogCollectorHandler) list(c *gin.Context) {
 // @Param namespace query string false "Kubernetes namespace (default: default)"
 // @Param body body map[string]any true "Log collector specification"
 // @Success 201 {object} map[string]any "Created log collector"
-// @Failure 400 {object} map[string]any "Invalid request body"
-// @Failure 500 {object} map[string]any "Internal server error"
+// @Failure 400 {object} apierr.ErrorResponse "Invalid request body"
+// @Failure 500 {object} apierr.ErrorResponse "Internal server error"
 // @Router /api/v1/platform/logcollectors [post]
 func Create(c *gin.Context) {
 	h, ok := NewLogCollectorHandlerFromContext(c)
@@ -131,8 +131,8 @@ func (h *LogCollectorHandler) create(c *gin.Context) {
 // @Param namespace path string true "Kubernetes namespace"
 // @Param name path string true "Log collector name"
 // @Success 200 {object} map[string]any "Log collector details"
-// @Failure 404 {object} map[string]any "Log collector not found"
-// @Failure 500 {object} map[string]any "Internal server error"
+// @Failure 404 {object} apierr.ErrorResponse "Log collector not found"
+// @Failure 500 {object} apierr.ErrorResponse "Internal server error"
 // @Router /api/v1/platform/logcollectors/{namespace}/{name} [get]
 func Get(c *gin.Context) {
 	h, ok := NewLogCollectorHandlerFromContext(c)
@@ -163,8 +163,8 @@ func (h *LogCollectorHandler) get(c *gin.Context) {
 // @Param name path string true "Log collector name"
 // @Param body body map[string]any true "Updated log collector specification"
 // @Success 200 {object} map[string]any "Updated log collector"
-// @Failure 400 {object} map[string]any "Invalid request body"
-// @Failure 500 {object} map[string]any "Internal server error"
+// @Failure 400 {object} apierr.ErrorResponse "Invalid request body"
+// @Failure 500 {object} apierr.ErrorResponse "Internal server error"
 // @Router /api/v1/platform/logcollectors/{namespace}/{name} [put]
 func Update(c *gin.Context) {
 	h, ok := NewLogCollectorHandlerFromContext(c)
@@ -197,8 +197,8 @@ func (h *LogCollectorHandler) update(c *gin.Context) {
 // @Param namespace path string true "Kubernetes namespace"
 // @Param name path string true "Log collector name"
 // @Success 200 {object} map[string]any "Deletion confirmation"
-// @Failure 404 {object} map[string]any "Log collector not found"
-// @Failure 500 {object} map[string]any "Internal server error"
+// @Failure 404 {object} apierr.ErrorResponse "Log collector not found"
+// @Failure 500 {object} apierr.ErrorResponse "Internal server error"
 // @Router /api/v1/platform/logcollectors/{namespace}/{name} [delete]
 func Delete(c *gin.Context) {
 	h, ok := NewLogCollectorHandlerFromContext(c)
@@ -245,8 +245,8 @@ func clientsetFromContext(c *gin.Context) (kubernetes.Interface, bool) {
 // @Param configMap query string false "ConfigMap name (default: logstash-pipeline)"
 // @Param key query string false "Specific key to retrieve from ConfigMap"
 // @Success 200 {object} map[string]any "Pipeline ConfigMap data"
-// @Failure 404 {object} map[string]any "ConfigMap or key not found"
-// @Failure 500 {object} map[string]any "Internal server error"
+// @Failure 404 {object} apierr.ErrorResponse "ConfigMap or key not found"
+// @Failure 500 {object} apierr.ErrorResponse "Internal server error"
 // @Router /api/v1/platform/logcollectors/{namespace}/pipeline [get]
 func GetLogstashPipeline(c *gin.Context) {
 	clientset, ok := clientsetFromContext(c)
@@ -289,8 +289,8 @@ type updatePipelineRequest struct {
 // @Param body body map[string]any true "Pipeline data payload"
 // @Success 200 {object} map[string]any "Updated pipeline ConfigMap"
 // @Success 201 {object} map[string]any "Created pipeline ConfigMap"
-// @Failure 400 {object} map[string]any "Invalid request body"
-// @Failure 500 {object} map[string]any "Internal server error"
+// @Failure 400 {object} apierr.ErrorResponse "Invalid request body"
+// @Failure 500 {object} apierr.ErrorResponse "Internal server error"
 // @Router /api/v1/platform/logcollectors/{namespace}/pipeline [put]
 func UpdateLogstashPipeline(c *gin.Context) {
 	clientset, ok := clientsetFromContext(c)
@@ -345,7 +345,7 @@ type esCertRequest struct {
 // @Param name query string false "Secret name (default: elastic-certs-public)"
 // @Param include query string false "Include certificate content in response (default: false)"
 // @Success 200 {object} map[string]any "Certificate information"
-// @Failure 500 {object} map[string]any "Internal server error"
+// @Failure 500 {object} apierr.ErrorResponse "Internal server error"
 // @Router /api/v1/platform/logcollectors/{namespace}/es-cert [get]
 func GetElasticsearchCert(c *gin.Context) {
 	clientset, ok := clientsetFromContext(c)
@@ -381,8 +381,8 @@ func GetElasticsearchCert(c *gin.Context) {
 // @Param body body map[string]any true "Certificate payload (caCrt field)"
 // @Success 200 {object} map[string]any "Updated certificate info"
 // @Success 201 {object} map[string]any "Created certificate info"
-// @Failure 400 {object} map[string]any "Invalid caCrt"
-// @Failure 500 {object} map[string]any "Internal server error"
+// @Failure 400 {object} apierr.ErrorResponse "Invalid caCrt"
+// @Failure 500 {object} apierr.ErrorResponse "Internal server error"
 // @Router /api/v1/platform/logcollectors/{namespace}/es-cert [put]
 func UpdateElasticsearchCert(c *gin.Context) {
 	clientset, ok := clientsetFromContext(c)
@@ -431,7 +431,7 @@ func UpdateElasticsearchCert(c *gin.Context) {
 // @Param namespace path string true "Kubernetes namespace"
 // @Param name path string true "Log collector name"
 // @Success 200 {object} map[string]any "Log collector status"
-// @Failure 500 {object} map[string]any "Internal server error"
+// @Failure 500 {object} apierr.ErrorResponse "Internal server error"
 // @Router /api/v1/platform/logcollectors/{namespace}/{name}/status [get]
 func GetLogCollectorStatus(c *gin.Context) {
 	k8sCli, ok := k8sClientFromContext(c)
@@ -503,8 +503,8 @@ func GetLogCollectorStatus(c *gin.Context) {
 // @Param follow query string false "Follow log stream (default: true)"
 // @Param tailLines query string false "Number of tail lines (default: 200)"
 // @Success 200 {string} string "Log stream"
-// @Failure 404 {object} map[string]any "Logstash pod not found"
-// @Failure 500 {object} map[string]any "Internal server error"
+// @Failure 404 {object} apierr.ErrorResponse "Logstash pod not found"
+// @Failure 500 {object} apierr.ErrorResponse "Internal server error"
 // @Router /api/v1/platform/logcollectors/{namespace}/logs [get]
 func StreamLogstashLogs(c *gin.Context) {
 	clientset, ok := clientsetFromContext(c)
@@ -585,7 +585,7 @@ func StreamLogstashLogs(c *gin.Context) {
 // @Produce json
 // @Param namespace path string true "Kubernetes namespace"
 // @Success 200 {object} map[string]any "Diagnostic check results"
-// @Failure 500 {object} map[string]any "Internal server error"
+// @Failure 500 {object} apierr.ErrorResponse "Internal server error"
 // @Router /api/v1/platform/logcollectors/{namespace}/test [get]
 func TestLogCollector(c *gin.Context) {
 	clientset, ok := clientsetFromContext(c)

@@ -22,7 +22,7 @@ import (
 // @Produce json
 // @Param namespace query string false "Kubernetes namespace (default: default)"
 // @Success 200 {array} map[string]any "List of parameters"
-// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Failure 502 {object} apierr.ErrorResponse "Kubernetes API error"
 // @Router /api/v1/polardbxclusters/parameters [get]
 func List(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
@@ -48,8 +48,8 @@ func List(c *gin.Context) {
 // @Param namespace query string false "Kubernetes namespace (default: default)"
 // @Param name path string true "Name of the parameter"
 // @Success 200 {object} map[string]any "Parameter details"
-// @Failure 404 {object} map[string]any "Parameter not found"
-// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Failure 404 {object} apierr.ErrorResponse "Parameter not found"
+// @Failure 502 {object} apierr.ErrorResponse "Kubernetes API error"
 // @Router /api/v1/polardbxclusters/parameters/{name} [get]
 func Get(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
@@ -76,9 +76,9 @@ func Get(c *gin.Context) {
 // @Param namespace query string false "Kubernetes namespace (default: default)"
 // @Param body body map[string]any true "Parameter specification"
 // @Success 201 {object} map[string]any "Created parameter"
-// @Failure 400 {object} map[string]any "Invalid parameter specification"
-// @Failure 409 {object} map[string]any "Parameter already exists"
-// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Failure 400 {object} apierr.ErrorResponse "Invalid parameter specification"
+// @Failure 409 {object} apierr.ErrorResponse "Parameter already exists"
+// @Failure 502 {object} apierr.ErrorResponse "Kubernetes API error"
 // @Router /api/v1/polardbxclusters/parameters [post]
 func Create(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
@@ -110,9 +110,9 @@ func Create(c *gin.Context) {
 // @Param name path string true "Name of the parameter"
 // @Param body body map[string]any true "Updated parameter specification"
 // @Success 200 {object} map[string]any "Updated parameter"
-// @Failure 400 {object} map[string]any "Invalid parameter specification"
-// @Failure 404 {object} map[string]any "Parameter not found"
-// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Failure 400 {object} apierr.ErrorResponse "Invalid parameter specification"
+// @Failure 404 {object} apierr.ErrorResponse "Parameter not found"
+// @Failure 502 {object} apierr.ErrorResponse "Kubernetes API error"
 // @Router /api/v1/polardbxclusters/parameters/{name} [put]
 func Update(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
@@ -143,8 +143,8 @@ func Update(c *gin.Context) {
 // @Param namespace query string false "Kubernetes namespace (default: default)"
 // @Param name path string true "Name of the parameter"
 // @Success 200 {object} map[string]any "Deletion confirmation"
-// @Failure 404 {object} map[string]any "Parameter not found"
-// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Failure 404 {object} apierr.ErrorResponse "Parameter not found"
+// @Failure 502 {object} apierr.ErrorResponse "Kubernetes API error"
 // @Router /api/v1/polardbxclusters/parameters/{name} [delete]
 func Delete(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
@@ -171,7 +171,7 @@ func Delete(c *gin.Context) {
 // @Produce json
 // @Param namespace query string false "Kubernetes namespace (default: default)"
 // @Success 200 {array} map[string]any "List of parameter templates"
-// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Failure 502 {object} apierr.ErrorResponse "Kubernetes API error"
 // @Router /api/v1/polardbxclusters/parameter-templates [get]
 func ListTemplates(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
@@ -197,8 +197,8 @@ func ListTemplates(c *gin.Context) {
 // @Param namespace path string true "Kubernetes namespace"
 // @Param name path string true "Name of the parameter template"
 // @Success 200 {object} map[string]any "Parameter template details"
-// @Failure 404 {object} map[string]any "Parameter template not found"
-// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Failure 404 {object} apierr.ErrorResponse "Parameter template not found"
+// @Failure 502 {object} apierr.ErrorResponse "Kubernetes API error"
 // @Router /api/v1/polardbxclusters/parameter-templates/{namespace}/{name} [get]
 func GetTemplate(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
@@ -225,9 +225,9 @@ func GetTemplate(c *gin.Context) {
 // @Param namespace query string false "Kubernetes namespace (default: default)"
 // @Param body body map[string]any true "Parameter template specification"
 // @Success 201 {object} map[string]any "Created parameter template"
-// @Failure 400 {object} map[string]any "Invalid parameter template specification"
-// @Failure 409 {object} map[string]any "Parameter template already exists"
-// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Failure 400 {object} apierr.ErrorResponse "Invalid parameter template specification"
+// @Failure 409 {object} apierr.ErrorResponse "Parameter template already exists"
+// @Failure 502 {object} apierr.ErrorResponse "Kubernetes API error"
 // @Router /api/v1/polardbxclusters/parameter-templates [post]
 func CreateTemplate(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
@@ -259,9 +259,9 @@ func CreateTemplate(c *gin.Context) {
 // @Param name path string true "Name of the parameter template"
 // @Param body body map[string]any true "Updated parameter template specification"
 // @Success 200 {object} map[string]any "Updated parameter template"
-// @Failure 400 {object} map[string]any "Invalid parameter template specification"
-// @Failure 404 {object} map[string]any "Parameter template not found"
-// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Failure 400 {object} apierr.ErrorResponse "Invalid parameter template specification"
+// @Failure 404 {object} apierr.ErrorResponse "Parameter template not found"
+// @Failure 502 {object} apierr.ErrorResponse "Kubernetes API error"
 // @Router /api/v1/polardbxclusters/parameter-templates/{namespace}/{name} [put]
 func UpdateTemplate(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
@@ -292,8 +292,8 @@ func UpdateTemplate(c *gin.Context) {
 // @Param namespace path string true "Kubernetes namespace"
 // @Param name path string true "Name of the parameter template"
 // @Success 200 {object} map[string]any "Deletion confirmation"
-// @Failure 404 {object} map[string]any "Parameter template not found"
-// @Failure 502 {object} map[string]any "Kubernetes API error"
+// @Failure 404 {object} apierr.ErrorResponse "Parameter template not found"
+// @Failure 502 {object} apierr.ErrorResponse "Kubernetes API error"
 // @Router /api/v1/polardbxclusters/parameter-templates/{namespace}/{name} [delete]
 func DeleteTemplate(c *gin.Context) {
 	cli, ok := util.K8sClientFromContext(c)
