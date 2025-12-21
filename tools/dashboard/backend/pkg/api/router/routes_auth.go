@@ -10,6 +10,13 @@ import (
 
 // RegisterPublicRoutes registers routes that don't require authentication
 func RegisterPublicRoutes(v1 *gin.RouterGroup) {
+	// Health endpoints (compatibility aliases under /api/v1/*).
+	// Canonical endpoints are /health, /ready, /version.
+	// Keeping these aliases avoids breaking existing manifests/scripts.
+	v1.GET("/health", healthHandler)
+	v1.GET("/ready", readyHandler)
+	v1.GET("/version", versionHandler)
+
 	// Image registry configuration (public for UI initialization)
 	v1.GET("/image-registry/config", domain_settings.GetImageRegistryConfig)
 	v1.PUT("/image-registry/config", domain_settings.UpdateImageRegistryConfig)
