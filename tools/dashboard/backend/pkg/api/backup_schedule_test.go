@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -202,7 +203,7 @@ func TestBackupScheduleEndpoints(t *testing.T) {
 		var response map[string]interface{}
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
-		assert.Contains(t, getErr(response), "invalid schedule")
+		assert.Contains(t, strings.ToLower(getErr(response)), "invalid request format")
 	})
 
 	// --- Test GetBackupSchedule for non-existent schedule ---

@@ -3,55 +3,60 @@ package router
 import (
 	domain_settings "polardbx-dashboard-backend/pkg/api/domain/platform/settings/handler"
 	domain_pxc "polardbx-dashboard-backend/pkg/api/domain/polardbxclusters"
-	"polardbx-dashboard-backend/pkg/api/routerutil"
 
 	"github.com/gin-gonic/gin"
 )
 
 // RegisterBackupRoutes registers backup-related routes
 func RegisterBackupRoutes(v1 *gin.RouterGroup) {
-	// Backups under cluster
-	v1.GET("/clusters/:namespace/:name/backups", domain_pxc.ListBackups)
-	v1.POST("/clusters/:namespace/:name/backups", domain_pxc.CreateBackup)
-	v1.GET("/clusters/:namespace/:name/backup-advice", domain_pxc.GetBackupAdvice)
+	reg := NewRouteRegistry()
+	RegisterBackupRoutesRegistry(reg)
+	reg.Apply(v1)
+}
 
-	// Root-level backup operations
-	v1.POST("/backups/validate", domain_pxc.ValidateBackup)
-	v1.GET("/backups/:namespace/:name/stream", domain_pxc.StreamBackupEvents)
-	v1.GET("/backups/:namespace/:name/metrics", domain_pxc.GetBackupMetrics)
-	v1.DELETE("/backups/:namespace/:name", domain_pxc.DeleteBackup)
-	v1.POST("/backups/:namespace/:name/force-delete", domain_pxc.ForceDeleteBackup)
-	v1.GET("/backups/overview", domain_pxc.GetBackupOverview)
-	v1.GET("/backups/cluster-state", domain_pxc.GetClusterBackupState)
-	v1.GET("/backups/binlog/metrics", domain_pxc.GetBinlogMetrics)
+func RegisterBackupRoutesRegistry(reg *RouteRegistry) {
+	reg.RegisterGroup(RouteGroup{
+		Prefix:      "",
+		Description: "Backup and schedule routes",
+		Routes: []Route{
+			// Backups under cluster
+			{Method: "GET", Path: "/clusters/:namespace/:name/backups", Handler: domain_pxc.ListBackups},
+			{Method: "POST", Path: "/clusters/:namespace/:name/backups", Handler: domain_pxc.CreateBackup},
+			{Method: "GET", Path: "/clusters/:namespace/:name/backup-advice", Handler: domain_pxc.GetBackupAdvice},
 
-	// Backup Schedules
-	baseSchedules := "/backup-schedules"
-	routerutil.RegisterCRUDWithItemPattern(v1, baseSchedules, baseSchedules+"/:namespace/:name", routerutil.CRUDHandlers{
-		List:   domain_pxc.ListSchedules,
-		Create: domain_pxc.CreateSchedule,
-		Get:    domain_pxc.GetSchedule,
-		Update: domain_pxc.UpdateSchedule,
-		Delete: domain_pxc.DeleteSchedule,
+			// Root-level backup operations
+			{Method: "POST", Path: "/backups/validate", Handler: domain_pxc.ValidateBackup},
+			{Method: "GET", Path: "/backups/:namespace/:name/stream", Handler: domain_pxc.StreamBackupEvents},
+			{Method: "GET", Path: "/backups/:namespace/:name/metrics", Handler: domain_pxc.GetBackupMetrics},
+			{Method: "DELETE", Path: "/backups/:namespace/:name", Handler: domain_pxc.DeleteBackup},
+			{Method: "POST", Path: "/backups/:namespace/:name/force-delete", Handler: domain_pxc.ForceDeleteBackup},
+			{Method: "GET", Path: "/backups/overview", Handler: domain_pxc.GetBackupOverview},
+			{Method: "GET", Path: "/backups/cluster-state", Handler: domain_pxc.GetClusterBackupState},
+			{Method: "GET", Path: "/backups/binlog/metrics", Handler: domain_pxc.GetBinlogMetrics},
+
+			// Backup Schedules
+			{Method: "GET", Path: "/backup-schedules", Handler: domain_pxc.ListSchedules},
+			{Method: "POST", Path: "/backup-schedules", Handler: domain_pxc.CreateSchedule},
+			{Method: "GET", Path: "/backup-schedules/:namespace/:name", Handler: domain_pxc.GetSchedule},
+			{Method: "PUT", Path: "/backup-schedules/:namespace/:name", Handler: domain_pxc.UpdateSchedule},
+			{Method: "DELETE", Path: "/backup-schedules/:namespace/:name", Handler: domain_pxc.DeleteSchedule},
+
+			// Backup Binlogs
+			{Method: "GET", Path: "/backup-binlogs", Handler: domain_pxc.ListBackupBinlogs},
+			{Method: "POST", Path: "/backup-binlogs", Handler: domain_pxc.CreateBackupBinlog},
+			{Method: "GET", Path: "/backup-binlogs/:namespace/:name", Handler: domain_pxc.GetBackupBinlog},
+			{Method: "PUT", Path: "/backup-binlogs/:namespace/:name", Handler: domain_pxc.UpdateBackupBinlog},
+			{Method: "DELETE", Path: "/backup-binlogs/:namespace/:name", Handler: domain_pxc.DeleteBackupBinlog},
+
+			// HPFS sinks
+			{Method: "GET", Path: "/hpfs/sinks", Handler: domain_pxc.ListHpfsSinks},
+			{Method: "POST", Path: "/hpfs/sinks/validate", Handler: domain_pxc.ValidateHpfsSink},
+
+			// Settings for backup dashboard
+			{Method: "GET", Path: "/settings/backup-dashboard", Handler: domain_settings.Get},
+			{Method: "PUT", Path: "/settings/backup-dashboard", Handler: domain_settings.Update},
+			{Method: "GET", Path: "/settings", Handler: domain_settings.Get},
+			{Method: "PUT", Path: "/settings", Handler: domain_settings.Update},
+		},
 	})
-
-	// Backup Binlogs
-	baseBinlogs := "/backup-binlogs"
-	routerutil.RegisterCRUDWithItemPattern(v1, baseBinlogs, baseBinlogs+"/:namespace/:name", routerutil.CRUDHandlers{
-		List:   domain_pxc.ListBackupBinlogs,
-		Create: domain_pxc.CreateBackupBinlog,
-		Get:    domain_pxc.GetBackupBinlog,
-		Update: domain_pxc.UpdateBackupBinlog,
-		Delete: domain_pxc.DeleteBackupBinlog,
-	})
-
-	// HPFS sinks
-	v1.GET("/hpfs/sinks", domain_pxc.ListHpfsSinks)
-	v1.POST("/hpfs/sinks/validate", domain_pxc.ValidateHpfsSink)
-
-	// Settings for backup dashboard
-	v1.GET("/settings/backup-dashboard", domain_settings.Get)
-	v1.PUT("/settings/backup-dashboard", domain_settings.Update)
-	v1.GET("/settings", domain_settings.Get)
-	v1.PUT("/settings", domain_settings.Update)
 }

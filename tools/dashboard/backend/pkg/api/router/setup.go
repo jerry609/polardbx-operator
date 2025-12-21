@@ -10,6 +10,7 @@ import (
 
 	"polardbx-dashboard-backend/pkg/api"
 	apierr "polardbx-dashboard-backend/pkg/api/errors"
+	domain_auth "polardbx-dashboard-backend/pkg/api/domain/platform/auth/handler"
 	"polardbx-dashboard-backend/pkg/api/middleware"
 	"polardbx-dashboard-backend/pkg/api/provider"
 	"polardbx-dashboard-backend/pkg/config"
@@ -118,7 +119,10 @@ func setupRoutes(r *gin.Engine) {
 
 	// API v1 group
 	v1 := r.Group("/api/v1")
-	v1.Use(provider.Inject(provider.NewDefaultProvider()))
+	v1.Use(
+		provider.Inject(provider.NewDefaultProvider()),
+		VersionMiddleware("v1"),
+	)
 
 	// Public routes (no kubeconfig required)
 	RegisterPublicRoutes(v1)
@@ -126,22 +130,28 @@ func setupRoutes(r *gin.Engine) {
 	// Auth routes
 	RegisterAuthRoutes(v1)
 
-	// Protected routes (require kubeconfig)
-	v1.Use(api.KubeconfigAuthMiddleware())
+	// Protected routes (require kubeconfig; optional JWT layer)
+	protected := v1.Group("")
+	protected.Use(
+		api.KubeconfigAuthMiddleware(),
+		domain_auth.JWTAuthMiddleware(),
+	)
 	{
-		RegisterClusterRoutes(v1)
-		RegisterBackupRoutes(v1)
-		RegisterXStoreRoutes(v1)
-		RegisterMonitoringRoutes(v1)
-		RegisterLogsRoutes(v1)
-		RegisterSystemRoutes(v1)
-		RegisterDiagnosticsRoutes(v1)
-		RegisterRestoreRoutes(v1)
+		reg := NewRouteRegistry()
+		RegisterClusterRoutesRegistry(reg)
+		RegisterBackupRoutesRegistry(reg)
+		RegisterXStoreRoutesRegistry(reg)
+		RegisterMonitoringRoutesRegistry(reg)
+		RegisterLogsRoutesRegistry(reg)
+		RegisterSystemRoutesRegistry(reg)
+		RegisterDiagnosticsRoutesRegistry(reg)
+		RegisterRestoreRoutesRegistry(reg)
+		reg.Apply(protected)
 	}
 
 	// Register CRD-aligned alias routes
-	RegisterCRDAliasRoutes(v1)
-	RegisterDomainRoutes(v1)
+	RegisterCRDAliasRoutes(protected)
+	RegisterDomainRoutes(protected)
 }
 
 // CORSMiddleware creates CORS middleware with config

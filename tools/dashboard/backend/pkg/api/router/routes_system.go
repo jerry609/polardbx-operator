@@ -3,27 +3,35 @@ package router
 import (
 	domain_system "polardbx-dashboard-backend/pkg/api/domain/platform/system/handler"
 	domain_st "polardbx-dashboard-backend/pkg/api/domain/systemtasks"
-	"polardbx-dashboard-backend/pkg/api/routerutil"
 
 	"github.com/gin-gonic/gin"
 )
 
 // RegisterSystemRoutes registers system-related routes
 func RegisterSystemRoutes(v1 *gin.RouterGroup) {
-	// System context
-	v1.GET("/system/context", domain_system.ContextInfo)
-	v1.GET("/system/namespaces", domain_system.ListNamespaces)
+	reg := NewRouteRegistry()
+	RegisterSystemRoutesRegistry(reg)
+	reg.Apply(v1)
+}
 
-	// Direct namespace route for frontend compatibility
-	v1.GET("/namespaces", domain_system.ListNamespaces)
+func RegisterSystemRoutesRegistry(reg *RouteRegistry) {
+	reg.RegisterGroup(RouteGroup{
+		Prefix:      "",
+		Description: "System and system task routes",
+		Routes: []Route{
+			// System context
+			{Method: "GET", Path: "/system/context", Handler: domain_system.ContextInfo},
+			{Method: "GET", Path: "/system/namespaces", Handler: domain_system.ListNamespaces},
 
-	// System Tasks
-	base := "/system-tasks"
-	routerutil.RegisterCRUDWithItemPattern(v1, base, base+"/:namespace/:name", routerutil.CRUDHandlers{
-		List:   domain_st.List,
-		Create: domain_st.Create,
-		Get:    domain_st.Get,
-		Update: domain_st.Update,
-		Delete: domain_st.Delete,
+			// Direct namespace route for frontend compatibility
+			{Method: "GET", Path: "/namespaces", Handler: domain_system.ListNamespaces},
+
+			// System Tasks
+			{Method: "GET", Path: "/system-tasks", Handler: domain_st.List},
+			{Method: "POST", Path: "/system-tasks", Handler: domain_st.Create},
+			{Method: "GET", Path: "/system-tasks/:namespace/:name", Handler: domain_st.Get},
+			{Method: "PUT", Path: "/system-tasks/:namespace/:name", Handler: domain_st.Update},
+			{Method: "DELETE", Path: "/system-tasks/:namespace/:name", Handler: domain_st.Delete},
+		},
 	})
 }

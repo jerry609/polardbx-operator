@@ -2,8 +2,12 @@ package errors
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -91,13 +95,32 @@ func FromBindError(err error) *APIError {
 		}
 	}
 
-	// Generic binding error
-	return &APIError{
-		Code:       ErrInvalidFormat,
-		Message:    "Invalid request format",
-		HTTPStatus: http.StatusBadRequest,
-		Cause:      err,
+	// Only treat known decoder/binding failures as "invalid format".
+	// This must NOT match arbitrary business/service errors.
+	var syntaxErr *json.SyntaxError
+	if errors.As(err, &syntaxErr) {
+		return &APIError{Code: ErrInvalidFormat, Message: "Invalid request format", HTTPStatus: http.StatusBadRequest, Cause: err}
 	}
+	var typeErr *json.UnmarshalTypeError
+	if errors.As(err, &typeErr) {
+		return &APIError{Code: ErrInvalidFormat, Message: "Invalid request format", HTTPStatus: http.StatusBadRequest, Cause: err}
+	}
+	var invalidUnmarshal *json.InvalidUnmarshalError
+	if errors.As(err, &invalidUnmarshal) {
+		return &APIError{Code: ErrInvalidFormat, Message: "Invalid request format", HTTPStatus: http.StatusBadRequest, Cause: err}
+	}
+	if errors.Is(err, io.EOF) {
+		return &APIError{Code: ErrInvalidFormat, Message: "Invalid request format", HTTPStatus: http.StatusBadRequest, Cause: err}
+	}
+	if errors.Is(err, io.ErrUnexpectedEOF) {
+		return &APIError{Code: ErrInvalidFormat, Message: "Invalid request format", HTTPStatus: http.StatusBadRequest, Cause: err}
+	}
+	var numErr *strconv.NumError
+	if errors.As(err, &numErr) {
+		return &APIError{Code: ErrInvalidFormat, Message: "Invalid request format", HTTPStatus: http.StatusBadRequest, Cause: err}
+	}
+
+	return nil
 }
 
 // formatValidationMessage creates a user-friendly validation message

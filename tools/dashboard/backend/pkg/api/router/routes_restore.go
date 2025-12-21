@@ -2,22 +2,31 @@ package router
 
 import (
 	domain_restore "polardbx-dashboard-backend/pkg/api/domain/platform/restore/handler"
-	"polardbx-dashboard-backend/pkg/api/routerutil"
 
 	"github.com/gin-gonic/gin"
 )
 
 // RegisterRestoreRoutes registers restore-related routes
 func RegisterRestoreRoutes(v1 *gin.RouterGroup) {
-	// Cluster restore operations
-	v1.POST("/clusters/:namespace/:name/restore", domain_restore.RestoreCluster)
-	v1.POST("/clusters/:namespace/:name/pitr", domain_restore.InitiatePITR)
-	v1.GET("/clusters/:namespace/:name/restore-status", domain_restore.GetRestoreStatus)
+	reg := NewRouteRegistry()
+	RegisterRestoreRoutesRegistry(reg)
+	reg.Apply(v1)
+}
 
-	// Restore jobs
-	routerutil.RegisterLGD(v1, "/restore-jobs", "/restore-jobs/:namespace/:name", routerutil.LGDHandlers{
-		List:   domain_restore.ListJobs,
-		Get:    domain_restore.GetJob,
-		Delete: domain_restore.CancelJob,
+func RegisterRestoreRoutesRegistry(reg *RouteRegistry) {
+	reg.RegisterGroup(RouteGroup{
+		Prefix:      "",
+		Description: "Restore and PITR routes",
+		Routes: []Route{
+			// Cluster restore operations
+			{Method: "POST", Path: "/clusters/:namespace/:name/restore", Handler: domain_restore.RestoreCluster},
+			{Method: "POST", Path: "/clusters/:namespace/:name/pitr", Handler: domain_restore.InitiatePITR},
+			{Method: "GET", Path: "/clusters/:namespace/:name/restore-status", Handler: domain_restore.GetRestoreStatus},
+
+			// Restore jobs
+			{Method: "GET", Path: "/restore-jobs", Handler: domain_restore.ListJobs},
+			{Method: "GET", Path: "/restore-jobs/:namespace/:name", Handler: domain_restore.GetJob},
+			{Method: "DELETE", Path: "/restore-jobs/:namespace/:name", Handler: domain_restore.CancelJob},
+		},
 	})
 }

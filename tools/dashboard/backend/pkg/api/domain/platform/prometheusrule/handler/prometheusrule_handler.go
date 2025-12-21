@@ -143,7 +143,7 @@ func (h *PrometheusRuleHandler) List(c *gin.Context) {
 	}
 
 	if err != nil {
-		apierr.AbortInternal(c, fmt.Sprintf("Failed to list PrometheusRules: %v", err))
+		apierr.AbortWithError(c, apierr.InternalServiceError("Failed to list PrometheusRules", err))
 		return
 	}
 
@@ -162,7 +162,7 @@ func (h *PrometheusRuleHandler) GetYAML(c *gin.Context) {
 	name := c.Param("name")
 
 	if namespace == "" || name == "" {
-		apierr.AbortValidation(c, "namespace and name are required")
+		apierr.AbortWithError(c, apierr.ValidationError("namespace and name are required", nil))
 		return
 	}
 
@@ -170,7 +170,7 @@ func (h *PrometheusRuleHandler) GetYAML(c *gin.Context) {
 
 	obj, err := h.dynamicClient.Resource(prometheusRuleGVR).Namespace(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
-		apierr.AbortInternal(c, fmt.Sprintf("Failed to get PrometheusRule: %v", err))
+		apierr.AbortWithError(c, apierr.InternalServiceError("Failed to get PrometheusRule", err))
 		return
 	}
 
@@ -183,7 +183,7 @@ func (h *PrometheusRuleHandler) GetYAML(c *gin.Context) {
 
 	yamlBytes, err := yaml.Marshal(obj.Object)
 	if err != nil {
-		apierr.AbortInternal(c, fmt.Sprintf("Failed to marshal to YAML: %v", err))
+		apierr.AbortWithError(c, apierr.InternalServiceError("Failed to marshal to YAML", err))
 		return
 	}
 
@@ -199,7 +199,7 @@ func (h *PrometheusRuleHandler) ValidateRule(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&body); err != nil {
-		apierr.AbortValidation(c, "Invalid request body: yaml field is required")
+		apierr.AbortWithError(c, apierr.ValidationError("Invalid request body: yaml field is required", nil))
 		return
 	}
 
@@ -220,7 +220,7 @@ func (h *PrometheusRuleHandler) ValidateRule(c *gin.Context) {
 func (h *PrometheusRuleHandler) ListTemplates(c *gin.Context) {
 	templates, err := loadAllTemplates()
 	if err != nil {
-		apierr.AbortInternal(c, fmt.Sprintf("Failed to load templates: %v", err))
+		apierr.AbortWithError(c, apierr.InternalServiceError("Failed to load templates", err))
 		return
 	}
 
@@ -241,13 +241,13 @@ func (h *PrometheusRuleHandler) ListTemplates(c *gin.Context) {
 func (h *PrometheusRuleHandler) GetTemplate(c *gin.Context) {
 	templateName := c.Param("name")
 	if templateName == "" {
-		apierr.AbortValidation(c, "template name is required")
+		apierr.AbortWithError(c, apierr.ValidationError("template name is required", nil))
 		return
 	}
 
 	template, err := loadTemplateDetail(templateName)
 	if err != nil {
-		apierr.AbortNotFound(c, "template", templateName)
+		apierr.AbortWithError(c, apierr.NotFoundError("template", templateName))
 		return
 	}
 
@@ -263,21 +263,21 @@ func (h *PrometheusRuleHandler) ApplyTemplate(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&body); err != nil {
-		apierr.AbortValidation(c, "Invalid request body")
+		apierr.AbortWithError(c, err)
 		return
 	}
 
 	// Get template details
 	template, err := loadTemplateDetail(body.TemplateName)
 	if err != nil {
-		apierr.AbortNotFound(c, "template", body.TemplateName)
+		apierr.AbortWithError(c, apierr.NotFoundError("template", body.TemplateName))
 		return
 	}
 
 	// Parse YAML content
 	var obj unstructured.Unstructured
 	if err := yaml.Unmarshal([]byte(template.Content), &obj.Object); err != nil {
-		apierr.AbortInternal(c, fmt.Sprintf("Failed to parse template: %v", err))
+		apierr.AbortWithError(c, apierr.InternalServiceError("Failed to parse template", err))
 		return
 	}
 
@@ -298,7 +298,7 @@ func (h *PrometheusRuleHandler) ApplyTemplate(c *gin.Context) {
 		obj.SetResourceVersion(existing.GetResourceVersion())
 		_, err = h.dynamicClient.Resource(prometheusRuleGVR).Namespace(body.Namespace).Update(ctx, &obj, metav1.UpdateOptions{})
 		if err != nil {
-			apierr.AbortInternal(c, fmt.Sprintf("Failed to update PrometheusRule: %v", err))
+			apierr.AbortWithError(c, apierr.InternalServiceError("Failed to update PrometheusRule", err))
 			return
 		}
 		apierr.OK(c, gin.H{
@@ -309,7 +309,7 @@ func (h *PrometheusRuleHandler) ApplyTemplate(c *gin.Context) {
 		// Create new resource
 		_, err = h.dynamicClient.Resource(prometheusRuleGVR).Namespace(body.Namespace).Create(ctx, &obj, metav1.CreateOptions{})
 		if err != nil {
-			apierr.AbortInternal(c, fmt.Sprintf("Failed to create PrometheusRule: %v", err))
+			apierr.AbortWithError(c, apierr.InternalServiceError("Failed to create PrometheusRule", err))
 			return
 		}
 		apierr.OK(c, gin.H{

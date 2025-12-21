@@ -458,7 +458,7 @@ func GetPrechangeChecklist(c *gin.Context) {
 
 	hasRecent, lastBackupTime, rpoLagSeconds, storageConnectivity, rpoOk, err := computePrechangeChecklist(c, k8sClient, namespace, name, windowHours, now)
 	if err != nil {
-		apierr.AbortInternal(c, "failed to list backups: "+err.Error())
+		apierr.AbortWithError(c, apierr.InternalServiceError("failed to list backups", err))
 		return
 	}
 
@@ -501,7 +501,7 @@ func Precheck(c *gin.Context) {
 
 	var req PrecheckRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		apierr.AbortValidation(c, "invalid precheck request: "+err.Error())
+		apierr.AbortWithError(c, err)
 		return
 	}
 	op := req.Operation
@@ -511,14 +511,14 @@ func Precheck(c *gin.Context) {
 			op = "config"
 		}
 	default:
-		apierr.AbortValidation(c, "unsupported operation: "+op)
+		apierr.AbortWithError(c, apierr.ValidationError("unsupported operation: "+op, nil))
 		return
 	}
 
 	now := time.Now()
 	hasRecent, lastBackupTime, rpoLagSeconds, storageConnectivity, rpoOk, err := computePrechangeChecklist(c, k8sClient, ns, name, 24, now)
 	if err != nil {
-		apierr.AbortInternal(c, "failed to compute checklist: "+err.Error())
+		apierr.AbortWithError(c, apierr.InternalServiceError("failed to compute checklist", err))
 		return
 	}
 

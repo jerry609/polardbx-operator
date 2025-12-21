@@ -38,20 +38,19 @@ func Start(c *gin.Context) {
 	cluster := c.Param("cluster")
 
 	if namespace == "" || cluster == "" {
-		apierr.AbortValidation(c, "namespace and cluster name cannot be empty")
+		apierr.AbortWithError(c, apierr.ValidationError("namespace and cluster name cannot be empty", nil))
 		return
 	}
 
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
-		apierr.AbortInternal(c, "unable to get Kubernetes client")
 		return
 	}
 
 	svc := service.NewDiagnosticsService(cli)
 	job, err := svc.StartDiagnosis(c.Request.Context(), namespace, cluster)
 	if err != nil {
-		apierr.AbortInternal(c, err.Error())
+		apierr.AbortWithError(c, err)
 		return
 	}
 
@@ -76,20 +75,19 @@ func GetStatus(c *gin.Context) {
 	id := c.Param("id")
 
 	if namespace == "" || id == "" {
-		apierr.AbortValidation(c, "namespace and task ID cannot be empty")
+		apierr.AbortWithError(c, apierr.ValidationError("namespace and task ID cannot be empty", nil))
 		return
 	}
 
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
-		apierr.AbortInternal(c, "unable to get Kubernetes client")
 		return
 	}
 
 	svc := service.NewDiagnosticsService(cli)
 	job, err := svc.GetDiagnosisStatus(c.Request.Context(), namespace, id)
 	if err != nil {
-		apierr.AbortNotFound(c, "diagnostic job", id)
+		apierr.AbortWithError(c, err)
 		return
 	}
 
@@ -111,14 +109,13 @@ func ListReports(c *gin.Context) {
 
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
-		apierr.AbortInternal(c, "unable to get Kubernetes client")
 		return
 	}
 
 	svc := service.NewDiagnosticsService(cli)
 	reports, err := svc.ListDiagnosisReports(c.Request.Context(), namespace)
 	if err != nil {
-		apierr.AbortInternal(c, err.Error())
+		apierr.AbortWithError(c, err)
 		return
 	}
 
@@ -151,20 +148,20 @@ func Download(c *gin.Context) {
 	id := c.Param("id")
 
 	if namespace == "" || id == "" {
-		apierr.AbortValidation(c, "namespace and task ID cannot be empty")
+		apierr.AbortWithError(c, apierr.ValidationError("namespace and task ID cannot be empty", nil))
 		return
 	}
 
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
-		apierr.AbortInternal(c, "unable to get Kubernetes client")
 		return
 	}
 
 	svc := service.NewDiagnosticsService(cli)
 	outputPath, err := svc.GetDownloadInfo(c.Request.Context(), namespace, id)
 	if err != nil {
-		apierr.AbortNotFound(c, "diagnostic report", id)
+		// Keep backward-compatible behavior: treat "not ready" as not found for the download endpoint.
+		apierr.AbortWithError(c, apierr.NotFoundError("diagnostic report", id))
 		return
 	}
 
@@ -203,7 +200,7 @@ func GetFile(c *gin.Context) {
 
 	// Validate inputs early to avoid command injection and invalid paths.
 	if namespace == "" || id == "" {
-		apierr.AbortValidation(c, "namespace and task ID cannot be empty")
+		apierr.AbortWithError(c, apierr.ValidationError("namespace and task ID cannot be empty", nil))
 		return
 	}
 	if !isValidDiagnosticID(id) {
@@ -213,7 +210,6 @@ func GetFile(c *gin.Context) {
 
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
-		apierr.AbortInternal(c, "unable to get Kubernetes client")
 		return
 	}
 
@@ -221,7 +217,7 @@ func GetFile(c *gin.Context) {
 	svc := service.NewDiagnosticsService(cli)
 	job, err := svc.GetDiagnosisStatus(c.Request.Context(), namespace, id)
 	if err != nil {
-		apierr.AbortNotFound(c, "diagnostic job", id)
+		apierr.AbortWithError(c, err)
 		return
 	}
 	if job.Status != service.DiagStatusSucceeded {
@@ -338,13 +334,12 @@ func DeleteJob(c *gin.Context) {
 	id := c.Param("id")
 
 	if namespace == "" || id == "" {
-		apierr.AbortValidation(c, "namespace and task ID cannot be empty")
+		apierr.AbortWithError(c, apierr.ValidationError("namespace and task ID cannot be empty", nil))
 		return
 	}
 
 	cli, ok := util.K8sClientFromContext(c)
 	if !ok {
-		apierr.AbortInternal(c, "unable to get Kubernetes client")
 		return
 	}
 

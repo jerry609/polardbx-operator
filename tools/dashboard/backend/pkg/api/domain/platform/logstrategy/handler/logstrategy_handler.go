@@ -96,7 +96,7 @@ func saveList(c *gin.Context, cm *corev1.ConfigMap, list []Strategy) error {
 func List(c *gin.Context) {
 	cm, err := getStore(c)
 	if err != nil {
-		apierr.AbortInternal(c, "failed to load strategy store: "+err.Error())
+		apierr.AbortWithError(c, apierr.InternalServiceError("failed to load strategy store", err))
 		return
 	}
 	if cm == nil {
@@ -123,11 +123,11 @@ func Get(c *gin.Context) {
 	name := c.Param("name")
 	cm, err := getStore(c)
 	if err != nil {
-		apierr.AbortInternal(c, "failed to load strategy store: "+err.Error())
+		apierr.AbortWithError(c, apierr.InternalServiceError("failed to load strategy store", err))
 		return
 	}
 	if cm == nil {
-		apierr.AbortNotFound(c, "strategy", name)
+		apierr.AbortWithError(c, apierr.NotFoundError("strategy", name))
 		return
 	}
 	for _, it := range loadList(cm) {
@@ -136,7 +136,7 @@ func Get(c *gin.Context) {
 			return
 		}
 	}
-	apierr.AbortNotFound(c, "strategy", name)
+	apierr.AbortWithError(c, apierr.NotFoundError("strategy", name))
 }
 
 // Create creates a new strategy
@@ -154,12 +154,16 @@ func Get(c *gin.Context) {
 func Create(c *gin.Context) {
 	cm, err := getStore(c)
 	if err != nil {
-		apierr.AbortInternal(c, "failed to load strategy store: "+err.Error())
+		apierr.AbortWithError(c, apierr.InternalServiceError("failed to load strategy store", err))
 		return
 	}
 	var s Strategy
-	if err := c.ShouldBindJSON(&s); err != nil || s.Name == "" || s.ClusterName == "" {
-		apierr.AbortValidation(c, "invalid strategy: name and clusterName required")
+	if err := c.ShouldBindJSON(&s); err != nil {
+		apierr.AbortWithError(c, err)
+		return
+	}
+	if s.Name == "" || s.ClusterName == "" {
+		apierr.AbortWithError(c, apierr.ValidationError("invalid strategy: name and clusterName required", nil))
 		return
 	}
 	list := loadList(cm)
@@ -171,7 +175,7 @@ func Create(c *gin.Context) {
 	}
 	list = append(list, s)
 	if e := saveList(c, cm, list); e != nil {
-		apierr.AbortInternal(c, "failed to persist strategy: "+e.Error())
+		apierr.AbortWithError(c, apierr.InternalServiceError("failed to persist strategy", e))
 		return
 	}
 	apierr.Created(c, s)
@@ -194,12 +198,16 @@ func Update(c *gin.Context) {
 	name := c.Param("name")
 	cm, err := getStore(c)
 	if err != nil {
-		apierr.AbortInternal(c, "failed to load strategy store: "+err.Error())
+		apierr.AbortWithError(c, apierr.InternalServiceError("failed to load strategy store", err))
 		return
 	}
 	var s Strategy
-	if err := c.ShouldBindJSON(&s); err != nil || s.Name == "" || s.Name != name {
-		apierr.AbortValidation(c, "invalid strategy: body.name must equal path name")
+	if err := c.ShouldBindJSON(&s); err != nil {
+		apierr.AbortWithError(c, err)
+		return
+	}
+	if s.Name == "" || s.Name != name {
+		apierr.AbortWithError(c, apierr.ValidationError("invalid strategy: body.name must equal path name", nil))
 		return
 	}
 	list := loadList(cm)
@@ -212,11 +220,11 @@ func Update(c *gin.Context) {
 		}
 	}
 	if !found {
-		apierr.AbortNotFound(c, "strategy", name)
+		apierr.AbortWithError(c, apierr.NotFoundError("strategy", name))
 		return
 	}
 	if e := saveList(c, cm, list); e != nil {
-		apierr.AbortInternal(c, "failed to persist strategy: "+e.Error())
+		apierr.AbortWithError(c, apierr.InternalServiceError("failed to persist strategy", e))
 		return
 	}
 	// If no ES output remains for this cluster after update, perform cleanup
@@ -248,7 +256,7 @@ func Delete(c *gin.Context) {
 	name := c.Param("name")
 	cm, err := getStore(c)
 	if err != nil {
-		apierr.AbortInternal(c, "failed to load strategy store: "+err.Error())
+		apierr.AbortWithError(c, apierr.InternalServiceError("failed to load strategy store", err))
 		return
 	}
 	list := loadList(cm)
@@ -264,12 +272,12 @@ func Delete(c *gin.Context) {
 		}
 	}
 	if idx < 0 {
-		apierr.AbortNotFound(c, "strategy", name)
+		apierr.AbortWithError(c, apierr.NotFoundError("strategy", name))
 		return
 	}
 	list = append(list[:idx], list[idx+1:]...)
 	if e := saveList(c, cm, list); e != nil {
-		apierr.AbortInternal(c, "failed to persist strategy: "+e.Error())
+		apierr.AbortWithError(c, apierr.InternalServiceError("failed to persist strategy", e))
 		return
 	}
 	if hasRemoved {
@@ -343,8 +351,12 @@ func performCleanupForCluster(c *gin.Context, ns string, clusterName string) {
 // @Router /api/v1/platform/log-strategies/precheck [post]
 func Precheck(c *gin.Context) {
 	var s Strategy
-	if err := c.ShouldBindJSON(&s); err != nil || s.Name == "" || s.ClusterName == "" {
-		apierr.AbortValidation(c, "name and clusterName required")
+	if err := c.ShouldBindJSON(&s); err != nil {
+		apierr.AbortWithError(c, err)
+		return
+	}
+	if s.Name == "" || s.ClusterName == "" {
+		apierr.AbortWithError(c, apierr.ValidationError("name and clusterName required", nil))
 		return
 	}
 	cli, ok := util.K8sClientFromContext(c)
@@ -466,7 +478,7 @@ func Apply(c *gin.Context) {
 	name := c.Param("name")
 	cm, err := getStore(c)
 	if err != nil {
-		apierr.AbortInternal(c, "failed to load strategy store: "+err.Error())
+		apierr.AbortWithError(c, apierr.InternalServiceError("failed to load strategy store", err))
 		return
 	}
 	var s *Strategy
@@ -478,7 +490,7 @@ func Apply(c *gin.Context) {
 		}
 	}
 	if s == nil {
-		apierr.AbortNotFound(c, "strategy", name)
+		apierr.AbortWithError(c, apierr.NotFoundError("strategy", name))
 		return
 	}
 	cli, ok := util.K8sClientFromContext(c)
@@ -508,7 +520,7 @@ func Apply(c *gin.Context) {
 		if err != nil {
 			newSec := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: secName, Namespace: cmNamespace}, Type: corev1.SecretTypeOpaque, Data: map[string][]byte{"ca.crt": []byte(s.Output.CACrt)}}
 			if _, e := clientset.CoreV1().Secrets(cmNamespace).Create(ctx, newSec, metav1.CreateOptions{}); e != nil {
-				apierr.AbortInternal(c, "failed to create es cert secret: "+e.Error())
+				apierr.AbortWithError(c, apierr.InternalServiceError("failed to create es cert secret", e))
 				return
 			}
 		} else {
@@ -517,7 +529,7 @@ func Apply(c *gin.Context) {
 			}
 			sec.Data["ca.crt"] = []byte(s.Output.CACrt)
 			if _, e := clientset.CoreV1().Secrets(cmNamespace).Update(ctx, sec, metav1.UpdateOptions{}); e != nil {
-				apierr.AbortInternal(c, "failed to update es cert secret: "+e.Error())
+				apierr.AbortWithError(c, apierr.InternalServiceError("failed to update es cert secret", e))
 				return
 			}
 		}
@@ -530,7 +542,7 @@ func Apply(c *gin.Context) {
 		if err != nil {
 			newSec := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: credName, Namespace: cmNamespace}, Type: corev1.SecretTypeOpaque, StringData: map[string]string{"username": s.Output.Username, "password": s.Output.Password}}
 			if _, e := clientset.CoreV1().Secrets(cmNamespace).Create(ctx, newSec, metav1.CreateOptions{}); e != nil {
-				apierr.AbortInternal(c, "failed to create credentials secret: "+e.Error())
+				apierr.AbortWithError(c, apierr.InternalServiceError("failed to create credentials secret", e))
 				return
 			}
 		} else {
@@ -547,7 +559,7 @@ func Apply(c *gin.Context) {
 				sec.StringData["password"] = s.Output.Password
 			}
 			if _, e := clientset.CoreV1().Secrets(cmNamespace).Update(ctx, sec, metav1.UpdateOptions{}); e != nil {
-				apierr.AbortInternal(c, "failed to update credentials secret: "+e.Error())
+				apierr.AbortWithError(c, apierr.InternalServiceError("failed to update credentials secret", e))
 				return
 			}
 		}
@@ -561,7 +573,7 @@ func Apply(c *gin.Context) {
 	if err != nil {
 		newCm := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: cmNamePipeline, Namespace: cmNamespace}, Data: map[string]string{pipelineKey: out}}
 		if _, e := clientset.CoreV1().ConfigMaps(cmNamespace).Create(ctx, newCm, metav1.CreateOptions{}); e != nil {
-			apierr.AbortInternal(c, "failed to create pipeline configmap: "+e.Error())
+			apierr.AbortWithError(c, apierr.InternalServiceError("failed to create pipeline configmap", e))
 			return
 		}
 	} else {
@@ -570,7 +582,7 @@ func Apply(c *gin.Context) {
 		}
 		pl.Data[pipelineKey] = out
 		if _, e := clientset.CoreV1().ConfigMaps(cmNamespace).Update(ctx, pl, metav1.UpdateOptions{}); e != nil {
-			apierr.AbortInternal(c, "failed to update pipeline configmap: "+e.Error())
+			apierr.AbortWithError(c, apierr.InternalServiceError("failed to update pipeline configmap", e))
 			return
 		}
 	}
@@ -583,7 +595,7 @@ func Apply(c *gin.Context) {
 		}
 		dep.Spec.Template.Annotations["kubectl.kubernetes.io/restartedAt"] = time.Now().Format(time.RFC3339)
 		if _, e := clientset.AppsV1().Deployments(cmNamespace).Update(ctx, dep, metav1.UpdateOptions{}); e != nil {
-			apierr.AbortInternal(c, "failed to restart logstash: "+e.Error())
+			apierr.AbortWithError(c, apierr.InternalServiceError("failed to restart logstash", e))
 			return
 		}
 	}
@@ -620,13 +632,17 @@ func TestConnection(c *gin.Context) {
 		Username string   `json:"username"`
 		Password string   `json:"password"`
 	}
-	if err := c.ShouldBindJSON(&payload); err != nil || len(payload.Hosts) == 0 {
-		apierr.AbortValidation(c, "hosts required")
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		apierr.AbortWithError(c, err)
+		return
+	}
+	if len(payload.Hosts) == 0 {
+		apierr.AbortWithError(c, apierr.ValidationError("hosts required", nil))
 		return
 	}
 	host := strings.TrimSpace(payload.Hosts[0])
 	if host == "" {
-		apierr.AbortValidation(c, "invalid host")
+		apierr.AbortWithError(c, apierr.ValidationError("invalid host", nil))
 		return
 	}
 	if !strings.Contains(host, "://") {
@@ -689,7 +705,7 @@ const (
 func ListApplyRecords(c *gin.Context) {
 	cs, ok := util.ClientsetFromContext(c)
 	if !ok {
-		apierr.AbortInternal(c, "kubernetes clientset not initialized")
+		apierr.AbortWithError(c, apierr.InternalServiceError("kubernetes clientset not initialized", nil))
 		return
 	}
 

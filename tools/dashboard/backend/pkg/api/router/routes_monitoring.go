@@ -4,56 +4,64 @@ import (
 	domain_monitoring "polardbx-dashboard-backend/pkg/api/domain/monitoring"
 	domain_grafana "polardbx-dashboard-backend/pkg/api/domain/platform/grafana/handler"
 	domain_prometheusrule "polardbx-dashboard-backend/pkg/api/domain/platform/prometheusrule/handler"
-	"polardbx-dashboard-backend/pkg/api/routerutil"
 
 	"github.com/gin-gonic/gin"
 )
 
 // RegisterMonitoringRoutes registers monitoring-related routes
 func RegisterMonitoringRoutes(v1 *gin.RouterGroup) {
-	// Monitor CRD routes
-	base := "/monitors"
-	routerutil.RegisterCRUDWithItemPattern(v1, base, base+"/:namespace/:name", routerutil.CRUDHandlers{
-		List:   domain_monitoring.ListMonitors,
-		Create: domain_monitoring.CreateMonitor,
-		Get:    domain_monitoring.GetMonitor,
-		Update: domain_monitoring.UpdateMonitor,
-		Delete: domain_monitoring.DeleteMonitor,
+	reg := NewRouteRegistry()
+	RegisterMonitoringRoutesRegistry(reg)
+	reg.Apply(v1)
+}
+
+func RegisterMonitoringRoutesRegistry(reg *RouteRegistry) {
+	reg.RegisterGroup(RouteGroup{
+		Prefix:      "",
+		Description: "Monitoring and Grafana routes",
+		Routes: []Route{
+			// Monitor CRD routes
+			{Method: "GET", Path: "/monitors", Handler: domain_monitoring.ListMonitors},
+			{Method: "POST", Path: "/monitors", Handler: domain_monitoring.CreateMonitor},
+			{Method: "GET", Path: "/monitors/:namespace/:name", Handler: domain_monitoring.GetMonitor},
+			{Method: "PUT", Path: "/monitors/:namespace/:name", Handler: domain_monitoring.UpdateMonitor},
+			{Method: "DELETE", Path: "/monitors/:namespace/:name", Handler: domain_monitoring.DeleteMonitor},
+
+			// Monitoring workflow endpoints
+			{Method: "POST", Path: "/monitoring/bootstrap", Handler: domain_monitoring.Bootstrap},
+			{Method: "GET", Path: "/monitoring/bootstrap/status", Handler: domain_monitoring.BootstrapStatus},
+			{Method: "GET", Path: "/monitoring/bootstrap/logs", Handler: domain_monitoring.GetBootstrapLogs},
+			{Method: "GET", Path: "/monitoring/status", Handler: domain_monitoring.Status},
+			{Method: "GET", Path: "/monitoring/preflight", Handler: domain_monitoring.DetectEnvironment},
+			{Method: "DELETE", Path: "/monitoring/uninstall", Handler: domain_monitoring.Uninstall},
+
+			// Monitoring v2 workflow endpoints
+			{Method: "GET", Path: "/monitoring/detect", Handler: domain_monitoring.DetectEnvironment},
+			{Method: "POST", Path: "/monitoring/plan", Handler: domain_monitoring.CreatePlan},
+			{Method: "POST", Path: "/monitoring/install", Handler: domain_monitoring.StartInstallation},
+			{Method: "GET", Path: "/monitoring/install/:sessionId/status", Handler: domain_monitoring.GetInstallStatus},
+			{Method: "GET", Path: "/monitoring/install/:sessionId/logs", Handler: domain_monitoring.GetBootstrapLogs},
+			{Method: "POST", Path: "/monitoring/install/:sessionId/retry", Handler: domain_monitoring.TriggerRetry},
+			{Method: "POST", Path: "/monitoring/diagnose", Handler: domain_monitoring.DiagnoseFailure},
+			{Method: "POST", Path: "/monitoring/auto-fix", Handler: domain_monitoring.ApplyAutoFix},
+
+			// Grafana routes
+			{Method: "GET", Path: "/monitoring/grafana/config", Handler: domain_grafana.GetConfig},
+			{Method: "PUT", Path: "/monitoring/grafana/config", Handler: domain_grafana.PutConfig},
+			{Method: "POST", Path: "/monitoring/grafana/dashboards/sync", Handler: domain_grafana.SyncDashboards},
+			{Method: "GET", Path: "/monitoring/grafana/dashboards", Handler: domain_grafana.ListDashboards},
+			{Method: "GET", Path: "/monitoring/grafana/dashboards/:name/versions", Handler: domain_grafana.ListDashboardVersions},
+			{Method: "POST", Path: "/monitoring/grafana/dashboards/:name/rollback", Handler: domain_grafana.RollbackDashboard},
+			{Method: "GET", Path: "/monitoring/grafana/templates", Handler: domain_grafana.ListTemplates},
+			{Method: "GET", Path: "/monitoring/grafana/templates/:name", Handler: domain_grafana.GetTemplate},
+
+			// Prometheus Rules
+			{Method: "GET", Path: "/prometheus-rules", Handler: domain_prometheusrule.List},
+			{Method: "GET", Path: "/prometheus-rules/:namespace/:name/yaml", Handler: domain_prometheusrule.GetYAML},
+			{Method: "POST", Path: "/prometheus-rules/validate", Handler: domain_prometheusrule.ValidateRule},
+			{Method: "GET", Path: "/prometheus-rules/templates", Handler: domain_prometheusrule.ListTemplates},
+			{Method: "GET", Path: "/prometheus-rules/templates/:name", Handler: domain_prometheusrule.GetTemplate},
+			{Method: "POST", Path: "/prometheus-rules/apply", Handler: domain_prometheusrule.ApplyTemplate},
+		},
 	})
-
-	// Monitoring workflow endpoints
-	v1.POST("/monitoring/bootstrap", domain_monitoring.Bootstrap)
-	v1.GET("/monitoring/bootstrap/status", domain_monitoring.BootstrapStatus)
-	v1.GET("/monitoring/bootstrap/logs", domain_monitoring.GetBootstrapLogs)
-	v1.GET("/monitoring/status", domain_monitoring.Status)
-	v1.GET("/monitoring/preflight", domain_monitoring.DetectEnvironment)
-	v1.DELETE("/monitoring/uninstall", domain_monitoring.Uninstall)
-
-	// Monitoring v2 workflow endpoints
-	v1.GET("/monitoring/detect", domain_monitoring.DetectEnvironment)
-	v1.POST("/monitoring/plan", domain_monitoring.CreatePlan)
-	v1.POST("/monitoring/install", domain_monitoring.StartInstallation)
-	v1.GET("/monitoring/install/:sessionId/status", domain_monitoring.GetInstallStatus)
-	v1.GET("/monitoring/install/:sessionId/logs", domain_monitoring.GetBootstrapLogs)
-	v1.POST("/monitoring/install/:sessionId/retry", domain_monitoring.TriggerRetry)
-	v1.POST("/monitoring/diagnose", domain_monitoring.DiagnoseFailure)
-	v1.POST("/monitoring/auto-fix", domain_monitoring.ApplyAutoFix)
-
-	// Grafana routes
-	v1.GET("/monitoring/grafana/config", domain_grafana.GetConfig)
-	v1.PUT("/monitoring/grafana/config", domain_grafana.PutConfig)
-	v1.POST("/monitoring/grafana/dashboards/sync", domain_grafana.SyncDashboards)
-	v1.GET("/monitoring/grafana/dashboards", domain_grafana.ListDashboards)
-	v1.GET("/monitoring/grafana/dashboards/:name/versions", domain_grafana.ListDashboardVersions)
-	v1.POST("/monitoring/grafana/dashboards/:name/rollback", domain_grafana.RollbackDashboard)
-	v1.GET("/monitoring/grafana/templates", domain_grafana.ListTemplates)
-	v1.GET("/monitoring/grafana/templates/:name", domain_grafana.GetTemplate)
-
-	// Prometheus Rules
-	v1.GET("/prometheus-rules", domain_prometheusrule.List)
-	v1.GET("/prometheus-rules/:namespace/:name/yaml", domain_prometheusrule.GetYAML)
-	v1.POST("/prometheus-rules/validate", domain_prometheusrule.ValidateRule)
-	v1.GET("/prometheus-rules/templates", domain_prometheusrule.ListTemplates)
-	v1.GET("/prometheus-rules/templates/:name", domain_prometheusrule.GetTemplate)
-	v1.POST("/prometheus-rules/apply", domain_prometheusrule.ApplyTemplate)
 }

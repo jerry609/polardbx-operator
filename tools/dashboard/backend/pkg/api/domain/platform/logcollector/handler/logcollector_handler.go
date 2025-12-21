@@ -81,7 +81,7 @@ func (h *LogCollectorHandler) list(c *gin.Context) {
 	namespace := c.DefaultQuery("namespace", "default")
 	collectors, err := h.repo.List(c.Request.Context(), namespace)
 	if err != nil {
-		apierr.AbortInternal(c, "failed to list log collectors: "+err.Error())
+		apierr.AbortWithError(c, apierr.InternalServiceError("failed to list log collectors", err))
 		return
 	}
 	apierr.OK(c, collectors)
@@ -111,13 +111,13 @@ func (h *LogCollectorHandler) create(c *gin.Context) {
 	namespace := c.DefaultQuery("namespace", "default")
 	var collector polardbxv1.PolarDBXLogCollector
 	if err := c.ShouldBindJSON(&collector); err != nil {
-		apierr.AbortValidation(c, "failed to parse log collector data: "+err.Error())
+		apierr.AbortWithError(c, err)
 		return
 	}
 	collector.Namespace = namespace
 	createdCollector, err := h.repo.Create(c.Request.Context(), &collector)
 	if err != nil {
-		apierr.AbortInternal(c, "failed to create log collector: "+err.Error())
+		apierr.AbortWithError(c, apierr.InternalServiceError("failed to create log collector", err))
 		return
 	}
 	apierr.Created(c, createdCollector)
@@ -147,7 +147,7 @@ func (h *LogCollectorHandler) get(c *gin.Context) {
 	name := c.Param("name")
 	collector, err := h.repo.Get(c.Request.Context(), namespace, name)
 	if err != nil {
-		apierr.AbortNotFound(c, "log collector", name)
+		apierr.AbortWithError(c, err)
 		return
 	}
 	apierr.OK(c, collector)
@@ -178,13 +178,13 @@ func (h *LogCollectorHandler) update(c *gin.Context) {
 	namespace := c.Param("namespace")
 	var collector polardbxv1.PolarDBXLogCollector
 	if err := c.ShouldBindJSON(&collector); err != nil {
-		apierr.AbortValidation(c, "failed to parse log collector data: "+err.Error())
+		apierr.AbortWithError(c, err)
 		return
 	}
 	collector.Namespace = namespace
 	updatedCollector, err := h.repo.Update(c.Request.Context(), &collector)
 	if err != nil {
-		apierr.AbortInternal(c, "failed to update log collector: "+err.Error())
+		apierr.AbortWithError(c, apierr.InternalServiceError("failed to update log collector", err))
 		return
 	}
 	apierr.OK(c, updatedCollector)
@@ -260,7 +260,7 @@ func GetLogstashPipeline(c *gin.Context) {
 	defer cancel()
 	cm, err := clientset.CoreV1().ConfigMaps(namespace).Get(ctx, cmName, metav1.GetOptions{})
 	if err != nil {
-		apierr.AbortInternal(c, "failed to get logstash pipeline configmap: "+err.Error())
+		apierr.AbortWithError(c, err)
 		return
 	}
 	if key != "" {
@@ -268,7 +268,7 @@ func GetLogstashPipeline(c *gin.Context) {
 			apierr.OK(c, gin.H{"namespace": namespace, "configMap": cmName, "key": key, "value": v})
 			return
 		}
-		apierr.AbortNotFound(c, "configmap key", key)
+		apierr.AbortWithError(c, apierr.NotFoundError("configmap key", key))
 		return
 	}
 	apierr.OK(c, gin.H{"namespace": namespace, "configMap": cmName, "data": cm.Data})
@@ -301,7 +301,7 @@ func UpdateLogstashPipeline(c *gin.Context) {
 	cmName := c.DefaultQuery("configMap", "logstash-pipeline")
 	var req updatePipelineRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		apierr.AbortValidation(c, "invalid request body: "+err.Error())
+		apierr.AbortWithError(c, err)
 		return
 	}
 	if req.Data == nil {
@@ -313,7 +313,7 @@ func UpdateLogstashPipeline(c *gin.Context) {
 	if err != nil {
 		newCm := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: cmName, Namespace: namespace}, Data: req.Data}
 		if _, err2 := clientset.CoreV1().ConfigMaps(namespace).Create(ctx, newCm, metav1.CreateOptions{}); err2 != nil {
-			apierr.AbortInternal(c, "failed to create pipeline configmap: "+err2.Error())
+			apierr.AbortWithError(c, err2)
 			return
 		}
 		apierr.Created(c, gin.H{"namespace": namespace, "configMap": cmName, "data": req.Data})
@@ -326,7 +326,7 @@ func UpdateLogstashPipeline(c *gin.Context) {
 		cm.Data[k] = v
 	}
 	if _, err := clientset.CoreV1().ConfigMaps(namespace).Update(ctx, cm, metav1.UpdateOptions{}); err != nil {
-		apierr.AbortInternal(c, "failed to update pipeline configmap: "+err.Error())
+		apierr.AbortWithError(c, err)
 		return
 	}
 	apierr.OK(c, gin.H{"namespace": namespace, "configMap": cmName, "data": cm.Data})
@@ -359,7 +359,7 @@ func GetElasticsearchCert(c *gin.Context) {
 	defer cancel()
 	sec, err := clientset.CoreV1().Secrets(namespace).Get(ctx, secName, metav1.GetOptions{})
 	if err != nil {
-		apierr.AbortInternal(c, "failed to get secret: "+err.Error())
+		apierr.AbortWithError(c, err)
 		return
 	}
 	v := string(sec.Data["ca.crt"])
@@ -392,8 +392,12 @@ func UpdateElasticsearchCert(c *gin.Context) {
 	namespace := c.Param("namespace")
 	secName := c.DefaultQuery("name", "elastic-certs-public")
 	var req esCertRequest
-	if err := c.ShouldBindJSON(&req); err != nil || strings.TrimSpace(req.CACrt) == "" {
-		apierr.AbortValidation(c, "invalid caCrt")
+	if err := c.ShouldBindJSON(&req); err != nil {
+		apierr.AbortWithError(c, err)
+		return
+	}
+	if strings.TrimSpace(req.CACrt) == "" {
+		apierr.AbortWithError(c, apierr.ValidationError("invalid caCrt", nil))
 		return
 	}
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
@@ -402,7 +406,7 @@ func UpdateElasticsearchCert(c *gin.Context) {
 	if err != nil {
 		newSec := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: secName, Namespace: namespace}, Type: corev1.SecretTypeOpaque, Data: map[string][]byte{"ca.crt": []byte(req.CACrt)}}
 		if _, err2 := clientset.CoreV1().Secrets(namespace).Create(ctx, newSec, metav1.CreateOptions{}); err2 != nil {
-			apierr.AbortInternal(c, "failed to create secret: "+err2.Error())
+			apierr.AbortWithError(c, err2)
 			return
 		}
 		apierr.Created(c, gin.H{"namespace": namespace, "secret": secName, "size": len(req.CACrt)})
@@ -413,7 +417,7 @@ func UpdateElasticsearchCert(c *gin.Context) {
 	}
 	sec.Data["ca.crt"] = []byte(req.CACrt)
 	if _, err := clientset.CoreV1().Secrets(namespace).Update(ctx, sec, metav1.UpdateOptions{}); err != nil {
-		apierr.AbortInternal(c, "failed to update secret: "+err.Error())
+		apierr.AbortWithError(c, err)
 		return
 	}
 	apierr.OK(c, gin.H{"namespace": namespace, "secret": secName, "size": len(req.CACrt)})
@@ -537,7 +541,7 @@ func StreamLogstashLogs(c *gin.Context) {
 			}
 		}
 		if pod == "" {
-			apierr.AbortNotFound(c, "logstash pod", "")
+			apierr.AbortWithError(c, apierr.NotFoundError("logstash pod", ""))
 			return
 		}
 	}
@@ -550,7 +554,7 @@ func StreamLogstashLogs(c *gin.Context) {
 	}
 	stream, err := clientset.CoreV1().Pods(namespace).GetLogs(pod, opts).Stream(ctx)
 	if err != nil {
-		apierr.AbortInternal(c, "failed to open log stream: "+err.Error())
+		apierr.AbortWithError(c, err)
 		return
 	}
 	defer stream.Close()

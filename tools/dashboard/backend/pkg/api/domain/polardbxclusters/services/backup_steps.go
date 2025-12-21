@@ -24,7 +24,7 @@ func RunBackupFlow(c *gin.Context) {
 			}
 			var backup polardbxv1.PolarDBXBackup
 			if err := c.ShouldBindJSON(&backup); err != nil {
-				apierr.AbortValidation(c, "failed to parse backup data: "+err.Error())
+				apierr.AbortWithError(c, err)
 				return errors.New("validate aborted")
 			}
 			ns := c.Query("namespace")
@@ -47,7 +47,7 @@ func RunBackupFlow(c *gin.Context) {
 			}
 			var backup polardbxv1.PolarDBXBackup
 			if err := c.ShouldBindJSON(&backup); err != nil {
-				apierr.AbortValidation(c, "failed to parse backup data: "+err.Error())
+				apierr.AbortWithError(c, err)
 				return errors.New("create aborted")
 			}
 			clusterName := c.Param("name")

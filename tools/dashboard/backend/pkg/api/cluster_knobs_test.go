@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -201,7 +202,7 @@ func TestClusterKnobsEndpoints(t *testing.T) {
 		var response map[string]interface{}
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
-		assert.Contains(t, getErr(response), "invalid cluster knobs data")
+		assert.Contains(t, strings.ToLower(getErr(response)), "invalid request format")
 	})
 
 	// --- Test GetClusterKnobs for non-existent knobs ---

@@ -2,74 +2,93 @@ package router
 
 import (
 	domain_alerts "polardbx-dashboard-backend/pkg/api/domain/platform/alerts/handler"
-	domain_auth "polardbx-dashboard-backend/pkg/api/domain/platform/auth/handler"
 	domain_clusterknobs "polardbx-dashboard-backend/pkg/api/domain/platform/clusterknobs/handler"
 	domain_pod "polardbx-dashboard-backend/pkg/api/domain/platform/pod/handler"
 	domain_pxc "polardbx-dashboard-backend/pkg/api/domain/polardbxclusters"
-	"polardbx-dashboard-backend/pkg/api/routerutil"
 
 	"github.com/gin-gonic/gin"
 )
 
 // RegisterClusterRoutes registers cluster-related routes
 func RegisterClusterRoutes(v1 *gin.RouterGroup) {
-	// Optional JWT middleware for all protected routes
-	v1.Use(domain_auth.JWTAuthMiddleware())
+	reg := NewRouteRegistry()
+	RegisterClusterRoutesRegistry(reg)
+	reg.Apply(v1)
+}
 
-	// Cluster CRUD
-	v1.GET("/clusters", domain_pxc.List)
-	v1.POST("/clusters", domain_pxc.Create)
-	v1.POST("/clusters/:namespace/create", domain_pxc.CreateFromConfig)
-	v1.GET("/clusters/:namespace/:name", domain_pxc.Get)
-	v1.PUT("/clusters/:namespace/:name", domain_pxc.Update)
-	v1.DELETE("/clusters/:namespace/:name", domain_pxc.Delete)
+func RegisterClusterRoutesRegistry(reg *RouteRegistry) {
+	reg.RegisterGroup(RouteGroup{
+		Prefix:      "",
+		Description: "Cluster, pod, alerts, and parameter routes",
+		Routes: []Route{
+			// Cluster CRUD
+			{Method: "GET", Path: "/clusters", Handler: domain_pxc.List},
+			{Method: "POST", Path: "/clusters", Handler: domain_pxc.Create},
+			{Method: "POST", Path: "/clusters/:namespace/create", Handler: domain_pxc.CreateFromConfig},
+			{Method: "GET", Path: "/clusters/:namespace/:name", Handler: domain_pxc.Get},
+			{Method: "PUT", Path: "/clusters/:namespace/:name", Handler: domain_pxc.Update},
+			{Method: "DELETE", Path: "/clusters/:namespace/:name", Handler: domain_pxc.Delete},
 
-	// Cluster operations
-	v1.PATCH("/clusters/:namespace/:name/log-config/:nodeType", domain_pxc.UpdateLogConfig)
-	v1.PATCH("/clusters/:namespace/:name/scale", domain_pxc.Scale)
-	v1.PATCH("/clusters/:namespace/:name/upgrade", domain_pxc.Upgrade)
-	v1.GET("/clusters/:namespace/:name/upgrade-plan", domain_pxc.GetUpgradePlan)
-	v1.GET("/clusters/:namespace/:name/alerts-summary", domain_pxc.GetAlertsSummary)
-	v1.GET("/clusters/:namespace/:name/prechange-check", domain_pxc.GetPrechangeChecklist)
-	v1.POST("/clusters/:namespace/:name/precheck", domain_pxc.Precheck)
+			// Cluster operations
+			{Method: "PATCH", Path: "/clusters/:namespace/:name/log-config/:nodeType", Handler: domain_pxc.UpdateLogConfig},
+			{Method: "PATCH", Path: "/clusters/:namespace/:name/scale", Handler: domain_pxc.Scale},
+			{Method: "PATCH", Path: "/clusters/:namespace/:name/upgrade", Handler: domain_pxc.Upgrade},
+			{Method: "GET", Path: "/clusters/:namespace/:name/upgrade-plan", Handler: domain_pxc.GetUpgradePlan},
+			{Method: "GET", Path: "/clusters/:namespace/:name/alerts-summary", Handler: domain_pxc.GetAlertsSummary},
+			{Method: "GET", Path: "/clusters/:namespace/:name/prechange-check", Handler: domain_pxc.GetPrechangeChecklist},
+			{Method: "POST", Path: "/clusters/:namespace/:name/precheck", Handler: domain_pxc.Precheck},
 
-	// Pods
-	v1.GET("/pods", domain_pod.List)
-	v1.GET("/pods/:namespace/:name", domain_pod.Get)
-	v1.DELETE("/pods/:namespace/:name", domain_pod.Delete)
-	v1.GET("/pods/:namespace/:name/exec", domain_pod.ExecWS)
-	v1.GET("/clusters/:namespace/:name/pods", domain_pod.ListForCluster)
-	v1.GET("/logs/:namespace/:pod_name", domain_pod.GetLogs)
+			// Pods
+			{Method: "GET", Path: "/pods", Handler: domain_pod.List},
+			{Method: "GET", Path: "/pods/:namespace/:name", Handler: domain_pod.Get},
+			{Method: "DELETE", Path: "/pods/:namespace/:name", Handler: domain_pod.Delete},
+			{Method: "GET", Path: "/pods/:namespace/:name/exec", Handler: domain_pod.ExecWS},
+			{Method: "GET", Path: "/clusters/:namespace/:name/pods", Handler: domain_pod.ListForCluster},
+			{Method: "GET", Path: "/logs/:namespace/:pod_name", Handler: domain_pod.GetLogs},
 
-	// Alerts
-	v1.GET("/alerts", domain_alerts.List)
+			// Alerts
+			{Method: "GET", Path: "/alerts", Handler: domain_alerts.List},
+		},
+	})
 
 	// Parameters
-	routerutil.RegisterCRUD(v1, "/parameters", routerutil.CRUDHandlers{
-		List:   domain_pxc.ListParameters,
-		Create: domain_pxc.CreateParameter,
-		Get:    domain_pxc.GetParameter,
-		Update: domain_pxc.UpdateParameter,
-		Delete: domain_pxc.DeleteParameter,
+	reg.RegisterGroup(RouteGroup{
+		Prefix:      "",
+		Description: "Parameter CRUD routes",
+		Routes: []Route{
+			{Method: "GET", Path: "/parameters", Handler: domain_pxc.ListParameters},
+			{Method: "POST", Path: "/parameters", Handler: domain_pxc.CreateParameter},
+			{Method: "GET", Path: "/parameters/:name", Handler: domain_pxc.GetParameter},
+			{Method: "PUT", Path: "/parameters/:name", Handler: domain_pxc.UpdateParameter},
+			{Method: "DELETE", Path: "/parameters/:name", Handler: domain_pxc.DeleteParameter},
+		},
 	})
 
 	// Parameter Templates
 	baseTpl := "/parameter-templates"
-	routerutil.RegisterCRUDWithItemPattern(v1, baseTpl, baseTpl+"/:namespace/:name", routerutil.CRUDHandlers{
-		List:   domain_pxc.ListTemplates,
-		Create: domain_pxc.CreateTemplate,
-		Get:    domain_pxc.GetTemplate,
-		Update: domain_pxc.UpdateTemplate,
-		Delete: domain_pxc.DeleteTemplate,
+	reg.RegisterGroup(RouteGroup{
+		Prefix:      "",
+		Description: "Parameter template CRUD routes",
+		Routes: []Route{
+			{Method: "GET", Path: baseTpl, Handler: domain_pxc.ListTemplates},
+			{Method: "POST", Path: baseTpl, Handler: domain_pxc.CreateTemplate},
+			{Method: "GET", Path: baseTpl + "/:namespace/:name", Handler: domain_pxc.GetTemplate},
+			{Method: "PUT", Path: baseTpl + "/:namespace/:name", Handler: domain_pxc.UpdateTemplate},
+			{Method: "DELETE", Path: baseTpl + "/:namespace/:name", Handler: domain_pxc.DeleteTemplate},
+		},
 	})
 
 	// Cluster Knobs
 	baseKnobs := "/cluster-knobs"
-	routerutil.RegisterCRUDWithItemPattern(v1, baseKnobs, baseKnobs+"/:namespace/:name", routerutil.CRUDHandlers{
-		List:   domain_clusterknobs.GetList,
-		Create: domain_clusterknobs.Create,
-		Get:    domain_clusterknobs.Get,
-		Update: domain_clusterknobs.Update,
-		Delete: domain_clusterknobs.Delete,
+	reg.RegisterGroup(RouteGroup{
+		Prefix:      "",
+		Description: "Cluster knobs CRUD routes",
+		Routes: []Route{
+			{Method: "GET", Path: baseKnobs, Handler: domain_clusterknobs.GetList},
+			{Method: "POST", Path: baseKnobs, Handler: domain_clusterknobs.Create},
+			{Method: "GET", Path: baseKnobs + "/:namespace/:name", Handler: domain_clusterknobs.Get},
+			{Method: "PUT", Path: baseKnobs + "/:namespace/:name", Handler: domain_clusterknobs.Update},
+			{Method: "DELETE", Path: baseKnobs + "/:namespace/:name", Handler: domain_clusterknobs.Delete},
+		},
 	})
 }

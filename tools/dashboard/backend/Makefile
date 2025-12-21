@@ -38,7 +38,9 @@ docker-build:
 		--build-arg COMMIT=$(COMMIT) \
 		--build-arg BUILD_DATE=$(BUILD_DATE) \
 		--build-arg GO_VERSION=$(GO_VERSION) \
-		-t $(IMG) .
+		-t $(IMG) \
+		-f Dockerfile \
+		../../..
 
 # --- Cleanup ---
 

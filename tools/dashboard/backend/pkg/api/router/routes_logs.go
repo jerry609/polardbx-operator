@@ -5,49 +5,57 @@ import (
 	domain_logs "polardbx-dashboard-backend/pkg/api/domain/platform/logs/handler"
 	domain_logservice "polardbx-dashboard-backend/pkg/api/domain/platform/logservice/handler"
 	domain_logstrategy "polardbx-dashboard-backend/pkg/api/domain/platform/logstrategy/handler"
-	"polardbx-dashboard-backend/pkg/api/routerutil"
 
 	"github.com/gin-gonic/gin"
 )
 
 // RegisterLogsRoutes registers log-related routes
 func RegisterLogsRoutes(v1 *gin.RouterGroup) {
-	// Log Collectors
-	base := "/log-collectors"
-	routerutil.RegisterCRUDWithItemPattern(v1, base, base+"/:namespace/:name", routerutil.CRUDHandlers{
-		List:   domain_logcollector.List,
-		Create: domain_logcollector.Create,
-		Get:    domain_logcollector.Get,
-		Update: domain_logcollector.Update,
-		Delete: domain_logcollector.Delete,
+	reg := NewRouteRegistry()
+	RegisterLogsRoutesRegistry(reg)
+	reg.Apply(v1)
+}
+
+func RegisterLogsRoutesRegistry(reg *RouteRegistry) {
+	reg.RegisterGroup(RouteGroup{
+		Prefix:      "",
+		Description: "Log collector, log service, and log strategy routes",
+		Routes: []Route{
+			// Log Collectors
+			{Method: "GET", Path: "/log-collectors", Handler: domain_logcollector.List},
+			{Method: "POST", Path: "/log-collectors", Handler: domain_logcollector.Create},
+			{Method: "GET", Path: "/log-collectors/:namespace/:name", Handler: domain_logcollector.Get},
+			{Method: "PUT", Path: "/log-collectors/:namespace/:name", Handler: domain_logcollector.Update},
+			{Method: "DELETE", Path: "/log-collectors/:namespace/:name", Handler: domain_logcollector.Delete},
+			{Method: "GET", Path: "/log-collectors/:namespace/pipeline", Handler: domain_logcollector.GetLogstashPipeline},
+			{Method: "PUT", Path: "/log-collectors/:namespace/pipeline", Handler: domain_logcollector.UpdateLogstashPipeline},
+			{Method: "GET", Path: "/log-collectors/:namespace/elastic-certs", Handler: domain_logcollector.GetElasticsearchCert},
+			{Method: "PUT", Path: "/log-collectors/:namespace/elastic-certs", Handler: domain_logcollector.UpdateElasticsearchCert},
+			{Method: "GET", Path: "/log-collectors/:namespace/:name/status", Handler: domain_logcollector.GetLogCollectorStatus},
+			{Method: "GET", Path: "/log-collectors/:namespace/logstash/logs", Handler: domain_logcollector.StreamLogstashLogs},
+			{Method: "POST", Path: "/log-collectors/:namespace/test", Handler: domain_logcollector.TestLogCollector},
+
+			// Log Service
+			{Method: "GET", Path: "/log-service/status", Handler: domain_logservice.Status},
+
+			// Log Strategies
+			{Method: "GET", Path: "/log-strategies", Handler: domain_logstrategy.List},
+			{Method: "POST", Path: "/log-strategies", Handler: domain_logstrategy.Create},
+			{Method: "POST", Path: "/log-strategies/precheck", Handler: domain_logstrategy.Precheck},
+			{Method: "GET", Path: "/log-strategies/apply-records", Handler: domain_logstrategy.ListApplyRecords},
+			{Method: "GET", Path: "/log-strategies/:name", Handler: domain_logstrategy.Get},
+			{Method: "PUT", Path: "/log-strategies/:name", Handler: domain_logstrategy.Update},
+			{Method: "DELETE", Path: "/log-strategies/:name", Handler: domain_logstrategy.Delete},
+			{Method: "POST", Path: "/log-strategies/:name/apply", Handler: domain_logstrategy.Apply},
+			{Method: "POST", Path: "/log-strategies/test-connection", Handler: domain_logstrategy.TestConnection},
+
+			// Logs Bootstrap (installation wizard)
+			{Method: "POST", Path: "/logs/bootstrap", Handler: domain_logs.Bootstrap},
+			{Method: "GET", Path: "/logs/bootstrap/status", Handler: domain_logs.BootstrapStatus},
+			{Method: "GET", Path: "/logs/bootstrap/logs", Handler: domain_logs.BootstrapLogs},
+			{Method: "POST", Path: "/logs/query", Handler: domain_logs.Query},
+			{Method: "GET", Path: "/logs/presets", Handler: domain_logs.Presets},
+			{Method: "GET", Path: "/logs/presets/:pattern", Handler: domain_logs.PresetByPattern},
+		},
 	})
-	v1.GET("/log-collectors/:namespace/pipeline", domain_logcollector.GetLogstashPipeline)
-	v1.PUT("/log-collectors/:namespace/pipeline", domain_logcollector.UpdateLogstashPipeline)
-	v1.GET("/log-collectors/:namespace/elastic-certs", domain_logcollector.GetElasticsearchCert)
-	v1.PUT("/log-collectors/:namespace/elastic-certs", domain_logcollector.UpdateElasticsearchCert)
-	v1.GET("/log-collectors/:namespace/:name/status", domain_logcollector.GetLogCollectorStatus)
-	v1.GET("/log-collectors/:namespace/logstash/logs", domain_logcollector.StreamLogstashLogs)
-	v1.POST("/log-collectors/:namespace/test", domain_logcollector.TestLogCollector)
-
-	// Log Service
-	v1.GET("/log-service/status", domain_logservice.Status)
-
-	// Log Strategies
-	v1.GET("/log-strategies", domain_logstrategy.List)
-	v1.POST("/log-strategies", domain_logstrategy.Create)
-	v1.POST("/log-strategies/precheck", domain_logstrategy.Precheck)
-	v1.GET("/log-strategies/apply-records", domain_logstrategy.ListApplyRecords)
-	v1.GET("/log-strategies/:name", domain_logstrategy.Get)
-	v1.PUT("/log-strategies/:name", domain_logstrategy.Update)
-	v1.DELETE("/log-strategies/:name", domain_logstrategy.Delete)
-	v1.POST("/log-strategies/:name/apply", domain_logstrategy.Apply)
-	v1.POST("/log-strategies/test-connection", domain_logstrategy.TestConnection)
-
-	// Logs Bootstrap (installation wizard)
-	v1.POST("/logs/bootstrap", domain_logs.Bootstrap)
-	v1.GET("/logs/bootstrap/status", domain_logs.BootstrapStatus)
-	v1.GET("/logs/bootstrap/logs", domain_logs.BootstrapLogs)
-	v1.POST("/logs/query", domain_logs.Query)
-	v1.GET("/logs/presets", domain_logs.Presets)
-	v1.GET("/logs/presets/:pattern", domain_logs.PresetByPattern)
 }
