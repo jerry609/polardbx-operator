@@ -88,7 +88,7 @@ func Create(c *gin.Context) {
 	ns := util.DefaultNamespace(c, "default")
 	var body polardbxv1.PolarDBXParameter
 	if err := c.ShouldBindJSON(&body); err != nil {
-		apierr.AbortValidation(c, "invalid parameter: "+err.Error())
+		apierr.AbortWithError(c, err)
 		return
 	}
 	created, err := k8s.CreatePolarDBXParameterWithContext(c.Request.Context(), cli, ns, &body)
@@ -122,7 +122,7 @@ func Update(c *gin.Context) {
 	ns := util.DefaultNamespace(c, "default")
 	var body polardbxv1.PolarDBXParameter
 	if err := c.ShouldBindJSON(&body); err != nil {
-		apierr.AbortValidation(c, "invalid parameter: "+err.Error())
+		apierr.AbortWithError(c, err)
 		return
 	}
 	updated, err := k8s.UpdatePolarDBXParameterWithContext(c.Request.Context(), cli, ns, &body)
@@ -237,7 +237,7 @@ func CreateTemplate(c *gin.Context) {
 	ns := util.DefaultNamespace(c, "default")
 	var body polardbxv1.PolarDBXParameterTemplate
 	if err := c.ShouldBindJSON(&body); err != nil {
-		apierr.AbortValidation(c, "invalid parameter template: "+err.Error())
+		apierr.AbortWithError(c, err)
 		return
 	}
 	created, err := k8s.CreatePolarDBXParameterTemplateWithContext(c.Request.Context(), cli, ns, &body)
@@ -271,7 +271,7 @@ func UpdateTemplate(c *gin.Context) {
 	ns := util.DefaultNamespace(c, "default")
 	var body polardbxv1.PolarDBXParameterTemplate
 	if err := c.ShouldBindJSON(&body); err != nil {
-		apierr.AbortValidation(c, "invalid parameter template: "+err.Error())
+		apierr.AbortWithError(c, err)
 		return
 	}
 	updated, err := k8s.UpdatePolarDBXParameterTemplateWithContext(c.Request.Context(), cli, ns, &body)

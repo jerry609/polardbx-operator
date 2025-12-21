@@ -47,7 +47,11 @@ func Login(c *gin.Context) {
 		Password string `json:"password"`
 	}
 	if err := c.ShouldBindJSON(&body); err != nil || body.Username == "" {
-		apierr.AbortValidation(c, "invalid payload")
+		if err != nil {
+			apierr.AbortWithError(c, err)
+			return
+		}
+		apierr.AbortWithError(c, apierr.ValidationError("invalid payload", nil))
 		return
 	}
 	adminUser := strings.TrimSpace(os.Getenv("ADMIN_USER"))
@@ -80,7 +84,7 @@ func Login(c *gin.Context) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	signed, err := token.SignedString([]byte(secret))
 	if err != nil {
-		apierr.AbortInternal(c, "failed to sign token")
+		apierr.AbortWithError(c, apierr.InternalServiceError("failed to sign token", err))
 		return
 	}
 	apierr.OK(c, gin.H{"token": signed, "expiresAt": exp.UTC().Format(time.RFC3339), "role": role})

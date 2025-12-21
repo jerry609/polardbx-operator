@@ -76,7 +76,7 @@ func CreateFollower(c *gin.Context) {
 		} `json:"spec,omitempty"`
 	}
 	if err := c.ShouldBindJSON(&payload); err != nil {
-		apierr.AbortValidation(c, "invalid xstore follower: "+err.Error())
+		apierr.AbortWithError(c, err)
 		return
 	}
 	obj := &polardbxv1.XStoreFollower{}
@@ -148,7 +148,7 @@ func UpdateFollower(c *gin.Context) {
 	ns := c.Param("namespace")
 	var body polardbxv1.XStoreFollower
 	if err := c.ShouldBindJSON(&body); err != nil {
-		apierr.AbortValidation(c, "invalid xstore follower: "+err.Error())
+		apierr.AbortWithError(c, err)
 		return
 	}
 	obj := &body
@@ -273,7 +273,7 @@ func RebuildWait(c *gin.Context) {
 	ns := c.Param("namespace")
 	name := c.Query("follower")
 	if name == "" {
-		apierr.AbortValidation(c, "follower is required")
+		apierr.AbortWithError(c, apierr.ValidationError("follower is required", nil))
 		return
 	}
 	timeoutSec, _ := strconv.Atoi(c.DefaultQuery("timeoutSec", "300"))
@@ -305,7 +305,7 @@ func RebuildProgress(c *gin.Context) {
 	ns := c.Param("namespace")
 	name := c.Query("follower")
 	if name == "" {
-		apierr.AbortValidation(c, "follower is required")
+		apierr.AbortWithError(c, apierr.ValidationError("follower is required", nil))
 		return
 	}
 	f, err := rebuildSvc(c).Progress(c.Request.Context(), cli, ns, name)
@@ -409,14 +409,14 @@ func createRebuildFollower(c *gin.Context, role polardbxv1xstore.FollowerRole) {
 	_ = c.ShouldBindJSON(&body)
 	name := body.Name
 	if name == "" {
-		apierr.AbortValidation(c, "name is required")
+		apierr.AbortWithError(c, apierr.ValidationError("name is required", nil))
 		return
 	}
 	if xstoreName == "" {
 		xstoreName = body.XStoreName
 	}
 	if xstoreName == "" {
-		apierr.AbortValidation(c, "xStoreName is required")
+		apierr.AbortWithError(c, apierr.ValidationError("xStoreName is required", nil))
 		return
 	}
 	obj, err := rebuildSvc(c).CreateFollower(c.Request.Context(), cli, ns, xstoreName, name, role)

@@ -72,8 +72,12 @@ func CreateProfile(c *gin.Context) {
 		Name    string `json:"name"`
 		Content string `json:"content"`
 	}
-	if err := c.ShouldBindJSON(&body); err != nil || body.Name == "" {
-		apierr.AbortValidation(c, "invalid payload")
+	if err := c.ShouldBindJSON(&body); err != nil {
+		apierr.AbortWithError(c, err)
+		return
+	}
+	if body.Name == "" {
+		apierr.AbortWithError(c, apierr.ValidationError("invalid payload", nil))
 		return
 	}
 	if err := h.service.CreateProfile(c.Request.Context(), body.Name, body.Content); err != nil {
@@ -81,7 +85,7 @@ func CreateProfile(c *gin.Context) {
 			apierr.Abort(c, apierr.Conflict("profile exists"))
 			return
 		}
-		apierr.AbortInternal(c, "create profiles cm: "+err.Error())
+		apierr.AbortWithError(c, apierr.InternalServiceError("create profiles cm", err))
 		return
 	}
 	apierr.Created(c, gin.H{"name": body.Name})
@@ -104,7 +108,7 @@ func GetProfile(c *gin.Context) {
 	name := c.Param("name")
 	profile, err := h.service.GetProfile(c.Request.Context(), name)
 	if err != nil {
-		apierr.AbortNotFound(c, "profile", name)
+		apierr.AbortWithError(c, apierr.NotFoundError("profile", name))
 		return
 	}
 	apierr.OK(c, gin.H{"name": profile.Name, "content": profile.Content})
@@ -131,16 +135,20 @@ func UpdateProfile(c *gin.Context) {
 	var body struct {
 		Content string `json:"content"`
 	}
-	if err := c.ShouldBindJSON(&body); err != nil || name == "" {
-		apierr.AbortValidation(c, "invalid payload")
+	if err := c.ShouldBindJSON(&body); err != nil {
+		apierr.AbortWithError(c, err)
+		return
+	}
+	if name == "" {
+		apierr.AbortWithError(c, apierr.ValidationError("invalid payload", nil))
 		return
 	}
 	if err := h.service.UpdateProfile(c.Request.Context(), name, body.Content); err != nil {
 		if err == service.ErrProfileNotFound {
-			apierr.AbortNotFound(c, "profile", name)
+			apierr.AbortWithError(c, apierr.NotFoundError("profile", name))
 			return
 		}
-		apierr.AbortInternal(c, "update profiles cm: "+err.Error())
+		apierr.AbortWithError(c, apierr.InternalServiceError("update profiles cm", err))
 		return
 	}
 	apierr.OK(c, gin.H{"name": name})
@@ -163,10 +171,10 @@ func DeleteProfile(c *gin.Context) {
 	name := c.Param("name")
 	if err := h.service.DeleteProfile(c.Request.Context(), name); err != nil {
 		if err == service.ErrProfileNotFound {
-			apierr.AbortNotFound(c, "profile", name)
+			apierr.AbortWithError(c, apierr.NotFoundError("profile", name))
 			return
 		}
-		apierr.AbortInternal(c, "update profiles cm: "+err.Error())
+		apierr.AbortWithError(c, apierr.InternalServiceError("update profiles cm", err))
 		return
 	}
 	apierr.OK(c, gin.H{"deleted": name})
@@ -191,16 +199,16 @@ func DryRunProfile(c *gin.Context) {
 		Content string `json:"content"`
 	}
 	if err := c.ShouldBindJSON(&body); err != nil {
-		apierr.AbortValidation(c, "invalid payload")
+		apierr.AbortWithError(c, err)
 		return
 	}
 	result, err := h.service.DryRunProfile(body.Content)
 	if err != nil {
-		apierr.AbortInternal(c, "tempfile error")
+		apierr.AbortWithError(c, apierr.InternalServiceError("tempfile error", err))
 		return
 	}
 	if !result.Valid {
-		apierr.AbortValidation(c, result.Details)
+		apierr.AbortWithError(c, apierr.ValidationError(result.Details, nil))
 		return
 	}
 	apierr.OK(c, gin.H{"valid": true})
@@ -241,7 +249,7 @@ func PutRoutes(c *gin.Context) {
 		Content string `json:"content"`
 	}
 	if err := c.ShouldBindJSON(&body); err != nil {
-		apierr.AbortValidation(c, "invalid payload")
+		apierr.AbortWithError(c, err)
 		return
 	}
 	_ = h.service.PutRoutes(c.Request.Context(), body.Content)
@@ -286,7 +294,7 @@ func ListSilences(c *gin.Context) {
 	}
 	base := strings.TrimRight(c.DefaultQuery("alertmanager", ""), "/")
 	if base == "" {
-		apierr.AbortValidation(c, "alertmanager required")
+		apierr.AbortWithError(c, apierr.ValidationError("alertmanager required", nil))
 		return
 	}
 	resp, err := http.Get(base + "/api/v2/silences")
@@ -318,12 +326,12 @@ func CreateSilence(c *gin.Context) {
 	}
 	base := strings.TrimRight(c.DefaultQuery("alertmanager", ""), "/")
 	if base == "" {
-		apierr.AbortValidation(c, "alertmanager required")
+		apierr.AbortWithError(c, apierr.ValidationError("alertmanager required", nil))
 		return
 	}
 	var body map[string]any
 	if err := c.ShouldBindJSON(&body); err != nil {
-		apierr.AbortValidation(c, "invalid payload")
+		apierr.AbortWithError(c, err)
 		return
 	}
 	b, _ := json.Marshal(body)
@@ -355,7 +363,7 @@ func DeleteSilence(c *gin.Context) {
 	}
 	base := strings.TrimRight(c.DefaultQuery("alertmanager", ""), "/")
 	if base == "" {
-		apierr.AbortValidation(c, "alertmanager required")
+		apierr.AbortWithError(c, apierr.ValidationError("alertmanager required", nil))
 		return
 	}
 	id := c.Param("id")
@@ -388,7 +396,7 @@ func TestAlert(c *gin.Context) {
 	}
 	base := strings.TrimRight(c.DefaultQuery("alertmanager", ""), "/")
 	if base == "" {
-		apierr.AbortValidation(c, "alertmanager required")
+		apierr.AbortWithError(c, apierr.ValidationError("alertmanager required", nil))
 		return
 	}
 	labels := c.DefaultQuery("labels", "severity=warning,service=test")

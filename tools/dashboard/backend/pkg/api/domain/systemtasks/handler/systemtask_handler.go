@@ -72,7 +72,7 @@ func (h *SystemTaskHandler) Create(c *gin.Context) {
 
 	var body polardbxv1.SystemTask
 	if err := c.ShouldBindJSON(&body); err != nil {
-		apierr.AbortValidation(c, "invalid system task: "+err.Error())
+		apierr.AbortWithError(c, err)
 		return
 	}
 
@@ -96,7 +96,7 @@ func (h *SystemTaskHandler) Update(c *gin.Context) {
 
 	var body polardbxv1.SystemTask
 	if err := c.ShouldBindJSON(&body); err != nil {
-		apierr.AbortValidation(c, "invalid system task: "+err.Error())
+		apierr.AbortWithError(c, err)
 		return
 	}
 

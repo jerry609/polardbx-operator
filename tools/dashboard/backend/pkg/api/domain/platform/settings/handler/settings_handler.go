@@ -72,11 +72,11 @@ func Update(c *gin.Context) {
 	}
 	var body map[string]any
 	if err := c.ShouldBindJSON(&body); err != nil {
-		apierr.AbortValidation(c, "invalid payload: "+err.Error())
+		apierr.AbortWithError(c, err)
 		return
 	}
 	if err := h.service.Update(c.Request.Context(), body); err != nil {
-		apierr.AbortInternal(c, "failed to update settings: "+err.Error())
+		apierr.AbortWithError(c, apierr.InternalServiceError("failed to update settings", err))
 		return
 	}
 	apierr.OK(c, body)
@@ -131,13 +131,13 @@ func UpdateImageRegistryConfig(c *gin.Context) {
 	}
 	var req UpdateImageRegistryRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		apierr.AbortValidation(c, "Invalid request: "+err.Error())
+		apierr.AbortWithError(c, err)
 		return
 	}
 
 	data, err := h.service.UpdateImageRegistryConfig(req.Registry, req.CustomRegistry, req.DefaultRegistry)
 	if err != nil {
-		apierr.AbortValidation(c, err.Error())
+		apierr.AbortWithError(c, apierr.ValidationError(err.Error(), nil))
 		return
 	}
 
@@ -183,7 +183,7 @@ type TestImageRegistryRequest struct {
 func TestImageRegistry(c *gin.Context) {
 	var req TestImageRegistryRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		apierr.AbortValidation(c, "Invalid request: "+err.Error())
+		apierr.AbortWithError(c, err)
 		return
 	}
 

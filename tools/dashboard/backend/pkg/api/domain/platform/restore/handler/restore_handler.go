@@ -71,12 +71,12 @@ func (h *RestoreHandler) restoreCluster(c *gin.Context) {
 		StorageProvider *struct {
 			Type   string            `json:"type"`
 			Config map[string]string `json:"config"`
-		} `json:"storageProvider,omitempty"`
+	} `json:"storageProvider,omitempty"`
 		Time     string `json:"time,omitempty"`
 		TimeZone string `json:"timezone,omitempty"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		apierr.AbortValidation(c, "invalid restore request")
+		apierr.AbortWithError(c, err)
 		return
 	}
 	if req.BackupSet == "" && req.BackupName != "" {
@@ -86,7 +86,7 @@ func (h *RestoreHandler) restoreCluster(c *gin.Context) {
 		req.TargetCluster = req.TargetName
 	}
 	if strings.TrimSpace(req.BackupSet) == "" {
-		apierr.AbortValidation(c, "backupSet (or backupName) is required")
+		apierr.AbortWithError(c, apierr.ValidationError("backupSet (or backupName) is required", nil))
 		return
 	}
 
@@ -99,7 +99,7 @@ func (h *RestoreHandler) restoreCluster(c *gin.Context) {
 			return
 		}
 		if backup.Status.Phase != polardbxv1.BackupFinished {
-			apierr.AbortValidation(c, fmt.Sprintf("backup not ready: phase=%s", backup.Status.Phase))
+			apierr.AbortWithError(c, apierr.ValidationError(fmt.Sprintf("backup not ready: phase=%s", backup.Status.Phase), nil))
 			return
 		}
 	}
@@ -201,10 +201,10 @@ func (h *RestoreHandler) initiatePITR(c *gin.Context) {
 		StorageProvider *struct {
 			Type   string            `json:"type"`
 			Config map[string]string `json:"config"`
-		} `json:"storageProvider"`
+	} `json:"storageProvider"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		apierr.AbortValidation(c, "invalid PITR request: "+err.Error())
+		apierr.AbortWithError(c, err)
 		return
 	}
 
@@ -220,7 +220,7 @@ func (h *RestoreHandler) initiatePITR(c *gin.Context) {
 	}
 
 	if strings.TrimSpace(req.Time) == "" {
-		apierr.AbortValidation(c, "time (or targetTime) is required")
+		apierr.AbortWithError(c, apierr.ValidationError("time (or targetTime) is required", nil))
 		return
 	}
 
@@ -233,7 +233,7 @@ func (h *RestoreHandler) initiatePITR(c *gin.Context) {
 			return
 		}
 		if backup.Status.Phase != polardbxv1.BackupFinished {
-			apierr.AbortValidation(c, fmt.Sprintf("backup not ready: phase=%s", backup.Status.Phase))
+			apierr.AbortWithError(c, apierr.ValidationError(fmt.Sprintf("backup not ready: phase=%s", backup.Status.Phase), nil))
 			return
 		}
 	}
@@ -531,7 +531,7 @@ func CancelJob(c *gin.Context) {
 	_, err := h.repo.GetBackup(c.Request.Context(), ns, name)
 	if err != nil {
 		// Job does not exist
-		apierr.AbortNotFound(c, "restore job", fmt.Sprintf("%s/%s", ns, name))
+		apierr.AbortWithError(c, apierr.NotFoundError("restore job", fmt.Sprintf("%s/%s", ns, name)))
 		return
 	}
 

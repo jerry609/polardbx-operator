@@ -60,7 +60,7 @@ func Create(c *gin.Context) {
 
 	var body polardbxv1.XStore
 	if err := c.ShouldBindJSON(&body); err != nil {
-		apierr.AbortValidation(c, "invalid xstore: "+err.Error())
+		apierr.AbortWithError(c, err)
 		return
 	}
 
@@ -122,7 +122,7 @@ func Update(c *gin.Context) {
 
 	var body polardbxv1.XStore
 	if err := c.ShouldBindJSON(&body); err != nil {
-		apierr.AbortValidation(c, "invalid xstore: "+err.Error())
+		apierr.AbortWithError(c, err)
 		return
 	}
 	body.Namespace = ns

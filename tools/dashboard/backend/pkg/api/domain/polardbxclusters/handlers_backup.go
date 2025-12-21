@@ -59,7 +59,7 @@ func CreateBackup(c *gin.Context) {
 
 	var backup polardbxv1.PolarDBXBackup
 	if err := c.ShouldBindJSON(&backup); err != nil {
-		apierr.AbortValidation(c, "failed to parse backup data: "+err.Error())
+		apierr.AbortWithError(c, err)
 		return
 	}
 	clusterName := c.Param("name")
@@ -125,7 +125,7 @@ func ValidateBackup(c *gin.Context) {
 
 	var backup polardbxv1.PolarDBXBackup
 	if err := c.ShouldBindJSON(&backup); err != nil {
-		apierr.AbortValidation(c, "failed to parse backup data: "+err.Error())
+		apierr.AbortWithError(c, err)
 		return
 	}
 	ns := c.Query("namespace")
@@ -163,7 +163,7 @@ func StreamBackupEvents(c *gin.Context) {
 	name := c.Param("name")
 	flusher, ok := c.Writer.(http.Flusher)
 	if !ok {
-		apierr.AbortInternal(c, "streaming unsupported")
+		apierr.AbortWithError(c, apierr.InternalServiceError("streaming unsupported", nil))
 		return
 	}
 	// Set standard SSE headers before starting the stream.
@@ -326,7 +326,7 @@ func CreateSchedule(c *gin.Context) {
 	ns := util.DefaultNamespace(c, "default")
 	var body polardbxv1.PolarDBXBackupSchedule
 	if err := c.ShouldBindJSON(&body); err != nil {
-		apierr.AbortValidation(c, "invalid schedule: "+err.Error())
+		apierr.AbortWithError(c, err)
 		return
 	}
 	created, err := svc.CreateSchedule(c.Request.Context(), cli, ns, &body)
@@ -385,7 +385,7 @@ func UpdateSchedule(c *gin.Context) {
 	ns := c.Param("namespace")
 	var body polardbxv1.PolarDBXBackupSchedule
 	if err := c.ShouldBindJSON(&body); err != nil {
-		apierr.AbortValidation(c, "invalid schedule: "+err.Error())
+		apierr.AbortWithError(c, err)
 		return
 	}
 	updated, err := svc.UpdateSchedule(c.Request.Context(), cli, ns, &body)
@@ -548,7 +548,7 @@ func ValidateHpfsSink(c *gin.Context) {
 		Type string `json:"type"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		apierr.AbortValidation(c, "invalid request body")
+		apierr.AbortWithError(c, err)
 		return
 	}
 	systemNS := c.DefaultQuery("systemNamespace", "polardbx-operator-system")

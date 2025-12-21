@@ -84,28 +84,36 @@ func main() {
 	}
 
 	// Start server in goroutine
+	serverErrCh := make(chan error, 1)
 	go func() {
 		logger.Info("Starting server",
 			"address", srv.Addr,
 			"mode", cfg.Server.Mode,
 		)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Fatal("Server failed", "error", err)
+			serverErrCh <- err
 		}
 	}()
 
 	// Wait for interrupt signal for graceful shutdown
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	sig := <-quit
-	logger.Info("Received shutdown signal", "signal", sig.String())
+	var shutdownReason string
+	select {
+	case sig := <-quit:
+		shutdownReason = "signal:" + sig.String()
+		logger.Info("Received shutdown signal", "signal", sig.String())
+	case err := <-serverErrCh:
+		shutdownReason = "server_error"
+		logger.Error("Server failed", "error", err)
+	}
 
 	// Create shutdown context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), cfg.Server.ShutdownTimeout)
 	defer cancel()
 
 	// Graceful shutdown sequence
-	logger.Info("Starting graceful shutdown...")
+	logger.Info("Starting graceful shutdown...", "reason", shutdownReason)
 
 	// 1. Stop accepting new requests
 	if err := srv.Shutdown(ctx); err != nil {

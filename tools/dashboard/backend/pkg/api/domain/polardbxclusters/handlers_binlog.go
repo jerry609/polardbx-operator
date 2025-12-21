@@ -54,7 +54,7 @@ func CreateBackupBinlog(c *gin.Context) {
 	ns := c.DefaultQuery("namespace", "default")
 	var obj polardbxv1.PolarDBXBackupBinlog
 	if err := c.ShouldBindJSON(&obj); err != nil {
-		apierr.AbortValidation(c, "invalid backup binlog: "+err.Error())
+		apierr.AbortWithError(c, err)
 		return
 	}
 	created, err := services.NewBackupBinlogService().CreateBinlog(c.Request.Context(), cli, ns, &obj)
@@ -113,7 +113,7 @@ func UpdateBackupBinlog(c *gin.Context) {
 	ns := c.Param("namespace")
 	var obj polardbxv1.PolarDBXBackupBinlog
 	if err := c.ShouldBindJSON(&obj); err != nil {
-		apierr.AbortValidation(c, "invalid backup binlog: "+err.Error())
+		apierr.AbortWithError(c, err)
 		return
 	}
 	updated, err := services.NewBackupBinlogService().UpdateBinlog(c.Request.Context(), cli, ns, &obj)

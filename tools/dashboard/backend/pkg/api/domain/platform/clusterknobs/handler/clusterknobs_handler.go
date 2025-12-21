@@ -54,7 +54,7 @@ func Create(c *gin.Context) {
 	}
 	var payload polardbxv1.PolarDBXClusterKnobs
 	if err := c.ShouldBindJSON(&payload); err != nil {
-		apierr.AbortValidation(c, "invalid cluster knobs data: "+err.Error())
+		apierr.AbortWithError(c, err)
 		return
 	}
 	created, err := k8s.CreateClusterKnobs(cli, &payload)
@@ -117,7 +117,7 @@ func Update(c *gin.Context) {
 	name := c.Param("name")
 	var payload polardbxv1.PolarDBXClusterKnobs
 	if err := c.ShouldBindJSON(&payload); err != nil {
-		apierr.AbortValidation(c, "invalid cluster knobs data: "+err.Error())
+		apierr.AbortWithError(c, err)
 		return
 	}
 	payload.Namespace = namespace

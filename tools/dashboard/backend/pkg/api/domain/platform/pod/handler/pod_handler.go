@@ -39,7 +39,7 @@ func NewPodHandler(svc *service.PodService) *PodHandler {
 func NewPodHandlerFromContext(c *gin.Context) (*PodHandler, bool) {
 	p, ok := provider.FromContext(c)
 	if !ok {
-		apierr.AbortInternal(c, "service provider missing")
+		apierr.AbortWithError(c, apierr.InternalServiceError("service provider missing", nil))
 		return nil, false
 	}
 	svc, ok := p.PodService(c)
@@ -372,7 +372,7 @@ func handleExecWebSocketSecure(c *gin.Context, rows, cols int) {
 	if err != nil {
 		logger.Error("ERROR: Failed to create REST config for exec",
 			"error", err)
-		apierr.AbortInternal(c, "configuration error")
+		apierr.AbortWithError(c, apierr.InternalServiceError("configuration error", err))
 		return
 	}
 	restCfg.APIPath = "/api"
@@ -383,7 +383,7 @@ func handleExecWebSocketSecure(c *gin.Context, rows, cols int) {
 	if err != nil {
 		logger.Error("ERROR: Failed to create clientset for exec",
 			"error", err)
-		apierr.AbortInternal(c, "client initialization failed")
+		apierr.AbortWithError(c, apierr.InternalServiceError("client initialization failed", err))
 		return
 	}
 

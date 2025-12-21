@@ -66,7 +66,7 @@ func ContextInfo(c *gin.Context) {
 func ListNamespaces(c *gin.Context) {
 	h, ok := NewSystemHandlerFromClient(c)
 	if !ok {
-		apierr.AbortInternal(c, "kubernetes client not initialized")
+		apierr.AbortWithError(c, apierr.InternalServiceError("kubernetes client not initialized", nil))
 		return
 	}
 	h.listNamespaces(c)
@@ -92,7 +92,7 @@ func (h *SystemHandler) listNamespaces(c *gin.Context) {
 func ListStorageClasses(c *gin.Context) {
 	h, ok := NewSystemHandlerFromClient(c)
 	if !ok {
-		apierr.AbortInternal(c, "kubernetes client not initialized")
+		apierr.AbortWithError(c, apierr.InternalServiceError("kubernetes client not initialized", nil))
 		return
 	}
 	h.listStorageClasses(c)

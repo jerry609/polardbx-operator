@@ -57,7 +57,7 @@ func GetConfig(c *gin.Context) {
 func (h *GrafanaHandler) getConfig(c *gin.Context) {
 	config, err := h.repo.GetConfig(c.Request.Context())
 	if err != nil {
-		apierr.AbortInternal(c, "failed to get grafana config: "+err.Error())
+		apierr.AbortWithError(c, apierr.InternalServiceError("failed to get grafana config", err))
 		return
 	}
 	apierr.OK(c, config)
@@ -85,12 +85,12 @@ func PutConfig(c *gin.Context) {
 func (h *GrafanaHandler) putConfig(c *gin.Context) {
 	var req repository.GrafanaConfig
 	if err := c.ShouldBindJSON(&req); err != nil {
-		apierr.AbortValidation(c, "invalid payload: "+err.Error())
+		apierr.AbortWithError(c, err)
 		return
 	}
 
 	if err := h.repo.SaveConfig(c.Request.Context(), &req); err != nil {
-		apierr.AbortInternal(c, err.Error())
+		apierr.AbortWithError(c, apierr.InternalServiceError("failed to save grafana config", err))
 		return
 	}
 	apierr.OK(c, req)
@@ -121,13 +121,13 @@ func (h *GrafanaHandler) syncDashboards(c *gin.Context) {
 		Overwrite  bool              `json:"overwrite"`
 	}
 	if err := c.ShouldBindJSON(&body); err != nil {
-		apierr.AbortValidation(c, "invalid payload: "+err.Error())
+		apierr.AbortWithError(c, err)
 		return
 	}
 
 	count, err := h.repo.SaveDashboards(c.Request.Context(), body.Dashboards, body.Overwrite)
 	if err != nil {
-		apierr.AbortInternal(c, err.Error())
+		apierr.AbortWithError(c, apierr.InternalServiceError("failed to save dashboards", err))
 		return
 	}
 	apierr.Accepted(c, gin.H{"message": "dashboards synced", "count": count})
@@ -152,7 +152,7 @@ func ListDashboards(c *gin.Context) {
 func (h *GrafanaHandler) listDashboards(c *gin.Context) {
 	data, err := h.repo.GetDashboards(c.Request.Context())
 	if err != nil {
-		apierr.AbortInternal(c, err.Error())
+		apierr.AbortWithError(c, apierr.InternalServiceError("failed to get dashboards", err))
 		return
 	}
 
@@ -205,7 +205,7 @@ func (h *GrafanaHandler) listDashboardVersions(c *gin.Context) {
 	name := c.Param("name")
 	data, err := h.repo.GetDashboards(c.Request.Context())
 	if err != nil {
-		apierr.AbortInternal(c, err.Error())
+		apierr.AbortWithError(c, apierr.InternalServiceError("failed to get dashboards", err))
 		return
 	}
 
@@ -245,28 +245,32 @@ func (h *GrafanaHandler) rollbackDashboard(c *gin.Context) {
 	var body struct {
 		Version int `json:"version"`
 	}
-	if err := c.ShouldBindJSON(&body); err != nil || body.Version <= 0 {
-		apierr.AbortValidation(c, "invalid payload")
+	if err := c.ShouldBindJSON(&body); err != nil {
+		apierr.AbortWithError(c, err)
+		return
+	}
+	if body.Version <= 0 {
+		apierr.AbortWithError(c, apierr.ValidationError("invalid payload", nil))
 		return
 	}
 
 	data, err := h.repo.GetDashboards(c.Request.Context())
 	if err != nil {
-		apierr.AbortInternal(c, err.Error())
+		apierr.AbortWithError(c, apierr.InternalServiceError("failed to get dashboards", err))
 		return
 	}
 
 	targetKey := fmt.Sprintf("%s@v%04d", name, body.Version)
 	target, ok := data[targetKey]
 	if !ok {
-		apierr.AbortNotFound(c, "dashboard version", targetKey)
+		apierr.AbortWithError(c, apierr.NotFoundError("dashboard version", targetKey))
 		return
 	}
 
 	// Save current version and rollback
 	rollback := map[string]string{name: target}
 	if _, err := h.repo.SaveDashboards(c.Request.Context(), rollback, true); err != nil {
-		apierr.AbortInternal(c, "failed to rollback: "+err.Error())
+		apierr.AbortWithError(c, apierr.InternalServiceError("failed to rollback dashboard", err))
 		return
 	}
 
@@ -311,16 +315,16 @@ func ListTemplates(c *gin.Context) {
 	dir, err := ResolveTemplatesDir()
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			apierr.AbortNotFound(c, "grafana dashboard templates directory", "")
+			apierr.AbortWithError(c, apierr.NotFoundError("grafana dashboard templates directory", ""))
 		} else {
-			apierr.AbortInternal(c, "grafana dashboard templates directory not found: "+err.Error())
+			apierr.AbortWithError(c, apierr.InternalServiceError("grafana dashboard templates directory not found", err))
 		}
 		return
 	}
 
 	items, err := LoadTemplateSummaries(dir)
 	if err != nil {
-		apierr.AbortInternal(c, "failed to load grafana templates: "+err.Error())
+		apierr.AbortWithError(c, apierr.InternalServiceError("failed to load grafana templates", err))
 		return
 	}
 
@@ -344,16 +348,16 @@ func ListTemplates(c *gin.Context) {
 func GetTemplate(c *gin.Context) {
 	name := c.Param("name")
 	if name == "" {
-		apierr.AbortValidation(c, "template name is required")
+		apierr.AbortWithError(c, apierr.ValidationError("template name is required", nil))
 		return
 	}
 
 	dir, err := ResolveTemplatesDir()
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			apierr.AbortNotFound(c, "grafana dashboard templates directory", "")
+			apierr.AbortWithError(c, apierr.NotFoundError("grafana dashboard templates directory", ""))
 		} else {
-			apierr.AbortInternal(c, "grafana dashboard templates directory not found: "+err.Error())
+			apierr.AbortWithError(c, apierr.InternalServiceError("grafana dashboard templates directory not found", err))
 		}
 		return
 	}
@@ -361,10 +365,10 @@ func GetTemplate(c *gin.Context) {
 	detail, err := LoadTemplateDetail(dir, name)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			apierr.AbortNotFound(c, "template", name)
+			apierr.AbortWithError(c, apierr.NotFoundError("template", name))
 			return
 		}
-		apierr.AbortInternal(c, "failed to load template: "+err.Error())
+		apierr.AbortWithError(c, apierr.InternalServiceError("failed to load template", err))
 		return
 	}
 

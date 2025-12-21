@@ -178,8 +178,8 @@ func KubeconfigAuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		// Create Kubernetes clients with normalized kubeconfig
-		ctrlClient, clientset, dynClient, err := newAllClientsFromKubeconfig(normalized)
+		// Create Kubernetes clients with normalized kubeconfig (cached by kubeconfig hash)
+		clients, cacheHit, err := apiutil.GetOrCreateK8sClientsFromKubeconfig(normalized, newAllClientsFromKubeconfig)
 		if err != nil {
 			logger.Error("KubeconfigAuthMiddleware: client creation failed",
 				"path", requestPath,
@@ -189,9 +189,14 @@ func KubeconfigAuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		c.Set("k8sClient", ctrlClient)
-		c.Set("clientset", clientset)
-		c.Set("dynamic-client", dynClient)
+		if cacheHit {
+			logger.Debug("KubeconfigAuthMiddleware: reused cached kubernetes clients",
+				"path", requestPath)
+		}
+
+		c.Set("k8sClient", clients.Client)
+		c.Set("clientset", clients.Clientset)
+		c.Set("dynamic-client", clients.Dynamic)
 
 		// Extract identity for audit (best-effort)
 		if cfg != nil {

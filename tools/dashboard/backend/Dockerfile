@@ -1,33 +1,36 @@
+# This Dockerfile is intended to be built with the repository root as the build context:
+#
+#   docker build -f tools/dashboard/backend/Dockerfile -t polardbx-dashboard-backend:dev .
+#
+# The backend module relies on a local `replace github.com/alibaba/polardbx-operator => ../../..`,
+# so we copy the repo root `go.mod/go.sum` and the `api/` package into the image.
+
 # --- Stage 1: Build ---
-# Use an official Go image as a builder image
 FROM golang:1.21-alpine AS builder
 
-# Set the working directory
-WORKDIR /app
+WORKDIR /src
 
 ARG VERSION=dev
 ARG COMMIT=unknown
 ARG BUILD_DATE=unknown
 ARG GO_VERSION=unknown
 
-# Copy the Go module files
-# We copy them first to leverage Docker layer caching
+# Copy module files first (better layer caching)
 COPY go.mod go.sum ./
-# Because of the 'replace' directive, we need the parent module's go.mod
-COPY ../go.mod ../go.sum ../
+COPY tools/dashboard/backend/go.mod tools/dashboard/backend/go.sum tools/dashboard/backend/
 
-# Copy the source code of the backend and the operator API definitions
-COPY . .
-COPY ../api ../api
+# Copy backend source and operator API definitions needed by the replace directive.
+COPY api api
+COPY pkg pkg
+COPY tools/dashboard/backend tools/dashboard/backend
 
 # Download dependencies. The replace directive will be respected.
-RUN go mod tidy
-RUN go mod download
+RUN cd tools/dashboard/backend && go mod tidy && go mod download
 
 # Build the Go app, creating a static binary
 # CGO_ENABLED=0 is important for a static build
 # -ldflags="-w -s" strips debug information to reduce binary size
-RUN CGO_ENABLED=0 GOOS=linux go build -a -ldflags="-w -s \
+RUN cd tools/dashboard/backend && CGO_ENABLED=0 GOOS=linux go build -a -ldflags="-w -s \
     -X 'polardbx-dashboard-backend/pkg/api/router.Version=${VERSION}' \
     -X 'polardbx-dashboard-backend/pkg/api/router.Commit=${COMMIT}' \
     -X 'polardbx-dashboard-backend/pkg/api/router.BuildDate=${BUILD_DATE}' \

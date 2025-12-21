@@ -51,12 +51,12 @@ func ClientsetFromContext(c *gin.Context) (kubernetes.Interface, bool) {
 func DynamicClientFromContext(c *gin.Context) (dynamic.Interface, bool) {
 	v, ok := c.Get("dynamic-client")
 	if !ok {
-		apierr.AbortInternal(c, "Kubernetes dynamic client not available")
+		apierr.AbortWithError(c, apierr.InternalServiceError("Kubernetes dynamic client not available", nil))
 		return nil, false
 	}
 	dynClient, ok := v.(dynamic.Interface)
 	if !ok || dynClient == nil {
-		apierr.AbortInternal(c, "Invalid dynamic client in context")
+		apierr.AbortWithError(c, apierr.InternalServiceError("Invalid dynamic client in context", nil))
 		return nil, false
 	}
 	return dynClient, true
@@ -147,7 +147,8 @@ func CrudCtx(c *gin.Context) (context.Context, context.CancelFunc) {
 // On validation error it aborts and returns ok=false.
 func BindValidateAndCtx(c *gin.Context, dst interface{}, timeout time.Duration, validators ...func(interface{}) error) (context.Context, context.CancelFunc, bool) {
 	if err := c.ShouldBindJSON(dst); err != nil {
-		apierr.AbortValidation(c, "invalid request body: "+err.Error())
+		// Let ConvertServiceError normalize binding/validation errors (field-level details when available).
+		apierr.AbortWithError(c, err)
 		return nil, nil, false
 	}
 	for _, validate := range validators {
@@ -155,7 +156,12 @@ func BindValidateAndCtx(c *gin.Context, dst interface{}, timeout time.Duration, 
 			continue
 		}
 		if err := validate(dst); err != nil {
-			apierr.AbortValidation(c, err.Error())
+			// Treat validator failures as user input validation errors by default.
+			if _, ok := err.(*apierr.ServiceError); ok {
+				apierr.AbortWithError(c, err)
+				return nil, nil, false
+			}
+			apierr.AbortWithError(c, apierr.ValidationError(err.Error(), nil))
 			return nil, nil, false
 		}
 	}
@@ -223,7 +229,7 @@ func InitClientsFromKubeconfigB64(c *gin.Context, kubeconfigB64 string) (client.
 
 // NotFound is a helper for deprecated endpoints after migration.
 func NotFound(c *gin.Context) {
-	apierr.AbortNotFound(c, "endpoint", "deprecated - use new domain handlers")
+	apierr.AbortWithError(c, apierr.NotFoundError("endpoint", "deprecated - use new domain handlers"))
 }
 
 // K8sPatchClusterJSON is a small wrapper to patch PolarDBXCluster with raw JSON merge patch.

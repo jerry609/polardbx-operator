@@ -40,7 +40,7 @@ func UpdateLogConfig(c *gin.Context) {
 	nodeType := c.Param("nodeType")
 	var req services.LogConfigRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		apierr.AbortValidation(c, "invalid log config data: "+err.Error())
+		apierr.AbortWithError(c, err)
 		return
 	}
 	if err := services.NewClusterService().UpdateLogConfig(c.Request.Context(), cli, ns, name, nodeType, &req); err != nil {
@@ -73,7 +73,7 @@ func Scale(c *gin.Context) {
 	name := c.Param("name")
 	var req services.ClusterScalingRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		apierr.AbortValidation(c, "invalid scaling request: "+err.Error())
+		apierr.AbortWithError(c, err)
 		return
 	}
 	if err := services.NewClusterService().Scale(c.Request.Context(), cli, ns, name, &req); err != nil {
@@ -106,7 +106,7 @@ func Upgrade(c *gin.Context) {
 	name := c.Param("name")
 	var req services.ClusterUpgradeRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		apierr.AbortValidation(c, "invalid upgrade request: "+err.Error())
+		apierr.AbortWithError(c, err)
 		return
 	}
 	if err := services.NewClusterService().Upgrade(c.Request.Context(), cli, ns, name, &req); err != nil {
@@ -186,7 +186,7 @@ func GetUpgradePlan(c *gin.Context) {
 	// Get current cluster information
 	var cluster polardbxv1.PolarDBXCluster
 	if err := cli.Get(c.Request.Context(), client.ObjectKey{Namespace: namespace, Name: name}, &cluster); err != nil {
-		apierr.AbortNotFound(c, "cluster", name)
+		apierr.AbortWithError(c, err)
 		return
 	}
 

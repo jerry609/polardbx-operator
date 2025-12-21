@@ -93,7 +93,7 @@ func loadServerConfig() *ServerConfig {
 		LogRequestBody:     getEnvBool("LOG_REQUEST_BODY", true),
 		LogResponseBody:    getEnvBool("LOG_RESPONSE_BODY", false),
 		LogMaxBodySize:     getEnvInt("LOG_MAX_BODY_SIZE", 4096),
-		LogSkipPaths:       parseListEnv("LOG_SKIP_PATHS", []string{"/ping", "/health", "/ready", "/metrics"}),
+		LogSkipPaths:       parseListEnv("LOG_SKIP_PATHS", []string{"/ping", "/health", "/ready", "/metrics", "/api/v1/connect", "/api/v1/auth/login"}),
 		LogSensitiveFields: parseListEnv("LOG_SENSITIVE_FIELDS", []string{"password", "token", "secret", "kubeconfig", "authorization"}),
 
 		// Security settings

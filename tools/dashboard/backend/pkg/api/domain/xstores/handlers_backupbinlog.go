@@ -60,7 +60,7 @@ func CreateBackupBinlog(c *gin.Context) {
 
 	var obj polardbxv1.XStoreBackupBinlog
 	if err := c.ShouldBindJSON(&obj); err != nil {
-		apierr.AbortValidation(c, "invalid xstore backup binlog: "+err.Error())
+		apierr.AbortWithError(c, err)
 		return
 	}
 
@@ -122,7 +122,7 @@ func UpdateBackupBinlog(c *gin.Context) {
 
 	var obj polardbxv1.XStoreBackupBinlog
 	if err := c.ShouldBindJSON(&obj); err != nil {
-		apierr.AbortValidation(c, "invalid xstore backup binlog: "+err.Error())
+		apierr.AbortWithError(c, err)
 		return
 	}
 

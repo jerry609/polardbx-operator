@@ -60,7 +60,7 @@ func CreateBackup(c *gin.Context) {
 
 	var body k8srepo.XStoreBackupAlias
 	if err := c.ShouldBindJSON(&body); err != nil {
-		apierr.AbortValidation(c, "invalid xstore backup: "+err.Error())
+		apierr.AbortWithError(c, err)
 		return
 	}
 	obj := body.As()
@@ -123,7 +123,7 @@ func UpdateBackup(c *gin.Context) {
 
 	var body k8srepo.XStoreBackupAlias
 	if err := c.ShouldBindJSON(&body); err != nil {
-		apierr.AbortValidation(c, "invalid xstore backup: "+err.Error())
+		apierr.AbortWithError(c, err)
 		return
 	}
 	obj := body.As()

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
 	"strings"
 	"time"
 
@@ -89,15 +90,26 @@ func RequestLogger(config ...RequestLogConfig) gin.HandlerFunc {
 		)
 
 		// Read request body (if needed)
-		if cfg.LogRequestBody && c.Request.Body != nil && c.Request.ContentLength > 0 {
-			bodyBytes, _ := io.ReadAll(c.Request.Body)
-			c.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
-			body := string(bodyBytes)
-			if len(bodyBytes) > cfg.MaxBodyLogSize {
-				body = body[:cfg.MaxBodyLogSize] + "...(truncated)"
+		if cfg.LogRequestBody && c.Request.Body != nil && c.Request.Body != http.NoBody {
+			max := cfg.MaxBodyLogSize
+			if max <= 0 {
+				max = DefaultLogConfig.MaxBodyLogSize
 			}
-			body = maskSensitiveFields(body, cfg.SensitiveFields)
-			l.Info("request received", zap.String("requestBody", truncateString(body, cfg.MaxBodyLogSize)))
+
+			// If Content-Length is known and too large, avoid reading it into memory just for logging.
+			if c.Request.ContentLength > int64(max) && c.Request.ContentLength != -1 {
+				l.Info("request received", zap.String("requestBody", "(omitted: too large)"))
+			} else {
+				peek, _ := io.ReadAll(io.LimitReader(c.Request.Body, int64(max)+1))
+				c.Request.Body = io.NopCloser(io.MultiReader(bytes.NewReader(peek), c.Request.Body))
+
+				body := string(peek)
+				if len(peek) > max {
+					body = body[:max] + "...(truncated)"
+				}
+				body = maskSensitiveFields(body, cfg.SensitiveFields)
+				l.Info("request received", zap.String("requestBody", body))
+			}
 		} else {
 			l.Info("request received")
 		}

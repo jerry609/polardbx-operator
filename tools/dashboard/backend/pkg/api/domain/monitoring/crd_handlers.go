@@ -38,7 +38,7 @@ func CreateMonitor(c *gin.Context) {
 	namespace := util.DefaultNamespace(c, "default")
 	var monitor polardbxv1.PolarDBXMonitor
 	if err := c.ShouldBindJSON(&monitor); err != nil {
-		apierr.AbortValidation(c, "failed to parse monitor data: "+err.Error())
+		apierr.AbortWithError(c, err)
 		return
 	}
 	created, err := k8s.CreatePolarDBXMonitorWithContext(c.Request.Context(), k8sClient, namespace, &monitor)
@@ -76,7 +76,7 @@ func UpdateMonitor(c *gin.Context) {
 	ns := c.Param("namespace")
 	var m polardbxv1.PolarDBXMonitor
 	if err := c.ShouldBindJSON(&m); err != nil {
-		apierr.AbortValidation(c, "failed to parse monitor data: "+err.Error())
+		apierr.AbortWithError(c, err)
 		return
 	}
 	m.Namespace = ns
